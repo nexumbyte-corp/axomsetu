@@ -1,0 +1,38 @@
+import { z } from 'zod';
+
+export const genericReportQuerySchema = z.object({
+  academicYearId: z.string().uuid().optional().or(z.literal('')),
+  classId: z.string().uuid().optional().or(z.literal('')),
+  sectionId: z.string().uuid().optional().or(z.literal('')),
+  mediumId: z.string().uuid().optional().or(z.literal('')),
+  streamId: z.string().uuid().optional().or(z.literal('')),
+  studentId: z.string().uuid().optional().or(z.literal('')),
+  staffId: z.string().uuid().optional().or(z.literal('')),
+  categoryId: z.string().uuid().optional().or(z.literal('')),
+  fundSourceId: z.string().uuid().optional().or(z.literal('')),
+  feeTypeId: z.string().uuid().optional().or(z.literal('')),
+  status: z.string().optional().or(z.literal('')),
+  search: z.string().optional().or(z.literal('')),
+  month: z.string().optional().or(z.literal('')),
+  year: z.string().optional().or(z.literal('')),
+  department: z.string().optional().or(z.literal('')),
+  designation: z.string().optional().or(z.literal('')),
+  role: z.string().optional().or(z.literal('')),
+  paymentMode: z.string().optional().or(z.literal('')),
+  type: z.string().optional().or(z.literal('')),
+  sourceType: z.string().optional().or(z.literal('')),
+  action: z.string().optional().or(z.literal('')),
+  entityType: z.string().optional().or(z.literal('')),
+  userId: z.string().uuid().optional().or(z.literal('')),
+  startDate: z.string().optional().or(z.literal('')),
+  endDate: z.string().optional().or(z.literal('')),
+  date: z.string().optional().or(z.literal('')),
+  page: z.string().optional().or(z.literal('')),
+  limit: z.string().optional().or(z.literal('')),
+});
+
+export const dailyCollectionQuerySchema = genericReportQuerySchema;
+export const monthlyCollectionQuerySchema = genericReportQuerySchema;
+export const classCollectionQuerySchema = genericReportQuerySchema;
+export const duesReportQuerySchema = genericReportQuerySchema;
+export const exportPaymentsQuerySchema = genericReportQuerySchema;

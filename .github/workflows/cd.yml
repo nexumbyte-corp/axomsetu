@@ -1,0 +1,91 @@
+name: CD (Continuous Deployment)
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Production Host Server (PM2 Setup)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Execute Remote Deployment via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+            echo "Starting Production Deployment"
+
+            # 0. Load Node.js, NPM, and PM2 environment
+            export NVM_DIR="$HOME/.nvm"
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              . "$NVM_DIR/nvm.sh"
+            fi
+            export PATH=$PATH:/usr/local/bin:/usr/bin:~/.nvm/versions/node/$(ls ~/.nvm/versions/node 2>/dev/null | tail -n 1)/bin
+
+            DEPLOY_DIR="${{ secrets.DEPLOY_PATH || '/var/www/axomsetu' }}"
+            echo "Deployment Directory: ${DEPLOY_DIR}"
+            
+            # 1. Synchronize repository with origin
+            echo "Syncing latest codebase..."
+            cd "$DEPLOY_DIR"
+            git fetch --all --prune
+            git reset --hard origin/${{ github.ref_name }}
+
+            # 2. Server dependencies & database migrations
+            echo "Building and Migrating Backend (Server)..."
+            cd "$DEPLOY_DIR/server"
+            npm ci
+            npm run prisma:generate
+            npm run db:migrate:prod
+
+            # 3. Client dependencies & production bundle build
+            echo "Building Frontend Production Bundle (Client)..."
+            cd "$DEPLOY_DIR/client"
+            npm ci
+            npm run build
+
+            # 4. Zero-downtime application reload with PM2
+            echo "Reloading PM2 Application Cluster..."
+            cd "$DEPLOY_DIR/server"
+            pm2 reload ecosystem.config.cjs --env production --update-env || pm2 start ecosystem.config.cjs --env production --update-env
+            pm2 save
+
+            # 5. Application health check probe verification
+            echo "Performing API Health Check Probe..."
+            sleep 3
+            PORT=$(grep -E '^PORT=' .env 2>/dev/null | cut -d '=' -f2 | tr -d '\r" ' || echo "5000")
+            PORT="${PORT:-5000}"
+
+            echo "Probing backend health on port ${PORT}..."
+            HEALTH_SUCCESS=false
+
+            for url in "http://localhost:${PORT}/api/v1/health" "http://localhost:${PORT}/health" "http://localhost:${PORT}/"; do
+              if curl -sS -f "$url" > /dev/null; then
+                HEALTH_SUCCESS=true
+                echo "Health check probe succeeded at ${url}"
+                break
+              fi
+            done
+
+            if [ "$HEALTH_SUCCESS" = "true" ]; then
+              echo "Production application is operational!"
+            else
+              echo "Health check probe failed!"
+              exit 1
+            fi
+
+            echo "Deployment completed successfully!"

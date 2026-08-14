@@ -1,0 +1,1412 @@
+// Prisma schema for Multi-Tenant School SaaS Management System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum Role {
+  SUPER_ADMIN
+  SCHOOL_ADMIN
+}
+
+enum SchoolUserRole {
+  OWNER
+  SCHOOL_ADMIN
+  STAFF
+}
+
+enum SchoolStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum StudentStatus {
+  ACTIVE
+  LEFT
+  GRADUATED
+  ARCHIVED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  PROMOTED
+  REPEATED
+  LEFT
+}
+
+// DEPRECATED (Legacy Hostel Implementation — preserved for historical data compatibility)
+enum HostelStatus {
+  ACTIVE
+  LEFT
+}
+
+enum HostelGenderType {
+  BOYS
+  GIRLS
+  COMBINED
+}
+
+enum HostelBedStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  BLOCKED
+}
+
+enum HostelEnrollmentStatus {
+  ACTIVE
+  TRANSFERRED
+  EXITED
+}
+
+
+enum FeeFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum ChargeStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  WAIVED
+  VOID
+}
+
+enum PaymentMode {
+  CASH
+  UPI
+  BANK_TRANSFER
+  CHEQUE
+  DEMAND_DRAFT
+  OTHER
+}
+
+enum FinancialTransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum FinancialSourceType {
+  FEE_COLLECTION
+  FUND_ADDED
+  SALARY_PAYMENT
+  EXPENSE
+  STAFF_ADVANCE
+  ADVANCE_RECOVERY
+  FEE_REFUND
+  OPENING_BALANCE
+  OTHER
+}
+
+enum FeePaymentStatus {
+  SUCCESS
+  VOID
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK
+  CARD
+  OTHER
+}
+
+enum PaymentStatus {
+  SUCCESS
+  PENDING
+  FAILED
+}
+
+enum FeeMonth {
+  JANUARY
+  FEBRUARY
+  MARCH
+  APRIL
+  MAY
+  JUNE
+  JULY
+  AUGUST
+  SEPTEMBER
+  OCTOBER
+  NOVEMBER
+  DECEMBER
+}
+
+enum GenerationMode {
+  ENTIRE_SCHOOL
+  BY_CLASS
+  BY_STUDENT
+}
+
+enum FeeCategory {
+  ACADEMIC
+  HOSTEL
+}
+
+enum FeeBillingRule {
+  ONE_TIME_PER_ACADEMIC_YEAR
+  MONTHLY
+}
+
+enum FeeTypeSystemCode {
+  ADMISSION
+  TUITION
+  HOSTEL
+  HOSTEL_ADMISSION
+  MISC
+}
+
+enum StaffStatus {
+  ACTIVE
+  INACTIVE
+  RESIGNED
+  ON_LEAVE
+}
+
+enum StaffRole {
+  TEACHER
+  ADMINISTRATOR
+  ACCOUNTANT
+  LIBRARIAN
+  DRIVER
+  SUPPORT_STAFF
+  OTHER
+}
+
+// ==========================================
+// PLATFORM & USERS
+// ==========================================
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  phone        String?
+  role         Role     @default(SCHOOL_ADMIN)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  schoolAdmins                SchoolAdmin[]
+  receivedPayments            FeePayment[]                  @relation("FeePaymentReceivedBy")
+  createdExpenses             Expense[]                     @relation("ExpenseCreatedBy")
+  createdFeeGenerationBatches FeeGenerationBatch[]          @relation("FeeGenerationBatchCreatedBy")
+  createdSalaryPayments       SalaryPayment[]               @relation("SalaryPaymentCreatedBy")
+  createdFinancialTxns        FinancialTransaction[]        @relation("FinancialTxnCreatedBy")
+  createdFundTransactions     FundTransaction[]             @relation("FundTxnCreatedBy")
+  approvedSubscriptionPayments SubscriptionPayment[]        @relation("SubscriptionPaymentApprovedBy")
+  overriddenFeeCharges        StudentFeeCharge[]           @relation("FeeChargeOverriddenBy")
+  auditLogs                   AuditLog[]
+  sessions                    UserSession[]
+
+  @@map("users")
+}
+
+model School {
+  id        String       @id @default(uuid()) @db.Uuid
+  name      String
+  code      String       @unique
+  address   String?
+  phone     String?
+  email     String?
+  logoUrl       String?      @map("logo_url")
+  district      String?      @map("district")
+  state         String?      @map("state")
+  pincode       String?      @map("pincode")
+  udiseCode     String?      @map("udise_code")
+  affiliationNo String?      @map("affiliation_no")
+  website       String?      @map("website")
+  status        SchoolStatus @default(ACTIVE)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  admins               SchoolAdmin[]
+  academicYears        AcademicYear[]
+  classes              Class[]
+  sections             Section[]
+  mediums              Medium[]
+  streams              Stream[]
+  students             Student[]
+  studentEnrollments   StudentEnrollment[]
+  hostelEnrollments    StudentHostelEnrollment[]
+  hostels              Hostel[]
+  hostelRooms          HostelRoom[]
+  hostelBeds           HostelBed[]
+  activeHostelEnrollments HostelEnrollment[]
+  hostelTransferHistories HostelTransferHistory[]
+  hostelFeeConfigs     HostelFeeConfig[]
+  feeTypes             FeeType[]
+  feeStructures        FeeStructure[]
+  studentFeeOverrides  StudentFeeOverride[]
+  feeGenerationBatches FeeGenerationBatch[]
+  feeCharges           StudentFeeCharge[]
+  feePayments          FeePayment[]
+  expenseCategories    ExpenseCategory[]
+  expenses             Expense[]
+  fundSources          FundSource[]
+  fundTransactions     FundTransaction[]
+  financialTxns        FinancialTransaction[]
+  staff                Staff[]
+  staffAdvances        StaffAdvance[]
+  salaryPayments       SalaryPayment[]
+  salarySetups         StaffSalarySetup[]
+  monthlyPayrolls      MonthlyPayroll[]
+  documentSequences    DocumentSequence[]
+  subscriptions        SchoolSubscription[]
+  subscriptionPayments SubscriptionPayment[]
+  auditLogs            AuditLog[]
+  sessions             UserSession[]
+
+  @@map("schools")
+}
+
+model SchoolAdmin {
+  id         String         @id @default(uuid()) @db.Uuid
+  schoolId   String         @map("school_id") @db.Uuid
+  userId     String         @map("user_id") @db.Uuid
+  isOwner    Boolean        @default(false) @map("is_owner")
+  schoolRole SchoolUserRole @default(SCHOOL_ADMIN) @map("school_role")
+  isActive   Boolean        @default(true) @map("is_active")
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+
+  school      School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permissions SchoolUserPermission[]
+
+  @@unique([schoolId, userId])
+  @@index([schoolId])
+  @@index([userId])
+  @@map("school_admins")
+}
+
+model SchoolUserPermission {
+  id            String      @id @default(uuid()) @db.Uuid
+  schoolAdminId String      @map("school_admin_id") @db.Uuid
+  permission    String
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  schoolAdmin SchoolAdmin @relation(fields: [schoolAdminId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolAdminId, permission])
+  @@index([schoolAdminId])
+  @@map("school_user_permissions")
+}
+
+model UserSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  schoolId         String?   @map("school_id") @db.Uuid
+  sessionTokenHash String    @map("session_token_hash")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz
+  lastActivityAt   DateTime  @default(now()) @map("last_activity_at") @db.Timestamptz
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz
+  userAgent        String?   @map("user_agent")
+  ipAddress        String?   @map("ip_address")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school School? @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([sessionTokenHash])
+  @@index([expiresAt])
+  @@index([userId, revokedAt])
+  @@map("user_sessions")
+}
+
+// ==========================================
+// ACADEMIC STRUCTURE
+// ==========================================
+
+model AcademicYear {
+  id        String   @id @default(uuid()) @db.Uuid
+  schoolId  String   @map("school_id") @db.Uuid
+  name      String
+  startDate DateTime @map("start_date") @db.Date
+  endDate   DateTime @map("end_date") @db.Date
+  isCurrent Boolean  @default(false) @map("is_current")
+  isLocked  Boolean  @default(false) @map("is_locked")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school               School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollments          StudentEnrollment[]
+  hostelEnrollments    StudentHostelEnrollment[]
+  activeHostelEnrollments HostelEnrollment[]
+  hostelFeeConfigs     HostelFeeConfig[]
+  feeStructures        FeeStructure[]
+  studentFeeOverrides  StudentFeeOverride[]
+  feeGenerationBatches FeeGenerationBatch[]
+  feeCharges           StudentFeeCharge[]
+  feePayments          FeePayment[]
+  expenses             Expense[]
+  fundTransactions     FundTransaction[]
+  financialTxns        FinancialTransaction[]
+  salaryPayments       SalaryPayment[]
+  salarySetups         StaffSalarySetup[]
+  monthlyPayrolls      MonthlyPayroll[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("academic_years")
+}
+
+model Class {
+  id        String   @id @default(uuid()) @db.Uuid
+  schoolId  String   @map("school_id") @db.Uuid
+  name      String
+  code      String?
+  order     Int      @default(0)
+  hasStream Boolean  @default(false) @map("has_stream")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school               School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollments          StudentEnrollment[]
+  feeStructures        FeeStructure[]
+  feeGenerationBatches FeeGenerationBatch[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("classes")
+}
+
+model Section {
+  id        String   @id @default(uuid()) @db.Uuid
+  schoolId  String   @map("school_id") @db.Uuid
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school               School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollments          StudentEnrollment[]
+  feeGenerationBatches FeeGenerationBatch[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("sections")
+}
+
+model Medium {
+  id        String   @id @default(uuid()) @db.Uuid
+  schoolId  String   @map("school_id") @db.Uuid
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school               School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollments          StudentEnrollment[]
+  feeStructures        FeeStructure[]
+  feeGenerationBatches FeeGenerationBatch[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("mediums")
+}
+
+model Stream {
+  id        String   @id @default(uuid()) @db.Uuid
+  schoolId  String   @map("school_id") @db.Uuid
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school               School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollments          StudentEnrollment[]
+  feeStructures        FeeStructure[]
+  feeGenerationBatches FeeGenerationBatch[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("streams")
+}
+
+// ==========================================
+// STUDENTS & ENROLLMENT
+// ==========================================
+
+model Student {
+  id           String        @id @default(uuid()) @db.Uuid
+  schoolId     String        @map("school_id") @db.Uuid
+  admissionNo  String        @map("admission_no")
+  name         String
+  guardianName String        @map("guardian_name")
+  phone        String?
+  address      String?
+  photoUrl     String?       @map("photo_url")
+  gender       String?
+  caste        String?
+  status       StudentStatus @default(ACTIVE)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  school               School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollments          StudentEnrollment[]
+  hostelEnrollments    StudentHostelEnrollment[]
+  activeHostelEnrollments HostelEnrollment[]
+  studentFeeOverrides  StudentFeeOverride[]
+  feeGenerationBatches FeeGenerationBatch[]
+  feeCharges           StudentFeeCharge[]
+  feePayments          FeePayment[]
+
+  @@unique([schoolId, admissionNo])
+  @@index([schoolId])
+  @@index([schoolId, status])
+  @@index([schoolId, name])
+  @@map("students")
+}
+
+model StudentEnrollment {
+  id             String           @id @default(uuid()) @db.Uuid
+  schoolId       String           @map("school_id") @db.Uuid
+  studentId      String           @map("student_id") @db.Uuid
+  academicYearId String           @map("academic_year_id") @db.Uuid
+  classId        String           @map("class_id") @db.Uuid
+  sectionId      String?          @map("section_id") @db.Uuid
+  mediumId       String           @map("medium_id") @db.Uuid
+  streamId       String?          @map("stream_id") @db.Uuid
+  rollNo         Int?             @map("roll_no")
+  status         EnrollmentStatus @default(ACTIVE)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  school            School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student           Student                   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  academicYear      AcademicYear              @relation(fields: [academicYearId], references: [id])
+  class             Class                     @relation(fields: [classId], references: [id])
+  section           Section?                  @relation(fields: [sectionId], references: [id])
+  medium            Medium                    @relation(fields: [mediumId], references: [id])
+  stream            Stream?                   @relation(fields: [streamId], references: [id])
+  hostelEnrollments StudentHostelEnrollment[]
+  feeCharges        StudentFeeCharge[]
+
+  @@unique([schoolId, academicYearId, studentId])
+  @@unique([schoolId, academicYearId, classId, sectionId, rollNo])
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([academicYearId])
+  @@index([schoolId, academicYearId, classId, sectionId])
+  @@index([schoolId, status])
+  @@map("student_enrollments")
+}
+
+// DEPRECATED (Legacy Hostel Model — preserved for historical data compatibility)
+model StudentHostelEnrollment {
+  id                  String       @id @default(uuid()) @db.Uuid
+  schoolId            String       @map("school_id") @db.Uuid
+  academicYearId      String       @map("academic_year_id") @db.Uuid
+  studentId           String       @map("student_id") @db.Uuid
+  studentEnrollmentId String       @map("student_enrollment_id") @db.Uuid
+  startDate           DateTime     @map("start_date") @db.Date
+  monthlyStartDate    DateTime?    @map("monthly_start_date") @db.Date
+  endDate             DateTime?    @map("end_date") @db.Date
+  monthlyHostelFee    Decimal      @map("monthly_hostel_fee") @db.Decimal(12, 2)
+  status              HostelStatus @default(ACTIVE)
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  school            School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear      AcademicYear      @relation(fields: [academicYearId], references: [id])
+  student           Student           @relation(fields: [studentId], references: [id])
+  studentEnrollment StudentEnrollment @relation(fields: [studentEnrollmentId], references: [id])
+
+  @@index([schoolId])
+  @@index([studentId])
+  @@map("student_hostel_enrollments")
+}
+
+// ==========================================
+// FEE MANAGEMENT & RECEIPTS
+// ==========================================
+
+model FeeType {
+  id          String             @id @default(uuid()) @db.Uuid
+  schoolId    String             @map("school_id") @db.Uuid
+  name        String
+  code        String?
+  description String?
+  order       Int                @default(0)
+  category    FeeCategory        @default(ACADEMIC)
+  billingRule FeeBillingRule     @default(MONTHLY) @map("billing_rule")
+  isActive    Boolean            @default(true) @map("is_active")
+  isSystem    Boolean            @default(false) @map("is_system")
+  systemCode  FeeTypeSystemCode? @map("system_code")
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  school              School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  feeStructureHeads   FeeStructureHead[]
+  studentFeeOverrides StudentFeeOverride[]
+  feeCharges          StudentFeeCharge[]
+  admissionFeeConfigs HostelFeeConfig[]    @relation("AdmissionFeeConfigType")
+  monthlyFeeConfigs   HostelFeeConfig[]    @relation("MonthlyFeeConfigType")
+
+  @@unique([schoolId, name])
+  @@unique([schoolId, systemCode])
+  @@index([schoolId])
+  @@map("fee_types")
+}
+
+model FeeStructure {
+  id             String   @id @default(uuid()) @db.Uuid
+  schoolId       String   @map("school_id") @db.Uuid
+  academicYearId String   @map("academic_year_id") @db.Uuid
+  classId        String   @map("class_id") @db.Uuid
+  mediumId       String   @map("medium_id") @db.Uuid
+  streamId       String?  @map("stream_id") @db.Uuid
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school            School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear      AcademicYear       @relation(fields: [academicYearId], references: [id])
+  class             Class              @relation(fields: [classId], references: [id])
+  medium            Medium             @relation(fields: [mediumId], references: [id])
+  stream            Stream?            @relation(fields: [streamId], references: [id])
+  heads             FeeStructureHead[]
+  studentFeeCharges StudentFeeCharge[]
+
+  @@unique([schoolId, academicYearId, classId, mediumId, streamId])
+  @@index([schoolId])
+  @@index([academicYearId])
+  @@map("fee_structures")
+}
+
+model FeeStructureHead {
+  id             String   @id @default(uuid()) @db.Uuid
+  feeStructureId String   @map("fee_structure_id") @db.Uuid
+  feeTypeId      String   @map("fee_type_id") @db.Uuid
+  amount         Decimal  @db.Decimal(12, 2)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  feeStructure FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+  feeType      FeeType      @relation(fields: [feeTypeId], references: [id])
+
+  @@unique([feeStructureId, feeTypeId])
+  @@index([feeStructureId])
+  @@index([feeTypeId])
+  @@map("fee_structure_heads")
+}
+
+model StudentFeeOverride {
+  id             String   @id @default(uuid()) @db.Uuid
+  schoolId       String   @map("school_id") @db.Uuid
+  studentId      String   @map("student_id") @db.Uuid
+  academicYearId String   @map("academic_year_id") @db.Uuid
+  feeTypeId      String   @map("fee_type_id") @db.Uuid
+  amount         Decimal  @db.Decimal(12, 2)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  feeType      FeeType      @relation(fields: [feeTypeId], references: [id])
+
+  @@unique([schoolId, studentId, academicYearId, feeTypeId])
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([academicYearId])
+  @@map("student_fee_overrides")
+}
+
+model FeeGenerationBatch {
+  id             String         @id @default(uuid()) @db.Uuid
+  schoolId       String         @map("school_id") @db.Uuid
+  academicYearId String         @map("academic_year_id") @db.Uuid
+  month          FeeMonth
+  mode           GenerationMode
+  classId        String?        @map("class_id") @db.Uuid
+  mediumId       String?        @map("medium_id") @db.Uuid
+  streamId       String?        @map("stream_id") @db.Uuid
+  sectionId      String?        @map("section_id") @db.Uuid
+  studentId      String?        @map("student_id") @db.Uuid
+  totalStudents  Int            @default(0) @map("total_students")
+  generatedCount Int            @default(0) @map("generated_count")
+  skippedCount   Int            @default(0) @map("skipped_count")
+  totalAmount    Decimal        @db.Decimal(12, 2)
+  details        Json?
+  createdById    String?        @map("created_by_id") @db.Uuid
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz
+
+  school       School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear       @relation(fields: [academicYearId], references: [id])
+  class        Class?             @relation(fields: [classId], references: [id])
+  medium       Medium?            @relation(fields: [mediumId], references: [id])
+  stream       Stream?            @relation(fields: [streamId], references: [id])
+  section      Section?           @relation(fields: [sectionId], references: [id])
+  student      Student?           @relation(fields: [studentId], references: [id])
+  createdBy    User?              @relation("FeeGenerationBatchCreatedBy", fields: [createdById], references: [id])
+  charges      StudentFeeCharge[]
+
+  @@index([schoolId])
+  @@index([academicYearId])
+  @@map("fee_generation_batches")
+}
+
+model StudentFeeCharge {
+  id                  String       @id @default(uuid()) @db.Uuid
+  schoolId            String       @map("school_id") @db.Uuid
+  academicYearId      String       @map("academic_year_id") @db.Uuid
+  studentId           String       @map("student_id") @db.Uuid
+  studentEnrollmentId String?      @map("student_enrollment_id") @db.Uuid
+  feeTypeId           String       @map("fee_type_id") @db.Uuid
+  feeStructureId      String?      @map("fee_structure_id") @db.Uuid
+  generationBatchId   String?      @map("generation_batch_id") @db.Uuid
+  month               FeeMonth
+  title               String
+  amount              Decimal      @db.Decimal(12, 2)
+  originalAmount      Decimal?     @map("original_amount") @db.Decimal(12, 2)
+  discountAmount      Decimal      @default(0) @map("discount_amount") @db.Decimal(12, 2)
+  isOverridden        Boolean      @default(false) @map("is_overridden")
+  overrideReason      String?      @map("override_reason")
+  overriddenById      String?      @map("overridden_by_id") @db.Uuid
+  overriddenAt        DateTime?    @map("overridden_at") @db.Timestamptz
+  paidAmount          Decimal      @default(0) @map("paid_amount") @db.Decimal(12, 2)
+  dueDate             DateTime?    @map("due_date") @db.Date
+  status              ChargeStatus @default(UNPAID)
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  school            School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear      AcademicYear        @relation(fields: [academicYearId], references: [id])
+  student           Student             @relation(fields: [studentId], references: [id])
+  studentEnrollment StudentEnrollment?  @relation(fields: [studentEnrollmentId], references: [id])
+  feeType           FeeType             @relation(fields: [feeTypeId], references: [id])
+  feeStructure      FeeStructure?       @relation(fields: [feeStructureId], references: [id])
+  generationBatch   FeeGenerationBatch? @relation(fields: [generationBatchId], references: [id], onDelete: SetNull)
+  overriddenBy      User?               @relation("FeeChargeOverriddenBy", fields: [overriddenById], references: [id], onDelete: SetNull)
+  allocations       PaymentAllocation[]
+
+  @@unique([schoolId, academicYearId, studentEnrollmentId, feeTypeId, title, month])
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([academicYearId])
+  @@index([generationBatchId])
+  @@index([schoolId, studentId, status])
+  @@index([schoolId, academicYearId, month, status])
+  @@index([schoolId, status, dueDate])
+  @@map("student_fee_charges")
+}
+
+model FeePayment {
+  id             String           @id @default(uuid()) @db.Uuid
+  schoolId       String           @map("school_id") @db.Uuid
+  academicYearId String           @map("academic_year_id") @db.Uuid
+  studentId      String           @map("student_id") @db.Uuid
+  receiptNumber  String           @map("receipt_number")
+  paymentDate    DateTime         @map("payment_date") @db.Timestamptz
+  paymentMode    PaymentMode      @map("payment_mode")
+  referenceNumber String?         @map("reference_number")
+  receivedAmount Decimal          @map("received_amount") @db.Decimal(12, 2)
+  remarks        String?
+  receivedById   String?          @map("received_by_id") @db.Uuid
+  status         FeePaymentStatus @default(SUCCESS)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  school       School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear        @relation(fields: [academicYearId], references: [id])
+  student      Student             @relation(fields: [studentId], references: [id])
+  receivedBy   User?               @relation("FeePaymentReceivedBy", fields: [receivedById], references: [id])
+  allocations  PaymentAllocation[]
+
+  @@unique([schoolId, receiptNumber])
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([academicYearId])
+  @@index([receiptNumber])
+  @@index([paymentDate])
+  @@index([schoolId, paymentDate])
+  @@index([schoolId, studentId])
+  @@map("fee_payments")
+}
+
+model PaymentAllocation {
+  id              String   @id @default(uuid()) @db.Uuid
+  paymentId       String   @map("payment_id") @db.Uuid
+  chargeId        String   @map("charge_id") @db.Uuid
+  allocatedAmount Decimal  @map("allocated_amount") @db.Decimal(12, 2)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  payment FeePayment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  charge  StudentFeeCharge @relation(fields: [chargeId], references: [id])
+
+  @@index([paymentId])
+  @@index([chargeId])
+  @@map("payment_allocations")
+}
+
+
+
+// ==========================================
+// EXPENSES
+// ==========================================
+
+model ExpenseCategory {
+  id          String   @id @default(uuid()) @db.Uuid
+  schoolId    String   @map("school_id") @db.Uuid
+  name        String
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("expense_categories")
+}
+
+model Expense {
+  id             String        @id @default(uuid()) @db.Uuid
+  schoolId       String        @map("school_id") @db.Uuid
+  academicYearId String?       @map("academic_year_id") @db.Uuid
+  categoryId     String        @map("category_id") @db.Uuid
+  expenseDate    DateTime      @map("expense_date") @db.Date
+  amount         Decimal       @db.Decimal(12, 2)
+  description    String?
+  paymentMethod  PaymentMethod @default(CASH) @map("payment_method")
+  paymentMode    PaymentMode   @default(CASH) @map("payment_mode")
+  referenceNo    String?       @map("reference_no")
+  status         String        @default("ACTIVE")
+  createdById    String?       @map("created_by_id") @db.Uuid
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  school       School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear?   @relation(fields: [academicYearId], references: [id])
+  category     ExpenseCategory @relation(fields: [categoryId], references: [id])
+  createdBy    User?           @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+
+  @@index([schoolId])
+  @@index([categoryId])
+  @@map("expenses")
+}
+
+// ==========================================
+// FUND MANAGEMENT & UNIFIED FINANCIAL LEDGER
+// ==========================================
+
+model FundSource {
+  id          String            @id @default(uuid()) @db.Uuid
+  schoolId    String            @map("school_id") @db.Uuid
+  name        String
+  description String?
+  isActive    Boolean           @default(true) @map("is_active")
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  school           School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  fundTransactions FundTransaction[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("fund_sources")
+}
+
+model FundTransaction {
+  id              String        @id @default(uuid()) @db.Uuid
+  schoolId        String        @map("school_id") @db.Uuid
+  academicYearId  String?       @map("academic_year_id") @db.Uuid
+  fundSourceId    String        @map("fund_source_id") @db.Uuid
+  transactionDate DateTime      @map("transaction_date") @db.Date
+  amount          Decimal       @db.Decimal(12, 2)
+  paymentMode     PaymentMode   @map("payment_mode")
+  referenceNumber String?       @map("reference_number")
+  remarks         String?
+  status          String        @default("ACTIVE")
+  createdById     String?       @map("created_by_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  school       School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
+  fundSource   FundSource    @relation(fields: [fundSourceId], references: [id])
+  createdBy    User?         @relation("FundTxnCreatedBy", fields: [createdById], references: [id])
+
+  @@index([schoolId])
+  @@index([fundSourceId])
+  @@map("fund_transactions")
+}
+
+model FinancialTransaction {
+  id                    String                   @id @default(uuid()) @db.Uuid
+  schoolId              String                   @map("school_id") @db.Uuid
+  academicYearId        String?                  @map("academic_year_id") @db.Uuid
+  transactionDate       DateTime                 @map("transaction_date") @db.Date
+
+  type                  FinancialTransactionType
+  sourceType            FinancialSourceType
+  sourceId              String?                  @map("source_id") @db.Uuid
+
+  amount                Decimal                  @db.Decimal(12, 2)
+  paymentMode           PaymentMode              @map("payment_mode")
+  referenceNumber       String?                  @map("reference_number")
+  description           String?
+
+  isReversal            Boolean                  @default(false) @map("is_reversal")
+  reversedTransactionId String?                  @map("reversed_transaction_id") @db.Uuid
+
+  createdById           String?                  @map("created_by_id") @db.Uuid
+  createdAt             DateTime                 @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime                 @updatedAt @map("updated_at") @db.Timestamptz
+
+  school       School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id])
+  createdBy    User?         @relation("FinancialTxnCreatedBy", fields: [createdById], references: [id])
+
+  @@index([schoolId])
+  @@index([schoolId, transactionDate])
+  @@index([schoolId, type])
+  @@index([schoolId, sourceType])
+  @@index([schoolId, sourceId])
+  @@index([schoolId, academicYearId, transactionDate])
+  @@index([schoolId, sourceType, sourceId])
+  @@map("financial_transactions")
+}
+
+// ==========================================
+// DOCUMENT SEQUENCES & AUDIT LOGS
+// ==========================================
+
+model DocumentSequence {
+  id             String   @id @default(uuid()) @db.Uuid
+  schoolId       String   @map("school_id") @db.Uuid
+  academicYearId String   @default("") @map("academic_year_id")
+  documentType   String   @map("document_type")
+  prefix         String   @default("REC")
+  currentNumber  Int      @default(0) @map("current_number")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, documentType, academicYearId])
+  @@index([schoolId])
+  @@map("document_sequences")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  schoolId   String?  @map("school_id") @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  school School? @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId])
+  @@index([userId])
+  @@index([schoolId, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ==========================================
+// STAFF & PAYROLL
+// ==========================================
+
+model Staff {
+  id            String      @id @default(uuid()) @db.Uuid
+  schoolId      String      @map("school_id") @db.Uuid
+  employeeId    String      @map("employee_id")
+  name          String
+  email         String?
+  phone         String?
+  role          StaffRole   @default(TEACHER)
+  department    String?
+  designation   String?
+  joiningDate   DateTime?   @map("joining_date") @db.Date
+  status        StaffStatus @default(ACTIVE)
+
+  baseSalary    Decimal     @default(0) @map("base_salary") @db.Decimal(12, 2)
+  bankName      String?     @map("bank_name")
+  bankAccountNo String?     @map("bank_account_no")
+  ifscCode      String?     @map("ifsc_code")
+
+  advanceBalance Decimal    @default(0) @map("advance_balance") @db.Decimal(12, 2)
+
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  school          School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  advances        StaffAdvance[]
+  salaryPayments  SalaryPayment[]
+  salarySetups    StaffSalarySetup[]
+  monthlyPayrolls MonthlyPayroll[]
+
+  @@unique([schoolId, employeeId])
+  @@index([schoolId])
+  @@map("staff")
+}
+
+model StaffAdvance {
+  id          String      @id @default(uuid()) @db.Uuid
+  schoolId    String      @map("school_id") @db.Uuid
+  staffId     String      @map("staff_id") @db.Uuid
+  amount      Decimal     @db.Decimal(12, 2)
+  recovered   Decimal     @default(0) @db.Decimal(12, 2)
+  advanceDate DateTime    @map("advance_date") @db.Date
+  paymentMode PaymentMode @map("payment_mode")
+  referenceNo String?     @map("reference_no")
+  remarks     String?
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([staffId])
+  @@map("staff_advances")
+}
+
+model StaffSalarySetup {
+  id             String       @id @default(uuid()) @db.Uuid
+  schoolId       String       @map("school_id") @db.Uuid
+  staffId        String       @map("staff_id") @db.Uuid
+  academicYearId String       @map("academic_year_id") @db.Uuid
+  effectiveFrom  DateTime     @default(now()) @map("effective_from") @db.Date
+  baseSalary     Decimal      @db.Decimal(12, 2)
+  components     Json?        @map("components")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff        Staff        @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, staffId, academicYearId])
+  @@index([schoolId])
+  @@index([staffId])
+  @@index([academicYearId])
+  @@map("staff_salary_setups")
+}
+
+model MonthlyPayroll {
+  id                  String        @id @default(uuid()) @db.Uuid
+  schoolId            String        @map("school_id") @db.Uuid
+  staffId             String        @map("staff_id") @db.Uuid
+  academicYearId      String        @map("academic_year_id") @db.Uuid
+  month               FeeMonth
+  year                Int
+  workingDays         Int           @default(26) @map("working_days")
+  workedDays          Int           @default(26) @map("worked_days")
+  paidLeave           Int           @default(0) @map("paid_leave")
+  unpaidLeave         Int           @default(0) @map("unpaid_leave")
+
+  baseSalary          Decimal       @map("base_salary") @db.Decimal(12, 2)
+  attendanceDeduction Decimal       @default(0) @map("attendance_deduction") @db.Decimal(12, 2)
+  bonus               Decimal       @default(0) @map("bonus") @db.Decimal(12, 2)
+  advanceDeduction    Decimal       @default(0) @map("advance_deduction") @db.Decimal(12, 2)
+  otherDeduction      Decimal       @default(0) @map("other_deduction") @db.Decimal(12, 2)
+  netSalary           Decimal       @map("net_salary") @db.Decimal(12, 2)
+  paidAmount          Decimal       @default(0) @map("paid_amount") @db.Decimal(12, 2)
+
+  status              ChargeStatus  @default(UNPAID)
+  remarks             String?
+  preparedById        String?       @map("prepared_by_id") @db.Uuid
+  createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  school       School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff        Staff                     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear              @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  allocations  SalaryPaymentAllocation[]
+
+  @@unique([schoolId, staffId, academicYearId, month, year])
+  @@index([schoolId])
+  @@index([staffId])
+  @@index([academicYearId])
+  @@index([schoolId, staffId, month, year])
+  @@index([schoolId, status])
+  @@map("monthly_payrolls")
+}
+
+model SalaryPayment {
+  id              String        @id @default(uuid()) @db.Uuid
+  schoolId        String        @map("school_id") @db.Uuid
+  staffId         String        @map("staff_id") @db.Uuid
+  academicYearId  String?       @map("academic_year_id") @db.Uuid
+  paymentNumber   String        @map("payment_number")
+  paymentDate     DateTime      @map("payment_date") @db.Timestamptz
+
+  months          FeeMonth[]
+  year            Int
+
+  baseSalary      Decimal       @map("base_salary") @db.Decimal(12, 2)
+  allowances      Decimal       @default(0) @db.Decimal(12, 2)
+  deductions      Decimal       @default(0) @db.Decimal(12, 2)
+  advanceDeducted Decimal       @default(0) @map("advance_deducted") @db.Decimal(12, 2)
+  netSalary       Decimal       @map("net_salary") @db.Decimal(12, 2)
+
+  paymentMode     PaymentMode   @map("payment_mode")
+  referenceNo     String?       @map("reference_no")
+  remarks         String?
+  createdById     String?       @map("created_by_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  school       School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff        Staff                     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear?             @relation(fields: [academicYearId], references: [id])
+  createdBy    User?                     @relation("SalaryPaymentCreatedBy", fields: [createdById], references: [id])
+  allocations  SalaryPaymentAllocation[]
+
+  @@unique([schoolId, paymentNumber])
+  @@index([schoolId])
+  @@index([staffId])
+  @@map("salary_payments")
+}
+
+model SalaryPaymentAllocation {
+  id               String         @id @default(uuid()) @db.Uuid
+  salaryPaymentId  String         @map("salary_payment_id") @db.Uuid
+  monthlyPayrollId String         @map("monthly_payroll_id") @db.Uuid
+  allocatedAmount  Decimal        @map("allocated_amount") @db.Decimal(12, 2)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz
+
+  salaryPayment  SalaryPayment  @relation(fields: [salaryPaymentId], references: [id], onDelete: Cascade)
+  monthlyPayroll MonthlyPayroll @relation(fields: [monthlyPayrollId], references: [id], onDelete: Cascade)
+
+  @@index([salaryPaymentId])
+  @@index([monthlyPayrollId])
+  @@map("salary_payment_allocations")
+}
+
+// ==========================================
+// SUBSCRIPTION SYSTEM
+// ==========================================
+
+enum PlanType {
+  TRIAL
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum DurationUnit {
+  DAY
+  MONTH
+  YEAR
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  CANCELLED
+}
+
+enum SubscriptionPaymentStatus {
+  PENDING
+  PAID
+  REJECTED
+  CANCELLED
+}
+
+enum SubscriptionPaymentMethod {
+  CASH
+  UPI
+  OTHER
+  RAZORPAY
+}
+
+enum SubscriptionPaymentProvider {
+  MANUAL
+  RAZORPAY
+}
+
+model SubscriptionPlan {
+  id                 String       @id @default(uuid()) @db.Uuid
+  name               String
+  code               String       @unique
+  type               PlanType
+  durationValue      Int          @map("duration_value")
+  durationUnit       DurationUnit @default(MONTH) @map("duration_unit")
+  basePrice          Decimal      @map("base_price") @db.Decimal(12, 2)
+  discountPercentage Decimal      @default(0) @map("discount_percentage") @db.Decimal(5, 2)
+  discountAmount     Decimal      @default(0) @map("discount_amount") @db.Decimal(12, 2)
+  finalPrice         Decimal      @map("final_price") @db.Decimal(12, 2)
+  currency           String       @default("INR")
+  description        String?
+  features           Json
+  offerTitle         String?      @map("offer_title")
+  offerDescription   String?      @map("offer_description")
+  badge              String?
+  isTrial            Boolean      @default(false) @map("is_trial")
+  isActive           Boolean      @default(true) @map("is_active")
+  displayOrder       Int          @default(0) @map("display_order")
+  createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  subscriptions SchoolSubscription[]
+  payments      SubscriptionPayment[]
+
+  @@map("subscription_plans")
+}
+
+model SchoolSubscription {
+  id                 String                    @id @default(uuid()) @db.Uuid
+  schoolId           String                    @map("school_id") @db.Uuid
+  planId             String?                   @map("plan_id") @db.Uuid
+  planNameSnapshot   String                    @map("plan_name_snapshot")
+  durationSnapshot   String                    @map("duration_snapshot")
+  basePriceSnapshot  Decimal                   @map("base_price_snapshot") @db.Decimal(12, 2)
+  discountSnapshot   Decimal                   @default(0) @map("discount_snapshot") @db.Decimal(12, 2)
+  finalPriceSnapshot Decimal                   @map("final_price_snapshot") @db.Decimal(12, 2)
+  status             SubscriptionStatus        @default(ACTIVE)
+  startDate          DateTime                  @map("start_date") @db.Timestamptz
+  endDate            DateTime?                 @map("end_date") @db.Timestamptz
+  nextBillingDate    DateTime?                 @map("next_billing_date") @db.Timestamptz
+  autoRenew          Boolean                   @default(false) @map("auto_renew")
+  paymentStatus      SubscriptionPaymentStatus @default(PAID) @map("payment_status")
+  paymentProvider    SubscriptionPaymentProvider @default(MANUAL) @map("payment_provider")
+  providerPaymentId  String?                   @map("provider_payment_id")
+  providerOrderId    String?                   @map("provider_order_id")
+  remarks            String?
+  createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime                  @updatedAt @map("updated_at") @db.Timestamptz
+
+  school   School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  plan     SubscriptionPlan?    @relation(fields: [planId], references: [id], onDelete: SetNull)
+  payments SubscriptionPayment[]
+
+  @@index([schoolId])
+  @@index([planId])
+  @@index([status, endDate])
+  @@index([schoolId, status])
+  @@map("school_subscriptions")
+}
+
+model SubscriptionPayment {
+  id                String                      @id @default(uuid()) @db.Uuid
+  schoolId          String                      @map("school_id") @db.Uuid
+  subscriptionId    String?                     @map("subscription_id") @db.Uuid
+  planId            String                      @map("plan_id") @db.Uuid
+  amount            Decimal                     @db.Decimal(12, 2)
+  currency          String                      @default("INR")
+  paymentMethod     SubscriptionPaymentMethod   @map("payment_method")
+  status            SubscriptionPaymentStatus   @default(PENDING)
+  referenceNumber   String?                     @map("reference_number")
+  provider          SubscriptionPaymentProvider @default(MANUAL)
+  providerPaymentId String?                     @map("provider_payment_id")
+  providerOrderId   String?                     @map("provider_order_id")
+  rejectionReason   String?                     @map("rejection_reason")
+  remarks           String?
+  requestedAt       DateTime                    @default(now()) @map("requested_at") @db.Timestamptz
+  approvedAt        DateTime?                   @map("approved_at") @db.Timestamptz
+  approvedById      String?                     @map("approved_by_id") @db.Uuid
+  createdAt         DateTime                    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime                    @updatedAt @map("updated_at") @db.Timestamptz
+
+  school       School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  subscription SchoolSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  plan         SubscriptionPlan    @relation(fields: [planId], references: [id], onDelete: Restrict)
+  approvedBy   User?               @relation("SubscriptionPaymentApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([schoolId])
+  @@index([subscriptionId])
+  @@index([planId])
+  @@map("subscription_payments")
+}
+
+// ==========================================
+// HOSTEL MANAGEMENT MODULE
+// ==========================================
+
+model Hostel {
+  id          String           @id @default(uuid()) @db.Uuid
+  schoolId    String           @map("school_id") @db.Uuid
+  name        String
+  code        String?
+  type        HostelGenderType @default(COMBINED)
+  description String?
+  address     String?
+  isActive    Boolean          @default(true) @map("is_active")
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  school           School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  rooms            HostelRoom[]
+  beds             HostelBed[]
+  enrollments      HostelEnrollment[]
+  feeConfigs       HostelFeeConfig[]
+  transferFromLogs HostelTransferHistory[] @relation("TransferFromHostel")
+  transferToLogs   HostelTransferHistory[] @relation("TransferToHostel")
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("hostels")
+}
+
+model HostelRoom {
+  id         String   @id @default(uuid()) @db.Uuid
+  schoolId   String   @map("school_id") @db.Uuid
+  hostelId   String   @map("hostel_id") @db.Uuid
+  roomNumber String   @map("room_number")
+  floor      String?
+  capacity   Int      @default(1)
+  roomType   String?  @map("room_type")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school           School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  hostel           Hostel                  @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  beds             HostelBed[]
+  enrollments      HostelEnrollment[]
+  transferFromLogs HostelTransferHistory[] @relation("TransferFromRoom")
+  transferToLogs   HostelTransferHistory[] @relation("TransferToRoom")
+
+  @@unique([hostelId, roomNumber])
+  @@index([schoolId])
+  @@index([hostelId])
+  @@map("hostel_rooms")
+}
+
+model HostelBed {
+  id        String          @id @default(uuid()) @db.Uuid
+  schoolId  String          @map("school_id") @db.Uuid
+  hostelId  String          @map("hostel_id") @db.Uuid
+  roomId    String          @map("room_id") @db.Uuid
+  bedNumber String          @map("bed_number")
+  status    HostelBedStatus @default(AVAILABLE)
+  isActive  Boolean         @default(true) @map("is_active")
+  createdAt DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  school           School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  hostel           Hostel                  @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  room             HostelRoom              @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  enrollments      HostelEnrollment[]
+  transferFromLogs HostelTransferHistory[] @relation("TransferFromBed")
+  transferToLogs   HostelTransferHistory[] @relation("TransferToBed")
+
+  @@unique([roomId, bedNumber])
+  @@index([schoolId])
+  @@index([hostelId])
+  @@index([roomId])
+  @@index([schoolId, status])
+  @@map("hostel_beds")
+}
+
+model HostelEnrollment {
+  id             String                 @id @default(uuid()) @db.Uuid
+  schoolId       String                 @map("school_id") @db.Uuid
+  academicYearId String                 @map("academic_year_id") @db.Uuid
+  studentId      String                 @map("student_id") @db.Uuid
+  hostelId       String                 @map("hostel_id") @db.Uuid
+  roomId         String                 @map("room_id") @db.Uuid
+  bedId          String                 @map("bed_id") @db.Uuid
+  startDate      DateTime               @map("start_date") @db.Date
+  endDate        DateTime?              @map("end_date") @db.Date
+  exitReason     String?                @map("exit_reason")
+  status         HostelEnrollmentStatus @default(ACTIVE)
+  createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime               @updatedAt @map("updated_at") @db.Timestamptz
+
+  school       School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear            @relation(fields: [academicYearId], references: [id])
+  student      Student                 @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  hostel       Hostel                  @relation(fields: [hostelId], references: [id])
+  room         HostelRoom              @relation(fields: [roomId], references: [id])
+  bed          HostelBed               @relation(fields: [bedId], references: [id])
+  transfers    HostelTransferHistory[]
+
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([academicYearId])
+  @@index([hostelId])
+  @@index([roomId])
+  @@index([bedId])
+  @@index([schoolId, status])
+  @@map("hostel_enrollments")
+}
+
+model HostelTransferHistory {
+  id           String   @id @default(uuid()) @db.Uuid
+  schoolId     String   @map("school_id") @db.Uuid
+  enrollmentId String   @map("enrollment_id") @db.Uuid
+  fromHostelId String   @map("from_hostel_id") @db.Uuid
+  fromRoomId   String   @map("from_room_id") @db.Uuid
+  fromBedId    String   @map("from_bed_id") @db.Uuid
+  toHostelId   String   @map("to_hostel_id") @db.Uuid
+  toRoomId     String   @map("to_room_id") @db.Uuid
+  toBedId      String   @map("to_bed_id") @db.Uuid
+  transferDate DateTime @default(now()) @map("transfer_date") @db.Timestamptz
+  reason       String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  school     School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  enrollment HostelEnrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  fromHostel Hostel           @relation("TransferFromHostel", fields: [fromHostelId], references: [id])
+  fromRoom   HostelRoom       @relation("TransferFromRoom", fields: [fromRoomId], references: [id])
+  fromBed    HostelBed        @relation("TransferFromBed", fields: [fromBedId], references: [id])
+  toHostel   Hostel           @relation("TransferToHostel", fields: [toHostelId], references: [id])
+  toRoom     HostelRoom       @relation("TransferToRoom", fields: [toRoomId], references: [id])
+  toBed      HostelBed        @relation("TransferToBed", fields: [toBedId], references: [id])
+
+  @@index([schoolId])
+  @@index([enrollmentId])
+  @@map("hostel_transfer_histories")
+}
+
+model HostelFeeConfig {
+  id                  String   @id @default(uuid()) @db.Uuid
+  schoolId            String   @map("school_id") @db.Uuid
+  academicYearId      String   @map("academic_year_id") @db.Uuid
+  hostelId            String?  @map("hostel_id") @db.Uuid
+  admissionFeeEnabled Boolean  @default(false) @map("admission_fee_enabled")
+  admissionFeeAmount  Decimal  @default(0) @map("admission_fee_amount") @db.Decimal(12, 2)
+  monthlyFeeEnabled   Boolean  @default(false) @map("monthly_fee_enabled")
+  monthlyFeeAmount    Decimal  @default(0) @map("monthly_fee_amount") @db.Decimal(12, 2)
+  admissionFeeTypeId  String?  @map("admission_fee_type_id") @db.Uuid
+  monthlyFeeTypeId    String?  @map("monthly_fee_type_id") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  school           School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear     AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  hostel           Hostel?      @relation(fields: [hostelId], references: [id], onDelete: Cascade)
+  admissionFeeType FeeType?     @relation("AdmissionFeeConfigType", fields: [admissionFeeTypeId], references: [id], onDelete: SetNull)
+  monthlyFeeType   FeeType?     @relation("MonthlyFeeConfigType", fields: [monthlyFeeTypeId], references: [id], onDelete: SetNull)
+
+  @@unique([schoolId, academicYearId, hostelId])
+  @@index([schoolId])
+  @@index([academicYearId])
+  @@map("hostel_fee_configs")
+}
+
+
+
