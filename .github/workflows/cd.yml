@@ -67,7 +67,7 @@ jobs:
             # 5. Application health check probe verification
             echo "Performing API Health Check Probe..."
             sleep 3
-            PORT=$(grep -E '^PORT=' .env 2>/dev/null | cut -d '=' -f2 | tr -d '\r" ' || echo "5000")
+            PORT=$(grep -E '^\s*PORT\s*=' .env 2>/dev/null | tail -n 1 | cut -d '=' -f2 | tr -cd '0-9')
             PORT="${PORT:-5000}"
 
             echo "Probing backend health on port ${PORT}..."
