@@ -47,28 +47,63 @@ app.use(
 // Cookie Parser Middleware
 app.use(cookieParser(env.SESSION_SECRET));
 
-// Dynamic Multi-Origin CORS configuration
-const allowedOrigins = env.CLIENT_URL.split(',').map((origin) => origin.trim());
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, postman)
-      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error('CORS policy does not allow access from this origin.'));
-    },
-    credentials: true,
-  })
-);
+// Dynamic Multi-Origin CORS configuration (Cloudflare & Reverse Proxy Friendly)
+const rawOrigins = env.CLIENT_URL || '';
+const baseOrigins = rawOrigins
+  .split(',')
+  .map((origin) => origin.trim().replace(/['"]/g, '').replace(/\/$/, ''))
+  .filter(Boolean);
+
+const getHost = (urlStr) => {
+  if (!urlStr) return '';
+  try {
+    const u = new URL(urlStr.includes('://') ? urlStr : `http://${urlStr}`);
+    return u.hostname.replace(/^www\./i, '').toLowerCase();
+  } catch {
+    return urlStr.replace(/^https?:\/\//i, '').replace(/^www\./i, '').split('/')[0].split(':')[0].toLowerCase();
+  }
+};
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true;
+  if (baseOrigins.includes('*')) return true;
+
+  const reqHost = getHost(origin);
+
+  // In development, automatically allow localhost & 127.0.0.1 on any port
+  if (env.NODE_ENV === 'development') {
+    if (reqHost === 'localhost' || reqHost === '127.0.0.1') {
+      return true;
+    }
+  }
+
+  return baseOrigins.some((allowed) => {
+    if (allowed === '*') return true;
+    return getHost(allowed) === reqHost;
+  });
+};
+
+const corsMiddleware = cors({
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+});
+
+app.use(corsMiddleware);
+app.options('*', corsMiddleware);
 
 // CSRF / Origin Verification for State-Changing Requests
 app.use((req, res, next) => {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     const origin = req.headers.origin || req.headers.referer;
-    if (origin && !allowedOrigins.includes('*')) {
-      const isAllowed = allowedOrigins.some((allowed) => origin.startsWith(allowed));
-      if (!isAllowed) {
+    if (origin && !baseOrigins.includes('*')) {
+      if (!isOriginAllowed(origin)) {
         return next(ApiError.forbidden('Forbidden cross-origin request.'));
       }
     }
