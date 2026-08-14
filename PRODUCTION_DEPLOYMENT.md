@@ -93,16 +93,19 @@ pm2 startup
 ```
 
 #### Step 6: Configure Native Nginx Web Server
-Create Nginx configuration (`/etc/nginx/sites-available/school-saas`):
+Create Nginx configuration (`/etc/nginx/sites-available/axomsetu`):
 
 ```nginx
 server {
     listen 80;
-    server_name yourdomain.com;
+    server_name yourdomain.com; # Replace with your domain or server IP
 
     # Static Build Directory
-    root /var/www/school-saas/client/dist;
+    root /var/www/axomsetu/client/dist;
     index index.html;
+
+    # Client-side upload limit
+    client_max_body_size 10M;
 
     # Gzip Compression
     gzip on;
@@ -121,7 +124,7 @@ server {
 
     # Reverse proxy API requests to Node.js backend
     location /api/ {
-        proxy_pass http://127.0.0.1:5000/api/;
+        proxy_pass http://127.0.0.1:5001/api/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -140,7 +143,7 @@ server {
 
 Enable site & reload Nginx:
 ```bash
-sudo ln -s /etc/nginx/sites-available/school-saas /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/axomsetu /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
