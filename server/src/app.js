@@ -110,6 +110,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Request Parsers
+app.use(express.json({ limit: '10mb' }));
+
 // HTTP Request Logging
 if (env.NODE_ENV !== 'test') {
   app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
