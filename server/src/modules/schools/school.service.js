@@ -14,13 +14,13 @@ import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_POLICY_VERSION } from '../../con
  */
 const generateUniqueSchoolCode = async (tx) => {
   await tx.$executeRawUnsafe(`CREATE SEQUENCE IF NOT EXISTS school_code_seq START WITH 1;`);
-  
+
   let attempts = 0;
   while (attempts < 10) {
     const result = await tx.$queryRawUnsafe(`SELECT nextval('school_code_seq') as val;`);
     const seqNum = Number(result[0].val);
     const code = `SCH${String(seqNum).padStart(6, '0')}`;
-    
+
     const existing = await tx.school.findUnique({ where: { code } });
     if (!existing) {
       return code;
@@ -276,12 +276,12 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null, 
       },
       subscription: subscription
         ? {
-            id: subscription.id,
-            status: subscription.status,
-            startDate: subscription.startDate,
-            endDate: subscription.endDate,
-            planName: subscription.planNameSnapshot,
-          }
+          id: subscription.id,
+          status: subscription.status,
+          startDate: subscription.startDate,
+          endDate: subscription.endDate,
+          planName: subscription.planNameSnapshot,
+        }
         : null,
     };
   });
@@ -368,12 +368,12 @@ export const listSchools = async ({ page = 1, limit = 20, search, status }) => {
       owner: ownerMembership ? ownerMembership.user : null,
       subscription: latestSubscription
         ? {
-            id: latestSubscription.id,
-            status: latestSubscription.status,
-            startDate: latestSubscription.startDate,
-            endDate: latestSubscription.endDate,
-            plan: latestSubscription.plan,
-          }
+          id: latestSubscription.id,
+          status: latestSubscription.status,
+          startDate: latestSubscription.startDate,
+          endDate: latestSubscription.endDate,
+          plan: latestSubscription.plan,
+        }
         : null,
     };
   });
@@ -483,12 +483,12 @@ export const getSchoolById = async (schoolId) => {
     })),
     subscription: latestSubscription
       ? {
-          id: latestSubscription.id,
-          status: latestSubscription.status,
-          startDate: latestSubscription.startDate,
-          endDate: latestSubscription.endDate,
-          plan: latestSubscription.plan,
-        }
+        id: latestSubscription.id,
+        status: latestSubscription.status,
+        startDate: latestSubscription.startDate,
+        endDate: latestSubscription.endDate,
+        plan: latestSubscription.plan,
+      }
       : null,
     subscriptionsHistory: school.subscriptions.map((s) => ({
       id: s.id,
@@ -990,15 +990,15 @@ export const getTenantSchoolProfile = async (schoolId) => {
     owner: ownerMembership ? ownerMembership.user : null,
     activeSubscription: activeSubscription
       ? {
-          id: activeSubscription.id,
-          status: activeSubscription.status,
-          startDate: activeSubscription.startDate,
-          endDate: activeSubscription.endDate,
-          paymentStatus: activeSubscription.paymentStatus,
-          finalPrice: activeSubscription.finalPriceSnapshot,
-          planName: activeSubscription.planNameSnapshot || activeSubscription.plan?.name,
-          plan: activeSubscription.plan,
-        }
+        id: activeSubscription.id,
+        status: activeSubscription.status,
+        startDate: activeSubscription.startDate,
+        endDate: activeSubscription.endDate,
+        paymentStatus: activeSubscription.paymentStatus,
+        finalPrice: activeSubscription.finalPriceSnapshot,
+        planName: activeSubscription.planNameSnapshot || activeSubscription.plan?.name,
+        plan: activeSubscription.plan,
+      }
       : null,
     stats: {
       totalStudents: school._count.students,
@@ -1044,7 +1044,7 @@ export const uploadTenantSchoolLogo = async (schoolId, fileBuffer, mimeType, act
       oldValues: { logoUrl: school.logoUrl },
       newValues: { logoUrl: uploadResult.secure_url, bytes: uploadResult.bytes },
     },
-  }).catch(() => {});
+  }).catch(() => { });
 
   return {
     school: updatedSchool,
@@ -1079,7 +1079,7 @@ export const deleteTenantSchoolLogo = async (schoolId, actorUserId) => {
       oldValues: { logoUrl: school.logoUrl },
       newValues: { logoUrl: null },
     },
-  }).catch(() => {});
+  }).catch(() => { });
 
   return { message: 'School logo deleted successfully', school: updatedSchool };
 };

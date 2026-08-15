@@ -1,4 +1,4 @@
--- CreateEnum
+﻿-- CreateEnum
 CREATE TYPE "Role" AS ENUM ('SUPER_ADMIN', 'SCHOOL_ADMIN');
 
 -- CreateEnum
@@ -548,6 +548,21 @@ CREATE TABLE "audit_logs" (
 );
 
 -- CreateTable
+CREATE TABLE "terms_acceptances" (
+    "id" UUID NOT NULL,
+    "user_id" UUID,
+    "school_id" UUID,
+    "terms_version" TEXT NOT NULL,
+    "privacy_policy_version" TEXT NOT NULL,
+    "accepted_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ip_address" TEXT,
+    "user_agent" TEXT,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "terms_acceptances_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "staff" (
     "id" UUID NOT NULL,
     "school_id" UUID NOT NULL,
@@ -919,6 +934,9 @@ CREATE INDEX "students_school_id_status_idx" ON "students"("school_id", "status"
 CREATE INDEX "students_school_id_name_idx" ON "students"("school_id", "name");
 
 -- CreateIndex
+CREATE INDEX "students_school_id_phone_idx" ON "students"("school_id", "phone");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "students_school_id_admission_no_key" ON "students"("school_id", "admission_no");
 
 -- CreateIndex
@@ -935,6 +953,12 @@ CREATE INDEX "student_enrollments_school_id_academic_year_id_class_id_sec_idx" O
 
 -- CreateIndex
 CREATE INDEX "student_enrollments_school_id_status_idx" ON "student_enrollments"("school_id", "status");
+
+-- CreateIndex
+CREATE INDEX "student_enrollments_school_id_class_id_status_idx" ON "student_enrollments"("school_id", "class_id", "status");
+
+-- CreateIndex
+CREATE INDEX "student_enrollments_school_id_academic_year_id_class_id_sta_idx" ON "student_enrollments"("school_id", "academic_year_id", "class_id", "status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "student_enrollments_school_id_academic_year_id_student_id_key" ON "student_enrollments"("school_id", "academic_year_id", "student_id");
@@ -1015,6 +1039,12 @@ CREATE INDEX "student_fee_charges_school_id_academic_year_id_month_status_idx" O
 CREATE INDEX "student_fee_charges_school_id_status_due_date_idx" ON "student_fee_charges"("school_id", "status", "due_date");
 
 -- CreateIndex
+CREATE INDEX "student_fee_charges_school_id_student_enrollment_id_status_idx" ON "student_fee_charges"("school_id", "student_enrollment_id", "status");
+
+-- CreateIndex
+CREATE INDEX "student_fee_charges_school_id_fee_type_id_status_idx" ON "student_fee_charges"("school_id", "fee_type_id", "status");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "student_fee_charges_school_id_academic_year_id_student_enro_key" ON "student_fee_charges"("school_id", "academic_year_id", "student_enrollment_id", "fee_type_id", "title", "month");
 
 -- CreateIndex
@@ -1037,6 +1067,12 @@ CREATE INDEX "fee_payments_school_id_payment_date_idx" ON "fee_payments"("school
 
 -- CreateIndex
 CREATE INDEX "fee_payments_school_id_student_id_idx" ON "fee_payments"("school_id", "student_id");
+
+-- CreateIndex
+CREATE INDEX "fee_payments_school_id_status_payment_date_idx" ON "fee_payments"("school_id", "status", "payment_date");
+
+-- CreateIndex
+CREATE INDEX "fee_payments_school_id_payment_mode_payment_date_idx" ON "fee_payments"("school_id", "payment_mode", "payment_date");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "fee_payments_school_id_receipt_number_key" ON "fee_payments"("school_id", "receipt_number");
@@ -1109,6 +1145,15 @@ CREATE INDEX "audit_logs_school_id_created_at_idx" ON "audit_logs"("school_id", 
 
 -- CreateIndex
 CREATE INDEX "audit_logs_created_at_idx" ON "audit_logs"("created_at");
+
+-- CreateIndex
+CREATE INDEX "terms_acceptances_school_id_idx" ON "terms_acceptances"("school_id");
+
+-- CreateIndex
+CREATE INDEX "terms_acceptances_user_id_idx" ON "terms_acceptances"("user_id");
+
+-- CreateIndex
+CREATE INDEX "terms_acceptances_terms_version_idx" ON "terms_acceptances"("terms_version");
 
 -- CreateIndex
 CREATE INDEX "staff_school_id_idx" ON "staff"("school_id");
@@ -1472,6 +1517,12 @@ ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_school_id_fkey" FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "terms_acceptances" ADD CONSTRAINT "terms_acceptances_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "terms_acceptances" ADD CONSTRAINT "terms_acceptances_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "staff" ADD CONSTRAINT "staff_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "schools"("id") ON DELETE CASCADE ON UPDATE CASCADE;

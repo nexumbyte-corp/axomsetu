@@ -5,13 +5,13 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
+
 import { env } from './config/env.js';
 import routes, { healthCheckHandler } from './routes/index.js';
-import { generalLimiter, authLimiter } from './middleware/rateLimit.middleware.js';
+import { authLimiter } from './middleware/rateLimit.middleware.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { ApiError } from './utils/ApiError.js';
-
-import cookieParser from 'cookie-parser';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -96,7 +96,6 @@ const corsMiddleware = cors({
 });
 
 app.use(corsMiddleware);
-app.options('*', corsMiddleware);
 
 // CSRF / Origin Verification for State-Changing Requests
 app.use((req, res, next) => {
@@ -111,7 +110,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Logging
+// HTTP Request Logging
 if (env.NODE_ENV !== 'test') {
   app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 }
@@ -151,7 +150,7 @@ if (env.SERVE_CLIENT) {
   });
 }
 
-// Handle 404
+// Handle 404 Undefined Routes
 app.use((req, res, next) => {
   next(ApiError.notFound(`Cannot find ${req.originalUrl} on this server`));
 });
@@ -160,4 +159,3 @@ app.use((req, res, next) => {
 app.use(errorHandler);
 
 export default app;
-
