@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Building2, User, Mail, Lock, Phone, MapPin, Eye, EyeOff, Info, GraduationCap, Sparkles, ArrowRight } from 'lucide-react';
+import { Building2, User, Mail, Lock, Phone, MapPin, Eye, EyeOff, Info, GraduationCap, Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { Button } from '../components/ui/Button.jsx';
 import { Input } from '../components/ui/Input.jsx';
@@ -8,6 +8,9 @@ import { Alert } from '../components/ui/Alert.jsx';
 import { useToast } from '../components/ui/Toast.jsx';
 import { BRAND_CONFIG } from '../config/brandConfig.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
+import { TermsAndConditionsModal } from '../components/legal/TermsAndConditionsModal.jsx';
+import { PrivacyPolicyModal } from '../components/legal/PrivacyPolicyModal.jsx';
+import { TERMS_VERSION, PRIVACY_POLICY_VERSION } from '../constants/legalContent.js';
 
 export const RegisterPage = () => {
   useDocumentTitle('Register School');
@@ -29,6 +32,11 @@ export const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+
+  // Terms & Conditions and Privacy Policy state
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -53,22 +61,25 @@ export const RegisterPage = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
+  const executeRegistration = async () => {
     setIsLoading(true);
     setErrorMsg('');
 
     try {
-      const res = await registerSchool(formData);
+      const payload = {
+        ...formData,
+        termsAccepted: true,
+        acceptedTermsVersion: TERMS_VERSION,
+        privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+      };
+
+      const res = await registerSchool(payload);
       if (res.success) {
         showToast('School registered successfully. Sign in to continue.', 'success');
         navigate('/login', { replace: true });
       }
     } catch (err) {
       if (err.errors) {
-        // Map backend validation errors if structured
         const mapped = {};
         err.errors.forEach((eItem) => {
           if (eItem.path && eItem.path[0]) {
@@ -81,6 +92,30 @@ export const RegisterPage = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!validateForm()) return;
+
+    if (!termsAccepted) {
+      setIsTermsModalOpen(true);
+      return;
+    }
+
+    executeRegistration();
+  };
+
+  const handleAcceptTerms = () => {
+    setTermsAccepted(true);
+    setIsTermsModalOpen(false);
+    executeRegistration();
+  };
+
+  const handleDeclineTerms = () => {
+    setTermsAccepted(false);
+    setIsTermsModalOpen(false);
+    setErrorMsg('You must accept the Terms & Conditions and Privacy Policy to create an AxomSetu school account.');
   };
 
   return (
@@ -275,6 +310,52 @@ export const RegisterPage = () => {
             </div>
           </div>
 
+          {/* Simple Inline Terms Checklist Line */}
+          <div className="pt-2 border-t border-slate-800/80">
+            <label className={`flex items-start gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
+              termsAccepted
+                ? 'bg-indigo-950/80 border-indigo-500/50 shadow-md'
+                : 'bg-slate-950/60 border-slate-800/80 hover:bg-slate-900/60'
+            }`}>
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => {
+                  setTermsAccepted(e.target.checked);
+                  setErrorMsg('');
+                }}
+                className="mt-0.5 h-4 w-4 rounded border-slate-700 bg-slate-950 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-950 cursor-pointer shrink-0"
+              />
+              <span className="text-xs text-slate-300 leading-relaxed font-medium">
+                I confirm that I am authorized to register this school and agree to the{' '}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsTermsModalOpen(true);
+                  }}
+                  className="font-bold text-indigo-400 hover:text-indigo-300 hover:underline transition-colors inline"
+                >
+                  Terms & Conditions
+                </button>{' '}
+                and{' '}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsTermsModalOpen(true);
+                  }}
+                  className="font-bold text-indigo-400 hover:text-indigo-300 hover:underline transition-colors inline"
+                >
+                  Privacy Policy
+                </button>
+                .
+              </span>
+            </label>
+          </div>
+
           <Button
             type="submit"
             variant="primary"
@@ -301,6 +382,21 @@ export const RegisterPage = () => {
         </div>
 
       </div>
+
+      {/* Full-width Responsive Terms & Conditions Modal */}
+      <TermsAndConditionsModal
+        isOpen={isTermsModalOpen}
+        isAccepted={termsAccepted}
+        onClose={() => setIsTermsModalOpen(false)}
+        onAccept={handleAcceptTerms}
+        onDecline={handleDeclineTerms}
+      />
+
+      {/* Privacy Policy Modal */}
+      <PrivacyPolicyModal
+        isOpen={isPrivacyModalOpen}
+        onClose={() => setIsPrivacyModalOpen(false)}
+      />
     </div>
   );
 };

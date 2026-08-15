@@ -234,7 +234,7 @@ export const SchoolDetailsPage = () => {
     );
   }
 
-  const { school, owner, subscription, subscriptionsHistory = [] } = data;
+  const { school, owner, subscription, subscriptionsHistory = [], termsAcceptances = [] } = data;
 
   let daysRemaining = null;
   if (subscription?.endDate) {
@@ -311,6 +311,16 @@ export const SchoolDetailsPage = () => {
           }`}
         >
           Users & Permissions ({schoolUsers.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('legal')}
+          className={`pb-3 transition-colors ${
+            activeTab === 'legal'
+              ? 'border-b-2 border-indigo-600 text-indigo-700 font-extrabold'
+              : 'text-slate-500 hover:text-slate-900'
+          }`}
+        >
+          Legal Consent Audit ({termsAcceptances.length})
         </button>
       </div>
 
@@ -675,6 +685,81 @@ export const SchoolDetailsPage = () => {
                 </Table>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 4: Legal Consent Audit History */}
+      {activeTab === 'legal' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-2xs p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Legal Consent Audit Records</h3>
+                <p className="text-xs text-slate-500">Immutable audit log of Terms & Conditions and Privacy Policy electronic acceptances.</p>
+              </div>
+              <Badge variant="neutral" className="bg-slate-100 font-mono text-slate-700">
+                IMMUTABLE AUDIT LOG
+              </Badge>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Accepted Date & Time</TableHead>
+                    <TableHead>Accepted By User</TableHead>
+                    <TableHead>Terms Version</TableHead>
+                    <TableHead>Privacy Policy Version</TableHead>
+                    <TableHead>IP Address</TableHead>
+                    <TableHead>User Agent</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {termsAcceptances.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-slate-500 text-xs">
+                        No legal consent records found for this school tenant.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    termsAcceptances.map((acc) => (
+                      <TableRow key={acc.id}>
+                        <TableCell className="text-xs font-mono font-bold text-slate-900">
+                          {new Date(acc.acceptedAt).toLocaleString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </TableCell>
+                        <TableCell className="text-xs font-bold text-slate-900">
+                          {acc.user?.name || 'Administrator'}
+                          <span className="text-[10px] text-slate-400 block font-normal">{acc.user?.email || '-'}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            Version {acc.termsVersion}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            Version {acc.privacyPolicyVersion}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs font-mono text-slate-600">
+                          {acc.ipAddress || 'Client Server IP'}
+                        </TableCell>
+                        <TableCell className="text-[10px] font-mono text-slate-500 max-w-[200px] truncate" title={acc.userAgent || 'Web Browser'}>
+                          {acc.userAgent || 'Standard Web Browser'}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </div>
       )}

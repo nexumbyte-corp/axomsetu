@@ -45,6 +45,7 @@ export const SubscriptionPage = () => {
   const [paymentMethod, setPaymentMethod] = useState('UPI');
   const [referenceNumber, setReferenceNumber] = useState('');
   const [remarks, setRemarks] = useState('');
+  const [noRefundAccepted, setNoRefundAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const fetchSubscriptionDetails = useCallback(async () => {
@@ -77,6 +78,7 @@ export const SubscriptionPage = () => {
     setPaymentMethod('UPI');
     setReferenceNumber('');
     setRemarks('');
+    setNoRefundAccepted(false);
   };
 
   const handleClosePurchaseModal = () => {
@@ -87,6 +89,11 @@ export const SubscriptionPage = () => {
   const handleSubmitPurchase = async (e) => {
     e.preventDefault();
     if (!selectedPlan) return;
+
+    if (!noRefundAccepted) {
+      setToast({ type: 'danger', message: 'You must accept the non-refundable subscription policy before purchasing.' });
+      return;
+    }
 
     if (paymentMethod === 'RAZORPAY') {
       setToast({ type: 'danger', message: 'Razorpay is coming soon. Please select Cash or UPI.' });
@@ -105,6 +112,7 @@ export const SubscriptionPage = () => {
         paymentMethod,
         referenceNumber: referenceNumber.trim() || null,
         remarks: remarks.trim() || null,
+        noRefundAccepted: true,
       });
 
       if (res.success) {
@@ -555,11 +563,40 @@ export const SubscriptionPage = () => {
               onChange={(e) => setRemarks(e.target.value)}
             />
 
+            {/* No Refund Policy Notice & Mandatory Confirmation */}
+            <div className="bg-rose-50/80 border border-rose-200 rounded-xl p-3.5 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-rose-900">
+                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>Subscription Refund Policy Notice</span>
+              </div>
+              <p className="text-[11px] text-rose-800 leading-relaxed font-medium">
+                "Subscription purchases are non-refundable after activation, except where required by applicable law or expressly approved by NEXUMBYTE."
+              </p>
+              <label className="flex items-start gap-2.5 pt-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={noRefundAccepted}
+                  onChange={(e) => setNoRefundAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-rose-300 text-rose-600 focus:ring-rose-500"
+                />
+                <span className="text-xs font-bold text-rose-950">
+                  I understand and agree that subscription purchases are non-refundable after activation.
+                </span>
+              </label>
+            </div>
+
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
               <Button type="button" variant="outline" onClick={handleClosePurchaseModal} disabled={submitting}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" loading={submitting} loadingText="Submitting Request...">
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={!noRefundAccepted || submitting}
+                loading={submitting}
+                loadingText="Submitting Request..."
+                className={!noRefundAccepted ? 'opacity-50 cursor-not-allowed' : ''}
+              >
                 Submit Purchase Request
               </Button>
             </div>

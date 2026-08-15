@@ -6,6 +6,7 @@ import { ensureCurrentAcademicYear } from '../academic-years/academicYear.servic
 import { initializeDefaultClasses } from '../academics/academic.service.js';
 import { initializeSystemFeeTypes } from '../fees/fee-type.service.js';
 import { compressAndUploadLogo, deleteCloudinaryImage } from '../../services/cloudinary.service.js';
+import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_POLICY_VERSION } from '../../constants/legalConstants.js';
 
 /**
  * Concurrency-safe school code generator using a PostgreSQL sequence.
@@ -34,7 +35,7 @@ const generateUniqueSchoolCode = async (tx) => {
  * Atomic Onboarding Service.
  * Creates School, Owner User, SchoolAdmin membership, 2-Month Free Trial Subscription, Current Academic Year, Default Classes (PP-XII), and AuditLog in a single transaction.
  */
-export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null) => {
+export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null, reqContext = {}) => {
   const {
     schoolName,
     name,
@@ -43,7 +44,14 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null) 
     email,
     ownerName,
     password,
+    termsAccepted,
+    acceptedTermsVersion = CURRENT_TERMS_VERSION,
+    privacyPolicyVersion = CURRENT_PRIVACY_POLICY_VERSION,
   } = data;
+
+  if (termsAccepted !== true && termsAccepted !== 'true') {
+    throw ApiError.badRequest('Terms & Conditions acceptance is required before registration.');
+  }
 
   const targetSchoolName = (schoolName || name || '').trim();
   const normalizedEmail = email.toLowerCase().trim();
@@ -196,7 +204,38 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null) 
       });
     }
 
-    // 10. Audit log entry
+    // 10. Record immutable Terms & Conditions acceptance record
+    const termsAcceptance = await tx.termsAcceptance.create({
+      data: {
+        schoolId: school.id,
+        userId: ownerUser.id,
+        termsVersion: acceptedTermsVersion || CURRENT_TERMS_VERSION,
+        privacyPolicyVersion: privacyPolicyVersion || CURRENT_PRIVACY_POLICY_VERSION,
+        acceptedAt: new Date(),
+        ipAddress: reqContext.ipAddress || null,
+        userAgent: reqContext.userAgent || null,
+      },
+    });
+
+    // 11. Audit log entry for TERMS_ACCEPTED
+    await tx.auditLog.create({
+      data: {
+        schoolId: school.id,
+        userId: ownerUser.id,
+        action: 'TERMS_ACCEPTED',
+        entityType: 'TermsAcceptance',
+        entityId: termsAcceptance.id,
+        ipAddress: reqContext.ipAddress || null,
+        userAgent: reqContext.userAgent || null,
+        newValues: {
+          termsVersion: termsAcceptance.termsVersion,
+          privacyPolicyVersion: termsAcceptance.privacyPolicyVersion,
+          acceptedAt: termsAcceptance.acceptedAt,
+        },
+      },
+    });
+
+    // 12. Audit log entry for SCHOOL_REGISTERED
     await tx.auditLog.create({
       data: {
         schoolId: school.id,
@@ -204,6 +243,8 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null) 
         action: creatorUserId ? 'CREATE_SCHOOL' : 'SCHOOL_REGISTERED',
         entityType: 'School',
         entityId: school.id,
+        ipAddress: reqContext.ipAddress || null,
+        userAgent: reqContext.userAgent || null,
         newValues: {
           schoolId: school.id,
           schoolName: school.name,
@@ -211,6 +252,7 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null) 
           ownerUserId: ownerUser.id,
           ownerEmail: ownerUser.email,
           subscriptionId: subscription?.id || null,
+          termsAcceptanceId: termsAcceptance.id,
         },
       },
     });
@@ -396,6 +438,18 @@ export const getSchoolById = async (schoolId) => {
         },
         orderBy: { createdAt: 'desc' },
       },
+      termsAcceptances: {
+        orderBy: { acceptedAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -444,6 +498,15 @@ export const getSchoolById = async (schoolId) => {
       plan: s.plan,
     })),
     academicYears: school.academicYears,
+    termsAcceptances: school.termsAcceptances.map((t) => ({
+      id: t.id,
+      termsVersion: t.termsVersion,
+      privacyPolicyVersion: t.privacyPolicyVersion,
+      acceptedAt: t.acceptedAt,
+      ipAddress: t.ipAddress,
+      userAgent: t.userAgent,
+      user: t.user,
+    })),
   };
 };
 

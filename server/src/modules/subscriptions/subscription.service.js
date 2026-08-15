@@ -173,7 +173,11 @@ export const getPublicRegisteredSchools = async () => {
  * Submit purchase request for a plan (Cash or UPI).
  */
 export const submitPurchaseRequest = async (schoolId, data, actorUserId) => {
-  const { planId, paymentMethod, referenceNumber, remarks } = data;
+  const { planId, paymentMethod, referenceNumber, remarks, noRefundAccepted } = data;
+
+  if (noRefundAccepted !== true && noRefundAccepted !== 'true') {
+    throw ApiError.badRequest('You must confirm and agree that subscription purchases are non-refundable after activation.');
+  }
 
   if (!planId) {
     throw ApiError.badRequest('Plan ID is mandatory');

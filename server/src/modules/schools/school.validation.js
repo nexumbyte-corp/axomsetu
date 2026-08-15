@@ -10,6 +10,13 @@ export const registerSchoolSchema = {
       ownerName: z.string().min(1, 'Owner name is required').trim(),
       password: z.string().min(8, 'Password must be at least 8 characters long'),
       confirmPassword: z.string().min(1, 'Confirm password is required'),
+      termsAccepted: z
+        .boolean({ required_error: 'Terms & Conditions acceptance is required before registration.' })
+        .refine((val) => val === true, {
+          message: 'Terms & Conditions acceptance is required before registration.',
+        }),
+      acceptedTermsVersion: z.string().optional(),
+      privacyPolicyVersion: z.string().optional(),
     })
     .refine((data) => data.password === data.confirmPassword, {
       message: 'Passwords do not match',

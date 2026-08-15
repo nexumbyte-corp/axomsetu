@@ -3,7 +3,11 @@ import { ApiError } from '../../utils/ApiError.js';
 import * as schoolService from './school.service.js';
 
 export const registerSchool = asyncHandler(async (req, res) => {
-  const result = await schoolService.createSchoolWithOwnerAndTrial(req.body);
+  const reqContext = {
+    ipAddress: (req.headers['x-forwarded-for'] || req.ip || req.socket?.remoteAddress || '').toString(),
+    userAgent: req.headers['user-agent'] || null,
+  };
+  const result = await schoolService.createSchoolWithOwnerAndTrial(req.body, null, reqContext);
 
   res.status(201).json({
     success: true,
@@ -13,7 +17,11 @@ export const registerSchool = asyncHandler(async (req, res) => {
 });
 
 export const createSchool = asyncHandler(async (req, res) => {
-  const result = await schoolService.createSchoolWithOwnerAndTrial(req.body, req.user?.id);
+  const reqContext = {
+    ipAddress: (req.headers['x-forwarded-for'] || req.ip || req.socket?.remoteAddress || '').toString(),
+    userAgent: req.headers['user-agent'] || null,
+  };
+  const result = await schoolService.createSchoolWithOwnerAndTrial(req.body, req.user?.id, reqContext);
 
   res.status(201).json({
     success: true,
