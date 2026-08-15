@@ -118,37 +118,53 @@ export const studentReportsService = {
       orderBy: { order: 'asc' },
     });
 
-    const reportData = [];
+    const classIds = classes.map((c) => c.id);
+    if (classIds.length === 0) {
+      return {
+        data: [],
+        summary: { totalClasses: 0, totalStudents: 0 },
+      };
+    }
+
+    const enrollments = await prisma.studentEnrollment.findMany({
+      where: {
+        schoolId,
+        classId: { in: classIds },
+        status: 'ACTIVE',
+        ...(academicYearId && { academicYearId }),
+        ...(mediumId && { mediumId }),
+        ...(streamId && { streamId }),
+      },
+      include: {
+        student: {
+          select: { id: true, admissionNo: true, name: true, guardianName: true, phone: true },
+        },
+        section: { select: { name: true } },
+        medium: { select: { name: true } },
+        stream: { select: { name: true } },
+      },
+      orderBy: [{ rollNo: 'asc' }, { student: { name: 'asc' } }],
+    });
+
+    const enrollmentMap = new Map();
+    classes.forEach((cls) => enrollmentMap.set(cls.id, []));
+
+    enrollments.forEach((e) => {
+      if (enrollmentMap.has(e.classId)) {
+        enrollmentMap.get(e.classId).push(e);
+      }
+    });
+
     let totalStudentsCount = 0;
+    const reportData = classes.map((cls) => {
+      const classEnrollments = enrollmentMap.get(cls.id) || [];
+      totalStudentsCount += classEnrollments.length;
 
-    for (const cls of classes) {
-      const enrollments = await prisma.studentEnrollment.findMany({
-        where: {
-          schoolId,
-          classId: cls.id,
-          status: 'ACTIVE',
-          ...(academicYearId && { academicYearId }),
-          ...(mediumId && { mediumId }),
-          ...(streamId && { streamId }),
-        },
-        include: {
-          student: {
-            select: { id: true, admissionNo: true, name: true, guardianName: true, phone: true },
-          },
-          section: { select: { name: true } },
-          medium: { select: { name: true } },
-          stream: { select: { name: true } },
-        },
-        orderBy: [{ rollNo: 'asc' }, { student: { name: 'asc' } }],
-      });
-
-      totalStudentsCount += enrollments.length;
-
-      reportData.push({
+      return {
         classId: cls.id,
         className: cls.name,
-        studentCount: enrollments.length,
-        students: enrollments.map((e, idx) => ({
+        studentCount: classEnrollments.length,
+        students: classEnrollments.map((e, idx) => ({
           sNo: idx + 1,
           admissionNo: e.student.admissionNo,
           studentName: e.student.name,
@@ -158,8 +174,8 @@ export const studentReportsService = {
           mediumName: e.medium?.name || '-',
           streamName: e.stream?.name || '-',
         })),
-      });
-    }
+      };
+    });
 
     return {
       data: reportData,
@@ -230,31 +246,36 @@ export const studentReportsService = {
   async getMediumWiseStudents(schoolId, query = {}, userId) {
     const { academicYearId, mediumId } = query;
 
-    const mediums = await prisma.medium.findMany({
-      where: { schoolId, isActive: true, ...(mediumId && { id: mediumId }) },
-      orderBy: { name: 'asc' },
-    });
-
-    const result = [];
-    let grandTotal = 0;
-
-    for (const med of mediums) {
-      const count = await prisma.studentEnrollment.count({
+    const [mediums, counts] = await Promise.all([
+      prisma.medium.findMany({
+        where: { schoolId, isActive: true, ...(mediumId && { id: mediumId }) },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.studentEnrollment.groupBy({
+        by: ['mediumId'],
         where: {
           schoolId,
-          mediumId: med.id,
           status: 'ACTIVE',
           ...(academicYearId && { academicYearId }),
+          ...(mediumId && { mediumId }),
         },
-      });
+        _count: { _all: true },
+      }),
+    ]);
 
+    const countMap = new Map();
+    counts.forEach((c) => countMap.set(c.mediumId, c._count._all));
+
+    let grandTotal = 0;
+    const result = mediums.map((med) => {
+      const count = countMap.get(med.id) || 0;
       grandTotal += count;
-      result.push({
+      return {
         mediumId: med.id,
         mediumName: med.name,
         studentCount: count,
-      });
-    }
+      };
+    });
 
     return {
       data: result,
@@ -271,31 +292,38 @@ export const studentReportsService = {
   async getStreamWiseStudents(schoolId, query = {}, userId) {
     const { academicYearId, streamId } = query;
 
-    const streams = await prisma.stream.findMany({
-      where: { schoolId, isActive: true, ...(streamId && { id: streamId }) },
-      orderBy: { name: 'asc' },
-    });
-
-    const result = [];
-    let grandTotal = 0;
-
-    for (const str of streams) {
-      const count = await prisma.studentEnrollment.count({
+    const [streams, counts] = await Promise.all([
+      prisma.stream.findMany({
+        where: { schoolId, isActive: true, ...(streamId && { id: streamId }) },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.studentEnrollment.groupBy({
+        by: ['streamId'],
         where: {
           schoolId,
-          streamId: str.id,
           status: 'ACTIVE',
           ...(academicYearId && { academicYearId }),
+          ...(streamId && { streamId }),
         },
-      });
+        _count: { _all: true },
+      }),
+    ]);
 
+    const countMap = new Map();
+    counts.forEach((c) => {
+      if (c.streamId) countMap.set(c.streamId, c._count._all);
+    });
+
+    let grandTotal = 0;
+    const result = streams.map((str) => {
+      const count = countMap.get(str.id) || 0;
       grandTotal += count;
-      result.push({
+      return {
         streamId: str.id,
         streamName: str.name,
         studentCount: count,
-      });
-    }
+      };
+    });
 
     return {
       data: result,
@@ -311,19 +339,25 @@ export const studentReportsService = {
    */
   async getStudentStatusReport(schoolId, query = {}, userId) {
     const statuses = ['ACTIVE', 'LEFT', 'GRADUATED', 'ARCHIVED'];
-    const breakdown = [];
-    let totalAll = 0;
 
-    for (const st of statuses) {
-      const count = await prisma.student.count({
-        where: { schoolId, status: st },
-      });
+    const counts = await prisma.student.groupBy({
+      by: ['status'],
+      where: { schoolId },
+      _count: { _all: true },
+    });
+
+    const countMap = new Map();
+    counts.forEach((c) => countMap.set(c.status, c._count._all));
+
+    let totalAll = 0;
+    const breakdown = statuses.map((st) => {
+      const count = countMap.get(st) || 0;
       totalAll += count;
-      breakdown.push({
+      return {
         status: st,
         count,
-      });
-    }
+      };
+    });
 
     return {
       data: breakdown,

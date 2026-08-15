@@ -11,7 +11,10 @@ import { ErrorBoundary } from './components/ui/ErrorBoundary.jsx';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      staleTime: 3 * 60 * 1000, // 3 minutes stale time for smooth sub-second page transitions
+      gcTime: 10 * 60 * 1000, // 10 minutes cache persistence
       refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
       retry: 1,
     },
   },

@@ -1,5 +1,6 @@
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { memoryCache } from '../../utils/cache.js';
 
 export const SYSTEM_FEE_TYPES = [
   {
@@ -259,6 +260,7 @@ export const createFeeType = async (schoolId, data, actorUserId) => {
       isSystem: false,
     },
   });
+  memoryCache.invalidatePrefix(`feeTypes:${schoolId}`);
 
   if (actorUserId) {
     await prisma.auditLog.create({
@@ -325,6 +327,7 @@ export const updateFeeType = async (schoolId, feeTypeId, data, actorUserId) => {
     where: { id: feeTypeId },
     data: updateData,
   });
+  memoryCache.invalidatePrefix(`feeTypes:${schoolId}`);
 
   if (actorUserId) {
     await prisma.auditLog.create({
@@ -350,6 +353,7 @@ export const toggleFeeTypeStatus = async (schoolId, feeTypeId, actorUserId) => {
     where: { id: feeTypeId },
     data: { isActive: !existing.isActive },
   });
+  memoryCache.invalidatePrefix(`feeTypes:${schoolId}`);
 
   if (actorUserId) {
     await prisma.auditLog.create({
@@ -392,6 +396,7 @@ export const deleteFeeType = async (schoolId, feeTypeId, actorUserId) => {
   await prisma.feeType.delete({
     where: { id: feeTypeId },
   });
+  memoryCache.invalidatePrefix(`feeTypes:${schoolId}`);
 
   if (actorUserId) {
     await prisma.auditLog.create({

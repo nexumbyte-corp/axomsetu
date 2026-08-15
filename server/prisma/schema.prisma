@@ -471,6 +471,7 @@ model Student {
   @@index([schoolId])
   @@index([schoolId, status])
   @@index([schoolId, name])
+  @@index([schoolId, phone])
   @@map("students")
 }
 
@@ -505,6 +506,8 @@ model StudentEnrollment {
   @@index([academicYearId])
   @@index([schoolId, academicYearId, classId, sectionId])
   @@index([schoolId, status])
+  @@index([schoolId, classId, status])
+  @@index([schoolId, academicYearId, classId, status])
   @@map("student_enrollments")
 }
 
@@ -707,6 +710,8 @@ model StudentFeeCharge {
   @@index([schoolId, studentId, status])
   @@index([schoolId, academicYearId, month, status])
   @@index([schoolId, status, dueDate])
+  @@index([schoolId, studentEnrollmentId, status])
+  @@index([schoolId, feeTypeId, status])
   @@map("student_fee_charges")
 }
 
@@ -740,6 +745,8 @@ model FeePayment {
   @@index([paymentDate])
   @@index([schoolId, paymentDate])
   @@index([schoolId, studentId])
+  @@index([schoolId, status, paymentDate])
+  @@index([schoolId, paymentMode, paymentDate])
   @@map("fee_payments")
 }
 

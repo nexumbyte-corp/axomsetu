@@ -1,22 +1,17 @@
 /**
- * High-Performance In-Memory Cache Utility with TTL & Pattern Invalidation
- * Optimized for multi-tenant SaaS workloads (e.g. metadata lookups, dashboard stats).
+ * High-performance In-Memory Metadata Cache Utility
+ * Reduces DB query workload for static/infrequently updated metadata
  */
 
 class MemoryCache {
-  constructor(defaultTtlSeconds = 60) {
+  constructor() {
     this.cache = new Map();
-    this.defaultTtl = defaultTtlSeconds * 1000;
-
-    // Periodic sweep every 2 minutes to clear expired keys and prevent memory leaks
-    this.cleanupInterval = setInterval(() => this.sweepExpired(), 2 * 60 * 1000);
-    if (this.cleanupInterval.unref) {
-      this.cleanupInterval.unref();
-    }
   }
 
   /**
-   * Get cached item if valid and not expired.
+   * Get value from cache if not expired
+   * @param {string} key
+   * @returns {any|null}
    */
   get(key) {
     const item = this.cache.get(key);
@@ -31,71 +26,61 @@ class MemoryCache {
   }
 
   /**
-   * Set cache key with optional TTL override in seconds.
+   * Set value in cache with TTL
+   * @param {string} key
+   * @param {any} value
+   * @param {number} ttlSeconds Default: 300 seconds (5 mins)
    */
-  set(key, value, ttlSeconds) {
-    const ttlMs = ttlSeconds ? ttlSeconds * 1000 : this.defaultTtl;
-    this.cache.set(key, {
-      value,
-      expiresAt: Date.now() + ttlMs,
-    });
-    return value;
+  set(key, value, ttlSeconds = 300) {
+    const expiresAt = Date.now() + ttlSeconds * 1000;
+    this.cache.set(key, { value, expiresAt });
   }
 
   /**
-   * Delete specific key.
+   * Delete specific key
+   * @param {string} key
    */
   del(key) {
-    return this.cache.delete(key);
+    this.cache.delete(key);
   }
 
   /**
-   * Delete keys matching a prefix or substring pattern (e.g. `school:123:*`)
+   * Invalidate all keys starting with prefix
+   * @param {string} prefix
    */
-  delPattern(prefixOrPattern) {
-    let deletedCount = 0;
+  invalidatePrefix(prefix) {
     for (const key of this.cache.keys()) {
-      if (key.includes(prefixOrPattern)) {
+      if (key.startsWith(prefix)) {
         this.cache.delete(key);
-        deletedCount++;
       }
     }
-    return deletedCount;
   }
 
   /**
-   * Helper to retrieve from cache or execute fetcher function and store result.
+   * Clear all cache entries
    */
-  async getOrSet(key, fetcherFn, ttlSeconds) {
+  flush() {
+    this.cache.clear();
+  }
+
+  /**
+   * Helper to get cached value or compute and store it
+   * @param {string} key
+   * @param {Function} fetchFn Async function returning value
+   * @param {number} ttlSeconds
+   * @returns {Promise<any>}
+   */
+  async getOrSet(key, fetchFn, ttlSeconds = 300) {
     const cached = this.get(key);
     if (cached !== null && cached !== undefined) {
       return cached;
     }
 
-    const value = await fetcherFn();
-    if (value !== undefined && value !== null) {
+    const value = await fetchFn();
+    if (value !== null && value !== undefined) {
       this.set(key, value, ttlSeconds);
     }
     return value;
-  }
-
-  /**
-   * Sweep and clear expired keys from memory map.
-   */
-  sweepExpired() {
-    const now = Date.now();
-    for (const [key, item] of this.cache.entries()) {
-      if (now > item.expiresAt) {
-        this.cache.delete(key);
-      }
-    }
-  }
-
-  /**
-   * Clear all keys in memory map.
-   */
-  clear() {
-    this.cache.clear();
   }
 }
 

@@ -153,32 +153,78 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
     throw ApiError.badRequest('No active students found matching the selected filters');
   }
 
-  // 3. Fetch unique FeeStructures matching target combinations
+  // 3. Parallelize fetching structure templates, overrides, annual charges, existing charges, system fee types, and all fee types
+  const studentIds = enrollments.map((e) => e.studentId);
+  const enrollmentIds = enrollments.map((e) => e.id);
+
+  const [
+    feeStructures,
+    overrides,
+    annualCharges,
+    miscFeeType,
+    existingCharges,
+    allFeeTypes,
+  ] = await Promise.all([
+    prisma.feeStructure.findMany({
+      where: {
+        schoolId,
+        academicYearId,
+        isActive: true,
+      },
+      include: {
+        class: { select: { id: true, name: true } },
+        medium: { select: { id: true, name: true } },
+        stream: { select: { id: true, name: true } },
+        heads: {
+          where: { isActive: true },
+          include: {
+            feeType: { select: { id: true, name: true, code: true, category: true, billingRule: true } },
+          },
+        },
+      },
+    }),
+    prisma.studentFeeOverride.findMany({
+      where: {
+        schoolId,
+        academicYearId,
+        studentId: { in: studentIds },
+        isActive: true,
+      },
+    }),
+    prisma.studentFeeCharge.findMany({
+      where: {
+        schoolId,
+        academicYearId,
+        studentId: { in: studentIds },
+      },
+      select: {
+        studentId: true,
+        feeTypeId: true,
+      },
+    }),
+    getSystemFeeType(schoolId, 'MISC'),
+    prisma.studentFeeCharge.findMany({
+      where: {
+        schoolId,
+        academicYearId,
+        month,
+        studentEnrollmentId: { in: enrollmentIds },
+      },
+      select: {
+        studentEnrollmentId: true,
+        feeTypeId: true,
+        title: true,
+      },
+    }),
+    prisma.feeType.findMany({ where: { schoolId } }),
+  ]);
+
+  // Map fee structures by key
   const comboKeys = new Set();
   enrollments.forEach((e) => {
     comboKeys.add(`${e.classId}_${e.mediumId}_${e.streamId || 'null'}`);
   });
 
-  const feeStructures = await prisma.feeStructure.findMany({
-    where: {
-      schoolId,
-      academicYearId,
-      isActive: true,
-    },
-    include: {
-      class: { select: { id: true, name: true } },
-      medium: { select: { id: true, name: true } },
-      stream: { select: { id: true, name: true } },
-      heads: {
-        where: { isActive: true },
-        include: {
-          feeType: { select: { id: true, name: true, code: true, category: true, billingRule: true } },
-        },
-      },
-    },
-  });
-
-  // Map fee structures by key
   const structureMap = new Map();
   feeStructures.forEach((fs) => {
     const key = `${fs.classId}_${fs.mediumId}_${fs.streamId || 'null'}`;
@@ -219,37 +265,13 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
     }
   }
 
-  // 4. Fetch Student Overrides
-  const studentIds = enrollments.map((e) => e.studentId);
-  const overrides = await prisma.studentFeeOverride.findMany({
-    where: {
-      schoolId,
-      academicYearId,
-      studentId: { in: studentIds },
-      isActive: true,
-    },
-  });
-
   // Map overrides by studentId_feeTypeId
   const overrideMap = new Map();
   overrides.forEach((o) => {
     overrideMap.set(`${o.studentId}_${o.feeTypeId}`, Number(o.amount));
   });
 
-
-
-  // 6. Fetch Annual One-Time Charges created in this Academic Year (for ONE_TIME_PER_ACADEMIC_YEAR billing rule)
-  const annualCharges = await prisma.studentFeeCharge.findMany({
-    where: {
-      schoolId,
-      academicYearId,
-      studentId: { in: studentIds },
-    },
-    select: {
-      studentId: true,
-      feeTypeId: true,
-    },
-  });
+  // Map annual charges set
   const annualChargeSet = new Set();
   annualCharges.forEach((c) => {
     if (c.feeTypeId) {
@@ -257,32 +279,14 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
     }
   });
 
-  // Fetch MISC system fee type for school (for assigning temporary fees)
-  const miscFeeType = await getSystemFeeType(schoolId, 'MISC');
-
-  // 7. Fetch existing generated charges for target month (for duplicate detection)
-  const enrollmentIds = enrollments.map((e) => e.id);
-  const existingCharges = await prisma.studentFeeCharge.findMany({
-    where: {
-      schoolId,
-      academicYearId,
-      month,
-      studentEnrollmentId: { in: enrollmentIds },
-    },
-    select: {
-      studentEnrollmentId: true,
-      feeTypeId: true,
-      title: true,
-    },
-  });
-
+  // Map existing charges set
   const existingChargeSet = new Set();
   existingCharges.forEach((c) => {
     const key = `${c.studentEnrollmentId}_ft_${c.feeTypeId}_title_${c.title}`;
     existingChargeSet.add(key);
   });
 
-  // Custom fee head map by feeTypeId or temporary title (supporting medium-specific overrides)
+  // Custom fee head map by feeTypeId or temporary title
   const customMap = new Map();
   customFeeHeads.forEach((c) => {
     if (c.mediumId && c.feeTypeId) {
@@ -295,8 +299,7 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
     }
   });
 
-  // Map fee types by ID to get category and billingRule for temporary heads if needed
-  const allFeeTypes = await prisma.feeType.findMany({ where: { schoolId } });
+  // Map fee types by ID
   const feeTypeMap = new Map();
   allFeeTypes.forEach((ft) => feeTypeMap.set(ft.id, ft));
 

@@ -1,5 +1,6 @@
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { memoryCache } from '../../utils/cache.js';
 
 /**
  * Calculates academic year parameters based on April 1 -> March 31 cycle.
@@ -39,13 +40,6 @@ export const getAcademicYearFromDate = (dateInput = new Date()) => {
 export const ensureCurrentAcademicYear = async (schoolId, tx = prisma) => {
   const { name, startDate, endDate } = getAcademicYearFromDate(new Date());
 
-  // Ensure partial unique index exists on PostgreSQL
-  await tx.$executeRawUnsafe(`
-    CREATE UNIQUE INDEX IF NOT EXISTS unique_current_academic_year_per_school
-    ON academic_years (school_id)
-    WHERE is_current = true;
-  `).catch(() => {});
-
   let currentYear = await tx.academicYear.findUnique({
     where: {
       schoolId_name: {
@@ -72,6 +66,7 @@ export const ensureCurrentAcademicYear = async (schoolId, tx = prisma) => {
         isLocked: false,
       },
     });
+    memoryCache.invalidatePrefix(`academicYear:${schoolId}`);
   } else if (!currentYear.isCurrent) {
     await tx.academicYear.updateMany({
       where: {
@@ -86,6 +81,7 @@ export const ensureCurrentAcademicYear = async (schoolId, tx = prisma) => {
       where: { id: currentYear.id },
       data: { isCurrent: true },
     });
+    memoryCache.invalidatePrefix(`academicYear:${schoolId}`);
   }
 
   return currentYear;
@@ -95,29 +91,32 @@ export const ensureCurrentAcademicYear = async (schoolId, tx = prisma) => {
  * List all Academic Years for the authenticated school (ordered newest first).
  */
 export const listAcademicYears = async (schoolId) => {
-  await ensureCurrentAcademicYear(schoolId);
-
-  return await prisma.academicYear.findMany({
-    where: { schoolId },
-    orderBy: { startDate: 'desc' },
-  });
+  return memoryCache.getOrSet(`academicYear:${schoolId}:list`, async () => {
+    await ensureCurrentAcademicYear(schoolId);
+    return await prisma.academicYear.findMany({
+      where: { schoolId },
+      orderBy: { startDate: 'desc' },
+    });
+  }, 600);
 };
 
 /**
  * Get the current active Academic Year for the authenticated school.
  */
 export const getCurrentAcademicYear = async (schoolId) => {
-  await ensureCurrentAcademicYear(schoolId);
+  return memoryCache.getOrSet(`academicYear:${schoolId}:current`, async () => {
+    await ensureCurrentAcademicYear(schoolId);
 
-  const current = await prisma.academicYear.findFirst({
-    where: { schoolId, isCurrent: true },
-  });
+    const current = await prisma.academicYear.findFirst({
+      where: { schoolId, isCurrent: true },
+    });
 
-  if (!current) {
-    throw ApiError.notFound('Current academic year not found');
-  }
+    if (!current) {
+      throw ApiError.notFound('Current academic year not found');
+    }
 
-  return current;
+    return current;
+  }, 600);
 };
 
 /**
@@ -140,6 +139,7 @@ export const lockAcademicYear = async (schoolId, academicYearId, actorUserId) =>
     where: { id: academicYearId },
     data: { isLocked: true },
   });
+  memoryCache.invalidatePrefix(`academicYear:${schoolId}`);
 
   await prisma.auditLog.create({
     data: {
@@ -172,6 +172,7 @@ export const unlockAcademicYear = async (schoolId, academicYearId, actorUserId) 
     where: { id: academicYearId },
     data: { isLocked: false },
   });
+  memoryCache.invalidatePrefix(`academicYear:${schoolId}`);
 
   await prisma.auditLog.create({
     data: {
