@@ -14,7 +14,7 @@ export const buildSalaryReceiptData = (rawData = {}) => {
     : rawData.months || 'Salary Month';
 
   return {
-    voucherNo: rawData.paymentNumber || 'SAL-VOUCHER',
+    voucherNo: rawData.paymentNumber || 'SDV-VOUCHER',
     paymentDate: rawData.paymentDate
       ? new Date(rawData.paymentDate).toLocaleDateString('en-IN', {
           day: '2-digit',
@@ -53,17 +53,32 @@ export const buildSalaryReceiptData = (rawData = {}) => {
     deductions: Number(rawData.deductions || 0),
     advanceDeducted: Number(rawData.advanceDeducted || 0),
     netSalary: Number(rawData.netSalary || 0),
-    allocations: allocations.map((a) => ({
-      month: a.monthlyPayroll?.month || '',
-      year: a.monthlyPayroll?.year || rawData.year,
-      allocatedAmount: Number(a.allocatedAmount || 0),
-      netSalary: Number(a.monthlyPayroll?.netSalary || 0),
-    })),
+    allocations: allocations.map((a) => {
+      const s = a.settlement || {};
+      const mp = a.monthlyPayroll || {};
+      const salaryDue = s.salaryDue !== undefined ? s.salaryDue : Number(mp.netSalary || 0);
+      const currentDisbursement = s.currentDisbursement !== undefined ? s.currentDisbursement : Number(a.allocatedAmount || 0);
+      const previouslyPaid = s.previouslyPaid !== undefined ? s.previouslyPaid : Math.max(0, Number(mp.paidAmount || 0) - currentDisbursement);
+      const totalPaid = s.totalPaid !== undefined ? s.totalPaid : (previouslyPaid + currentDisbursement);
+      const remainingUnpaid = s.remainingUnpaid !== undefined ? s.remainingUnpaid : Math.max(0, salaryDue - totalPaid);
+      const status = s.status || (remainingUnpaid <= 0.01 ? 'PAID' : (totalPaid > 0 ? 'PARTIALLY PAID' : 'UNPAID'));
+
+      return {
+        month: mp.month || '',
+        year: mp.year || rawData.year,
+        salaryDue,
+        previouslyPaid,
+        currentDisbursement,
+        totalPaid,
+        remainingUnpaid,
+        status,
+      };
+    }),
   };
 };
 
 /**
- * pdfMake Template Builder for Salary Receipt
+ * pdfMake Template Builder for Salary Disbursement Voucher
  */
 export const buildSalaryReceiptTemplate = (data, settings = {}) => {
   const formatCurrency = (val) =>
@@ -89,9 +104,9 @@ export const buildSalaryReceiptTemplate = (data, settings = {}) => {
             borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
             margin: [8, 8, 8, 8],
             stack: [
-              { text: 'EMPLOYEE DETAILS', fontSize: 9, bold: true, color: '#475569', margin: [0, 0, 0, 4] },
+              { text: 'STAFF DETAILS', fontSize: 9, bold: true, color: '#475569', margin: [0, 0, 0, 4] },
               { text: data.staffName, fontSize: 11, bold: true, color: '#0f172a' },
-              { text: `Employee ID: ${data.employeeId}`, fontSize: 9, color: '#334155' },
+              { text: `Employee Code: ${data.employeeId}`, fontSize: 9, color: '#334155' },
               { text: `Department: ${data.department}`, fontSize: 9, color: '#334155' },
               { text: `Designation: ${data.designation}`, fontSize: 9, color: '#334155' },
               data.bankAccountNo ? { text: `Bank: ${data.bankName} (${data.bankAccountNo})`, fontSize: 8, color: '#64748b', margin: [0, 2, 0, 0] } : {},
@@ -102,11 +117,11 @@ export const buildSalaryReceiptTemplate = (data, settings = {}) => {
             borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
             margin: [8, 8, 8, 8],
             stack: [
-              { text: 'PAYMENT DISBURSEMENT INFO', fontSize: 9, bold: true, color: '#475569', margin: [0, 0, 0, 4] },
-              { text: `Period Paid: ${data.monthsText} (${data.year})`, fontSize: 10, bold: true, color: '#4f46e5' },
-              { text: `Payment Mode: ${data.paymentMode}`, fontSize: 9, color: '#334155' },
-              { text: `Txn / Ref No: ${data.referenceNo}`, fontSize: 9, color: '#334155' },
-              { text: `Academic Year: ${data.academicYearName}`, fontSize: 9, color: '#334155' },
+              { text: 'SALARY DISBURSEMENT INFO', fontSize: 9, bold: true, color: '#475569', margin: [0, 0, 0, 4] },
+              { text: `Salary Period: ${data.monthsText} ${data.year}`, fontSize: 10, bold: true, color: '#4f46e5' },
+              { text: `Payment Date: ${data.paymentDate}`, fontSize: 9, color: '#334155' },
+              { text: `Payment Method: ${data.paymentMode}`, fontSize: 9, color: '#334155' },
+              { text: `Reference No: ${data.referenceNo}`, fontSize: 9, color: '#334155' },
             ],
           },
         ],
@@ -115,51 +130,58 @@ export const buildSalaryReceiptTemplate = (data, settings = {}) => {
     margin: [0, 0, 0, 15],
   });
 
-  // 3. Payment Settlement Breakdown Table
-  const tableRows = [
-    [
-      { text: 'Component Description / Settled Period', style: 'tableHeader', bold: true, fillColor: '#f1f5f9', color: '#1e293b' },
-      { text: 'Amount (₹)', style: 'tableHeader', alignment: 'right', bold: true, fillColor: '#f1f5f9', color: '#1e293b' },
-    ],
-    [
-      { text: `Gross Monthly Salary (${data.monthsText})`, fontSize: 9, color: '#334155' },
-      { text: formatCurrency(data.baseSalary), fontSize: 9, alignment: 'right', color: '#334155' },
-    ],
-  ];
+  // 3. Payment Settlement Summary Table (Core Partial Payment Voucher Breakdown)
+  const allocItems = data.allocations.length > 0 ? data.allocations : [{
+    month: data.monthsText,
+    year: data.year,
+    salaryDue: data.baseSalary + data.allowances - data.deductions - data.advanceDeducted,
+    previouslyPaid: 0,
+    currentDisbursement: data.netSalary,
+    totalPaid: data.netSalary,
+    remainingUnpaid: 0,
+    status: 'PAID',
+  }];
 
-  if (data.allowances > 0) {
-    tableRows.push([
-      { text: '+ Bonus / Allowances Added', fontSize: 9, color: '#15803d', bold: true },
-      { text: `+ ${formatCurrency(data.allowances)}`, fontSize: 9, alignment: 'right', color: '#15803d', bold: true },
-    ]);
+  for (const item of allocItems) {
+    const summaryRows = [
+      [
+        { text: 'SALARY SETTLEMENT SUMMARY', style: 'tableHeader', bold: true, fillColor: '#1e293b', color: '#ffffff', colSpan: 2 },
+        {},
+      ],
+      [
+        { text: `Original Salary Due (${item.month} ${item.year})`, fontSize: 9, color: '#334155', bold: true },
+        { text: formatCurrency(item.salaryDue), fontSize: 9, alignment: 'right', color: '#0f172a', bold: true },
+      ],
+      [
+        { text: '(-) Previously Paid', fontSize: 9, color: '#475569' },
+        { text: formatCurrency(item.previouslyPaid), fontSize: 9, alignment: 'right', color: '#475569' },
+      ],
+      [
+        { text: '(+) Current Disbursement / Payment', fontSize: 9.5, bold: true, color: '#15803d', fillColor: '#f0fdf4' },
+        { text: formatCurrency(item.currentDisbursement), fontSize: 10, bold: true, alignment: 'right', color: '#15803d', fillColor: '#f0fdf4' },
+      ],
+      [
+        { text: '(=) Total Paid to Date', fontSize: 9, bold: true, color: '#0f172a', fillColor: '#f8fafc' },
+        { text: formatCurrency(item.totalPaid), fontSize: 9, bold: true, alignment: 'right', color: '#0f172a', fillColor: '#f8fafc' },
+      ],
+      [
+        { text: '(=) Remaining Unpaid Salary', fontSize: 9.5, bold: true, color: item.remainingUnpaid > 0 ? '#b91c1c' : '#15803d', fillColor: item.remainingUnpaid > 0 ? '#fef2f2' : '#f0fdf4' },
+        { text: formatCurrency(item.remainingUnpaid), fontSize: 10, bold: true, alignment: 'right', color: item.remainingUnpaid > 0 ? '#b91c1c' : '#15803d', fillColor: item.remainingUnpaid > 0 ? '#fef2f2' : '#f0fdf4' },
+      ],
+      [
+        { text: 'Payment Status', fontSize: 9, bold: true, color: '#334155' },
+        { text: item.status, fontSize: 9.5, bold: true, alignment: 'right', color: item.status === 'PAID' ? '#15803d' : '#b45309' },
+      ],
+    ];
+
+    content.push({
+      table: {
+        widths: ['65%', '35%'],
+        body: summaryRows,
+      },
+      margin: [0, 0, 0, 15],
+    });
   }
-
-  if (data.deductions > 0) {
-    tableRows.push([
-      { text: '- Attendance & Other Deductions', fontSize: 9, color: '#b91c1c' },
-      { text: `- ${formatCurrency(data.deductions)}`, fontSize: 9, alignment: 'right', color: '#b91c1c' },
-    ]);
-  }
-
-  if (data.advanceDeducted > 0) {
-    tableRows.push([
-      { text: '- Staff Advance Recovery Deducted', fontSize: 9, color: '#b45309' },
-      { text: `- ${formatCurrency(data.advanceDeducted)}`, fontSize: 9, alignment: 'right', color: '#b45309' },
-    ]);
-  }
-
-  tableRows.push([
-    { text: 'TOTAL NET SALARY DISBURSED', fontSize: 10, bold: true, color: '#0f172a', fillColor: '#f8fafc' },
-    { text: formatCurrency(data.netSalary), fontSize: 11, bold: true, alignment: 'right', color: '#15803d', fillColor: '#f8fafc' },
-  ]);
-
-  content.push({
-    table: {
-      widths: ['70%', '30%'],
-      body: tableRows,
-    },
-    margin: [0, 0, 0, 15],
-  });
 
   if (data.remarks) {
     content.push({
@@ -167,7 +189,7 @@ export const buildSalaryReceiptTemplate = (data, settings = {}) => {
       fontSize: 8,
       italic: true,
       color: '#64748b',
-      margin: [0, 0, 0, 20],
+      margin: [0, 0, 0, 15],
     });
   }
 
@@ -181,11 +203,11 @@ export const buildSalaryReceiptTemplate = (data, settings = {}) => {
       ],
       [
         { text: '________________________', alignment: 'right', fontSize: 10, color: '#94a3b8' },
-        { text: 'Employee Acknowledgement', alignment: 'right', fontSize: 9, bold: true, color: '#334155', margin: [0, 2, 0, 0] },
-        { text: 'Payment Received Signature', alignment: 'right', fontSize: 8, color: '#94a3b8' },
+        { text: 'Staff Signature', alignment: 'right', fontSize: 9, bold: true, color: '#334155', margin: [0, 2, 0, 0] },
+        { text: 'Payment Received Acknowledgement', alignment: 'right', fontSize: 8, color: '#94a3b8' },
       ],
     ],
-    margin: [0, 30, 0, 0],
+    margin: [0, 25, 0, 0],
   });
 
   return {

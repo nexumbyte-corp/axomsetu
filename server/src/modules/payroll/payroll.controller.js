@@ -132,4 +132,26 @@ export const payrollController = {
       next(err);
     }
   },
+
+  /**
+   * GET /api/payroll/staff-summary?staffId=...
+   */
+  async getStaffSalarySummary(req, res, next) {
+    try {
+      const schoolId = req.schoolId || req.user?.schoolId;
+      const { staffId } = req.query;
+
+      if (!staffId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Staff ID is required.',
+        });
+      }
+
+      const result = await payrollService.getStaffSalarySummary(schoolId, staffId);
+      return ApiResponse.success(res, result, 'Staff salary summary loaded.');
+    } catch (err) {
+      next(err);
+    }
+  },
 };

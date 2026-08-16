@@ -15,6 +15,7 @@ router.post('/prepare', requirePermission(PERMISSIONS.PAYROLL_PROCESS), payrollC
 router.put('/monthly/:payrollId', requirePermission(PERMISSIONS.PAYROLL_PROCESS), payrollController.updateStaffMonthlyPayroll);
 
 router.get('/pending', requirePermission(PERMISSIONS.PAYROLL_VIEW), payrollController.getPendingPayrollsForStaff);
+router.get('/staff-summary', requirePermission(PERMISSIONS.PAYROLL_VIEW), payrollController.getStaffSalarySummary);
 router.post('/payments', requirePermission(PERMISSIONS.PAYROLL_PROCESS), payrollController.recordMultiMonthSalaryPayment);
 router.get('/payments/:paymentId/receipt', requirePermission(PERMISSIONS.PAYROLL_VIEW), payrollController.getSalaryPaymentReceiptData);
 router.get('/history', requirePermission(PERMISSIONS.PAYROLL_VIEW), payrollController.getSalaryPaymentHistory);

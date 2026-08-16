@@ -526,64 +526,69 @@ export const payrollService = {
       throw ApiError.notFound('Staff member not found.');
     }
 
-    // Validate all target payroll records
     const payrollIds = payments.map((p) => p.monthlyPayrollId);
-    const targetPayrolls = await prisma.monthlyPayroll.findMany({
-      where: {
-        id: { in: payrollIds },
-        schoolId,
-        staffId,
-      },
-    });
-
-    if (targetPayrolls.length !== payments.length) {
-      throw ApiError.badRequest('One or more selected payroll records were not found.');
-    }
-
-    const payrollMap = new Map(targetPayrolls.map((p) => [p.id, p]));
-
-    let totalPaymentAmount = 0;
-    let totalAdvanceRecovery = 0;
-    const validatedAllocations = [];
-    const monthsPaid = [];
-
-    for (const item of payments) {
-      const p = payrollMap.get(item.monthlyPayrollId);
-      const payNow = Number(item.payNowAmount);
-
-      if (isNaN(payNow) || payNow <= 0) {
-        throw ApiError.badRequest(`Pay Now amount for ${p.month} ${p.year} must be a positive number.`);
-      }
-
-      const netSalary = Number(p.netSalary);
-      const alreadyPaid = Number(p.paidAmount);
-      const balance = netSalary - alreadyPaid;
-
-      if (payNow > balance + 0.01) { // 0.01 tolerance for floating point
-        throw ApiError.badRequest(
-          `Payment amount (₹${payNow.toLocaleString('en-IN')}) for ${p.month} ${p.year} exceeds remaining balance (₹${balance.toLocaleString('en-IN')}).`
-        );
-      }
-
-      totalPaymentAmount += payNow;
-      totalAdvanceRecovery += Number(p.advanceDeduction || 0);
-      monthsPaid.push(p.month);
-
-      validatedAllocations.push({
-        monthlyPayroll: p,
-        payNowAmount: payNow,
-        newPaidTotal: alreadyPaid + payNow,
-        isFullyPaid: alreadyPaid + payNow >= netSalary - 0.01,
-      });
-    }
 
     return await prisma.$transaction(async (tx) => {
-      // 1. Generate Payment Voucher Number
+      // Re-fetch target payroll records inside transaction for atomic state
+      const targetPayrolls = await tx.monthlyPayroll.findMany({
+        where: {
+          id: { in: payrollIds },
+          schoolId,
+          staffId,
+        },
+      });
+
+      if (targetPayrolls.length !== payments.length) {
+        throw ApiError.badRequest('One or more selected payroll records were not found.');
+      }
+
+      const payrollMap = new Map(targetPayrolls.map((p) => [p.id, p]));
+
+      let totalPaymentAmount = 0;
+      let totalAdvanceRecovery = 0;
+      const validatedAllocations = [];
+      const monthsPaid = [];
+
+      for (const item of payments) {
+        const p = payrollMap.get(item.monthlyPayrollId);
+        const payNow = Number(item.payNowAmount);
+
+        if (isNaN(payNow) || payNow <= 0) {
+          throw ApiError.badRequest(`Payment amount for ${p.month} ${p.year} must be greater than zero.`);
+        }
+
+        const netSalary = Number(p.netSalary);
+        const alreadyPaid = Number(p.paidAmount);
+        const balance = Math.max(0, netSalary - alreadyPaid);
+
+        if (balance <= 0.01) {
+          throw ApiError.badRequest(`Salary for ${p.month} ${p.year} has already been fully paid.`);
+        }
+
+        if (payNow > balance + 0.01) {
+          throw ApiError.badRequest(
+            `Payment amount (₹${payNow.toLocaleString('en-IN')}) for ${p.month} ${p.year} cannot exceed the remaining salary of ₹${balance.toLocaleString('en-IN')}.`
+          );
+        }
+
+        totalPaymentAmount += payNow;
+        totalAdvanceRecovery += Number(p.advanceDeduction || 0);
+        monthsPaid.push(p.month);
+
+        validatedAllocations.push({
+          monthlyPayroll: p,
+          payNowAmount: payNow,
+          newPaidTotal: alreadyPaid + payNow,
+          isFullyPaid: alreadyPaid + payNow >= netSalary - 0.01,
+        });
+      }
+
+      // 1. Generate Payment Voucher Number (SDV prefix for Salary Disbursement Voucher)
       const paymentNumber = await generateNextDocumentNumber(tx, {
         schoolId,
         academicYearId: academicYearId || null,
         documentType: 'PAYROLL_VOUCHER',
-        prefix: 'PAY',
+        prefix: 'SDV',
       });
 
       const firstPayroll = targetPayrolls[0];
@@ -665,7 +670,7 @@ export const payrollService = {
         }
       }
 
-      // Record Financial Ledger DEBIT for Salary Payment (gross salary = net paid + advance recovered)
+      // Record Financial Ledger DEBIT for Salary Payment
       const grossSalary = totalPaymentAmount + totalAdvanceRecovery;
       await financialLedgerService.createTransaction(tx, {
         schoolId,
@@ -697,6 +702,23 @@ export const payrollService = {
           createdById: userId || null,
         });
       }
+
+      // Audit Log
+      await tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: userId || null,
+          action: 'CREATE_SALARY_DISBURSEMENT',
+          entityType: 'SalaryPayment',
+          entityId: salaryPayment.id,
+          newValues: {
+            paymentNumber: salaryPayment.paymentNumber,
+            staffName: staff.name,
+            amountPaid: totalPaymentAmount,
+            paymentMode,
+          },
+        },
+      });
 
       return {
         salaryPayment,
@@ -731,7 +753,100 @@ export const payrollService = {
       throw ApiError.notFound('Salary payment record not found.');
     }
 
-    return payment;
+    // Enrich allocations with historical settlement figures
+    const enrichedAllocations = await Promise.all(
+      payment.allocations.map(async (alloc) => {
+        const mp = alloc.monthlyPayroll;
+        const salaryDue = Number(mp.netSalary || 0);
+        const currentDisbursement = Number(alloc.allocatedAmount || 0);
+
+        // Find prior allocations to this monthlyPayroll created BEFORE this payment
+        const priorAllocations = await prisma.salaryPaymentAllocation.findMany({
+          where: {
+            monthlyPayrollId: mp.id,
+            salaryPaymentId: { not: payment.id },
+            salaryPayment: {
+              createdAt: { lte: payment.createdAt },
+            },
+          },
+          select: { allocatedAmount: true },
+        });
+
+        const previouslyPaid = priorAllocations.reduce(
+          (sum, a) => sum + Number(a.allocatedAmount || 0),
+          0
+        );
+        const totalPaid = previouslyPaid + currentDisbursement;
+        const remainingUnpaid = Math.max(0, salaryDue - totalPaid);
+
+        let status = 'UNPAID';
+        if (remainingUnpaid <= 0.01) {
+          status = 'PAID';
+        } else if (totalPaid > 0) {
+          status = 'PARTIALLY PAID';
+        }
+
+        return {
+          ...alloc,
+          settlement: {
+            salaryDue,
+            previouslyPaid,
+            currentDisbursement,
+            totalPaid,
+            remainingUnpaid,
+            status,
+          },
+        };
+      })
+    );
+
+    return {
+      ...payment,
+      allocations: enrichedAllocations,
+    };
+  },
+
+  /**
+   * Get Staff Salary Summary position (Base, Pending Outstanding, Total Outstanding)
+   */
+  async getStaffSalarySummary(schoolId, staffId) {
+    const staff = await prisma.staff.findFirst({
+      where: { id: staffId, schoolId },
+    });
+
+    if (!staff) {
+      throw ApiError.notFound('Staff member not found.');
+    }
+
+    const payrolls = await prisma.monthlyPayroll.findMany({
+      where: { schoolId, staffId },
+    });
+
+    let totalDue = 0;
+    let totalPaid = 0;
+    let totalOutstanding = 0;
+
+    for (const p of payrolls) {
+      const due = Number(p.netSalary);
+      const paid = Number(p.paidAmount);
+      const bal = Math.max(0, due - paid);
+      totalDue += due;
+      totalPaid += paid;
+      totalOutstanding += bal;
+    }
+
+    return {
+      staffId: staff.id,
+      staffName: staff.name,
+      employeeId: staff.employeeId,
+      department: staff.department,
+      designation: staff.designation,
+      baseSalary: Number(staff.baseSalary || 0),
+      totalSalaryDue: totalDue,
+      totalPaid,
+      totalOutstanding,
+      advanceBalance: Number(staff.advanceBalance || 0),
+    };
   },
 
   /**
