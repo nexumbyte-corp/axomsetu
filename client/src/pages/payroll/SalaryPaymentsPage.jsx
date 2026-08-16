@@ -9,7 +9,8 @@ import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { StaffSubNav } from '../staff/StaffSubNav.jsx';
-import { printPdfDocument, downloadPdfDocument } from '../../core/documents/documentEngine.js';
+import { downloadPdfDocument } from '../../core/documents/documentEngine.js';
+import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import {
   CreditCard,
   Search,
@@ -230,18 +231,7 @@ export const SalaryPaymentsPage = () => {
     }
   };
 
-  const handlePrintReceipt = async () => {
-    if (!successModalData) return;
-    try {
-      await printPdfDocument({
-        templateId: 'salary',
-        data: successModalData,
-      });
-    } catch (err) {
-      console.error('Failed to print receipt:', err);
-      alert('Failed to launch print window.');
-    }
-  };
+
 
   const handleDownloadReceipt = async () => {
     if (!successModalData) return;
@@ -630,16 +620,17 @@ export const SalaryPaymentsPage = () => {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-2 border-t border-slate-200">
+            <div className="flex justify-end items-center gap-3 pt-2 border-t border-slate-200">
               <Button variant="secondary" onClick={() => setSuccessModalData(null)}>
                 Done
               </Button>
-              <Button variant="outline" icon={Download} onClick={handleDownloadReceipt}>
-                Download PDF Voucher
-              </Button>
-              <Button variant="primary" icon={Printer} onClick={handlePrintReceipt}>
-                Print Salary Disbursement Voucher
-              </Button>
+              <DocumentActions
+                templateId="salary"
+                data={successModalData}
+                filename={`SalaryVoucher_${successModalData?.paymentNumber || 'VOUCHER'}.pdf`}
+                title={`Salary Voucher #${successModalData?.paymentNumber || ''}`}
+                variant="printOnly"
+              />
             </div>
           </div>
         )}

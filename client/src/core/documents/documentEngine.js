@@ -31,19 +31,36 @@ export const loadPdfMake = async () => {
   }
 };
 
+const imageBase64Cache = new Map();
+
 /**
  * Helper to convert an image URL or WebP data URI to a PNG Base64 Data URL for pdfmake.
+ * Caches converted base64 data to eliminate redundant network/canvas conversion overhead.
  */
 export const convertImageToBase64Png = (url) => {
   if (!url || typeof url !== 'string') return Promise.resolve(null);
   if (url.startsWith('data:image/png') || url.startsWith('data:image/jpeg') || url.startsWith('data:image/jpg')) {
     return Promise.resolve(url);
   }
+  if (imageBase64Cache.has(url)) {
+    return Promise.resolve(imageBase64Cache.get(url));
+  }
 
   return new Promise((resolve) => {
+    let resolved = false;
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve(null);
+      }
+    }, 2500);
+
     const img = new Image();
     img.crossOrigin = 'Anonymous';
     img.onload = () => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timer);
       try {
         const canvas = document.createElement('canvas');
         canvas.width = img.naturalWidth || img.width || 120;
@@ -51,12 +68,18 @@ export const convertImageToBase64Png = (url) => {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0);
         const dataUrl = canvas.toDataURL('image/png');
+        imageBase64Cache.set(url, dataUrl);
         resolve(dataUrl);
       } catch (err) {
         resolve(null);
       }
     };
-    img.onerror = () => resolve(null);
+    img.onerror = () => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timer);
+      resolve(null);
+    };
     img.src = url;
   });
 };
@@ -121,7 +144,7 @@ export const createPdfBlobUrl = async ({ templateId = 'receipt', data = {}, opti
 
 /**
  * Downloads a generated PDF with custom clean filename.
- * Example: Receipt_RCPT-2026-000123.pdf
+ * Uses pdfMake's built-in cross-browser download engine.
  */
 export const downloadPdfDocument = async ({
   templateId = 'receipt',
@@ -134,12 +157,12 @@ export const downloadPdfDocument = async ({
 };
 
 /**
- * Direct PDF printing stream.
- * Prints the vector PDF directly without rendering HTML pages.
+ * Standard Central Document Generator API Alias.
+ * Usage: generatePdf('receipt', data, options)
  */
-export const printPdfDocument = async ({ templateId = 'receipt', data = {}, options = {} }) => {
-  const pdfInstance = await generateDocument({ templateId, data, options });
-  pdfInstance.print();
+export const generatePdf = async (documentType = 'receipt', data = {}, options = {}) => {
+  return generateDocument({ templateId: documentType, data, options });
 };
 
 export default generateDocument;
+

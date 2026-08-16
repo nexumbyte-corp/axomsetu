@@ -9,7 +9,7 @@ const MAX_TARGET_BYTES = 20 * 1024; // 20KB Max Target Size
  * Example URL: https://res.cloudinary.com/demo/image/upload/v1620000000/school_saas/logos/sch_123.webp
  * Returns: "school_saas/logos/sch_123"
  */
-export const extractPublicIdFromUrl = (url) => {
+const extractPublicIdFromUrl = (url) => {
   if (!url || typeof url !== 'string' || !url.includes('cloudinary.com')) {
     return null;
   }

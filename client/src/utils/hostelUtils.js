@@ -62,15 +62,3 @@ export const formatStudentClassInfo = (studentOrEnrollment) => {
   return parts.join(' • ');
 };
 
-/**
- * Helper to get clean status badge variant
- */
-export const getBedStatusVariant = (status) => {
-  switch (status) {
-    case 'AVAILABLE': return 'green';
-    case 'OCCUPIED': return 'blue';
-    case 'MAINTENANCE': return 'amber';
-    case 'BLOCKED': return 'gray';
-    default: return 'gray';
-  }
-};

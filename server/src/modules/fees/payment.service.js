@@ -5,7 +5,7 @@ import receiptService from './receipt.service.js';
 import { getTargetYearForFeeMonth } from './fee-generation.service.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
 
-export const PAYMENT_AUDIT_EVENTS = {
+const PAYMENT_AUDIT_EVENTS = {
   CREATE_PAYMENT: 'CREATE_PAYMENT',
   VOID_PAYMENT: 'VOID_PAYMENT',
   VIEW_PAYMENT: 'VIEW_PAYMENT',

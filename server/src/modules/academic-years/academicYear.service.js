@@ -7,7 +7,7 @@ import { memoryCache } from '../../utils/cache.js';
  * E.g., 10 Aug 2026 -> 2026-27 (2026-04-01 to 2027-03-31)
  *       10 Feb 2027 -> 2026-27 (2026-04-01 to 2027-03-31)
  */
-export const getAcademicYearFromDate = (dateInput = new Date()) => {
+const getAcademicYearFromDate = (dateInput = new Date()) => {
   const date = new Date(dateInput);
   const month = date.getMonth(); // 0-indexed: April = 3
   const year = date.getFullYear();

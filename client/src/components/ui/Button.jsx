@@ -9,6 +9,7 @@ export const Button = React.forwardRef(
       variant = 'primary',
       size = 'md',
       loading = false,
+      isLoading = false,
       loadingText,
       disabled = false,
       onClick,
@@ -37,7 +38,7 @@ export const Button = React.forwardRef(
     };
 
     const handleClick = (e) => {
-      if (loading || disabled) {
+      if (loading || isLoading || disabled) {
         e.preventDefault();
         return;
       }
@@ -46,7 +47,8 @@ export const Button = React.forwardRef(
       }
     };
 
-    const isButtonDisabled = disabled || loading;
+    const isSpinnerLoading = Boolean(loading || isLoading);
+    const isButtonDisabled = disabled || isSpinnerLoading;
 
     return (
       <button
@@ -57,7 +59,7 @@ export const Button = React.forwardRef(
         className={`${baseStyles} ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}`}
         {...props}
       >
-        {loading ? (
+        {isSpinnerLoading ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin shrink-0" />
             <span>{loadingText || 'Loading...'}</span>

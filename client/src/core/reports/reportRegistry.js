@@ -17,7 +17,7 @@ export const REPORT_REGISTRY = [
     title: 'Student Directory',
     description: 'Comprehensive list of enrolled students with admission details, guardian contact, and status.',
     endpoint: '/reports/students/directory',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'studentReport',
     filters: ['academicYearId', 'classId', 'sectionId', 'mediumId', 'streamId', 'status', 'search'],
     columns: [
       { key: 'admissionNo', label: 'Admission No', bold: true },
@@ -37,7 +37,7 @@ export const REPORT_REGISTRY = [
     title: 'Class-wise Student List',
     description: 'Student directory organized and grouped by Class.',
     endpoint: '/reports/students/class-wise',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'studentReport',
     filters: ['academicYearId', 'classId', 'mediumId', 'streamId'],
     isGrouped: true,
     groupedKey: 'students',
@@ -56,7 +56,7 @@ export const REPORT_REGISTRY = [
     title: 'Section-wise Student List',
     description: 'Students grouped by Class and Section.',
     endpoint: '/reports/students/section-wise',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'studentReport',
     filters: ['academicYearId', 'classId', 'sectionId'],
     isGrouped: true,
     groupedKey: 'students',
@@ -73,7 +73,7 @@ export const REPORT_REGISTRY = [
     title: 'Medium-wise Student List',
     description: 'Distribution and total counts of students enrolled by Medium of instruction.',
     endpoint: '/reports/students/medium-wise',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'studentReport',
     filters: ['academicYearId', 'mediumId'],
     columns: [
       { key: 'mediumName', label: 'Medium', bold: true },
@@ -86,7 +86,7 @@ export const REPORT_REGISTRY = [
     title: 'Stream-wise Student List',
     description: 'Student breakdown by Academic Stream (Science, Arts, Commerce).',
     endpoint: '/reports/students/stream-wise',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'studentReport',
     filters: ['academicYearId', 'streamId'],
     columns: [
       { key: 'streamName', label: 'Stream', bold: true },
@@ -99,7 +99,7 @@ export const REPORT_REGISTRY = [
     title: 'Student Status Breakdown',
     description: 'Counts of active, graduated, left, and archived students.',
     endpoint: '/reports/students/status',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'studentReport',
     filters: [],
     columns: [
       { key: 'status', label: 'Status', type: 'badge' },
@@ -114,7 +114,7 @@ export const REPORT_REGISTRY = [
     title: 'Class Strength Report',
     description: 'Enrollment capacity and current student strength across all classes.',
     endpoint: '/reports/academic/class-strength',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'studentReport',
     filters: ['academicYearId'],
     columns: [
       { key: 'className', label: 'Class Name', bold: true },
@@ -128,7 +128,7 @@ export const REPORT_REGISTRY = [
     title: 'Academic Year Enrollment Report',
     description: 'Summary of active, promoted, repeated, and left enrollments.',
     endpoint: '/reports/academic/enrollment',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'studentReport',
     filters: ['academicYearId'],
     columns: [
       { key: 'status', label: 'Enrollment Status', type: 'badge' },
@@ -143,7 +143,7 @@ export const REPORT_REGISTRY = [
     title: 'Fee Collection Report',
     description: 'Itemized record of fee payments collected with payment modes and receipt numbers.',
     endpoint: '/reports/fees/collection',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'feeReport',
     filters: ['academicYearId', 'startDate', 'endDate', 'classId', 'feeTypeId', 'paymentMode'],
     columns: [
       { key: 'date', label: 'Date', type: 'date' },
@@ -162,7 +162,7 @@ export const REPORT_REGISTRY = [
     title: 'Outstanding Fee Report',
     description: 'List of students with pending balances, total charged, paid, and remaining dues.',
     endpoint: '/reports/fees/outstanding',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'feeReport',
     filters: ['academicYearId', 'classId', 'sectionId', 'mediumId', 'streamId', 'status'],
     columns: [
       { key: 'admissionNo', label: 'Admission No' },
@@ -181,7 +181,7 @@ export const REPORT_REGISTRY = [
     title: 'Student Fee Ledger',
     description: 'Chronological charge and payment statement for an individual student.',
     endpoint: '/reports/fees/student-ledger',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'feeReport',
     filters: ['studentId', 'academicYearId'],
     columns: [
       { key: 'date', label: 'Date', type: 'date' },
@@ -198,7 +198,7 @@ export const REPORT_REGISTRY = [
     title: 'Class-wise Fee Collection',
     description: 'Class-by-class comparison of total collection versus pending dues.',
     endpoint: '/reports/fees/class-collection',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'feeReport',
     filters: ['academicYearId'],
     columns: [
       { key: 'className', label: 'Class Name', bold: true },
@@ -213,7 +213,7 @@ export const REPORT_REGISTRY = [
     title: 'Fee Generation Report',
     description: 'Audit history of recurring fee generation runs and total amounts generated.',
     endpoint: '/reports/fees/batches',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'feeReport',
     filters: ['academicYearId'],
     columns: [
       { key: 'date', label: 'Date Generated', type: 'date' },
@@ -225,8 +225,6 @@ export const REPORT_REGISTRY = [
       { key: 'generatedBy', label: 'Generated By' },
     ],
   },
-
-
 
   // --- Staff Reports ---
   {
@@ -302,7 +300,7 @@ export const REPORT_REGISTRY = [
     title: 'Monthly Salary Report',
     description: 'Payroll snapshot by month including working days, deductions, bonuses, and net pay.',
     endpoint: '/reports/payroll/monthly',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'payrollReport',
     filters: ['academicYearId', 'month', 'year', 'department', 'designation', 'status'],
     columns: [
       { key: 'employeeId', label: 'Emp ID' },
@@ -323,7 +321,7 @@ export const REPORT_REGISTRY = [
     title: 'Salary Payment Vouchers',
     description: 'Historical records of disbursed salary payment vouchers and payment modes.',
     endpoint: '/reports/payroll/payments',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'payrollReport',
     filters: ['academicYearId', 'startDate', 'endDate', 'paymentMode', 'staffId'],
     columns: [
       { key: 'paymentDate', label: 'Payment Date', type: 'date' },
@@ -341,7 +339,7 @@ export const REPORT_REGISTRY = [
     title: 'Staff Salary Ledger',
     description: 'Individual staff salary accrual and disbursement timeline.',
     endpoint: '/reports/payroll/staff-ledger',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'payrollReport',
     filters: ['staffId', 'academicYearId'],
     columns: [
       { key: 'date', label: 'Date', type: 'date' },
@@ -358,7 +356,7 @@ export const REPORT_REGISTRY = [
     title: 'Pending Salary Dues Report',
     description: 'Unpaid and partially paid monthly salary records.',
     endpoint: '/reports/payroll/pending',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'payrollReport',
     filters: ['academicYearId', 'month', 'department', 'status'],
     columns: [
       { key: 'employeeId', label: 'Emp ID' },
@@ -377,7 +375,7 @@ export const REPORT_REGISTRY = [
     title: 'Staff Advance & Recovery Report',
     description: 'Track staff salary advances issued, amounts allocated in payroll, recoveries completed, and available balances.',
     endpoint: '/reports/payroll/advances',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'staffAdvance',
     filters: ['startDate', 'endDate', 'transactionType', 'status'],
     columns: [
       { key: 'date', label: 'Date', type: 'date' },
@@ -398,7 +396,7 @@ export const REPORT_REGISTRY = [
     title: 'Individual Staff Advance Statement',
     description: 'Chronological advance disbursement and payroll recovery ledger for an individual staff member.',
     endpoint: '/reports/payroll/individual-advance',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'staffAdvance',
     filters: ['staffId', 'startDate', 'endDate'],
     columns: [
       { key: 'date', label: 'Date', type: 'date' },
@@ -411,7 +409,6 @@ export const REPORT_REGISTRY = [
     ],
   },
 
-
   // --- Finance Reports ---
   {
     id: 'financial-summary',
@@ -419,7 +416,7 @@ export const REPORT_REGISTRY = [
     title: 'Financial Summary Report',
     description: 'High-level financial overview showing Total Credits, Total Debits, and Net Cash Movement.',
     endpoint: '/reports/finance/summary',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'financialLedger',
     filters: ['academicYearId', 'startDate', 'endDate'],
     isCustomLayout: 'financialSummary',
     columns: [],
@@ -430,7 +427,7 @@ export const REPORT_REGISTRY = [
     title: 'Financial Ledger Transaction Report',
     description: 'Itemized double-entry transaction ledger of all credits and debits across school operations.',
     endpoint: '/reports/finance/transactions',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'financialLedger',
     filters: ['academicYearId', 'startDate', 'endDate', 'type', 'sourceType', 'paymentMode'],
     columns: [
       { key: 'date', label: 'Date', type: 'date' },
@@ -448,7 +445,7 @@ export const REPORT_REGISTRY = [
     title: 'School Expenditure Report',
     description: 'Itemized operational school expenses grouped by category and payment mode.',
     endpoint: '/reports/finance/expenses',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'expenseReport',
     filters: ['academicYearId', 'startDate', 'endDate', 'categoryId', 'paymentMode'],
     columns: [
       { key: 'date', label: 'Expense Date', type: 'date' },
@@ -465,7 +462,7 @@ export const REPORT_REGISTRY = [
     title: 'Fund Addition Report',
     description: 'Records of external capital contributions and funds injected into the school.',
     endpoint: '/reports/finance/funds',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'fundReport',
     filters: ['academicYearId', 'startDate', 'endDate', 'fundSourceId', 'paymentMode'],
     columns: [
       { key: 'date', label: 'Date Added', type: 'date' },
@@ -482,7 +479,7 @@ export const REPORT_REGISTRY = [
     title: 'Payment Mode Analysis',
     description: 'Movement of money across Cash, Bank, UPI, Cheque, and Demand Draft.',
     endpoint: '/reports/finance/payment-modes',
-    pdfTemplate: 'genericReport',
+    pdfTemplate: 'financialLedger',
     filters: ['academicYearId', 'startDate', 'endDate'],
     isCustomLayout: 'paymentModes',
     columns: [],
@@ -508,3 +505,6 @@ export const REPORT_REGISTRY = [
 ];
 
 export const getReportById = (id) => REPORT_REGISTRY.find((r) => r.id === id);
+
+export default REPORT_REGISTRY;
+

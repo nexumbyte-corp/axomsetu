@@ -2,7 +2,7 @@ import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { memoryCache } from '../../utils/cache.js';
 
-export const SYSTEM_FEE_TYPES = [
+const SYSTEM_FEE_TYPES = [
   {
     systemCode: 'ADMISSION',
     name: 'Admission',

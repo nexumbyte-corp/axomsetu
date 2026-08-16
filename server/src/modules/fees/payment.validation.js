@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-export const PAYMENT_MODES = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT'];
+const PAYMENT_MODES = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT'];
 
-export const FEE_MONTHS = [
+const FEE_MONTHS = [
   'JANUARY',
   'FEBRUARY',
   'MARCH',
@@ -17,7 +17,7 @@ export const FEE_MONTHS = [
   'DECEMBER',
 ];
 
-export const chargeSelectionSchema = z
+const chargeSelectionSchema = z
   .object({
     chargeId: z.string().uuid('Invalid charge ID'),
     amount: z.number().positive('Allocated amount must be greater than zero').optional(),

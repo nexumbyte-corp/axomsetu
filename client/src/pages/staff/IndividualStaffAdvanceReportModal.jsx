@@ -10,8 +10,8 @@ import { Card } from '../../components/ui/Card.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { DocumentPreviewModal } from '../../components/documents/DocumentPreviewModal.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
-import { printPdfDocument } from '../../core/documents/documentEngine.js';
-import { Printer, Download, FileText, Filter, RefreshCw } from 'lucide-react';
+import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
+import { Download, FileText, Filter, RefreshCw } from 'lucide-react';
 
 
 export const IndividualStaffAdvanceReportModal = ({
@@ -104,17 +104,7 @@ export const IndividualStaffAdvanceReportModal = ({
     setIsPdfModalOpen(true);
   };
 
-  const handleDirectPrint = async () => {
-    try {
-      const payload = preparePdfData();
-      await printPdfDocument({
-        templateId: 'genericReport',
-        data: payload,
-      });
-    } catch (err) {
-      toast.error('Failed printing advance statement.');
-    }
-  };
+
 
   const handleExportCSV = () => {
     try {
@@ -155,14 +145,17 @@ export const IndividualStaffAdvanceReportModal = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleDirectPrint} disabled={loading || ledger.length === 0} className="bg-white/10 text-white border-white/20 hover:bg-white/20">
-              <Printer className="w-3.5 h-3.5 mr-1" />
-              Print
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleOpenPdf} disabled={loading || ledger.length === 0} className="bg-white/10 text-white border-white/20 hover:bg-white/20">
-              <FileText className="w-3.5 h-3.5 mr-1" />
-              PDF Report
-            </Button>
+            <DocumentActions
+              templateId="staffAdvance"
+              data={{
+                staff,
+                advances: ledger,
+                summary,
+                schoolHeader,
+              }}
+              filename={`Staff_Advance_Report_${staff.employeeId || 'Staff'}.pdf`}
+              title={`Staff Advance Statement - ${staff.name || staffName}`}
+            />
             <Button variant="secondary" size="sm" onClick={handleExportCSV} disabled={loading || ledger.length === 0}>
               <Download className="w-3.5 h-3.5 mr-1" />
               CSV

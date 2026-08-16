@@ -11,7 +11,7 @@ import { Pagination } from '../../components/ui/Pagination.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
-import { printPdfDocument } from '../../core/documents/documentEngine.js';
+import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import {
   Plus,
   Search,
@@ -19,7 +19,6 @@ import {
   Settings,
   AlertTriangle,
   Landmark,
-  Printer,
 } from 'lucide-react';
 
 export const FundsPage = () => {
@@ -177,20 +176,6 @@ export const FundsPage = () => {
   const { user } = useAuth();
   const schoolHeader = user?.schoolAdmins?.[0]?.school || {};
 
-  const handlePrintFunds = async () => {
-    try {
-      await printPdfDocument({
-        templateId: 'fundReport',
-        data: {
-          schoolHeader,
-          funds,
-        },
-      });
-    } catch (err) {
-      console.error('Failed to print funds report:', err);
-    }
-  };
-
   const activeSources = sources.filter((s) => s.isActive);
 
   return (
@@ -203,14 +188,12 @@ export const FundsPage = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrintFunds}
-            icon={Printer}
-          >
-            Print Funds
-          </Button>
+          <DocumentActions
+            templateId="fundReport"
+            data={{ schoolHeader, funds }}
+            filename="School_Fund_Report.pdf"
+            title="School Fund Addition Report"
+          />
           <Button
             variant="outline"
             size="sm"

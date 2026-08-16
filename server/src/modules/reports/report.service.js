@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 
-export const REPORT_AUDIT_EVENTS = {
+const REPORT_AUDIT_EVENTS = {
   VIEW_REPORT: 'VIEW_REPORT',
 };
 

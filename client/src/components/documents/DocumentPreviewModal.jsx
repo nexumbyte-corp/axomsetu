@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Printer, Download, X, Loader2, FileText } from 'lucide-react';
+import { Download, X, Loader2, FileText, ExternalLink } from 'lucide-react';
 import { Button } from '../ui/Button.jsx';
 import { toast } from '../ui/Toast.jsx';
-import { createPdfBlobUrl, downloadPdfDocument, printPdfDocument } from '../../core/documents/documentEngine.js';
+import { createPdfBlobUrl, downloadPdfDocument } from '../../core/documents/documentEngine.js';
+
 
 export const DocumentPreviewModal = ({
   isOpen = false,
@@ -66,11 +67,9 @@ export const DocumentPreviewModal = ({
     }
   };
 
-  const handlePrint = async () => {
-    try {
-      await printPdfDocument({ templateId, data, options });
-    } catch (err) {
-      toast.error('Failed printing PDF document.');
+  const handleOpenInNewTab = () => {
+    if (blobUrl) {
+      window.open(blobUrl, '_blank');
     }
   };
 
@@ -91,15 +90,17 @@ export const DocumentPreviewModal = ({
 
           {/* Controls */}
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrint}
-              disabled={loading || !blobUrl}
-            >
-              <Printer className="w-3.5 h-3.5 mr-1.5" />
-              Print
-            </Button>
+            {blobUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenInNewTab}
+                title="Open PDF in new browser tab"
+              >
+                <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                Open Tab
+              </Button>
+            )}
 
             <Button
               variant="primary"
@@ -136,11 +137,26 @@ export const DocumentPreviewModal = ({
               </Button>
             </div>
           ) : blobUrl ? (
-            <iframe
-              src={blobUrl}
+            <object
+              data={blobUrl}
+              type="application/pdf"
               className="w-full h-full border-none"
-              title="PDF Document Preview"
-            />
+            >
+              <iframe
+                src={blobUrl}
+                type="application/pdf"
+                className="w-full h-full border-none"
+                title="PDF Document Preview"
+              >
+                <div className="p-8 text-center text-xs text-slate-600">
+                  <p className="font-bold mb-2">Unable to display inline PDF preview in this browser.</p>
+                  <Button variant="primary" size="sm" onClick={handleOpenInNewTab}>
+                    <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+                    Open PDF in New Window
+                  </Button>
+                </div>
+              </iframe>
+            </object>
           ) : null}
         </div>
       </div>

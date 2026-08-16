@@ -1,6 +1,7 @@
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { calculateSubscriptionEndDate } from '../../utils/subscriptionUtils.js';
+import { memoryCache } from '../../utils/cache.js';
 
 /**
  * Super Admin: List all subscription plans.
@@ -83,6 +84,8 @@ export const createPlan = async (data, actorUserId) => {
     },
   });
 
+  memoryCache.invalidatePrefix('plans:');
+
   return plan;
 };
 
@@ -136,6 +139,8 @@ export const updatePlan = async (planId, data, actorUserId) => {
     },
   });
 
+  memoryCache.invalidatePrefix('plans:');
+
   return updatedPlan;
 };
 
@@ -160,6 +165,8 @@ export const togglePlanStatus = async (planId, isActive, actorUserId) => {
       newValues: { isActive },
     },
   });
+
+  memoryCache.invalidatePrefix('plans:');
 
   return updated;
 };

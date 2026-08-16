@@ -4,14 +4,14 @@
  * Supports template-level and invocation-level overrides.
  */
 
-export const BRAND_PDF_CONFIG = {
+const BRAND_PDF_CONFIG = {
   productName: 'AxomSetu',
   companyName: 'NEXUMBYTE',
   poweredBy: 'Powered by NEXUMBYTE',
   productTagline: 'School Management Platform',
 };
 
-export const DEFAULT_DOCUMENT_SETTINGS = {
+const DEFAULT_DOCUMENT_SETTINGS = {
   pageSize: 'A4',
   pageOrientation: 'portrait', // 'portrait' | 'landscape'
   pageMargins: [30, 30, 30, 35], // [left, top, right, bottom]

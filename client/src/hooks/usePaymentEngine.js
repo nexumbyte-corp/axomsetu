@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { paymentService } from '../services/payment.service.js';
 
-export const PAYMENT_KEYS = {
+const PAYMENT_KEYS = {
   all: ['payments'],
   list: (params) => ['payments', 'list', params],
   search: (query, params) => ['payments', 'search', query, params],
@@ -54,31 +54,13 @@ export const usePaymentDetails = (id) => {
   });
 };
 
-// 5. Fetch Receipt Reprint Payload
-export const useReceiptReprint = (id) => {
-  return useQuery({
-    queryKey: PAYMENT_KEYS.reprint(id),
-    queryFn: () => paymentService.getReceiptReprint(id),
-    enabled: Boolean(id),
-  });
-};
-
-// 6. Fetch Payments History List
+// 5. Fetch Payments History List
 export const usePaymentsList = (params = {}) => {
   return useQuery({
     queryKey: PAYMENT_KEYS.list(params),
     queryFn: () => paymentService.getPayments(params),
     staleTime: 0,
     refetchOnMount: 'always',
-  });
-};
-
-// 7. Instant Receipt Search
-export const useReceiptSearch = (query = '', params = {}) => {
-  return useQuery({
-    queryKey: PAYMENT_KEYS.search(query, params),
-    queryFn: () => paymentService.searchReceipts({ q: query, ...params }),
-    enabled: Boolean(query && query.trim().length > 0),
   });
 };
 

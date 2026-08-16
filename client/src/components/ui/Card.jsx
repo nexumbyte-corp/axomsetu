@@ -21,14 +21,6 @@ export const CardTitle = ({ children, className = '' }) => {
   return <h3 className={`text-base font-semibold text-slate-900 ${className}`}>{children}</h3>;
 };
 
-export const CardDescription = ({ children, className = '' }) => {
-  return <p className={`text-xs text-slate-500 mt-0.5 ${className}`}>{children}</p>;
-};
-
 export const CardContent = ({ children, className = '' }) => {
   return <div className={`p-6 ${className}`}>{children}</div>;
-};
-
-export const CardFooter = ({ children, className = '' }) => {
-  return <div className={`px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 ${className}`}>{children}</div>;
 };

@@ -6,24 +6,23 @@ import {
   CreditCard,
   Building2,
   Calendar,
-  ArrowRight,
   Menu,
-  CheckCircle2,
   Receipt,
   FileSpreadsheet,
-  TrendingUp,
-  Zap,
-  Sparkles,
   ChevronDown,
   Check,
-  Lock,
-  HelpCircle,
+  Sliders,
+  UserCheck,
+  Phone,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button.jsx';
 import { Drawer } from '../components/ui/Drawer.jsx';
 import { subscriptionService } from '../services/subscriptionService.js';
+import { platformService } from '../services/platformService.js';
 import { BRAND_CONFIG } from '../config/brandConfig.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
+import { TermsAndConditionsModal } from '../components/legal/TermsAndConditionsModal.jsx';
+import { PrivacyPolicyModal } from '../components/legal/PrivacyPolicyModal.jsx';
 
 export const LandingPage = () => {
   useDocumentTitle();
@@ -32,49 +31,41 @@ export const LandingPage = () => {
   const [plans, setPlans] = useState([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [plansError, setPlansError] = useState(null);
-  const [registeredSchools, setRegisteredSchools] = useState([]);
-  const [loadingSchools, setLoadingSchools] = useState(true);
 
   // Dynamic UI States
   const [billingFilter, setBillingFilter] = useState('ALL'); // ALL, MONTHLY, QUARTERLY, YEARLY
-  const [activePreviewTab, setActivePreviewTab] = useState('OVERVIEW'); // OVERVIEW, FEES, PAYROLL, ACADEMIC
-  const [activeModuleCategory, setActiveModuleCategory] = useState('ALL');
+  const [activePreviewTab, setActivePreviewTab] = useState('DASHBOARD'); // DASHBOARD, FEES, PAYROLL
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
 
-  // Auto-close mobile drawer and reset overflow on route change
+  // Legal Modal states
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+
+  // Auto-close mobile drawer on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
     document.body.style.overflow = '';
   }, [location.pathname]);
 
-  // Fetch Public Plans and Registered Schools dynamically on mount
+  // Fetch Public Plans from API on mount
   useEffect(() => {
     const fetchLandingData = async () => {
       setLoadingPlans(true);
-      setLoadingSchools(true);
+      setPlansError(null);
       try {
-        const [plansRes, schoolsRes] = await Promise.all([
-          subscriptionService.getPublicLandingPlans(),
-          subscriptionService.getPublicLandingSchools(),
-        ]);
-
-        if (plansRes.success && Array.isArray(plansRes.data)) {
+        const plansRes = await subscriptionService.getPublicLandingPlans();
+        if (plansRes && plansRes.success && Array.isArray(plansRes.data)) {
           setPlans(plansRes.data);
+        } else if (Array.isArray(plansRes)) {
+          setPlans(plansRes);
         } else {
           setPlans([]);
         }
-
-        if (schoolsRes.success && Array.isArray(schoolsRes.data)) {
-          setRegisteredSchools(schoolsRes.data);
-        } else {
-          setRegisteredSchools([]);
-        }
       } catch (err) {
-        console.error('Failed to fetch public landing data:', err);
-        setPlansError('Unable to load live pricing plans right now.');
+        console.error('Failed to fetch public landing plans:', err);
+        setPlansError('Unable to load pricing plans right now.');
       } finally {
         setLoadingPlans(false);
-        setLoadingSchools(false);
       }
     };
 
@@ -84,61 +75,106 @@ export const LandingPage = () => {
   const formatCurrency = (val) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
 
-  // Features Breakdown for Marketing Section
-  const modulesList = [
+  // Core 8 Features list
+  const coreFeatures = [
     {
-      category: 'STUDENTS',
       icon: Users,
-      title: 'Student Admission & Profiles',
-      description: 'Centralized database for student bio-data, parent contact records, roll allocations, and academic session history.',
-      badge: 'Core Module',
+      title: 'Student Management',
+      description: 'Manage student profiles, admissions, academic records, and parent contact details.',
     },
     {
-      category: 'FEES',
       icon: Receipt,
-      title: 'Automated Fee Engine',
-      description: 'Define multi-class fee structures, issue instant digital receipts, track pending dues, and view collection ledgers.',
-      badge: 'Revenue Engine',
+      title: 'Fee Management',
+      description: 'Define fee structures, issue instant digital receipts, track collections, and view ledgers.',
     },
     {
-      category: 'PAYROLL',
       icon: CreditCard,
-      title: 'Staff Payroll & Advances',
-      description: 'Streamlined salary calculations, advance requests, partial disbursements, and detailed monthly salary slips.',
-      badge: 'HR & Payroll',
+      title: 'Staff & Payroll',
+      description: 'Manage staff salaries, advance requests, monthly payroll disbursements, and payslips.',
     },
     {
-      category: 'FINANCE',
-      icon: FileSpreadsheet,
-      title: 'School Expenses & Audit',
-      description: 'Track daily maintenance cost, utility bills, inventory expenditures, and category-wise audit statements.',
-      badge: 'Finance',
-    },
-    {
-      category: 'ACADEMIC',
       icon: Calendar,
-      title: 'Multi-Year Academic Switcher',
-      description: 'Seamlessly toggle between active and historical academic years (2024-25, 2025-26, 2026-27) with read-only locks.',
-      badge: 'Data Integrity',
+      title: 'Academic Management',
+      description: 'Configure academic years, classes, sections, mediums, streams, and session locking.',
     },
     {
-      category: 'HOSTEL',
+      icon: FileSpreadsheet,
+      title: 'Reports',
+      description: 'Access complete financial, collection, fee status, and administrative PDF & Excel reports.',
+    },
+    {
       icon: Building2,
-      title: 'Hostel & Facility Billing',
-      description: 'Manage room allocations, monthly mess fees, transport passes, and combined student billing invoices.',
-      badge: 'Facilities',
+      title: 'Hostel Management',
+      description: 'Manage hostel room allocations, mess fees, resident admissions, and facility billing.',
+    },
+    {
+      icon: Sliders,
+      title: 'Expenses',
+      description: 'Track daily maintenance costs, utility bills, vendor payments, and expense ledgers.',
+    },
+    {
+      icon: UserCheck,
+      title: 'User Permissions',
+      description: 'Assign role-based access control for administrative staff and institutional users.',
     },
   ];
 
-  const filteredModules =
-    activeModuleCategory === 'ALL'
-      ? modulesList
-      : modulesList.filter((m) => m.category === activeModuleCategory);
+  // System Modules list
+  const systemModules = [
+    {
+      icon: Users,
+      name: 'Students',
+      description: 'Manage student profiles, academic information and records.',
+    },
+    {
+      icon: Receipt,
+      name: 'Fee Management',
+      description: 'Manage fee structures, collections, discounts and receipts.',
+    },
+    {
+      icon: CreditCard,
+      name: 'Staff & Payroll',
+      description: 'Manage staff salary, advances, payroll and disbursement.',
+    },
+    {
+      icon: FileSpreadsheet,
+      name: 'Reports',
+      description: 'Access financial, academic and operational reports.',
+    },
+    {
+      icon: Building2,
+      name: 'Hostel Management',
+      description: 'Manage hostel enrollment, rooms, beds and hostel fees.',
+    },
+    {
+      icon: Sliders,
+      name: 'Expenses & Finance',
+      description: 'Track school operational expenses, funds and account ledgers.',
+    },
+  ];
+
+  // Numbered How It Works Steps
+  const howItWorksSteps = [
+    {
+      step: '01',
+      title: 'Set Up',
+      description: 'Configure your school profile, classes, and academic session information.',
+    },
+    {
+      step: '02',
+      title: 'Manage',
+      description: 'Manage students, fee structures, staff profiles, and daily school operations.',
+    },
+    {
+      step: '03',
+      title: 'Track',
+      description: 'Monitor fee collections, salary payments, expenses, and operational reports.',
+    },
+  ];
 
   // Filtered Plans by Billing Filter
   const filteredPlans = plans.filter((p) => {
     if (billingFilter === 'ALL') return true;
-    if (billingFilter === 'TRIAL') return p.isTrial;
     if (billingFilter === 'MONTHLY') return p.type === 'MONTHLY' || p.isTrial;
     if (billingFilter === 'QUARTERLY') return p.type === 'QUARTERLY';
     if (billingFilter === 'YEARLY') return p.type === 'YEARLY';
@@ -148,339 +184,315 @@ export const LandingPage = () => {
   // FAQs List
   const faqs = [
     {
-      q: 'How does the 1-Month Free Trial work?',
-      a: 'When you register your school, you automatically receive 30 days of complete platform access. All features (Student Records, Fees, Payroll, Expenses, PDF Exports) are fully active with zero restrictions and no credit card required.',
+      q: 'What is AxomSetu?',
+      a: 'AxomSetu is a comprehensive school management SaaS platform that allows school administrators to handle student admissions, fee collection, staff payroll, expenses, hostel management, and administrative reporting from one unified system.',
     },
     {
-      q: 'Can we switch between different subscription plans later?',
-      a: 'Yes! School Administrators can purchase or upgrade subscription plans (Monthly, Quarterly, or Yearly) at any time directly from the Subscription page in the admin panel.',
+      q: 'How does the trial work?',
+      a: 'When you register your school, you automatically receive a 30-day free trial with full access to all platform features. No credit card is required to get started.',
     },
     {
-      q: 'How does Multi-Academic Year locking protect our records?',
-      a: 'AxomSetu allows you to switch between active and historical sessions. When an academic session ends, it is automatically marked locked/read-only, ensuring historical student fee records and ledgers remain immutable.',
+      q: 'What modules are available?',
+      a: 'AxomSetu includes Student Management, Fee Management, Staff & Payroll, Academic Setup, Expense Tracking, Hostel Management, User & Permission Controls, and PDF/Excel Reports.',
     },
     {
-      q: 'What payment methods are supported for plan renewals?',
-      a: 'We support instant UPI payments (Google Pay, PhonePe, Paytm, BHIM) and Cash payment requests verified directly by Super Admin. Razorpay integration is also launching soon.',
+      q: 'Can multiple users use AxomSetu?',
+      a: 'Yes. School administrators can create multiple user accounts for office staff, accountants, and teachers with specific access permissions.',
     },
     {
-      q: 'Is our institution data isolated from other schools?',
-      a: 'Absolutely. AxomSetu uses rigorous database-level multi-tenant isolation with unique school identifiers. Your school data is completely private, encrypted, and isolated.',
+      q: 'Can I control user permissions?',
+      a: 'Yes. AxomSetu provides granular role-based permission management, allowing administrators to restrict access to specific modules such as fee collection, payroll, or system settings.',
+    },
+    {
+      q: 'What happens after subscription expiry?',
+      a: 'Your school data remains securely stored. To continue creating new fee receipts, disbursing salary, or modifying records, simply renew your subscription from the Subscription page.',
+    },
+    {
+      q: 'Can I export school data?',
+      a: 'Yes. All fee collection receipts, ledger summaries, student lists, and financial reports can be exported directly to standard PDF or Excel formats.',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white relative overflow-x-hidden">
-      {/* Dynamic Background Glow Elements */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] bg-gradient-to-b from-indigo-600/20 via-purple-600/10 to-transparent blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-96 left-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="absolute top-[1200px] right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
-
-      {/* Top Glassmorphism Navigation Bar */}
-      <header className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
-          {/* Brand Logo */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
-              <GraduationCap className="w-6 h-6" />
-            </div>
+    <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-indigo-600 selection:text-white">
+      {/* 1. LANDING PAGE HEADER */}
+      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          {/* Left: Branding */}
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <img src="/app-icon.png" alt="AxomSetu Logo" className="w-9 h-9 rounded-lg object-cover shadow-xs group-hover:scale-105 transition-transform" />
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-extrabold tracking-tight text-white">{BRAND_CONFIG.productName}</span>
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-widest">
-                  ERP Platform
-                </span>
-              </div>
-              <span className="block text-[10px] uppercase font-bold tracking-widest text-slate-400">
-                {BRAND_CONFIG.productTagline}
+              <span className="text-base font-extrabold tracking-tight text-slate-900 block leading-none">
+                {BRAND_CONFIG.productName}
+              </span>
+              <span className="text-[10px] font-medium tracking-wide text-slate-500 block mt-0.5">
+                {BRAND_CONFIG.poweredBy}
               </span>
             </div>
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold text-slate-300">
-            <a href="#overview" className="hover:text-indigo-400 transition-colors">
-              Overview
+          {/* Center Navigation */}
+          <nav className="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-600">
+            <a href="#features" className="hover:text-indigo-600 transition-colors">
+              Features
             </a>
-            <a href="#clients" className="hover:text-indigo-400 transition-colors">
-              Our Clients
-            </a>
-            <a href="#modules" className="hover:text-indigo-400 transition-colors">
+            <a href="#modules" className="hover:text-indigo-600 transition-colors">
               Modules
             </a>
-            <a href="#academic-history" className="hover:text-indigo-400 transition-colors">
-              Academic History
+            <a href="#how-it-works" className="hover:text-indigo-600 transition-colors">
+              How It Works
             </a>
-            <a href="#plans" className="hover:text-indigo-400 transition-colors flex items-center gap-1">
-              <span>Plans & Pricing</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <a href="#pricing" className="hover:text-indigo-600 transition-colors">
+              Pricing
             </a>
-            <a href="#faq" className="hover:text-indigo-400 transition-colors">
+            <a href="#faq" className="hover:text-indigo-600 transition-colors">
               FAQ
             </a>
+            <Link to="/contact" className="hover:text-indigo-600 transition-colors font-semibold">
+              Contact Us
+            </Link>
           </nav>
 
-          {/* Action CTAs */}
+          {/* Right: Actions */}
           <div className="hidden md:flex items-center gap-3">
             <Link to="/login">
-              <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-800">
-                Sign In
+              <Button variant="ghost" size="sm" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100 font-semibold">
+                Login
               </Button>
             </Link>
             <Link to="/register">
-              <Button
-                variant="primary"
-                size="sm"
-                className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold shadow-lg shadow-indigo-600/30 border border-indigo-400/30"
-                icon={ArrowRight}
-                iconPosition="right"
-              >
+              <Button variant="primary" size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-xs">
                 Start Free Trial
               </Button>
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Trigger */}
           <button
             onClick={() => setIsMobileMenuOpen(true)}
-            className="md:hidden p-2.5 rounded-xl text-slate-300 hover:bg-slate-800 border border-slate-700/60 transition-colors"
+            className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 border border-slate-200 transition-colors"
+            aria-label="Open navigation menu"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-5 h-5" />
           </button>
         </div>
       </header>
 
-      {/* Mobile Navigation Drawer */}
-      <Drawer isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} title={`${BRAND_CONFIG.productName} Navigation`} position="right">
-        <div className="flex flex-col gap-6 pt-2">
-          <nav className="flex flex-col gap-3 text-sm font-medium text-slate-200">
+      {/* Mobile Drawer Navigation */}
+      <Drawer
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        title={BRAND_CONFIG.productName}
+        position="right"
+      >
+        <div className="flex flex-col gap-5 pt-2">
+          <div className="text-xs text-slate-400 font-medium px-2">{BRAND_CONFIG.poweredBy}</div>
+          <nav className="flex flex-col gap-1 text-sm font-semibold text-slate-700">
             <a
-              href="#overview"
+              href="#features"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="px-4 py-2.5 rounded-xl hover:bg-slate-800/80 transition-colors"
+              className="px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
             >
-              Overview
+              Features
             </a>
             <a
               href="#modules"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="px-4 py-2.5 rounded-xl hover:bg-slate-800/80 transition-colors"
+              className="px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
             >
-              Modules & Capabilities
+              Modules
             </a>
             <a
-              href="#academic-history"
+              href="#how-it-works"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="px-4 py-2.5 rounded-xl hover:bg-slate-800/80 transition-colors"
+              className="px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
             >
-              Academic Session Switcher
+              How It Works
             </a>
             <a
-              href="#plans"
+              href="#pricing"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="px-4 py-2.5 rounded-xl hover:bg-slate-800/80 transition-colors flex items-center justify-between"
+              className="px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
             >
-              <span>Subscription Plans</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300">
-                1 Month Free
-              </span>
+              Pricing
             </a>
             <a
               href="#faq"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="px-4 py-2.5 rounded-xl hover:bg-slate-800/80 transition-colors"
+              className="px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
             >
-              Frequently Asked Questions
+              FAQ
             </a>
+            <Link
+              to="/contact"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-between font-semibold text-indigo-600"
+            >
+              <span>Contact Us</span>
+            </Link>
           </nav>
 
-          <div className="pt-6 border-t border-slate-800 flex flex-col gap-3">
+          <div className="pt-4 border-t border-slate-200 flex flex-col gap-2.5">
             <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant="outline" className="w-full justify-center border-slate-700 text-slate-200">
-                Sign In to Account
+              <Button variant="outline" className="w-full justify-center border-slate-300 text-slate-800">
+                Login
               </Button>
             </Link>
             <Link to="/register" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant="primary" className="w-full justify-center bg-indigo-600 font-bold">
-                Start 1-Month Free Trial
+              <Button variant="primary" className="w-full justify-center bg-indigo-600 text-white font-semibold">
+                Start Free Trial
               </Button>
             </Link>
           </div>
         </div>
       </Drawer>
 
-      <main className="relative">
-        {/* HERO SECTION */}
-        <section id="overview" className="pt-16 pb-20 lg:pt-24 lg:pb-32 relative">
+      <main>
+        {/* 2. HERO SECTION */}
+        <section className="py-16 sm:py-20 lg:py-24 bg-white border-b border-slate-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-4xl mx-auto">
-              {/* Marketing Badge */}
-              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-800/90 border border-indigo-500/30 text-indigo-300 text-xs font-semibold mb-8 shadow-xl backdrop-blur-md hover:border-indigo-400 transition-colors">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
-                <span>Next-Gen Enterprise Multi-Tenant School ERP</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                <span className="text-emerald-400 font-bold">1 Month Free Trial</span>
-              </div>
+            <div className="text-center max-w-3xl mx-auto">
+              <span className="inline-block text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full mb-4">
+                SCHOOL MANAGEMENT PLATFORM
+              </span>
 
-              {/* Dynamic Headline */}
-              <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-[1.15]">
-                Complete School Operations, <br className="hidden sm:block" />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400">
-                  Fees & Payroll Managed Seamlessly
-                </span>
+              <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                Simple School Management. <br />
+                <span className="text-indigo-600">Everything in One Place.</span>
               </h1>
 
-              {/* Subtitle */}
-              <p className="mt-6 text-base sm:text-lg text-slate-300 leading-relaxed max-w-3xl mx-auto font-normal">
-                Empower your educational institution with an all-in-one administrative platform. Manage student admissions, multi-class fee receipting, staff salary advance ledgers, and locked academic session histories with zero data friction.
+              <p className="mt-4 text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
+                Manage students, academics, fees, staff, payroll, reports and other school operations from one platform.
               </p>
 
-              {/* Action Buttons */}
-              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link to="/register" className="w-full sm:w-auto">
                   <Button
                     variant="primary"
                     size="lg"
-                    className="w-full sm:w-auto py-3.5 px-8 text-base bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 font-bold shadow-xl shadow-indigo-600/30 border border-indigo-400/30"
-                    icon={ArrowRight}
-                    iconPosition="right"
+                    className="w-full sm:w-auto py-2.5 px-6 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm"
                   >
-                    Start 1-Month Free Trial
+                    Start Free Trial
                   </Button>
                 </Link>
-                <a href="#plans" className="w-full sm:w-auto">
+                <Link to="/login" className="w-full sm:w-auto">
                   <Button
                     variant="outline"
                     size="lg"
-                    className="w-full sm:w-auto py-3.5 px-8 text-base border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white"
+                    className="w-full sm:w-auto py-2.5 px-6 text-sm font-semibold border-slate-300 text-slate-700 hover:bg-slate-50"
                   >
-                    View Dynamic Plans & Pricing
+                    Login
                   </Button>
-                </a>
-              </div>
-
-              {/* Trust Badges */}
-              <div className="mt-12 flex flex-wrap items-center justify-center gap-8 text-xs text-slate-400 font-medium border-t border-b border-slate-800/80 py-4">
-                <span className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> 30-Day Full Access Trial
-                </span>
-                <span className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> No Credit Card Required
-                </span>
-                <span className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Instant Tenant Activation
-                </span>
-                <span className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Locked Academic Integrity
-                </span>
+                </Link>
               </div>
             </div>
 
-            {/* Interactive Live Preview Mockup Container */}
-            <div className="mt-16 max-w-5xl mx-auto rounded-3xl border border-slate-700/80 shadow-2xl bg-slate-950/90 overflow-hidden backdrop-blur-2xl">
-              {/* Mock Browser Header */}
-              <div className="bg-slate-900 px-6 py-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            {/* 3. HERO PRODUCT VISUAL - Realistic Software UI Mockup */}
+            <div className="mt-12 max-w-5xl mx-auto rounded-xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+              {/* Window Header */}
+              <div className="bg-slate-100 px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                  <span className="text-xs text-slate-400 font-mono ml-2">https://app.axomsetu.com/admin/dashboard</span>
+                  <div className="w-3 h-3 rounded-full bg-rose-400" />
+                  <div className="w-3 h-3 rounded-full bg-amber-400" />
+                  <div className="w-3 h-3 rounded-full bg-emerald-400" />
+                  <span className="text-xs text-slate-500 font-mono ml-2">AxomSetu School Admin Portal</span>
                 </div>
 
-                {/* Tab Switcher */}
-                <div className="flex items-center bg-slate-800 rounded-xl p-1 border border-slate-700/60 text-xs">
+                {/* Mockup Tabs */}
+                <div className="flex items-center bg-white rounded-lg p-1 border border-slate-200 text-xs">
                   <button
-                    onClick={() => setActivePreviewTab('OVERVIEW')}
-                    className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                      activePreviewTab === 'OVERVIEW' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-                    }`}
+                    onClick={() => setActivePreviewTab('DASHBOARD')}
+                    className={`px-3 py-1 rounded-md font-semibold transition-colors ${activePreviewTab === 'DASHBOARD'
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                      }`}
                   >
-                    Dashboard Overview
+                    Dashboard Preview
                   </button>
                   <button
                     onClick={() => setActivePreviewTab('FEES')}
-                    className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                      activePreviewTab === 'FEES' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-                    }`}
+                    className={`px-3 py-1 rounded-md font-semibold transition-colors ${activePreviewTab === 'FEES'
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                      }`}
                   >
-                    Fee Collection Engine
+                    Fee Management
                   </button>
                   <button
                     onClick={() => setActivePreviewTab('PAYROLL')}
-                    className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                      activePreviewTab === 'PAYROLL' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
-                    }`}
+                    className={`px-3 py-1 rounded-md font-semibold transition-colors ${activePreviewTab === 'PAYROLL'
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                      }`}
                   >
-                    Payroll & Advances
+                    Staff & Payroll
                   </button>
                 </div>
               </div>
 
-              {/* Tab Content Display */}
-              <div className="p-6 sm:p-8 text-left bg-slate-950 min-h-[320px]">
-                {activePreviewTab === 'OVERVIEW' && (
-                  <div className="space-y-6 animate-fadeIn">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              {/* Window Body Display */}
+              <div className="p-5 sm:p-8 bg-slate-50 text-left min-h-[300px]">
+                {activePreviewTab === 'DASHBOARD' && (
+                  <div className="space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
                       <div>
-                        <h3 className="text-lg font-bold text-white">Saint Francis High School - Admin Portal</h3>
-                        <span className="text-xs text-slate-400">Academic Session: 2026–2027 (Active)</span>
+                        <h2 className="text-base font-bold text-slate-900">Saint Francis High School</h2>
+                        <span className="text-xs text-slate-500">Academic Year: 2026–2027</span>
                       </div>
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        1-Month Free Trial Active
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 self-start sm:self-auto">
+                        Trial Active
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="bg-slate-900/90 rounded-2xl p-5 border border-slate-800">
-                        <span className="text-xs text-slate-400 font-medium block mb-1">Total Enrolled Students</span>
-                        <div className="text-2xl sm:text-3xl font-extrabold text-white font-mono">1,240</div>
-                        <span className="text-[11px] text-emerald-400 mt-2 inline-flex items-center gap-1 font-semibold">
-                          <TrendingUp className="w-3.5 h-3.5" /> +12% vs last academic year
-                        </span>
+                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                        <span className="text-xs font-medium text-slate-500">Total Enrolled Students</span>
+                        <div className="text-2xl font-bold text-slate-900 mt-1">1,240</div>
+                        <span className="text-[11px] text-slate-500 mt-1 block">Active academic session</span>
                       </div>
 
-                      <div className="bg-slate-900/90 rounded-2xl p-5 border border-slate-800">
-                        <span className="text-xs text-slate-400 font-medium block mb-1">Monthly Fee Collection</span>
-                        <div className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono">₹14,85,000</div>
-                        <span className="text-[11px] text-slate-400 mt-2 block">100% Digital Receipts Issued</span>
+                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                        <span className="text-xs font-medium text-slate-500">Monthly Fee Collection</span>
+                        <div className="text-2xl font-bold text-indigo-600 mt-1">₹14,85,000</div>
+                        <span className="text-[11px] text-slate-500 mt-1 block">100% digital receipts issued</span>
                       </div>
 
-                      <div className="bg-slate-900/90 rounded-2xl p-5 border border-slate-800">
-                        <span className="text-xs text-slate-400 font-medium block mb-1">Staff Payroll Disbursements</span>
-                        <div className="text-2xl sm:text-3xl font-extrabold text-indigo-400 font-mono">₹4,20,000</div>
-                        <span className="text-[11px] text-slate-400 mt-2 block">32 Teachers & Staff</span>
+                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                        <span className="text-xs font-medium text-slate-500">Staff Salary Disbursements</span>
+                        <div className="text-2xl font-bold text-slate-900 mt-1">₹4,20,000</div>
+                        <span className="text-[11px] text-slate-500 mt-1 block">Teaching & support staff</span>
                       </div>
                     </div>
                   </div>
                 )}
 
                 {activePreviewTab === 'FEES' && (
-                  <div className="space-y-4 animate-fadeIn">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                      <h4 className="text-sm font-bold text-white">Recent Digital Fee Receipts</h4>
-                      <span className="text-xs text-indigo-400 font-mono">Instant PDF Generator</span>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                      <h3 className="text-sm font-bold text-slate-900">Fee Collection Register & Digital Receipts</h3>
+                      <span className="text-xs text-indigo-600 font-semibold">Instant Receipt Generator</span>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
+                    <div className="space-y-2.5">
+                      <div className="p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between text-xs">
                         <div>
-                          <span className="font-bold text-white">RCT-2026-0842</span>
-                          <span className="text-slate-400 block text-[11px]">Aarav Sharma • Class X-A</span>
+                          <span className="font-bold text-slate-900">Receipt #RCT-2026-0842</span>
+                          <span className="text-slate-500 block text-[11px]">Aarav Sharma • Class X-A</span>
                         </div>
-                        <span className="font-mono font-bold text-emerald-400">₹12,500</span>
-                        <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
-                          PAID (UPI)
+                        <span className="font-bold text-slate-900">₹12,500</span>
+                        <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold text-[10px]">
+                          PAID
                         </span>
                       </div>
 
-                      <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
+                      <div className="p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between text-xs">
                         <div>
-                          <span className="font-bold text-white">RCT-2026-0841</span>
-                          <span className="text-slate-400 block text-[11px]">Ananya Patel • Class XII-Science</span>
+                          <span className="font-bold text-slate-900">Receipt #RCT-2026-0841</span>
+                          <span className="text-slate-500 block text-[11px]">Ananya Patel • Class XII-Science</span>
                         </div>
-                        <span className="font-mono font-bold text-emerald-400">₹18,000</span>
-                        <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
-                          PAID (CASH)
+                        <span className="font-bold text-slate-900">₹18,000</span>
+                        <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold text-[10px]">
+                          PAID
                         </span>
                       </div>
                     </div>
@@ -488,21 +500,21 @@ export const LandingPage = () => {
                 )}
 
                 {activePreviewTab === 'PAYROLL' && (
-                  <div className="space-y-4 animate-fadeIn">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                      <h4 className="text-sm font-bold text-white">Staff Monthly Payroll Summary</h4>
-                      <span className="text-xs text-indigo-400 font-mono">Automated Ledger</span>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                      <h3 className="text-sm font-bold text-slate-900">Staff Monthly Payroll Ledger</h3>
+                      <span className="text-xs text-indigo-600 font-semibold">Automated Deductions</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                      <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-                        <span className="text-slate-400 block">Gross Staff Salaries</span>
-                        <span className="text-xl font-bold text-white font-mono mt-1 block">₹4,50,000</span>
+                      <div className="p-4 bg-white rounded-lg border border-slate-200">
+                        <span className="text-slate-500 block">Gross Monthly Staff Salary</span>
+                        <span className="text-xl font-bold text-slate-900 mt-1 block">₹4,50,000</span>
                       </div>
 
-                      <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-                        <span className="text-slate-400 block">Salary Advances Deducted</span>
-                        <span className="text-xl font-bold text-amber-400 font-mono mt-1 block">₹30,000</span>
+                      <div className="p-4 bg-white rounded-lg border border-slate-200">
+                        <span className="text-slate-500 block">Salary Advances Deducted</span>
+                        <span className="text-xl font-bold text-indigo-600 mt-1 block">₹30,000</span>
                       </div>
                     </div>
                   </div>
@@ -512,284 +524,231 @@ export const LandingPage = () => {
           </div>
         </section>
 
-        {/* DYNAMIC CLIENTS & REGISTERED INSTITUTIONS SECTION */}
-        <section id="clients" className="py-16 bg-slate-950/90 border-y border-slate-800/80">
+        {/* 4. CORE FEATURES SECTION */}
+        <section id="features" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-bold mb-3">
-                <Building2 className="w-3.5 h-3.5" />
-                <span>Our Registered Partner Institutions</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Trusted by Institutions Across the Nation
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Everything Your School Needs
               </h2>
-              <p className="mt-2 text-xs sm:text-sm text-slate-400">
-                Schools and academies relying on AxomSetu for student records, automated fee receipts, and payroll administration.
+              <p className="mt-2 text-sm text-slate-600">
+                Manage the essential operations of your school from one platform.
               </p>
             </div>
 
-            {loadingSchools ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
-                {[1, 2, 3, 4].map((n) => (
-                  <div key={n} className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 animate-pulse h-24 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-800 shrink-0" />
-                    <div className="space-y-2 flex-1">
-                      <div className="h-4 bg-slate-800 rounded w-3/4" />
-                      <div className="h-3 bg-slate-800/60 rounded w-1/2" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {coreFeatures.map((item, idx) => {
+                const IconComp = item.icon;
+                return (
+                  <div
+                    key={idx}
+                    className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs hover:border-slate-300 transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 mb-3">
+                      <IconComp className="w-5 h-5" />
                     </div>
+                    <h3 className="text-base font-bold text-slate-900 mb-1.5">{item.title}</h3>
+                    <p className="text-xs text-slate-600 leading-relaxed">{item.description}</p>
                   </div>
-                ))}
-              </div>
-            ) : registeredSchools.length === 0 ? (
-              <div className="text-center py-8 bg-slate-900/40 rounded-2xl border border-slate-800/60 max-w-md mx-auto">
-                <Building2 className="w-8 h-8 text-indigo-400 mx-auto mb-2 opacity-70" />
-                <p className="text-xs text-slate-300 font-semibold">Join as Our First Partner Institution</p>
-                <span className="text-[11px] text-slate-500 block mt-1">Register your school today with a 1-Month Free Trial.</span>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 max-w-7xl mx-auto">
-                {registeredSchools.map((school) => {
-                  return (
-                    <div
-                      key={school.id}
-                      className="bg-slate-900/80 hover:bg-slate-900 rounded-2xl p-4 border border-slate-800 hover:border-indigo-500/50 transition-all duration-300 flex flex-col items-center justify-center text-center shadow-md group"
-                    >
-                      {/* Logo at Top */}
-                      {school.logoUrl ? (
-                        <img
-                          src={school.logoUrl}
-                          alt={school.name}
-                          className="w-14 h-14 rounded-2xl object-cover border border-slate-700/80 mb-3 group-hover:scale-105 transition-transform shadow-md"
-                        />
-                      ) : (
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-extrabold text-xl shadow-md mb-3 border border-indigo-400/30 group-hover:scale-105 transition-transform">
-                          {school.name ? school.name.charAt(0).toUpperCase() : 'S'}
-                        </div>
-                      )}
-
-                      {/* Name at Below */}
-                      <h4
-                        className="text-xs font-bold text-white leading-snug group-hover:text-indigo-300 transition-colors max-w-full truncate px-1"
-                        title={school.name}
-                      >
-                        {school.name}
-                      </h4>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
         </section>
 
-        {/* DYNAMIC PLANS & PRICING MARKETING SECTION */}
-        <section id="plans" className="py-24 bg-slate-900 relative">
+        {/* 5. MODULES SECTION */}
+        <section id="modules" className="py-16 sm:py-20 bg-white border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-3xl mx-auto mb-14">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold mb-4">
-                <Zap className="w-4 h-4 text-emerald-400" />
-                <span>Transparent Institutional Pricing</span>
-              </div>
-              <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-                Flexible Plans for Institutions of All Sizes
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Core System Modules
               </h2>
-              <p className="mt-4 text-sm sm:text-base text-slate-400 leading-relaxed">
-                Start with a 1-month free trial. Upgrade anytime to a flexible monthly or discounted annual plan. No hidden charges or setup fees.
+              <p className="mt-2 text-sm text-slate-600">
+                Integrated modules to handle daily educational and financial operations.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {systemModules.map((mod, idx) => {
+                const IconComp = mod.icon;
+                return (
+                  <div
+                    key={idx}
+                    className="bg-white rounded-xl p-6 border border-slate-200 shadow-xs hover:border-indigo-200 transition-colors flex items-start gap-4"
+                  >
+                    <div className="w-11 h-11 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
+                      <IconComp className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 mb-1">{mod.name}</h3>
+                      <p className="text-xs text-slate-600 leading-relaxed">{mod.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* 6. HOW IT WORKS */}
+        <section id="how-it-works" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                How It Works
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">Get your institution running in three simple steps.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {howItWorksSteps.map((step, idx) => (
+                <div key={idx} className="bg-white rounded-xl p-6 border border-slate-200 shadow-xs text-center">
+                  <div className="w-12 h-12 rounded-full bg-indigo-600 text-white font-extrabold text-base flex items-center justify-center mx-auto mb-4">
+                    {step.step}
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-2">{step.title}</h3>
+                  <p className="text-xs text-slate-600 leading-relaxed">{step.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 7. PRICING SECTION */}
+        <section id="pricing" className="py-16 sm:py-20 bg-white border-b border-slate-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-10">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Subscription Plans
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Transparent plans configured for your school. Start with a free trial and upgrade anytime.
               </p>
 
-              {/* Billing Cycle Filter Selector */}
-              <div className="mt-8 inline-flex items-center bg-slate-800 p-1.5 rounded-2xl border border-slate-700/80 shadow-lg">
+              {/* Billing Cycle Filter Buttons */}
+              <div className="mt-6 inline-flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
                 <button
                   onClick={() => setBillingFilter('ALL')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                    billingFilter === 'ALL'
-                      ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${billingFilter === 'ALL' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
                 >
                   All Plans
                 </button>
                 <button
                   onClick={() => setBillingFilter('MONTHLY')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                    billingFilter === 'MONTHLY'
-                      ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${billingFilter === 'MONTHLY' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
                 >
-                  Monthly Billing
+                  Monthly
                 </button>
                 <button
                   onClick={() => setBillingFilter('QUARTERLY')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                    billingFilter === 'QUARTERLY'
-                      ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${billingFilter === 'QUARTERLY' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
                 >
-                  Quarterly (Save 10%)
+                  Quarterly
                 </button>
                 <button
                   onClick={() => setBillingFilter('YEARLY')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    billingFilter === 'YEARLY'
-                      ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${billingFilter === 'YEARLY' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    }`}
                 >
-                  <span>Yearly (Save 15%)</span>
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-400 text-slate-950 uppercase">
-                    Best Value
-                  </span>
+                  Yearly
                 </button>
               </div>
             </div>
 
-            {/* Dynamic Plans Grid */}
+            {/* Dynamic Plans Display */}
             {loadingPlans ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
                 {[1, 2, 3].map((n) => (
-                  <div key={n} className="bg-slate-800/50 rounded-3xl p-8 border border-slate-700/60 animate-pulse min-h-[400px]">
-                    <div className="h-6 bg-slate-700 rounded w-1/3 mb-4" />
-                    <div className="h-10 bg-slate-700 rounded w-1/2 mb-6" />
-                    <div className="space-y-3">
-                      <div className="h-4 bg-slate-700/60 rounded w-full" />
-                      <div className="h-4 bg-slate-700/60 rounded w-4/5" />
-                      <div className="h-4 bg-slate-700/60 rounded w-3/4" />
-                    </div>
-                  </div>
+                  <div key={n} className="bg-slate-50 rounded-xl p-6 border border-slate-200 animate-pulse h-80" />
                 ))}
               </div>
             ) : plansError ? (
-              <div className="text-center py-12 bg-slate-800/40 rounded-3xl border border-slate-700/60 max-w-md mx-auto">
-                <HelpCircle className="w-10 h-10 text-amber-400 mx-auto mb-3" />
-                <p className="text-sm text-slate-300 font-semibold">{plansError}</p>
-                <Link to="/register" className="mt-4 inline-block">
-                  <Button variant="primary" size="sm">
-                    Start 1-Month Free Trial Now
+              <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200 max-w-md mx-auto">
+                <p className="text-xs text-slate-600 mb-3">{plansError}</p>
+                <Link to="/register">
+                  <Button variant="primary" size="sm" className="bg-indigo-600 text-white">
+                    Start Free Trial
                   </Button>
                 </Link>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                 {filteredPlans.map((plan) => {
-                  const isPopular = plan.badge === 'POPULAR';
-                  const isBestValue = plan.badge === 'BEST VALUE';
                   const isTrial = plan.isTrial;
                   const hasDiscount = plan.discountPercentage > 0 || plan.discountAmount > 0;
 
                   return (
                     <div
                       key={plan.id}
-                      className={`rounded-3xl p-6 transition-all duration-300 flex flex-col justify-between relative group ${
-                        isBestValue
-                          ? 'bg-gradient-to-b from-indigo-950 via-slate-900 to-slate-950 border-2 border-indigo-500 shadow-2xl shadow-indigo-500/20 scale-[1.02]'
-                          : isPopular
-                          ? 'bg-gradient-to-b from-slate-850 via-slate-900 to-slate-950 border-2 border-purple-500/80 shadow-xl'
-                          : 'bg-slate-950/80 border border-slate-800 hover:border-slate-700'
-                      }`}
+                      className="bg-white rounded-xl p-6 border border-slate-200 shadow-xs flex flex-col justify-between hover:border-indigo-300 transition-colors"
                     >
-                      {/* Plan Badge Header Ribbon */}
-                      {plan.badge && (
-                        <div
-                          className={`absolute -top-3.5 right-6 text-slate-950 text-[10px] font-extrabold uppercase px-3 py-1 rounded-full shadow-lg tracking-wider ${
-                            isBestValue
-                              ? 'bg-gradient-to-r from-emerald-400 to-teal-300'
-                              : isPopular
-                              ? 'bg-gradient-to-r from-purple-400 to-pink-300'
-                              : 'bg-indigo-400'
-                          }`}
-                        >
-                          {plan.badge}
-                        </div>
-                      )}
-
                       <div>
-                        {/* Title & Description */}
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-xl font-extrabold text-white tracking-tight">{plan.name}</h3>
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-lg font-bold text-slate-900">{plan.name}</h3>
                           {isTrial && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                               Trial
                             </span>
                           )}
+                          {plan.badge && !isTrial && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
+                              {plan.badge}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs text-slate-400 min-h-[36px] leading-relaxed">{plan.description}</p>
+                        <p className="text-xs text-slate-500 mb-4 min-h-[32px]">{plan.description}</p>
 
-                        {/* Pricing Box */}
-                        <div className="my-6 p-4 rounded-2xl bg-slate-900/90 border border-slate-800">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-3xl sm:text-4xl font-extrabold text-white font-mono tracking-tight">
+                        <div className="py-3 border-y border-slate-100 my-4">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-bold text-slate-900">
                               {isTrial ? 'Free' : formatCurrency(plan.finalPrice)}
                             </span>
                             {!isTrial && (
-                              <span className="text-xs text-slate-400 font-medium">
+                              <span className="text-xs text-slate-500">
                                 / {plan.durationValue} {plan.durationUnit.toLowerCase()}
                                 {plan.durationValue > 1 ? 's' : ''}
                               </span>
                             )}
                           </div>
 
-                          {/* Discount tag if present */}
                           {hasDiscount && (
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="text-xs text-slate-500 line-through font-mono">
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span className="text-xs text-slate-400 line-through">
                                 {formatCurrency(plan.basePrice)}
                               </span>
-                              <span className="text-[10px] font-extrabold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded">
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                                 {plan.discountPercentage > 0
                                   ? `${plan.discountPercentage}% OFF`
                                   : `Save ${formatCurrency(plan.discountAmount)}`}
                               </span>
                             </div>
                           )}
-
-                          {/* Effective monthly price calculation for multi-month plans */}
-                          {plan.durationValue > 1 && !isTrial && (
-                            <div className="mt-2 text-[11px] font-mono text-indigo-300">
-                              Effective: {formatCurrency(Math.round(plan.finalPrice / plan.durationValue))}/mo
-                            </div>
-                          )}
-
-                          {/* Special Offer Banner */}
-                          {plan.offerTitle && (
-                            <div className="mt-3 text-xs font-bold text-indigo-300 bg-indigo-950/80 border border-indigo-700/60 p-2.5 rounded-xl flex items-center gap-2">
-                              <Zap className="w-4 h-4 text-indigo-400 shrink-0" />
-                              <span>{plan.offerTitle}</span>
-                            </div>
-                          )}
                         </div>
 
-                        {/* Features List */}
-                        <div className="space-y-2.5 mb-8">
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-3">
-                            Included Capabilities
+                        {/* Features list */}
+                        <div className="space-y-2 mb-6">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
+                            Features
                           </span>
                           {Array.isArray(plan.features) &&
                             plan.features.map((feat, idx) => (
-                              <div key={idx} className="flex items-center gap-2.5 text-xs text-slate-300">
-                                <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
-                                  <Check className="w-3 h-3 stroke-[3]" />
-                                </div>
+                              <div key={idx} className="flex items-center gap-2 text-xs text-slate-700">
+                                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                 <span>{typeof feat === 'string' ? feat : feat.name}</span>
                               </div>
                             ))}
                         </div>
                       </div>
 
-                      {/* Action CTA Button */}
-                      <Link to={`/register?plan=${plan.code}`}>
+                      <Link to={isTrial ? '/register' : `/register?plan=${plan.code}`}>
                         <Button
                           variant="primary"
-                          className={`w-full justify-center py-3 font-bold shadow-lg transition-all ${
-                            isBestValue
-                              ? 'bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white shadow-indigo-500/30'
-                              : 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-700'
-                          }`}
-                          icon={ArrowRight}
-                          iconPosition="right"
+                          className="w-full justify-center py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-xs"
                         >
-                          {isTrial ? 'Start 1-Month Free Trial' : 'Select Plan'}
+                          {isTrial ? 'Start Free Trial' : 'Get Started'}
                         </Button>
                       </Link>
                     </div>
@@ -800,179 +759,35 @@ export const LandingPage = () => {
           </div>
         </section>
 
-        {/* INTERACTIVE MODULES & FEATURES GRID */}
-        <section id="modules" className="py-24 bg-slate-950 border-t border-slate-800/80">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-3xl mx-auto mb-14">
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-                Engineered for Modern Educational Administration
-              </h2>
-              <p className="mt-3 text-sm text-slate-400">
-                Eliminate physical registers, billing discrepancies, and historical ledger confusion with specialized modular tools.
-              </p>
-
-              {/* Module Filter Tabs */}
-              <div className="mt-8 flex flex-wrap justify-center gap-2">
-                {[
-                  { id: 'ALL', label: 'All Modules' },
-                  { id: 'STUDENTS', label: 'Student Management' },
-                  { id: 'FEES', label: 'Fees & Receipts' },
-                  { id: 'PAYROLL', label: 'Staff Payroll' },
-                  { id: 'FINANCE', label: 'School Expenses' },
-                  { id: 'ACADEMIC', label: 'Academic Sessions' },
-                  { id: 'HOSTEL', label: 'Hostel & Facilities' },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveModuleCategory(tab.id)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                      activeModuleCategory === tab.id
-                        ? 'bg-indigo-600 text-white shadow-md'
-                        : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Modules Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredModules.map((item, idx) => {
-                const IconComp = item.icon;
-                return (
-                  <div
-                    key={idx}
-                    className="bg-slate-900/90 rounded-2xl p-6 border border-slate-800/90 hover:border-indigo-500/50 hover:bg-slate-900 transition-all duration-300 group shadow-lg"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                        <IconComp className="w-6 h-6" />
-                      </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-800 px-2.5 py-1 rounded-md">
-                        {item.badge}
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg font-bold text-white mb-2">{item.title}</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">{item.description}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* MULTI-ACADEMIC YEAR SPOTLIGHT */}
-        <section id="academic-history" className="py-24 bg-slate-900 border-t border-slate-800/80">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-bold mb-4 border border-indigo-500/20">
-                  <Calendar className="w-4 h-4 text-indigo-400" />
-                  <span>Historical Data Protection</span>
-                </div>
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
-                  Seamless Multi-Year Management Without Historical Data Corruption
-                </h2>
-                <p className="mt-4 text-sm text-slate-300 leading-relaxed">
-                  Schools require immutable historical financial registers and student enrollment snapshots. AxomSetu allows school administrators to switch between academic sessions on demand while locking past records.
-                </p>
-
-                <div className="mt-8 space-y-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 mt-1">
-                      <Lock className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-white">Immutable Locked Sessions</h4>
-                      <p className="text-xs text-slate-400">Past session fee ledgers and student grades remain locked against accidental edits once a session closes.</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20 mt-1">
-                      <Calendar className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-white">One-Click Session Header Switcher</h4>
-                      <p className="text-xs text-slate-400">Instantly inspect past year student records or fee registers right from the top navigation bar without altering active operations.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Visual Registry Card */}
-              <div className="bg-slate-950 rounded-3xl p-6 text-white border border-slate-800 shadow-2xl">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
-                  <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Academic Session Registry</span>
-                  <span className="text-[10px] text-indigo-400 font-mono">Tenant-Scoped Isolation</span>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="p-4 rounded-2xl bg-indigo-950/80 border border-indigo-700/60 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-base font-extrabold text-white">2026–2027</span>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-500 text-slate-950">
-                          ACTIVE SESSION
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-slate-400">01 Apr 2026 – 31 Mar 2027</span>
-                    </div>
-                    <span className="text-xs text-emerald-400 font-bold font-mono">Operations Live</span>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between opacity-85">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-base font-bold text-slate-300">2025–2026</span>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
-                          LOCKED
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-slate-500">01 Apr 2025 – 31 Mar 2026</span>
-                    </div>
-                    <span className="text-xs text-slate-400 font-medium">Read Only Ledger</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* FREQUENTLY ASKED QUESTIONS (FAQ) ACCORDION */}
-        <section id="faq" className="py-24 bg-slate-900 border-t border-slate-800/80">
+        {/* 8. FAQ SECTION */}
+        <section id="faq" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="text-3xl font-extrabold text-white">Frequently Asked Questions</h2>
-              <p className="mt-2 text-xs sm:text-sm text-slate-400">
-                Everything you need to know about starting your 1-month free trial and managing plans.
+            <div className="text-center max-w-2xl mx-auto mb-10">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Frequently Asked Questions
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Common questions about AxomSetu school management platform.
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {faqs.map((faq, idx) => {
                 const isOpen = openFaqIndex === idx;
                 return (
-                  <div
-                    key={idx}
-                    className="bg-slate-950/90 rounded-2xl border border-slate-800 overflow-hidden transition-all"
-                  >
+                  <div key={idx} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
                     <button
                       onClick={() => setOpenFaqIndex(isOpen ? -1 : idx)}
-                      className="w-full p-5 text-left flex items-center justify-between text-slate-200 font-bold text-sm sm:text-base hover:text-white"
+                      className="w-full p-4 text-left flex items-center justify-between text-slate-900 font-bold text-sm hover:text-indigo-600 transition-colors"
                     >
                       <span>{faq.q}</span>
                       <ChevronDown
-                        className={`w-5 h-5 text-indigo-400 transition-transform duration-200 ${
-                          isOpen ? 'rotate-180' : ''
-                        }`}
+                        className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-indigo-600' : ''
+                          }`}
                       />
                     </button>
                     {isOpen && (
-                      <div className="px-5 pb-5 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-slate-800/60 pt-3">
+                      <div className="px-4 pb-4 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-2.5">
                         {faq.a}
                       </div>
                     )}
@@ -983,26 +798,33 @@ export const LandingPage = () => {
           </div>
         </section>
 
-        {/* BOTTOM HIGH-CONVERTING CTA BANNER */}
-        <section className="py-20 bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 border-t border-indigo-800/60 relative overflow-hidden">
-          <div className="max-w-5xl mx-auto px-4 text-center relative z-10">
-            <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-              Ready to Upgrade Your Institution's ERP?
+        {/* 9. FINAL CTA */}
+        <section className="py-16 bg-white">
+          <div className="max-w-4xl mx-auto px-4 text-center">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+              Ready to simplify your school management?
             </h2>
-            <p className="mt-4 text-sm sm:text-base text-indigo-200 max-w-2xl mx-auto leading-relaxed">
-              Register your school in less than 2 minutes. Gain immediate access with a 1-month free trial, full module access, and zero commitment.
+            <p className="mt-3 text-sm text-slate-600 max-w-xl mx-auto">
+              Start using AxomSetu for your school.
             </p>
 
-            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
+            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
               <Link to="/register">
                 <Button
                   variant="primary"
                   size="lg"
-                  className="bg-white text-indigo-950 hover:bg-slate-100 font-extrabold px-8 py-3.5 text-base shadow-2xl"
-                  icon={ArrowRight}
-                  iconPosition="right"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 text-sm rounded-lg shadow-sm"
                 >
-                  Start 1-Month Free Trial Now
+                  Start Free Trial
+                </Button>
+              </Link>
+              <Link to="/login">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold px-6 py-2.5 text-sm rounded-lg"
+                >
+                  Login
                 </Button>
               </Link>
             </div>
@@ -1010,44 +832,74 @@ export const LandingPage = () => {
         </section>
       </main>
 
-      {/* FOOTER */}
-      <footer className="bg-slate-950 text-slate-400 text-xs py-12 border-t border-slate-800">
+      {/* 10. LANDING FOOTER */}
+      <footer className="bg-slate-50 text-slate-600 text-xs py-10 border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
-              <GraduationCap className="w-5 h-5" />
-            </div>
+          {/* Left branding */}
+          <div className="flex items-center gap-2.5">
+            <img src="/app-icon.png" alt="AxomSetu Logo" className="w-8 h-8 rounded-lg object-cover" />
             <div>
-              <span className="font-extrabold text-white text-sm">{BRAND_CONFIG.productName}</span>
-              <span className="block text-[10px] text-slate-400 font-mono">&copy; {BRAND_CONFIG.copyrightYear} AxomSetu &bull; {BRAND_CONFIG.poweredBy}</span>
+              <span className="font-bold text-slate-900 text-sm block leading-none">
+                {BRAND_CONFIG.productName}
+              </span>
+              <span className="text-[10px] text-slate-500 font-medium block mt-0.5">
+                {BRAND_CONFIG.poweredBy}
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 text-slate-400 font-medium">
-            <a href="#overview" className="hover:text-white transition-colors">
-              Overview
+          {/* Links */}
+          <div className="flex flex-wrap justify-center gap-5 text-slate-600 font-medium">
+            <a href="#features" className="hover:text-indigo-600 transition-colors">
+              Features
             </a>
-            <a href="#modules" className="hover:text-white transition-colors">
+            <a href="#modules" className="hover:text-indigo-600 transition-colors">
               Modules
             </a>
-            <a href="#plans" className="hover:text-white transition-colors">
-              Pricing Plans
+            <a href="#pricing" className="hover:text-indigo-600 transition-colors">
+              Pricing
             </a>
-            <Link to="/login" className="hover:text-white transition-colors">
-              School Sign In
-            </Link>
-            <Link to="/register" className="hover:text-white transition-colors">
-              School Registration
+            <a href="#faq" className="hover:text-indigo-600 transition-colors">
+              FAQ
+            </a>
+            <button
+              onClick={() => setIsTermsModalOpen(true)}
+              className="hover:text-indigo-600 transition-colors bg-transparent p-0 font-medium text-slate-600"
+            >
+              Terms & Conditions
+            </button>
+            <button
+              onClick={() => setIsPrivacyModalOpen(true)}
+              className="hover:text-indigo-600 transition-colors bg-transparent p-0 font-medium text-slate-600"
+            >
+              Privacy Policy
+            </button>
+            <Link to="/contact" className="hover:text-indigo-600 transition-colors">
+              Contact/Support
             </Link>
           </div>
 
-          {/* System Status Pill */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-[11px] text-slate-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span>Operational SLA: 99.99%</span>
+          {/* Copyright */}
+          <div className="text-[11px] text-slate-500 text-center md:text-right">
+            &copy; {new Date().getFullYear()} {BRAND_CONFIG.companyName}. All rights reserved.
           </div>
         </div>
       </footer>
+
+      {/* Modal Dialogs */}
+      <TermsAndConditionsModal
+        isOpen={isTermsModalOpen}
+        onClose={() => setIsTermsModalOpen(false)}
+        onAccept={() => setIsTermsModalOpen(false)}
+        onDecline={() => setIsTermsModalOpen(false)}
+      />
+
+      <PrivacyPolicyModal
+        isOpen={isPrivacyModalOpen}
+        onClose={() => setIsPrivacyModalOpen(false)}
+      />
     </div>
   );
 };
+
+export default LandingPage;

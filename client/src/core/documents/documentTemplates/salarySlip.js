@@ -155,10 +155,10 @@ export const buildSalarySlipTemplate = (data) => {
               { text: data.department, style: 'valueCell' },
             ],
             [
-              { text: 'Bank Name:', style: 'labelCell' },
-              { text: data.bankName, style: 'valueCell' },
-              { text: 'Account Number:', style: 'labelCell' },
-              { text: data.bankAccountNo, style: 'valueCell' },
+              { text: 'Base Salary (Original):', style: 'labelCell' },
+              { text: `₹${Number(data.staff?.monthlySalary || data.staff?.baseSalary || data.totalBase || 0).toLocaleString('en-IN')} / mo`, style: 'valueCellBold' },
+              { text: 'Bank Info:', style: 'labelCell' },
+              { text: `${data.bankName} (${data.bankAccountNo})`, style: 'valueCell' },
             ],
           ],
         },
@@ -176,15 +176,15 @@ export const buildSalarySlipTemplate = (data) => {
       {
         table: {
           headerRows: 1,
-          widths: ['16%', '13%', '12%', '12%', '11%', '12%', '11%', '13%'],
+          widths: ['15%', '15%', '11%', '11%', '11%', '12%', '11%', '14%'],
           body: [
             [
               { text: 'Period', style: 'tableHeader', alignment: 'left' },
-              { text: 'Base (₹)', style: 'tableHeader', alignment: 'right' },
+              { text: 'Base (Original)', style: 'tableHeader', alignment: 'right' },
               { text: 'Worked', style: 'tableHeader', alignment: 'center' },
               { text: 'Attn. Ded.', style: 'tableHeader', alignment: 'right' },
               { text: 'Bonus', style: 'tableHeader', alignment: 'right' },
-              { text: 'Adv. Ded.', style: 'tableHeader', alignment: 'right' },
+              { text: 'Adv. Adjust', style: 'tableHeader', alignment: 'right' },
               { text: 'Oth. Ded.', style: 'tableHeader', alignment: 'right' },
               { text: 'Net Salary', style: 'tableHeader', alignment: 'right' },
             ],

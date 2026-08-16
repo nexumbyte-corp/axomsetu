@@ -34,7 +34,7 @@ const parseRollNo = (rollNumber) => {
  * Reusable helper validating tenant ownership, locked status of academic year,
  * active class/medium/section/stream, and Class.hasStream logic.
  */
-export const validateEnrollmentConfiguration = async ({
+const validateEnrollmentConfiguration = async ({
   schoolId,
   academicYearId,
   classId,

@@ -32,8 +32,3 @@ export const genericReportQuerySchema = z.object({
   limit: z.string().optional().or(z.literal('')),
 });
 
-export const dailyCollectionQuerySchema = genericReportQuerySchema;
-export const monthlyCollectionQuerySchema = genericReportQuerySchema;
-export const classCollectionQuerySchema = genericReportQuerySchema;
-export const duesReportQuerySchema = genericReportQuerySchema;
-export const exportPaymentsQuerySchema = genericReportQuerySchema;

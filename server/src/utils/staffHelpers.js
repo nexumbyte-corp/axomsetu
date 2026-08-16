@@ -15,7 +15,7 @@ export const isStaffOperationallyActive = (staff) => {
   return !nonOperational.includes(statusUpper);
 };
 
-export const FEE_MONTH_INDEX_MAP = {
+const FEE_MONTH_INDEX_MAP = {
   JANUARY: 0,
   FEBRUARY: 1,
   MARCH: 2,
@@ -30,7 +30,7 @@ export const FEE_MONTH_INDEX_MAP = {
   DECEMBER: 11,
 };
 
-export const FEE_MONTHS_LIST = [
+const FEE_MONTHS_LIST = [
   'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
   'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
 ];
@@ -39,7 +39,7 @@ export const FEE_MONTHS_LIST = [
  * Returns the start date and end date for a given FeeMonth and Year.
  * Example: getMonthDateRange('AUGUST', 2026) -> { start: 2026-08-01, end: 2026-08-31T23:59:59.999Z }
  */
-export const getMonthDateRange = (month, year) => {
+const getMonthDateRange = (month, year) => {
   const monthIdx = FEE_MONTH_INDEX_MAP[month?.toUpperCase()] ?? 0;
   const yr = Number(year) || new Date().getFullYear();
 

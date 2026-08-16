@@ -10,7 +10,7 @@ import { generateSessionToken, hashSessionToken } from '../../utils/session.js';
  * Used during single-session enforcement, password resets, and account deactivation.
  * @param {string} userId
  */
-export const revokeAllUserSessions = async (userId) => {
+const revokeAllUserSessions = async (userId) => {
   if (!userId) return;
   await prisma.userSession.updateMany({
     where: {

@@ -4,14 +4,18 @@ import { buildSalaryReceiptData, buildSalaryReceiptTemplate } from './salaryRece
 import { buildSalarySlipData, buildSalarySlipTemplate } from './salarySlip.js';
 import { buildFinancialLedgerData, buildFinancialLedgerTemplate } from './financialLedger.js';
 import { buildExpenseReportData, buildExpenseReportTemplate } from './expenseReport.js';
+import { buildExpenseVoucherData, buildExpenseVoucherTemplate } from './expenseVoucher.js';
+import { buildStaffAdvanceData, buildStaffAdvanceTemplate } from './staffAdvance.js';
+import { buildFeeReportData, buildFeeReportTemplate } from './feeReport.js';
+import { buildPayrollReportData, buildPayrollReportTemplate } from './payrollReport.js';
+import { buildHostelReportData, buildHostelReportTemplate } from './hostelReport.js';
+import { buildStudentReportData, buildStudentReportTemplate } from './studentReport.js';
 import { buildFundReportData, buildFundReportTemplate } from './fundReport.js';
-
 import { buildGenericReportData, buildGenericReportTemplate } from './reportTemplates.js';
 
 /**
  * Universal Document Template Registry.
- * Registers document templates and data builders dynamically.
- * Future documents (Ledger, Collection Report, Salary Slip, etc.) are registered here without changing the engine.
+ * Central registry for all frontend document components & PDF layout generators.
  */
 const TEMPLATE_REGISTRY = {
   genericReport: {
@@ -36,7 +40,17 @@ const TEMPLATE_REGISTRY = {
     },
   },
   salary: {
-    name: 'Salary Receipt Voucher',
+    name: 'Salary Disbursement Voucher',
+    builder: buildSalaryReceiptData,
+    template: buildSalaryReceiptTemplate,
+    defaultOptions: {
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
+      pageMargins: [30, 25, 30, 30],
+    },
+  },
+  salaryReceipt: {
+    name: 'Salary Disbursement Voucher',
     builder: buildSalaryReceiptData,
     template: buildSalaryReceiptTemplate,
     defaultOptions: {
@@ -55,6 +69,16 @@ const TEMPLATE_REGISTRY = {
       pageMargins: [30, 25, 30, 30],
     },
   },
+  expenseVoucher: {
+    name: 'Expense Disbursement Voucher',
+    builder: buildExpenseVoucherData,
+    template: buildExpenseVoucherTemplate,
+    defaultOptions: {
+      pageSize: 'A5',
+      pageOrientation: 'portrait',
+      pageMargins: [25, 20, 25, 25],
+    },
+  },
   expenseReport: {
     name: 'School Expense Report',
     builder: buildExpenseReportData,
@@ -65,10 +89,30 @@ const TEMPLATE_REGISTRY = {
       pageMargins: [30, 25, 30, 30],
     },
   },
-  fundReport: {
-    name: 'School Fund Addition Report',
-    builder: buildFundReportData,
-    template: buildFundReportTemplate,
+  staffAdvance: {
+    name: 'Staff Advance Statement',
+    builder: buildStaffAdvanceData,
+    template: buildStaffAdvanceTemplate,
+    defaultOptions: {
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
+      pageMargins: [30, 25, 30, 30],
+    },
+  },
+  feeReport: {
+    name: 'Fee Collection & Dues Report',
+    builder: buildFeeReportData,
+    template: buildFeeReportTemplate,
+    defaultOptions: {
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
+      pageMargins: [30, 25, 30, 30],
+    },
+  },
+  payrollReport: {
+    name: 'Monthly Payroll Statement',
+    builder: buildPayrollReportData,
+    template: buildPayrollReportTemplate,
     defaultOptions: {
       pageSize: 'A4',
       pageOrientation: 'portrait',
@@ -85,8 +129,37 @@ const TEMPLATE_REGISTRY = {
       pageMargins: [30, 25, 30, 30],
     },
   },
+  hostelReport: {
+    name: 'Hostel Residents & Fee Statement',
+    builder: buildHostelReportData,
+    template: buildHostelReportTemplate,
+    defaultOptions: {
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
+      pageMargins: [30, 25, 30, 30],
+    },
+  },
+  studentReport: {
+    name: 'Student Directory & Status Report',
+    builder: buildStudentReportData,
+    template: buildStudentReportTemplate,
+    defaultOptions: {
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
+      pageMargins: [30, 25, 30, 30],
+    },
+  },
+  fundReport: {
+    name: 'School Fund Addition Report',
+    builder: buildFundReportData,
+    template: buildFundReportTemplate,
+    defaultOptions: {
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
+      pageMargins: [30, 25, 30, 30],
+    },
+  },
 };
-
 
 /**
  * Retrieves a registered template object by template ID.
@@ -94,19 +167,11 @@ const TEMPLATE_REGISTRY = {
 export const getDocumentTemplate = (templateId = 'receipt') => {
   const target = TEMPLATE_REGISTRY[templateId];
   if (!target) {
-    throw new Error(`Document template '${templateId}' is not registered in Universal Template Registry.`);
+    // Graceful fallback to genericReport if exact template ID is missing
+    console.warn(`Document template '${templateId}' not explicitly found. Falling back to genericReport.`);
+    return TEMPLATE_REGISTRY.genericReport;
   }
   return target;
-};
-
-/**
- * Register a new document template at runtime.
- */
-export const registerDocumentTemplate = (templateId, templateConfig) => {
-  if (!templateConfig.template || !templateConfig.builder) {
-    throw new Error(`Cannot register template '${templateId}': missing required 'template' or 'builder' function.`);
-  }
-  TEMPLATE_REGISTRY[templateId] = templateConfig;
 };
 
 export default TEMPLATE_REGISTRY;

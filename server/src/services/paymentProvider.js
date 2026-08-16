@@ -1,6 +1,6 @@
 import { ApiError } from '../utils/ApiError.js';
 
-export class PaymentProvider {
+class PaymentProvider {
   async createOrder(params) {
     throw new Error('createOrder must be implemented by concrete subclass');
   }
@@ -14,7 +14,7 @@ export class PaymentProvider {
   }
 }
 
-export class ManualPaymentProvider extends PaymentProvider {
+class ManualPaymentProvider extends PaymentProvider {
   async createOrder({ amount, currency, referenceNumber, paymentMethod }) {
     if (paymentMethod === 'UPI' && (!referenceNumber || !referenceNumber.trim())) {
       throw ApiError.badRequest('Transaction / Reference Number is mandatory for UPI payments.');
@@ -39,7 +39,7 @@ export class ManualPaymentProvider extends PaymentProvider {
   }
 }
 
-export class RazorpayPaymentProvider extends PaymentProvider {
+class RazorpayPaymentProvider extends PaymentProvider {
   constructor() {
     super();
     this.isEnabled = process.env.RAZORPAY_ENABLED === 'true';

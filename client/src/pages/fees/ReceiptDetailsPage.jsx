@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Printer, Ban, Loader2, Lock } from 'lucide-react';
+import { ArrowLeft, Ban, Loader2, Lock } from 'lucide-react';
 import { ReceiptCard } from '../../components/fees/ReceiptCard.jsx';
 import { usePaymentDetails, useVoidPayment } from '../../hooks/usePaymentEngine.js';
 import { Button } from '../../components/ui/Button.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { usePermission } from '../../hooks/usePermission.js';
-import { printPdfDocument } from '../../core/documents/documentEngine.js';
+import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 
 export const ReceiptDetailsPage = () => {
   const { id } = useParams();
@@ -40,19 +40,6 @@ export const ReceiptDetailsPage = () => {
       refetch();
     } catch (err) {
       toast.error(err.message || 'Unable to void receipt.');
-    }
-  };
-
-  const handleEnginePrint = async () => {
-    if (!receipt) return;
-    try {
-      await printPdfDocument({
-        templateId: 'receipt',
-        data: receipt,
-        options: { copyLabel: printMode === 'DUAL' ? 'Dual Copy' : 'Original Copy' },
-      });
-    } catch (err) {
-      toast.error('Failed to print PDF document.');
     }
   };
 
@@ -103,10 +90,13 @@ export const ReceiptDetailsPage = () => {
             <option value="SINGLE">📄 Single Copy (Student Copy Only)</option>
           </select>
 
-          <Button variant="primary" size="sm" onClick={handleEnginePrint}>
-            <Printer className="w-3.5 h-3.5 mr-1.5" />
-            Print PDF
-          </Button>
+          <DocumentActions
+            templateId="receipt"
+            data={receipt}
+            filename={filename}
+            title={`Fee Receipt #${receipt.receiptNumber || 'RCPT'}`}
+            options={{ copyLabel: printMode === 'DUAL' ? 'Dual Copy' : 'Original Copy' }}
+          />
 
           {!isVoid && canVoidReceipt && (
             <Button variant="danger" size="sm" onClick={() => setIsVoidModalOpen(true)}>

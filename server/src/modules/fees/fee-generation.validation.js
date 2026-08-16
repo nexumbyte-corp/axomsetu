@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const FEE_MONTHS = [
+const FEE_MONTHS = [
   'JANUARY',
   'FEBRUARY',
   'MARCH',
@@ -15,7 +15,7 @@ export const FEE_MONTHS = [
   'DECEMBER',
 ];
 
-export const GENERATION_MODES = ['ENTIRE_SCHOOL', 'BY_CLASS', 'BY_STUDENT'];
+const GENERATION_MODES = ['ENTIRE_SCHOOL', 'BY_CLASS', 'BY_STUDENT'];
 
 const customFeeHeadSchema = z.object({
   feeTypeId: z.string().uuid().optional().nullable(),

@@ -1,4 +1,5 @@
 import { amountToWords } from '../../../../utils/numberToWords.js';
+import { formatFeeMonthYear } from '../../common/formatters.js';
 
 /**
  * Receipt Builder Data Transformer.
@@ -39,7 +40,11 @@ export const buildReceiptData = (rawBackendData = {}) => {
   const formattedAllocations = (payment.allocations || []).map((alloc) => ({
     title: alloc.title || alloc.chargeTitle || 'Fee Head',
     feeType: alloc.feeType?.name || '',
-    month: alloc.month || '—',
+    month: formatFeeMonthYear(
+      alloc.month,
+      alloc.year || alloc.charge?.year,
+      payment.academicYear?.name || payment.academicYear || payment.paymentDate
+    ),
     chargeAmount: `₹${Number(alloc.chargeAmount || alloc.amount || 0).toFixed(2)}`,
     allocatedAmount: `₹${Number(alloc.allocatedAmount || 0).toFixed(2)}`,
     status: alloc.chargeStatus || 'ALLOCATED',

@@ -18,6 +18,7 @@ import { Badge } from '../../components/ui/Badge.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
+import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 
 export const HostelReportsPage = () => {
   const { currentAcademicYear, academicYears } = useAcademicYear();
@@ -68,10 +69,6 @@ export const HostelReportsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handlePrint = () => {
-    window.print();
   };
 
   return (
@@ -159,10 +156,16 @@ export const HostelReportsPage = () => {
         </div>
 
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={handlePrint} className="h-8 text-xs">
-            <Printer className="w-3.5 h-3.5 mr-1" />
-            Print Report
-          </Button>
+          <DocumentActions
+            templateId="hostelReport"
+            data={{
+              reportData,
+              reportType,
+              hostelName: hostels.find((h) => h.id === selectedHostelId)?.name || 'All Hostels',
+            }}
+            filename={`Hostel_Report_${reportType}.pdf`}
+            title={`Hostel Report - ${reportType.toUpperCase()}`}
+          />
         </div>
       </div>
 

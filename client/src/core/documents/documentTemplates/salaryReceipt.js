@@ -109,6 +109,7 @@ export const buildSalaryReceiptTemplate = (data, settings = {}) => {
               { text: `Employee Code: ${data.employeeId}`, fontSize: 9, color: '#334155' },
               { text: `Department: ${data.department}`, fontSize: 9, color: '#334155' },
               { text: `Designation: ${data.designation}`, fontSize: 9, color: '#334155' },
+              { text: `Base Salary (Original): ${formatCurrency(data.baseSalary)} / mo`, fontSize: 9, bold: true, color: '#4f46e5', margin: [0, 2, 0, 0] },
               data.bankAccountNo ? { text: `Bank: ${data.bankName} (${data.bankAccountNo})`, fontSize: 8, color: '#64748b', margin: [0, 2, 0, 0] } : {},
             ],
           },
@@ -152,6 +153,16 @@ export const buildSalaryReceiptTemplate = (data, settings = {}) => {
         { text: `Original Salary Due (${item.month} ${item.year})`, fontSize: 9, color: '#334155', bold: true },
         { text: formatCurrency(item.salaryDue), fontSize: 9, alignment: 'right', color: '#0f172a', bold: true },
       ],
+    ];
+
+    if (data.advanceDeducted > 0) {
+      summaryRows.push([
+        { text: '(-) Advance Payment Adjustment / Recovery', fontSize: 9, bold: true, color: '#b45309', fillColor: '#fffbeb' },
+        { text: `- ${formatCurrency(data.advanceDeducted)}`, fontSize: 9, bold: true, alignment: 'right', color: '#b45309', fillColor: '#fffbeb' },
+      ]);
+    }
+
+    summaryRows.push(
       [
         { text: '(-) Previously Paid', fontSize: 9, color: '#475569' },
         { text: formatCurrency(item.previouslyPaid), fontSize: 9, alignment: 'right', color: '#475569' },
@@ -171,8 +182,8 @@ export const buildSalaryReceiptTemplate = (data, settings = {}) => {
       [
         { text: 'Payment Status', fontSize: 9, bold: true, color: '#334155' },
         { text: item.status, fontSize: 9.5, bold: true, alignment: 'right', color: item.status === 'PAID' ? '#15803d' : '#b45309' },
-      ],
-    ];
+      ]
+    );
 
     content.push({
       table: {

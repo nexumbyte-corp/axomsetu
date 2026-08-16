@@ -8,7 +8,7 @@ import { Skeleton } from '../../components/ui/Skeleton.jsx';
 import { OpeningBalanceModal } from './OpeningBalanceModal.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
-import { printPdfDocument } from '../../core/documents/documentEngine.js';
+import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import {
   TrendingUp,
   TrendingDown,
@@ -19,7 +19,6 @@ import {
   RefreshCw,
   Landmark,
   Calendar,
-  Printer,
 } from 'lucide-react';
 
 export const FinanceOverviewPage = () => {
@@ -69,21 +68,6 @@ export const FinanceOverviewPage = () => {
   const { user } = useAuth();
   const schoolHeader = user?.schoolAdmins?.[0]?.school || {};
 
-  const handlePrintStatement = async () => {
-    try {
-      await printPdfDocument({
-        templateId: 'financialLedger',
-        data: {
-          schoolHeader,
-          transactions: recentTxns,
-          overview: data || {},
-        },
-      });
-    } catch (err) {
-      console.error('Failed to print financial statement:', err);
-    }
-  };
-
   const formatCurrency = (val) => {
     const num = Number(val || 0);
     return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -113,14 +97,12 @@ export const FinanceOverviewPage = () => {
           <span>Real-time Financial Balance Engine</span>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrintStatement}
-            icon={Printer}
-          >
-            Print Statement
-          </Button>
+          <DocumentActions
+            templateId="financialLedger"
+            data={{ schoolHeader, transactions: recentTxns, overview: data || {} }}
+            filename="Financial_Statement.pdf"
+            title="Financial Statement"
+          />
           <Button
             variant="outline"
             size="sm"

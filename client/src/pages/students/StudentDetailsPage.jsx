@@ -24,6 +24,7 @@ import {
   CalendarCheck,
   Printer,
 } from 'lucide-react';
+import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
@@ -690,15 +691,25 @@ export const StudentDetailsPage = () => {
               subtitle={`Unpaid and partial fee charges in chronological ascending order (${selectedYear?.name || 'Selected Year'})`}
               action={
                 pendingFees.length > 0 ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.print()}
-                    icon={Printer}
-                    className="text-xs font-semibold text-slate-700 print:hidden"
-                  >
-                    Print Dues Slip
-                  </Button>
+                  <DocumentActions
+                    templateId="feeReport"
+                    data={{
+                      reportMeta: { title: `Fee Dues Slip - ${student.name}` },
+                      data: pendingFees.map((f) => ({
+                        ...f,
+                        studentName: student.name,
+                        admissionNo: student.admissionNo,
+                        className: currentAcademic?.class?.name || '',
+                        dueAmount: f.balance,
+                        paidAmount: f.paidAmount || 0,
+                      })),
+                      summary: {
+                        totalDues: pendingFees.reduce((sum, f) => sum + Number(f.balance || 0), 0),
+                      },
+                    }}
+                    filename={`Dues_Slip_${student.admissionNo || 'Student'}.pdf`}
+                    title={`Pending Dues Slip - ${student.name}`}
+                  />
                 ) : null
               }
             />

@@ -3,6 +3,7 @@ import { GraduationCap, CheckCircle2, AlertTriangle, Printer } from 'lucide-reac
 import { Badge } from '../ui/Badge.jsx';
 import { amountToWords } from '../../utils/numberToWords.js';
 import { SchoolReportHeader } from '../common/SchoolReportHeader.jsx';
+import { formatFeeMonthYear } from '../../core/documents/common/formatters.js';
 
 export const ReceiptCard = ({ receipt, schoolHeader, copyLabel = 'Original Copy' }) => {
   if (!receipt) return null;
@@ -148,7 +149,11 @@ export const ReceiptCard = ({ receipt, schoolHeader, copyLabel = 'Original Copy'
                     )}
                   </td>
                   <td className="py-2 px-3 text-slate-700 font-semibold">
-                    {alloc.month}{alloc.year || alloc.charge?.year ? ` ${alloc.year || alloc.charge.year}` : ''}
+                    {formatFeeMonthYear(
+                      alloc.month,
+                      alloc.year || alloc.charge?.year,
+                      academicYearName || receipt.paymentDate
+                    )}
                   </td>
                   <td className="py-2 px-3 text-right font-mono text-slate-600">
                     ₹{Number(alloc.originalAmount || alloc.chargeAmount || alloc.amount || 0).toFixed(2)}

@@ -123,9 +123,21 @@ export const createPDFHeader = ({
       fontSize: 11,
       bold: true,
       alignment: 'center',
-      color: '#4338ca',
+      color: status === 'VOID' || status === 'CANCELLED' ? '#dc2626' : '#4338ca',
       margin: [0, 4, 0, 1],
     });
+
+    if (status === 'VOID' || status === 'CANCELLED') {
+      stack.push({
+        text: '*** VOID / CANCELLED DOCUMENT ***',
+        fontSize: 9,
+        bold: true,
+        alignment: 'center',
+        color: '#dc2626',
+        margin: [0, 1, 0, 2],
+      });
+    }
+
     if (academicYear) {
       stack.push({
         text: `Academic Year: ${academicYear}`,
@@ -148,7 +160,7 @@ export const createPDFHeader = ({
         x2: 535,
         y2: 0,
         lineWidth: 1,
-        lineColor: '#cbd5e1',
+        lineColor: status === 'VOID' || status === 'CANCELLED' ? '#fca5a5' : '#cbd5e1',
       },
     ],
     margin: [0, 4, 0, 8],

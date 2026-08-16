@@ -9,10 +9,12 @@ import { Pagination } from '../../components/ui/Pagination.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
-import { printPdfDocument } from '../../core/documents/documentEngine.js';
-import { Search, FileText, Printer } from 'lucide-react';
+import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
+import { Search, FileText } from 'lucide-react';
 
 export const FinancialTransactionsPage = () => {
+  const { user } = useAuth();
+  const schoolHeader = user?.schoolAdmins?.[0]?.school || {};
   const { selectedYearId } = useAcademicYear();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
@@ -78,26 +80,6 @@ export const FinancialTransactionsPage = () => {
     return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const { user } = useAuth();
-  const schoolHeader = user?.schoolAdmins?.[0]?.school || {};
-
-  const handlePrintLedger = async () => {
-    try {
-      const overviewRes = await financeService.getOverview();
-      const overviewData = overviewRes.data !== undefined ? overviewRes.data : overviewRes;
-      await printPdfDocument({
-        templateId: 'financialLedger',
-        data: {
-          schoolHeader,
-          transactions,
-          overview: overviewData,
-        },
-      });
-    } catch (err) {
-      console.error('Failed to print financial ledger:', err);
-    }
-  };
-
   const sourceTypes = [
     { label: 'All Sources', value: 'ALL' },
     { label: 'Fee Collection', value: 'FEE_COLLECTION' },
@@ -132,14 +114,12 @@ export const FinancialTransactionsPage = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrintLedger}
-              icon={Printer}
-            >
-              Print Ledger
-            </Button>
+            <DocumentActions
+              templateId="financialLedger"
+              data={{ schoolHeader, transactions }}
+              filename="Financial_Ledger_Statement.pdf"
+              title="Financial Ledger Statement"
+            />
             <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
               <div className="relative w-full sm:w-64">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />

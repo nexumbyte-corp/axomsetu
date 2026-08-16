@@ -15,6 +15,7 @@ import { SuperAdminLayout } from '../layouts/SuperAdminLayout.jsx';
 import { LandingPage } from '../pages/LandingPage.jsx';
 import { LoginPage } from '../pages/LoginPage.jsx';
 import { RegisterPage } from '../pages/RegisterPage.jsx';
+import { ContactPage } from '../pages/ContactPage.jsx';
 
 // School Admin Pages
 import { DashboardPage } from '../pages/DashboardPage.jsx';
@@ -65,7 +66,6 @@ import { CollectFeesPage } from '../pages/fees/CollectFeesPage.jsx';
 import { ReceiptsListPage } from '../pages/fees/ReceiptsListPage.jsx';
 import { ReceiptDetailsPage } from '../pages/fees/ReceiptDetailsPage.jsx';
 import { FeeTemplatesPage } from '../pages/fees/FeeTemplatesPage.jsx';
-import { FeeStructuresPage } from '../pages/fees/FeeStructuresPage.jsx';
 import { FeeTypesPage } from '../pages/fees/FeeTypesPage.jsx';
 import { GenerateFeesPage } from '../pages/fees/GenerateFeesPage.jsx';
 import { GeneratedHistoryPage } from '../pages/fees/GeneratedHistoryPage.jsx';
@@ -100,6 +100,7 @@ export const AppRoutes = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/contact" element={<ContactPage />} />
 
       {/* Protected School Admin Portal */}
       <Route

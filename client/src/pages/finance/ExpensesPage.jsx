@@ -12,7 +12,7 @@ import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
-import { printPdfDocument } from '../../core/documents/documentEngine.js';
+import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import {
   Plus,
   Search,
@@ -21,7 +21,6 @@ import {
   XCircle,
   CheckCircle2,
   AlertTriangle,
-  Printer,
 } from 'lucide-react';
 
 export const ExpensesPage = () => {
@@ -179,19 +178,7 @@ export const ExpensesPage = () => {
   const { user } = useAuth();
   const schoolHeader = user?.schoolAdmins?.[0]?.school || {};
 
-  const handlePrintExpenses = async () => {
-    try {
-      await printPdfDocument({
-        templateId: 'expenseReport',
-        data: {
-          schoolHeader,
-          expenses,
-        },
-      });
-    } catch (err) {
-      console.error('Failed to print expenses report:', err);
-    }
-  };
+
 
   const activeCategories = categories.filter((c) => c.isActive);
 
@@ -205,14 +192,12 @@ export const ExpensesPage = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrintExpenses}
-            icon={Printer}
-          >
-            Print Expenses
-          </Button>
+          <DocumentActions
+            templateId="expenseReport"
+            data={{ schoolHeader, expenses }}
+            filename="School_Expense_Report.pdf"
+            title="School Expenditure Report"
+          />
           <Button
             variant="outline"
             size="sm"
@@ -341,14 +326,23 @@ export const ExpensesPage = () => {
                       </Badge>
                     </td>
                     <td className="p-3.5 text-right">
-                      {exp.status === 'ACTIVE' && (
-                        <button
-                          onClick={() => setCancelModalExpense(exp)}
-                          className="text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:underline"
-                        >
-                          Cancel / Reverse
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        <DocumentActions
+                          variant="minimal"
+                          templateId="expenseVoucher"
+                          data={{ expense: exp, schoolHeader }}
+                          filename={`Expense_Voucher_${exp.expenseNo || exp.id}.pdf`}
+                          title={`Expense Voucher #${exp.expenseNo || exp.id}`}
+                        />
+                        {exp.status === 'ACTIVE' && (
+                          <button
+                            onClick={() => setCancelModalExpense(exp)}
+                            className="text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:underline"
+                          >
+                            Cancel / Reverse
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

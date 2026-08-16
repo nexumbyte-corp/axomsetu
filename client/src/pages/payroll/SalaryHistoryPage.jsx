@@ -10,11 +10,10 @@ import { Alert } from '../../components/ui/Alert.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { StaffSubNav } from '../staff/StaffSubNav.jsx';
 import { buildSalarySlipData } from '../../core/documents/documentTemplates/salarySlip.js';
-import { printPdfDocument, downloadPdfDocument } from '../../core/documents/documentEngine.js';
+import { downloadPdfDocument } from '../../core/documents/documentEngine.js';
 import {
   History,
   FileText,
-  Printer,
   Download,
   Search,
   Calendar,
@@ -100,20 +99,6 @@ export const SalaryHistoryPage = () => {
     fetchStaffList();
   }, []);
 
-  // Print voucher
-  const handlePrintVoucher = async (paymentId) => {
-    try {
-      const res = await staffService.getSalaryPaymentReceiptData(paymentId);
-      await printPdfDocument({
-        templateId: 'salary',
-        data: res.data,
-      });
-    } catch (err) {
-      console.error('Failed to print voucher:', err);
-      alert('Failed to launch print window.');
-    }
-  };
-
   // Download voucher PDF
   const handleDownloadVoucher = async (paymentId, paymentNo) => {
     try {
@@ -177,20 +162,6 @@ export const SalaryHistoryPage = () => {
     } catch (err) {
       console.error('Failed to download salary slip PDF:', err);
       alert('Failed to download Salary Slip PDF.');
-    }
-  };
-
-  // Print Slip PDF
-  const handlePrintSlipPdf = async () => {
-    if (!slipPayload) return;
-    try {
-      await printPdfDocument({
-        templateId: 'salarySlip',
-        data: slipPayload,
-      });
-    } catch (err) {
-      console.error('Failed to print salary slip:', err);
-      alert('Failed to print Salary Slip.');
     }
   };
 
@@ -269,6 +240,7 @@ export const SalaryHistoryPage = () => {
                       <th className="py-3.5 px-4">Staff Member</th>
                       <th className="py-3.5 px-4">Months Settled</th>
                       <th className="py-3.5 px-4">Mode & Ref</th>
+                      <th className="py-3.5 px-4 text-right">Adv. Adjustment (₹)</th>
                       <th className="py-3.5 px-4 text-right">Net Amount Paid (₹)</th>
                       <th className="py-3.5 px-4 text-center">Actions</th>
                     </tr>
@@ -276,6 +248,14 @@ export const SalaryHistoryPage = () => {
                   <tbody className="divide-y divide-slate-100 font-medium">
                     {payments.map((p) => {
                       const staff = p.staff || {};
+                      const advAdjustment = Number(
+                        p.advanceDeducted ||
+                        p.advanceDeduction ||
+                        p.advanceRecovery ||
+                        p.advanceAdjusted ||
+                        p.advanceAmount ||
+                        0
+                      );
                       return (
                         <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                           <td className="py-3.5 px-4 font-mono font-bold text-indigo-700">
@@ -313,30 +293,28 @@ export const SalaryHistoryPage = () => {
                             )}
                           </td>
 
+                          <td className="py-3.5 px-4 text-right font-mono font-bold text-amber-700">
+                            {advAdjustment > 0 ? (
+                              `- ₹${advAdjustment.toLocaleString('en-IN')}`
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )}
+                          </td>
+
                           <td className="py-3.5 px-4 text-right font-mono font-extrabold text-emerald-600 text-sm">
                             ₹{Number(p.netSalary || 0).toLocaleString('en-IN')}
                           </td>
 
                           <td className="py-3.5 px-4 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                icon={Printer}
-                                title="Print Voucher"
-                                onClick={() => handlePrintVoucher(p.id)}
-                              >
-                                Print
-                              </Button>
-
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                icon={Download}
-                                title="Download PDF Voucher"
-                                onClick={() => handleDownloadVoucher(p.id, p.paymentNumber)}
-                              />
-                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              icon={Download}
+                              title="Download PDF Voucher"
+                              onClick={() => handleDownloadVoucher(p.id, p.paymentNumber)}
+                            >
+                              Download PDF
+                            </Button>
                           </td>
                         </tr>
                       );
@@ -467,10 +445,6 @@ export const SalaryHistoryPage = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Button variant="outline" icon={Printer} onClick={handlePrintSlipPdf}>
-                    Print Slip
-                  </Button>
-
                   <Button variant="primary" icon={Download} onClick={handleDownloadSlipPdf}>
                     Download Salary Slip PDF
                   </Button>
@@ -483,37 +457,47 @@ export const SalaryHistoryPage = () => {
                   <thead className="bg-slate-900 text-white font-bold text-[10px] uppercase">
                     <tr>
                       <th className="p-3">Period</th>
-                      <th className="p-3 text-right">Base Salary</th>
+                      <th className="p-3 text-right">Base Salary (Original)</th>
                       <th className="p-3 text-center">Worked</th>
                       <th className="p-3 text-right">Attendance Ded.</th>
                       <th className="p-3 text-right">Bonus</th>
-                      <th className="p-3 text-right">Adv. Ded.</th>
+                      <th className="p-3 text-right">Adv. Adjustment</th>
                       <th className="p-3 text-right">Net Salary</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
-                    {(slipPayload.payrolls || []).map((p) => (
-                      <tr key={p.id || Math.random()}>
-                        <td className="p-3 font-bold text-slate-900">{p.month} {p.year}</td>
-                        <td className="p-3 text-right font-mono">₹{Number(p.baseSalary || 0).toLocaleString('en-IN')}</td>
-                        <td className="p-3 text-center font-mono">{p.workedDays} / {p.workingDays}</td>
-                        <td className="p-3 text-right font-mono text-red-600">₹{Number(p.attendanceDeduction || 0).toLocaleString('en-IN')}</td>
-                        <td className="p-3 text-right font-mono text-emerald-600">₹{Number(p.bonus || 0).toLocaleString('en-IN')}</td>
-                        <td className="p-3 text-right font-mono text-amber-600">₹{Number(p.advanceDeduction || 0).toLocaleString('en-IN')}</td>
-                        <td className="p-3 text-right font-mono font-bold text-indigo-700">₹{Number(p.netSalary || 0).toLocaleString('en-IN')}</td>
-                      </tr>
-                    ))}
+                    {(slipPayload.payrolls || []).map((p) => {
+                      const pAdvDeduct = Number(p.advanceDeduction || p.advanceDeducted || p.advanceRecovery || p.advanceAdjusted || 0);
+                      return (
+                        <tr key={p.id || Math.random()}>
+                          <td className="p-3 font-bold text-slate-900">{p.month} {p.year}</td>
+                          <td className="p-3 text-right font-mono">₹{Number(p.baseSalary || 0).toLocaleString('en-IN')}</td>
+                          <td className="p-3 text-center font-mono">{p.workedDays} / {p.workingDays}</td>
+                          <td className="p-3 text-right font-mono text-red-600">₹{Number(p.attendanceDeduction || 0).toLocaleString('en-IN')}</td>
+                          <td className="p-3 text-right font-mono text-emerald-600">₹{Number(p.bonus || 0).toLocaleString('en-IN')}</td>
+                          <td className="p-3 text-right font-mono font-bold text-amber-700">
+                            {pAdvDeduct > 0 ? `- ₹${pAdvDeduct.toLocaleString('en-IN')}` : '₹0'}
+                          </td>
+                          <td className="p-3 text-right font-mono font-bold text-indigo-700">₹{Number(p.netSalary || 0).toLocaleString('en-IN')}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
               {/* Net Payable Footer */}
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <span className="text-xs text-emerald-800 font-bold uppercase tracking-wider block">
                     Total Net Salary Payable
                   </span>
                   <span className="text-xs text-emerald-700 font-semibold">{slipPayload.netInWords}</span>
+                  {Number(slipPayload.totalAdvanceDeduction || 0) > 0 && (
+                    <span className="block mt-1 text-[11px] font-mono font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded w-fit border border-amber-200">
+                      Includes Advance Payment Adjustment: - ₹{Number(slipPayload.totalAdvanceDeduction).toLocaleString('en-IN')}
+                    </span>
+                  )}
                 </div>
                 <span className="text-2xl font-extrabold text-emerald-700 font-mono">
                   ₹{Number(slipPayload.totalNet || 0).toLocaleString('en-IN')}

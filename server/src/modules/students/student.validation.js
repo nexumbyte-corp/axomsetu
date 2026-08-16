@@ -106,7 +106,6 @@ export const promoteStudentSchema = z
     }
   });
 
-export const transitionStudentSchema = promoteStudentSchema;
 
 export const bulkPromoteStudentsSchema = z.object({
   sourceAcademicYearId: z.string({ required_error: 'Source academic year ID is required' }).uuid('Invalid Source Academic Year ID'),

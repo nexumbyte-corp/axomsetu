@@ -31,7 +31,8 @@ import { Drawer } from '../../components/ui/Drawer.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { DocumentPreviewModal } from '../../components/documents/DocumentPreviewModal.jsx';
-import { printPdfDocument } from '../../core/documents/documentEngine.js';
+import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
+
 
 import { REPORT_CATEGORIES, REPORT_REGISTRY, getReportById } from '../../core/reports/reportRegistry.js';
 import { reportService } from '../../services/report.service.js';
@@ -238,23 +239,7 @@ export const ReportsPage = () => {
     setIsPdfModalOpen(true);
   };
 
-  // Direct Print PDF Action
-  const handleDirectPrint = async () => {
-    const payload = preparePdfPayload();
-    if (!payload) return;
-    setActionLoading((prev) => ({ ...prev, print: true }));
 
-    try {
-      await printPdfDocument({
-        templateId: activeReport.pdfTemplate || 'genericReport',
-        data: payload,
-      });
-    } catch (err) {
-      toast.error('Failed printing report document.');
-    } finally {
-      setActionLoading((prev) => ({ ...prev, print: false }));
-    }
-  };
 
   // Helper to translate raw filter IDs to clean human-readable names
   const getFilterHumanLabel = (key, val) => {
@@ -509,31 +494,19 @@ export const ReportsPage = () => {
                 Configure Filters
               </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDirectPrint}
-                disabled={loading || actionLoading.print}
-              >
-                <Printer className="w-3.5 h-3.5 mr-1" />
-                Print
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleOpenPdfModal}
-                disabled={loading}
-              >
-                <FileText className="w-3.5 h-3.5 mr-1" />
-                Generate PDF
-              </Button>
+              <DocumentActions
+                templateId={activeReport?.pdfTemplate || 'genericReport'}
+                data={preparePdfPayload()}
+                filename={`${activeReport?.id || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`}
+                title={activeReport?.title || 'Report PDF Preview'}
+                disabled={loading || !reportResult}
+              />
 
               <Button
                 variant="primary"
                 size="sm"
                 onClick={handleExportCSV}
-                disabled={loading || actionLoading.csv}
+                disabled={loading || actionLoading.csv || !reportResult}
               >
                 <Download className="w-3.5 h-3.5 mr-1" />
                 Export CSV
