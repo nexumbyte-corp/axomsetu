@@ -73,8 +73,7 @@ export const changeSchoolStatus = asyncHandler(async (req, res) => {
 });
 
 export const addSchoolAdmin = asyncHandler(async (req, res) => {
-  const { userId, isOwner } = req.body;
-  const result = await schoolService.addSchoolAdmin(req.params.schoolId, userId, isOwner, req.user?.id);
+  const result = await schoolService.addSchoolAdmin(req.params.schoolId, req.body, req.body.isOwner, req.user?.id);
 
   res.status(201).json({
     success: true,

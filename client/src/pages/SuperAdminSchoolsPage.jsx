@@ -133,7 +133,10 @@ export const SuperAdminSchoolsPage = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await adminService.createSchool(createForm);
+      await adminService.createSchool({
+        ...createForm,
+        termsAccepted: true,
+      });
       setToast({ type: 'success', message: `School ${createForm.name} registered successfully!` });
       setIsCreateModalOpen(false);
       fetchSchools(1);

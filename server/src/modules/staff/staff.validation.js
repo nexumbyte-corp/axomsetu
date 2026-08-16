@@ -54,6 +54,7 @@ export const disburseAdvanceSchema = z.object({
   paymentMode: z.enum(PAYMENT_MODES).default('CASH'),
   referenceNo: z.string().trim().optional().or(z.literal('')),
   remarks: z.string().trim().optional().or(z.literal('')),
+  academicYearId: z.string().uuid().optional().nullable(),
 });
 
 export const recordSalaryPaymentSchema = z.object({

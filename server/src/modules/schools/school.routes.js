@@ -9,6 +9,7 @@ import {
   changeStatusSchema,
   schoolIdParamSchema,
   listSchoolsQuerySchema,
+  addSchoolAdminSchema,
 } from './school.validation.js';
 
 const router = Router();
@@ -28,7 +29,7 @@ router.route('/:schoolId/status')
   .patch(validate(schoolIdParamSchema), schoolController.changeSchoolStatus);
 
 router.route('/:schoolId/admins')
-  .post(validate(schoolIdParamSchema), schoolController.addSchoolAdmin);
+  .post(validate(addSchoolAdminSchema), schoolController.addSchoolAdmin);
 
 router.route('/:schoolId/admins/:adminId')
   .delete(schoolController.removeSchoolAdmin);

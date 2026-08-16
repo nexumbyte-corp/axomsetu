@@ -3,6 +3,7 @@ import { ApiError } from '../../utils/ApiError.js';
 import { generateNextDocumentNumber } from '../../utils/documentSequence.js';
 import { isStaffOperationallyActive } from '../../utils/staffHelpers.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
+import { ensureCurrentAcademicYear } from '../academic-years/academicYear.service.js';
 
 export const staffService = {
   // -------------------------------------------------------------
@@ -268,6 +269,16 @@ export const staffService = {
       throw ApiError.badRequest('Advance amount must be a positive number.');
     }
 
+    let academicYearId = data.academicYearId;
+    if (!academicYearId) {
+      try {
+        const currentAy = await ensureCurrentAcademicYear(schoolId);
+        academicYearId = currentAy?.id || null;
+      } catch (e) {
+        academicYearId = null;
+      }
+    }
+
     return await prisma.$transaction(async (tx) => {
       // 1. Create StaffAdvance record
       const advance = await tx.staffAdvance.create({
@@ -296,6 +307,7 @@ export const staffService = {
       // 3. Create Financial Ledger DEBIT for Staff Advance
       await financialLedgerService.createTransaction(tx, {
         schoolId,
+        academicYearId: academicYearId || null,
         transactionDate: new Date(data.advanceDate),
         type: 'DEBIT',
         sourceType: 'STAFF_ADVANCE',

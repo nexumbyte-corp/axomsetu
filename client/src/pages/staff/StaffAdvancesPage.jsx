@@ -23,6 +23,7 @@ export const StaffAdvancesPage = () => {
   const [advanceDate, setAdvanceDate] = useState(new Date().toISOString().split('T')[0]);
   const [amount, setAmount] = useState('');
   const [paymentMode, setPaymentMode] = useState('CASH');
+  const [referenceNo, setReferenceNo] = useState('');
   const [remarks, setRemarks] = useState('');
 
   // Individual Advance Report Modal State
@@ -70,12 +71,14 @@ export const StaffAdvancesPage = () => {
         amount: numAmount,
         advanceDate,
         paymentMode,
+        referenceNo,
         remarks,
       });
 
       setIsGiveModalOpen(false);
       setSelectedStaffId('');
       setAmount('');
+      setReferenceNo('');
       setRemarks('');
       fetchAdvancesData();
     } catch (err) {
@@ -281,6 +284,13 @@ export const StaffAdvancesPage = () => {
             value={paymentMode}
             onChange={(e) => setPaymentMode(e.target.value)}
             options={paymentModeOptions}
+          />
+
+          <Input
+            label="Transaction / Reference No."
+            placeholder="e.g. Ref #12345"
+            value={referenceNo}
+            onChange={(e) => setReferenceNo(e.target.value)}
           />
 
           <Input

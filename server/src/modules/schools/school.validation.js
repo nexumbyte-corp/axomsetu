@@ -81,3 +81,19 @@ export const listSchoolsQuerySchema = {
     status: z.enum(['ACTIVE', 'SUSPENDED', 'INACTIVE']).optional(),
   }),
 };
+
+export const addSchoolAdminSchema = {
+  params: z.object({
+    schoolId: z.string().uuid('Invalid school ID format'),
+  }),
+  body: z.object({
+    userId: z.string().uuid('Invalid user ID format').optional(),
+    email: z.string().email('Invalid email address format').toLowerCase().trim().optional(),
+    name: z.string().trim().optional(),
+    password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+    phone: z.string().trim().optional(),
+    isOwner: z.boolean().optional(),
+    schoolRole: z.enum(['OWNER', 'SCHOOL_ADMIN', 'STAFF']).optional(),
+    systemRole: z.enum(['SUPER_ADMIN', 'SCHOOL_ADMIN']).optional(),
+  }),
+};

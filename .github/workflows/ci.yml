@@ -86,5 +86,8 @@ jobs:
       - name: Generate Prisma Client
         run: npm run prisma:generate
 
+      - name: Strip BOM from Migration SQL Files
+        run: find prisma/migrations -name "*.sql" -exec sed -i '1s/^\xef\xbb\xbf//' {} +
+
       - name: Test Database Migrations (Isolated DB Container)
         run: npx prisma migrate deploy

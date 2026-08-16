@@ -49,7 +49,8 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null, 
     privacyPolicyVersion = CURRENT_PRIVACY_POLICY_VERSION,
   } = data;
 
-  if (termsAccepted !== true && termsAccepted !== 'true') {
+  const isSuperAdminCreation = Boolean(creatorUserId);
+  if (!isSuperAdminCreation && termsAccepted !== true && termsAccepted !== 'true') {
     throw ApiError.badRequest('Terms & Conditions acceptance is required before registration.');
   }
 
@@ -624,17 +625,44 @@ export const updateSchoolStatus = async (schoolId, status, reason = null, actorU
 };
 
 /**
- * Super Admin: Add an existing user as an Admin for a school.
+ * Super Admin: Add an existing user or create a new user as an Admin for a school.
  */
-export const addSchoolAdmin = async (schoolId, userId, isOwner = false, actorUserId) => {
+export const addSchoolAdmin = async (schoolId, payload, secondArg = false, thirdArg = null) => {
+  let userId = typeof payload === 'string' ? payload : payload?.userId;
+  let email = typeof payload === 'object' ? payload?.email : null;
+  let isOwner = typeof payload === 'object' ? Boolean(payload?.isOwner) : Boolean(secondArg);
+  let actorUserId = typeof payload === 'object' ? (thirdArg || payload?.actorUserId) : thirdArg;
+  let schoolRole = typeof payload === 'object' ? (payload?.schoolRole || (isOwner ? 'OWNER' : 'SCHOOL_ADMIN')) : (isOwner ? 'OWNER' : 'SCHOOL_ADMIN');
+  let systemRole = typeof payload === 'object' ? (payload?.role || payload?.systemRole || 'SCHOOL_ADMIN') : 'SCHOOL_ADMIN';
+
   const school = await prisma.school.findUnique({ where: { id: schoolId } });
   if (!school) throw ApiError.notFound('School not found');
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw ApiError.notFound('User not found');
+  let user = null;
+  if (userId) {
+    user = await prisma.user.findUnique({ where: { id: userId } });
+  } else if (email) {
+    const normalizedEmail = email.toLowerCase().trim();
+    user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+    if (!user && typeof payload === 'object' && payload.name) {
+      const passwordHash = await hashPassword(payload.password || 'SchoolAdmin@123');
+      user = await prisma.user.create({
+        data: {
+          name: payload.name.trim(),
+          email: normalizedEmail,
+          passwordHash,
+          role: systemRole === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'SCHOOL_ADMIN',
+          phone: payload.phone?.trim() || null,
+        },
+      });
+    }
+  }
+
+  if (!user) throw ApiError.notFound('User not found. Please provide valid user details or email.');
 
   const existingAdmin = await prisma.schoolAdmin.findUnique({
-    where: { schoolId_userId: { schoolId, userId } },
+    where: { schoolId_userId: { schoolId, userId: user.id } },
   });
   if (existingAdmin) throw ApiError.conflict('User is already an admin for this school');
 
@@ -649,9 +677,9 @@ export const addSchoolAdmin = async (schoolId, userId, isOwner = false, actorUse
   const admin = await prisma.schoolAdmin.create({
     data: {
       schoolId,
-      userId,
+      userId: user.id,
       isOwner,
-      ...(isOwner && { schoolRole: 'OWNER' }),
+      schoolRole: isOwner ? 'OWNER' : schoolRole,
     },
     include: {
       user: { select: { id: true, name: true, email: true, role: true } },
@@ -661,11 +689,11 @@ export const addSchoolAdmin = async (schoolId, userId, isOwner = false, actorUse
   await prisma.auditLog.create({
     data: {
       schoolId,
-      userId: actorUserId,
+      userId: actorUserId || user.id,
       action: 'SCHOOL_ADMIN_ADDED',
       entityType: 'SchoolAdmin',
       entityId: admin.id,
-      newValues: { userId, isOwner },
+      newValues: { userId: user.id, email: user.email, isOwner, schoolRole: admin.schoolRole },
     },
   });
 

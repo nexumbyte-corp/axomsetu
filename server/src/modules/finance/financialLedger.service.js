@@ -483,16 +483,29 @@ export const financialLedgerService = {
     }
 
     // 3. Staff Advances
-    const staffAdvances = await prisma.staffAdvance.findMany({
-      where: { schoolId },
-      include: { staff: true },
-    });
+    const [staffAdvances, academicYears] = await Promise.all([
+      prisma.staffAdvance.findMany({
+        where: { schoolId },
+        include: { staff: true },
+      }),
+      prisma.academicYear.findMany({
+        where: { schoolId },
+        orderBy: { startDate: 'asc' },
+      }),
+    ]);
 
     for (const sa of staffAdvances) {
       const saKey = `STAFF_ADVANCE_${sa.id}_false`;
+      const saDate = new Date(sa.advanceDate);
+      const matchedAy = academicYears.find(
+        (ay) => saDate >= new Date(ay.startDate) && saDate <= new Date(ay.endDate)
+      );
+      const ayId = matchedAy ? matchedAy.id : (academicYears[academicYears.length - 1]?.id || null);
+
       if (!existingSet.has(saKey)) {
         txnsToCreate.push({
           schoolId,
+          academicYearId: ayId,
           transactionDate: sa.advanceDate,
           type: 'DEBIT',
           sourceType: 'STAFF_ADVANCE',

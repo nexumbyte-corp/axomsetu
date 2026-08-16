@@ -50,6 +50,7 @@ jobs:
             cd "$DEPLOY_DIR/server"
             npm ci
             npm run prisma:generate
+            find prisma/migrations -name "*.sql" -exec sed -i '1s/^\xef\xbb\xbf//' {} +
             npm run db:migrate:prod
 
             # 3. Client dependencies & production bundle build

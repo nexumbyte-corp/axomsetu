@@ -56,6 +56,8 @@ export const SchoolDetailsPage = () => {
     email: '',
     password: '',
     schoolRole: 'SCHOOL_ADMIN',
+    isOwner: false,
+    systemRole: 'SCHOOL_ADMIN',
   });
   const [submittingUser, setSubmittingUser] = useState(false);
 
@@ -141,14 +143,14 @@ export const SchoolDetailsPage = () => {
     }
     setSubmittingUser(true);
     try {
-      await adminService.createSchoolUser(schoolId, userFormData);
-      setToast({ type: 'success', message: `User ${userFormData.name} created successfully.` });
+      await adminService.addSchoolAdmin(schoolId, userFormData);
+      setToast({ type: 'success', message: `User ${userFormData.name} added successfully to ${school.name}.` });
       setIsCreatingUser(false);
-      setUserFormData({ name: '', email: '', password: '', schoolRole: 'SCHOOL_ADMIN' });
+      setUserFormData({ name: '', email: '', password: '', schoolRole: 'SCHOOL_ADMIN', isOwner: false, systemRole: 'SCHOOL_ADMIN' });
       fetchSchoolUsers();
       fetchSchoolDetails();
     } catch (err) {
-      setToast({ type: 'danger', message: err.message || 'Failed to create school user' });
+      setToast({ type: 'danger', message: err.message || 'Failed to add user to school' });
     } finally {
       setSubmittingUser(false);
     }
@@ -559,11 +561,12 @@ export const SchoolDetailsPage = () => {
             {/* Inline Create User Form */}
             {isCreatingUser && (
               <form onSubmit={handleCreateUserSubmit} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
-                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Add User to {school.name}</h4>
+                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Add Admin / User to {school.name}</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <Input
                     label="Full Name *"
                     required
+                    placeholder="Enter user name"
                     value={userFormData.name}
                     onChange={(e) => setUserFormData({ ...userFormData, name: e.target.value })}
                   />
@@ -571,24 +574,44 @@ export const SchoolDetailsPage = () => {
                     label="Email Address *"
                     type="email"
                     required
+                    placeholder="user@school.com"
                     value={userFormData.email}
                     onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })}
                   />
                   <Input
-                    label="Password *"
+                    label="Password (if creating new account)"
                     type="password"
-                    required
+                    placeholder="Min 6 characters"
                     value={userFormData.password}
                     onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })}
                   />
                   <Select
-                    label="School Role"
+                    label="Tenant School Role"
                     value={userFormData.schoolRole}
                     onChange={(e) => setUserFormData({ ...userFormData, schoolRole: e.target.value })}
                   >
-                    <option value="SCHOOL_ADMIN">SCHOOL_ADMIN</option>
-                    <option value="STAFF">STAFF</option>
+                    <option value="SCHOOL_ADMIN">SCHOOL_ADMIN (School Admin)</option>
+                    <option value="STAFF">STAFF (Staff Member)</option>
+                    <option value="OWNER">OWNER (School Owner)</option>
                   </Select>
+                </div>
+
+                <div className="flex items-center gap-4 pt-1 text-xs">
+                  <label className="flex items-center gap-2 text-slate-700 font-semibold cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={userFormData.isOwner}
+                      onChange={(e) =>
+                        setUserFormData({
+                          ...userFormData,
+                          isOwner: e.target.checked,
+                          schoolRole: e.target.checked ? 'OWNER' : userFormData.schoolRole,
+                        })
+                      }
+                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    Designate as Primary School Owner (Demotes existing owner)
+                  </label>
                 </div>
 
                 <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
@@ -596,7 +619,7 @@ export const SchoolDetailsPage = () => {
                     Cancel
                   </Button>
                   <Button type="submit" variant="primary" size="sm" loading={submittingUser}>
-                    Save & Create User
+                    Save & Add Admin
                   </Button>
                 </div>
               </form>
