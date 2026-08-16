@@ -389,9 +389,8 @@ export const SalaryPaymentsPage = () => {
                         return (
                           <tr
                             key={p.id}
-                            className={`transition-colors ${
-                              hasErr ? 'bg-rose-50/50' : isSelected ? 'bg-indigo-50/40' : 'hover:bg-slate-50'
-                            }`}
+                            className={`transition-colors ${hasErr ? 'bg-rose-50/50' : isSelected ? 'bg-indigo-50/40' : 'hover:bg-slate-50'
+                              }`}
                           >
                             <td className="py-3.5 px-4 text-center">
                               <input
@@ -446,9 +445,8 @@ export const SalaryPaymentsPage = () => {
                                   value={item.payNowAmount ?? p.balance}
                                   onChange={(e) => handlePayNowChange(p.id, e.target.value)}
                                   disabled={!isSelected}
-                                  className={`w-32 text-right font-mono font-bold text-slate-900 ${
-                                    hasErr ? 'border-rose-500 focus:ring-rose-500 bg-rose-50' : ''
-                                  }`}
+                                  className={`w-32 text-right font-mono font-bold text-slate-900 ${hasErr ? 'border-rose-500 focus:ring-rose-500 bg-rose-50' : ''
+                                    }`}
                                 />
                               </div>
                               {hasErr && isSelected && (

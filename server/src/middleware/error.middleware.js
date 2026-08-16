@@ -5,7 +5,17 @@ export const errorHandler = (err, req, res, next) => {
   let error = err;
 
   // Standardize error instance
-  if (!(error instanceof ApiError)) {
+  if (error.name === 'ZodError') {
+    const formattedErrors = (error.errors || []).map((e) => ({
+      field: e.path.join('.'),
+      message: e.message,
+    }));
+    error = ApiError.badRequest('Validation failed', formattedErrors);
+  } else if (error.code === 'P2023') {
+    error = ApiError.badRequest('Invalid parameter format or identifier.');
+  } else if (error.code === 'P2025') {
+    error = ApiError.notFound('Requested record not found.');
+  } else if (!(error instanceof ApiError)) {
     const statusCode = error.statusCode || (error.name === 'UnauthorizedError' ? 401 : 500);
     const message = error.message || 'Internal Server Error';
     error = new ApiError(statusCode, message, error.errors || [], false, err.stack);

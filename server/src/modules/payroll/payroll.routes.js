@@ -13,6 +13,7 @@ router.get('/monthly', requirePermission(PERMISSIONS.PAYROLL_VIEW), payrollContr
 router.get('/prep-review', requirePermission(PERMISSIONS.PAYROLL_VIEW), payrollController.getSalaryPrepReviewList);
 router.post('/prepare', requirePermission(PERMISSIONS.PAYROLL_PROCESS), payrollController.prepareMonthlyPayroll);
 router.put('/monthly/:payrollId', requirePermission(PERMISSIONS.PAYROLL_PROCESS), payrollController.updateStaffMonthlyPayroll);
+router.delete('/monthly/:payrollId', requirePermission(PERMISSIONS.PAYROLL_PROCESS), payrollController.deleteMonthlyPayroll);
 
 router.get('/pending', requirePermission(PERMISSIONS.PAYROLL_VIEW), payrollController.getPendingPayrollsForStaff);
 router.get('/staff-summary', requirePermission(PERMISSIONS.PAYROLL_VIEW), payrollController.getStaffSalarySummary);

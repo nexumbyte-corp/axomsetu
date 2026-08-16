@@ -407,9 +407,16 @@ export const MonthlySalaryPage = () => {
                             <div className="flex items-center gap-2 text-[10px] text-slate-500">
                               <span className="font-mono text-indigo-700 font-semibold">{st.employeeId}</span>
                               {st.advanceBalance > 0 && (
-                                <span className="px-1.5 py-0.5 bg-amber-50 text-amber-800 font-bold rounded border border-amber-200 font-mono">
-                                  Adv: ₹{st.advanceBalance.toLocaleString('en-IN')}
-                                </span>
+                                <div className="flex items-center gap-1">
+                                  <span className="px-1.5 py-0.5 bg-amber-50 text-amber-800 font-bold rounded border border-amber-200 font-mono" title={`Total Outstanding: ₹${st.advanceBalance.toLocaleString('en-IN')}`}>
+                                    Avail: ₹{(st.availableAdvance ?? st.advanceBalance).toLocaleString('en-IN')}
+                                  </span>
+                                  {st.pendingAdvanceAllocation > 0 && (
+                                    <span className="px-1 py-0.5 bg-slate-100 text-slate-600 font-semibold rounded font-mono text-[9px]" title="Allocated to other unpaid payrolls">
+                                      Allocated: ₹{st.pendingAdvanceAllocation.toLocaleString('en-IN')}
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -468,11 +475,12 @@ export const MonthlySalaryPage = () => {
                         <input
                           type="number"
                           min="0"
-                          max={st.advanceBalance}
+                          max={st.availableAdvance ?? st.advanceBalance}
                           value={st.advanceDeduction}
                           onChange={(e) => handleReviewRowChange(st.staffId, 'advanceDeduction', e.target.value)}
                           className="w-24 h-7 text-right px-1.5 font-mono text-xs font-bold text-amber-700 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-amber-50/20"
                           placeholder="0"
+                          title={`Maximum available for allocation: ₹${(st.availableAdvance ?? st.advanceBalance).toLocaleString('en-IN')}`}
                         />
                       </td>
 

@@ -216,8 +216,8 @@ export const SalaryHistoryPage = () => {
             <button
               onClick={() => setActiveTab('history')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${activeTab === 'history'
-                  ? 'bg-white text-indigo-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
               <CreditCard className="w-3.5 h-3.5" /> Voucher History
@@ -226,8 +226,8 @@ export const SalaryHistoryPage = () => {
             <button
               onClick={() => setActiveTab('slips')}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${activeTab === 'slips'
-                  ? 'bg-white text-indigo-700 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-white text-indigo-700 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
                 }`}
             >
               <FileText className="w-3.5 h-3.5" /> Salary Slips

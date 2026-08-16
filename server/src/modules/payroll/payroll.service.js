@@ -68,6 +68,103 @@ export const payrollService = {
   },
 
   /**
+   * Helper: Calculate available advance for future payroll allocation
+   * Available = Staff.advanceBalance - (Sum of advanceDeduction on UNPAID/PARTIAL payrolls except excludePayrollId)
+   */
+  async getStaffAdvanceAvailability(tx, schoolId, staffId, excludePayrollId = null) {
+    const staff = await tx.staff.findFirst({
+      where: { id: staffId, schoolId },
+      select: { id: true, advanceBalance: true },
+    });
+
+    if (!staff) {
+      return { advanceBalance: 0, pendingAllocation: 0, availableAdvance: 0 };
+    }
+
+    const currentAdvBalance = Number(staff.advanceBalance || 0);
+
+    const pendingPayrollWhere = {
+      schoolId,
+      staffId,
+      status: { in: ['UNPAID', 'PARTIAL'] },
+      ...(excludePayrollId && { id: { not: excludePayrollId } }),
+    };
+
+    const pendingPayrolls = await tx.monthlyPayroll.findMany({
+      where: pendingPayrollWhere,
+      select: { advanceDeduction: true },
+    });
+
+    const pendingAllocation = pendingPayrolls.reduce(
+      (sum, p) => sum + Number(p.advanceDeduction || 0),
+      0
+    );
+
+    const availableAdvance = Math.max(0, currentAdvBalance - pendingAllocation);
+
+    return {
+      advanceBalance: currentAdvBalance,
+      pendingAllocation,
+      availableAdvance,
+    };
+  },
+
+  /**
+   * Helper: Allocate/reserve advance deduction across open advances in FIFO order
+   */
+  async allocateAdvanceToPayroll(tx, schoolId, staffId, monthlyPayrollId, advanceDeduction) {
+    // Clear existing ALLOCATED records for this monthlyPayrollId
+    await tx.staffAdvanceAllocation.deleteMany({
+      where: { monthlyPayrollId, status: 'ALLOCATED' },
+    });
+
+    if (advanceDeduction <= 0) return;
+
+    // Fetch open advances ordered by advanceDate ASC (FIFO)
+    const openAdvances = await tx.staffAdvance.findMany({
+      where: { schoolId, staffId },
+      orderBy: { advanceDate: 'asc' },
+      include: {
+        allocations: {
+          where: {
+            status: { in: ['ALLOCATED', 'RECOVERED'] },
+            ...(monthlyPayrollId && { monthlyPayrollId: { not: monthlyPayrollId } }),
+          },
+        },
+      },
+    });
+
+    let remainingToAllocate = advanceDeduction;
+
+    for (const adv of openAdvances) {
+      if (remainingToAllocate <= 0) break;
+      const totalAdv = Number(adv.amount);
+      const allocatedOrRecovered = adv.allocations.reduce(
+        (sum, a) => sum + Number(a.amount),
+        0
+      );
+      const unallocatedCapacity = Math.max(0, totalAdv - allocatedOrRecovered);
+
+      if (unallocatedCapacity > 0) {
+        const allocateThis = Math.min(unallocatedCapacity, remainingToAllocate);
+
+        await tx.staffAdvanceAllocation.create({
+          data: {
+            schoolId,
+            staffId,
+            staffAdvanceId: adv.id,
+            monthlyPayrollId,
+            amount: allocateThis,
+            status: 'ALLOCATED',
+          },
+        });
+
+        remainingToAllocate -= allocateThis;
+      }
+    }
+  },
+
+  /**
    * Get pre-payroll review list for all eligible staff before bulk preparation
    */
   async getSalaryPrepReviewList(schoolId, query = {}) {
@@ -106,12 +203,50 @@ export const payrollService = {
     });
     const existingMap = new Map(existingPayrolls.map((p) => [p.staffId, p]));
 
-    const reviewItems = eligibleStaff.map((st) => {
-      const existing = existingMap.get(st.id);
-      const setup = setupMap.get(st.id);
-      const baseSalary = setup ? Number(setup.baseSalary) : Number(st.baseSalary || 0);
+    const reviewItems = await Promise.all(
+      eligibleStaff.map(async (st) => {
+        const existing = existingMap.get(st.id);
+        const setup = setupMap.get(st.id);
+        const baseSalary = setup ? Number(setup.baseSalary) : Number(st.baseSalary || 0);
 
-      if (existing) {
+        // Fetch advance availability metrics
+        const advInfo = await this.getStaffAdvanceAvailability(
+          prisma,
+          schoolId,
+          st.id,
+          existing?.id || null
+        );
+
+        if (existing) {
+          return {
+            staffId: st.id,
+            employeeId: st.employeeId,
+            name: st.name,
+            role: st.role,
+            department: st.department,
+            designation: st.designation,
+            advanceBalance: advInfo.advanceBalance,
+            pendingAdvanceAllocation: advInfo.pendingAllocation,
+            availableAdvance: advInfo.availableAdvance,
+            workingDays: existing.workingDays,
+            workedDays: existing.workedDays,
+            paidLeave: existing.paidLeave,
+            unpaidLeave: existing.unpaidLeave,
+            baseSalary: Number(existing.baseSalary),
+            attendanceDeduction: Number(existing.attendanceDeduction),
+            bonus: Number(existing.bonus),
+            advanceDeduction: Number(existing.advanceDeduction),
+            otherDeduction: Number(existing.otherDeduction),
+            netSalary: Number(existing.netSalary),
+            status: existing.status,
+            isAlreadyPrepared: true,
+            payrollId: existing.id,
+          };
+        }
+
+        const autoAdvDeduction = Math.min(advInfo.availableAdvance, baseSalary);
+        const defaultNetSalary = Math.max(0, baseSalary - autoAdvDeduction);
+
         return {
           staffId: st.id,
           employeeId: st.employeeId,
@@ -119,50 +254,25 @@ export const payrollService = {
           role: st.role,
           department: st.department,
           designation: st.designation,
-          advanceBalance: Number(st.advanceBalance || 0),
-          workingDays: existing.workingDays,
-          workedDays: existing.workedDays,
-          paidLeave: existing.paidLeave,
-          unpaidLeave: existing.unpaidLeave,
-          baseSalary: Number(existing.baseSalary),
-          attendanceDeduction: Number(existing.attendanceDeduction),
-          bonus: Number(existing.bonus),
-          advanceDeduction: Number(existing.advanceDeduction),
-          otherDeduction: Number(existing.otherDeduction),
-          netSalary: Number(existing.netSalary),
-          status: existing.status,
-          isAlreadyPrepared: true,
-          payrollId: existing.id,
+          advanceBalance: advInfo.advanceBalance,
+          pendingAdvanceAllocation: advInfo.pendingAllocation,
+          availableAdvance: advInfo.availableAdvance,
+          workingDays: numWorkingDays,
+          workedDays: numWorkingDays,
+          paidLeave: 0,
+          unpaidLeave: 0,
+          baseSalary,
+          attendanceDeduction: 0,
+          bonus: 0,
+          advanceDeduction: autoAdvDeduction,
+          otherDeduction: 0,
+          netSalary: defaultNetSalary,
+          status: 'UNPAID',
+          isAlreadyPrepared: false,
+          payrollId: null,
         };
-      }
-
-      const advBalance = Number(st.advanceBalance || 0);
-      const autoAdvDeduction = Math.min(advBalance, baseSalary);
-      const defaultNetSalary = Math.max(0, baseSalary - autoAdvDeduction);
-
-      return {
-        staffId: st.id,
-        employeeId: st.employeeId,
-        name: st.name,
-        role: st.role,
-        department: st.department,
-        designation: st.designation,
-        advanceBalance: advBalance,
-        workingDays: numWorkingDays,
-        workedDays: numWorkingDays,
-        paidLeave: 0,
-        unpaidLeave: 0,
-        baseSalary,
-        attendanceDeduction: 0,
-        bonus: 0,
-        advanceDeduction: autoAdvDeduction,
-        otherDeduction: 0,
-        netSalary: defaultNetSalary,
-        status: 'UNPAID',
-        isAlreadyPrepared: false,
-        payrollId: null,
-      };
-    });
+      })
+    );
 
     const isMonthAlreadyPrepared = existingPayrolls.length > 0;
 
@@ -270,6 +380,15 @@ export const payrollService = {
         if (existing) {
           // If existing and not yet paid, update attendance/salary with review details
           if (existing.status !== 'PAID') {
+            if (advanceDeduction > 0) {
+              const advInfo = await this.getStaffAdvanceAvailability(tx, schoolId, st.id, existing.id);
+              if (advanceDeduction > advInfo.availableAdvance + 0.01) {
+                throw ApiError.badRequest(
+                  `Only ₹${advInfo.availableAdvance.toLocaleString('en-IN')} of ${st.name}'s staff advance is available for deduction. ₹${advInfo.pendingAllocation.toLocaleString('en-IN')} has already been allocated to another payroll.`
+                );
+              }
+            }
+
             const updated = await tx.monthlyPayroll.update({
               where: { id: existing.id },
               data: {
@@ -300,12 +419,24 @@ export const payrollService = {
                 },
               },
             });
+
+            await this.allocateAdvanceToPayroll(tx, schoolId, st.id, existing.id, advanceDeduction);
+
             updatedCount++;
             results.push(updated);
           } else {
             results.push(existing);
           }
         } else {
+          if (advanceDeduction > 0) {
+            const advInfo = await this.getStaffAdvanceAvailability(tx, schoolId, st.id, null);
+            if (advanceDeduction > advInfo.availableAdvance + 0.01) {
+              throw ApiError.badRequest(
+                `Only ₹${advInfo.availableAdvance.toLocaleString('en-IN')} of ${st.name}'s staff advance is available for deduction. ₹${advInfo.pendingAllocation.toLocaleString('en-IN')} has already been allocated to another payroll.`
+              );
+            }
+          }
+
           const payroll = await tx.monthlyPayroll.create({
             data: {
               schoolId,
@@ -343,6 +474,9 @@ export const payrollService = {
               },
             },
           });
+
+          await this.allocateAdvanceToPayroll(tx, schoolId, st.id, payroll.id, advanceDeduction);
+
           createdCount++;
           results.push(payroll);
         }
@@ -366,73 +500,124 @@ export const payrollService = {
    * Update individual staff monthly payroll attendance/bonus/deductions
    */
   async updateStaffMonthlyPayroll(schoolId, payrollId, data, userId) {
-    const payroll = await prisma.monthlyPayroll.findFirst({
-      where: { id: payrollId, schoolId },
-      include: { staff: true },
+    return await prisma.$transaction(async (tx) => {
+      const payroll = await tx.monthlyPayroll.findFirst({
+        where: { id: payrollId, schoolId },
+        include: { staff: true },
+      });
+
+      if (!payroll) {
+        throw ApiError.notFound('Monthly payroll record not found.');
+      }
+
+      if (payroll.status === 'PAID') {
+        throw ApiError.badRequest('Fully paid salary records cannot be modified.');
+      }
+
+      const workingDays = payroll.workingDays;
+      const workedDays = parseInt(data.workedDays ?? payroll.workedDays, 10);
+      const paidLeave = parseInt(data.paidLeave ?? payroll.paidLeave, 10);
+      const unpaidLeave = parseInt(data.unpaidLeave ?? payroll.unpaidLeave, 10);
+
+      // Validation: worked + paid + unpaid == workingDays
+      if (workedDays + paidLeave + unpaidLeave !== workingDays) {
+        throw ApiError.badRequest(
+          `Worked Days (${workedDays}) + Paid Leave (${paidLeave}) + Unpaid Leave (${unpaidLeave}) must equal Total Working Days (${workingDays}).`
+        );
+      }
+
+      const baseSalary = Number(payroll.baseSalary);
+      const bonus = Math.max(0, Number(data.bonus ?? payroll.bonus));
+      const advanceDeduction = Math.max(0, Number(data.advanceDeduction ?? payroll.advanceDeduction));
+      const otherDeduction = Math.max(0, Number(data.otherDeduction ?? payroll.otherDeduction));
+
+      // Validate advance deduction against available advance allocation
+      const advInfo = await this.getStaffAdvanceAvailability(tx, schoolId, payroll.staffId, payrollId);
+      if (advanceDeduction > advInfo.availableAdvance + 0.01) {
+        throw ApiError.badRequest(
+          `Only ₹${advInfo.availableAdvance.toLocaleString('en-IN')} of this staff advance is available for deduction. ₹${advInfo.pendingAllocation.toLocaleString('en-IN')} has already been allocated to another payroll.`
+        );
+      }
+
+      // Attendance Deduction calculation:
+      const unpaidDays = Math.max(0, workingDays - (workedDays + paidLeave));
+      const dailyRate = workingDays > 0 ? baseSalary / workingDays : 0;
+      const attendanceDeduction = Math.round(dailyRate * unpaidDays * 100) / 100;
+
+      // Net Salary calculation
+      const netSalary = Math.max(0, baseSalary - attendanceDeduction + bonus - advanceDeduction - otherDeduction);
+
+      const updated = await tx.monthlyPayroll.update({
+        where: { id: payrollId },
+        data: {
+          workedDays,
+          paidLeave,
+          unpaidLeave,
+          attendanceDeduction,
+          bonus,
+          advanceDeduction,
+          otherDeduction,
+          netSalary,
+          remarks: data.remarks !== undefined ? data.remarks : payroll.remarks,
+        },
+        include: {
+          staff: true,
+          academicYear: true,
+        },
+      });
+
+      await this.allocateAdvanceToPayroll(tx, schoolId, payroll.staffId, payrollId, advanceDeduction);
+
+      return updated;
     });
+  },
 
-    if (!payroll) {
-      throw ApiError.notFound('Monthly payroll record not found.');
-    }
+  /**
+   * Delete/Cancel an unpaid or partial monthly payroll record and release reserved advance
+   */
+  async deleteMonthlyPayroll(schoolId, payrollId, userId) {
+    return await prisma.$transaction(async (tx) => {
+      const payroll = await tx.monthlyPayroll.findFirst({
+        where: { id: payrollId, schoolId },
+      });
 
-    if (payroll.status === 'PAID') {
-      throw ApiError.badRequest('Fully paid salary records cannot be modified.');
-    }
+      if (!payroll) {
+        throw ApiError.notFound('Monthly payroll record not found.');
+      }
 
-    const workingDays = payroll.workingDays;
-    const workedDays = parseInt(data.workedDays ?? payroll.workedDays, 10);
-    const paidLeave = parseInt(data.paidLeave ?? payroll.paidLeave, 10);
-    const unpaidLeave = parseInt(data.unpaidLeave ?? payroll.unpaidLeave, 10);
+      if (payroll.status === 'PAID') {
+        throw ApiError.badRequest('Fully paid salary records cannot be deleted or cancelled.');
+      }
 
-    // Validation: worked + paid + unpaid == workingDays
-    if (workedDays + paidLeave + unpaidLeave !== workingDays) {
-      throw ApiError.badRequest(
-        `Worked Days (${workedDays}) + Paid Leave (${paidLeave}) + Unpaid Leave (${unpaidLeave}) must equal Total Working Days (${workingDays}).`
-      );
-    }
+      // Remove advance allocations linked to this payroll
+      await tx.staffAdvanceAllocation.deleteMany({
+        where: { monthlyPayrollId: payrollId },
+      });
 
-    const baseSalary = Number(payroll.baseSalary);
-    const bonus = Math.max(0, Number(data.bonus ?? payroll.bonus));
-    const advanceDeduction = Math.max(0, Number(data.advanceDeduction ?? payroll.advanceDeduction));
-    const otherDeduction = Math.max(0, Number(data.otherDeduction ?? payroll.otherDeduction));
+      // Delete the monthly payroll record
+      await tx.monthlyPayroll.delete({
+        where: { id: payrollId },
+      });
 
-    // Validate advance deduction against staff advance balance
-    const staffAdvanceBal = Number(payroll.staff.advanceBalance || 0);
-    if (advanceDeduction > staffAdvanceBal) {
-      throw ApiError.badRequest(
-        `Advance deduction (₹${advanceDeduction.toLocaleString('en-IN')}) cannot exceed staff's outstanding advance balance (₹${staffAdvanceBal.toLocaleString('en-IN')}).`
-      );
-    }
+      // Audit Log
+      await tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: userId || null,
+          action: 'CANCEL_MONTHLY_PAYROLL',
+          entityType: 'MonthlyPayroll',
+          entityId: payrollId,
+          oldValues: {
+            month: payroll.month,
+            year: payroll.year,
+            staffId: payroll.staffId,
+            advanceDeduction: Number(payroll.advanceDeduction),
+          },
+        },
+      });
 
-    // Attendance Deduction calculation:
-    // Unpaid days = workingDays - (workedDays + paidLeave)
-    const unpaidDays = Math.max(0, workingDays - (workedDays + paidLeave));
-    const dailyRate = workingDays > 0 ? baseSalary / workingDays : 0;
-    const attendanceDeduction = Math.round(dailyRate * unpaidDays * 100) / 100;
-
-    // Net Salary calculation
-    const netSalary = Math.max(0, baseSalary - attendanceDeduction + bonus - advanceDeduction - otherDeduction);
-
-    const updated = await prisma.monthlyPayroll.update({
-      where: { id: payrollId },
-      data: {
-        workedDays,
-        paidLeave,
-        unpaidLeave,
-        attendanceDeduction,
-        bonus,
-        advanceDeduction,
-        otherDeduction,
-        netSalary,
-        remarks: data.remarks !== undefined ? data.remarks : payroll.remarks,
-      },
-      include: {
-        staff: true,
-        academicYear: true,
-      },
+      return { message: 'Monthly payroll cancelled successfully and reserved advance released.' };
     });
-
-    return updated;
   },
 
   /**
@@ -572,14 +757,20 @@ export const payrollService = {
         }
 
         totalPaymentAmount += payNow;
-        totalAdvanceRecovery += Number(p.advanceDeduction || 0);
+        const isFullyPaid = alreadyPaid + payNow >= netSalary - 0.01;
+        const advDeductionNum = Number(p.advanceDeduction || 0);
+
+        if (isFullyPaid && advDeductionNum > 0) {
+          totalAdvanceRecovery += advDeductionNum;
+        }
+
         monthsPaid.push(p.month);
 
         validatedAllocations.push({
           monthlyPayroll: p,
           payNowAmount: payNow,
           newPaidTotal: alreadyPaid + payNow,
-          isFullyPaid: alreadyPaid + payNow >= netSalary - 0.01,
+          isFullyPaid,
         });
       }
 
@@ -633,7 +824,7 @@ export const payrollService = {
           },
         });
 
-        // Handle advance balance deduction if advance was specified on payroll and is now settling
+        // Handle advance balance deduction if advance was specified on payroll and is now fully settled
         const advDeducted = Number(alloc.monthlyPayroll.advanceDeduction);
         if (advDeducted > 0 && alloc.isFullyPaid) {
           // Decrement staff advance balance
@@ -646,25 +837,67 @@ export const payrollService = {
             },
           });
 
-          // Allocate against open advances
-          let remainingToRecover = advDeducted;
-          const openAdvances = await tx.staffAdvance.findMany({
-            where: { schoolId, staffId },
-            orderBy: { advanceDate: 'asc' },
+          // Check for existing ALLOCATED records for this monthlyPayroll
+          const existingAllocations = await tx.staffAdvanceAllocation.findMany({
+            where: {
+              monthlyPayrollId: alloc.monthlyPayroll.id,
+              status: 'ALLOCATED',
+            },
           });
 
-          for (const adv of openAdvances) {
-            if (remainingToRecover <= 0) break;
-            const unrecovered = Number(adv.amount) - Number(adv.recovered);
-            if (unrecovered > 0) {
-              const recoverThis = Math.min(unrecovered, remainingToRecover);
-              await tx.staffAdvance.update({
-                where: { id: adv.id },
+          if (existingAllocations.length > 0) {
+            for (const advAlloc of existingAllocations) {
+              await tx.staffAdvanceAllocation.update({
+                where: { id: advAlloc.id },
                 data: {
-                  recovered: { increment: recoverThis },
+                  status: 'RECOVERED',
+                  salaryPaymentId: salaryPayment.id,
                 },
               });
-              remainingToRecover -= recoverThis;
+
+              await tx.staffAdvance.update({
+                where: { id: advAlloc.staffAdvanceId },
+                data: {
+                  recovered: {
+                    increment: Number(advAlloc.amount),
+                  },
+                },
+              });
+            }
+          } else {
+            // Legacy fallback allocation against open advances
+            let remainingToRecover = advDeducted;
+            const openAdvances = await tx.staffAdvance.findMany({
+              where: { schoolId, staffId },
+              orderBy: { advanceDate: 'asc' },
+            });
+
+            for (const adv of openAdvances) {
+              if (remainingToRecover <= 0) break;
+              const unrecovered = Number(adv.amount) - Number(adv.recovered);
+              if (unrecovered > 0) {
+                const recoverThis = Math.min(unrecovered, remainingToRecover);
+
+                await tx.staffAdvanceAllocation.create({
+                  data: {
+                    schoolId,
+                    staffId,
+                    staffAdvanceId: adv.id,
+                    monthlyPayrollId: alloc.monthlyPayroll.id,
+                    salaryPaymentId: salaryPayment.id,
+                    amount: recoverThis,
+                    status: 'RECOVERED',
+                  },
+                });
+
+                await tx.staffAdvance.update({
+                  where: { id: adv.id },
+                  data: {
+                    recovered: { increment: recoverThis },
+                  },
+                });
+                remainingToRecover -= recoverThis;
+              }
             }
           }
         }

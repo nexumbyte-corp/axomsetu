@@ -262,6 +262,7 @@ model School {
   financialTxns        FinancialTransaction[]
   staff                Staff[]
   staffAdvances        StaffAdvance[]
+  staffAdvanceAllocations StaffAdvanceAllocation[]
   salaryPayments       SalaryPayment[]
   salarySetups         StaffSalarySetup[]
   monthlyPayrolls      MonthlyPayroll[]
@@ -989,8 +990,9 @@ model Staff {
   createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz
 
-  school          School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school          School                   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   advances        StaffAdvance[]
+  advanceAllocations StaffAdvanceAllocation[]
   salaryPayments  SalaryPayment[]
   salarySetups    StaffSalarySetup[]
   monthlyPayrolls MonthlyPayroll[]
@@ -1013,8 +1015,9 @@ model StaffAdvance {
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz
 
-  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  staff  Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  school      School                   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff       Staff                    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  allocations StaffAdvanceAllocation[]
 
   @@index([schoolId])
   @@index([staffId])
@@ -1069,10 +1072,11 @@ model MonthlyPayroll {
   createdAt           DateTime      @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime      @updatedAt @map("updated_at") @db.Timestamptz
 
-  school       School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  staff        Staff                     @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  academicYear AcademicYear              @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  allocations  SalaryPaymentAllocation[]
+  school             School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff              Staff                     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  academicYear       AcademicYear              @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  allocations        SalaryPaymentAllocation[]
+  advanceAllocations StaffAdvanceAllocation[]
 
   @@unique([schoolId, staffId, academicYearId, month, year])
   @@index([schoolId])
@@ -1106,11 +1110,12 @@ model SalaryPayment {
   createdById     String?       @map("created_by_id") @db.Uuid
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
 
-  school       School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  staff        Staff                     @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  academicYear AcademicYear?             @relation(fields: [academicYearId], references: [id])
-  createdBy    User?                     @relation("SalaryPaymentCreatedBy", fields: [createdById], references: [id])
-  allocations  SalaryPaymentAllocation[]
+  school             School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff              Staff                     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  academicYear       AcademicYear?             @relation(fields: [academicYearId], references: [id])
+  createdBy          User?                     @relation("SalaryPaymentCreatedBy", fields: [createdById], references: [id])
+  allocations        SalaryPaymentAllocation[]
+  advanceAllocations StaffAdvanceAllocation[]
 
   @@unique([schoolId, paymentNumber])
   @@index([schoolId])
@@ -1131,6 +1136,38 @@ model SalaryPaymentAllocation {
   @@index([salaryPaymentId])
   @@index([monthlyPayrollId])
   @@map("salary_payment_allocations")
+}
+
+enum AdvanceAllocationStatus {
+  ALLOCATED
+  RECOVERED
+  RELEASED
+}
+
+model StaffAdvanceAllocation {
+  id               String                  @id @default(uuid()) @db.Uuid
+  schoolId         String                  @map("school_id") @db.Uuid
+  staffId          String                  @map("staff_id") @db.Uuid
+  staffAdvanceId   String                  @map("staff_advance_id") @db.Uuid
+  monthlyPayrollId String?                 @map("monthly_payroll_id") @db.Uuid
+  salaryPaymentId  String?                 @map("salary_payment_id") @db.Uuid
+  amount           Decimal                 @db.Decimal(12, 2)
+  status           AdvanceAllocationStatus @default(ALLOCATED)
+  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime                @updatedAt @map("updated_at") @db.Timestamptz
+
+  school         School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staff          Staff           @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffAdvance   StaffAdvance    @relation(fields: [staffAdvanceId], references: [id], onDelete: Cascade)
+  monthlyPayroll MonthlyPayroll? @relation(fields: [monthlyPayrollId], references: [id], onDelete: Cascade)
+  salaryPayment  SalaryPayment?  @relation(fields: [salaryPaymentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([staffId])
+  @@index([staffAdvanceId])
+  @@index([monthlyPayrollId])
+  @@index([salaryPaymentId])
+  @@map("staff_advance_allocations")
 }
 
 // ==========================================

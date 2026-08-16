@@ -210,25 +210,32 @@ export const IndividualStaffAdvanceReportModal = ({
         </div>
 
         {/* Metric Cards Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Card className="p-3.5 bg-white border border-slate-200">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Advances Given</span>
-            <p className="text-lg font-extrabold text-slate-900 font-mono mt-0.5">
-              ₹{Number(summary.totalAdvances || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card className="p-3.5 bg-white border border-slate-200 shadow-2xs">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Disbursed</span>
+            <p className="text-base font-extrabold text-slate-900 font-mono mt-0.5">
+              ₹{Number(summary.totalDisbursed || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </p>
           </Card>
 
-          <Card className="p-3.5 bg-white border border-slate-200">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Recovered via Payroll</span>
-            <p className="text-lg font-extrabold text-emerald-600 font-mono mt-0.5">
+          <Card className="p-3.5 bg-white border border-slate-200 shadow-2xs">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Recovered</span>
+            <p className="text-base font-extrabold text-emerald-600 font-mono mt-0.5">
               ₹{Number(summary.totalRecovered || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </p>
           </Card>
 
-          <Card className="p-3.5 bg-white border border-slate-200">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Advance Balance</span>
-            <p className="text-lg font-extrabold text-amber-600 font-mono mt-0.5">
-              ₹{Number(summary.totalOutstandingBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          <Card className="p-3.5 bg-white border border-slate-200 shadow-2xs">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pending / Allocated</span>
+            <p className="text-base font-extrabold text-amber-600 font-mono mt-0.5">
+              ₹{Number(summary.pendingRecovery || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </p>
+          </Card>
+
+          <Card className="p-3.5 bg-white border border-slate-200 shadow-2xs">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Available for New Payroll</span>
+            <p className="text-base font-extrabold text-indigo-600 font-mono mt-0.5">
+              ₹{Number(summary.availableForAllocation || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </p>
           </Card>
         </div>
@@ -267,7 +274,8 @@ export const IndividualStaffAdvanceReportModal = ({
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
                   {ledger.map((item) => {
-                    const isDisbursed = item.type === 'DISBURSED';
+                    const isDisbursed = item.type === 'DISBURSEMENT';
+                    const isPending = item.type === 'RECOVERY_PENDING';
                     return (
                       <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                         <td className="py-3 px-4 font-mono text-slate-800 whitespace-nowrap">
@@ -276,8 +284,10 @@ export const IndividualStaffAdvanceReportModal = ({
                         <td className="py-3 px-4 text-center whitespace-nowrap">
                           {isDisbursed ? (
                             <Badge variant="warning" size="sm">DISBURSED</Badge>
+                          ) : isPending ? (
+                            <Badge variant="neutral" size="sm">ALLOCATED</Badge>
                           ) : (
-                            <Badge variant="success" size="sm">RECOVERY</Badge>
+                            <Badge variant="success" size="sm">RECOVERED</Badge>
                           )}
                         </td>
                         <td className="py-3 px-4 text-slate-900 font-semibold max-w-xs truncate">

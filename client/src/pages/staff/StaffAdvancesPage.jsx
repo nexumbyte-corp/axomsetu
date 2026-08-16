@@ -127,6 +127,32 @@ export const StaffAdvancesPage = () => {
 
       <StaffSubNav />
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="p-4 bg-white border border-slate-200 shadow-2xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Staff with Advances</span>
+          <p className="text-2xl font-extrabold text-slate-900 mt-1">
+            {staffList.filter((st) => Number(st.advanceBalance || 0) > 0).length}
+            <span className="text-xs font-normal text-slate-500 ml-1">employees</span>
+          </p>
+        </Card>
+
+        <Card className="p-4 bg-white border border-slate-200 shadow-2xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Outstanding Balance</span>
+          <p className="text-2xl font-extrabold text-amber-600 font-mono mt-1">
+            ₹{staffList.reduce((sum, st) => sum + Number(st.advanceBalance || 0), 0).toLocaleString('en-IN')}
+          </p>
+        </Card>
+
+        <Card className="p-4 bg-white border border-slate-200 shadow-2xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Active Staff</span>
+          <p className="text-2xl font-extrabold text-slate-900 mt-1">
+            {activeStaff.length}
+            <span className="text-xs font-normal text-slate-500 ml-1">staff members</span>
+          </p>
+        </Card>
+      </div>
+
       <Card className="p-4 bg-white border border-slate-200 shadow-2xs">
         <Input
           placeholder="Search staff by name or employee code..."

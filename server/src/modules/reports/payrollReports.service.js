@@ -282,78 +282,201 @@ export const payrollReportsService = {
   },
 
   /**
-  /**
-   * Staff Advance Report & Individual Staff Advance Statement / Ledger
+   * Staff Advance Report & Remastered Combined Transaction Ledger
    */
   async getStaffAdvanceReport(schoolId, query = {}) {
-    const { staffId, startDate, endDate } = query;
+    const { staffId, startDate, endDate, transactionType, status } = query;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    if (staffId) {
+    if (staffId && uuidRegex.test(staffId)) {
       return this.getIndividualStaffAdvanceLedger(schoolId, query);
     }
 
-    const advanceWhere = {
-      schoolId,
-    };
-
+    const dateFilter = {};
     if (startDate || endDate) {
-      advanceWhere.advanceDate = {
-        ...(startDate && { gte: new Date(startDate) }),
-        ...(endDate && { lte: new Date(endDate) }),
-      };
+      if (startDate) dateFilter.gte = new Date(`${startDate}T00:00:00.000Z`);
+      if (endDate) dateFilter.lte = new Date(`${endDate}T23:59:59.999Z`);
     }
 
-    const advances = await prisma.staffAdvance.findMany({
-      where: advanceWhere,
-      include: {
-        staff: { select: { employeeId: true, name: true, department: true } },
-      },
-      orderBy: { advanceDate: 'desc' },
+    const [advances, pendingPayrolls, salaryPayments, staffAggregate] = await Promise.all([
+      prisma.staffAdvance.findMany({
+        where: {
+          schoolId,
+          ...(startDate || endDate ? { advanceDate: dateFilter } : {}),
+        },
+        include: {
+          staff: { select: { employeeId: true, name: true, department: true } },
+        },
+        orderBy: { advanceDate: 'asc' },
+      }),
+      prisma.monthlyPayroll.findMany({
+        where: {
+          schoolId,
+          advanceDeduction: { gt: 0 },
+          status: { in: ['UNPAID', 'PARTIAL'] },
+          ...(startDate || endDate ? { createdAt: dateFilter } : {}),
+        },
+        include: {
+          staff: { select: { employeeId: true, name: true, department: true } },
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      prisma.salaryPayment.findMany({
+        where: {
+          schoolId,
+          advanceDeducted: { gt: 0 },
+          ...(startDate || endDate ? { paymentDate: dateFilter } : {}),
+        },
+        include: {
+          staff: { select: { employeeId: true, name: true, department: true } },
+        },
+        orderBy: { paymentDate: 'asc' },
+      }),
+      prisma.staff.aggregate({
+        where: { schoolId },
+        _sum: { advanceBalance: true },
+      }),
+    ]);
+
+    const timeline = [];
+
+    for (const adv of advances) {
+      timeline.push({
+        id: adv.id,
+        staffId: adv.staffId,
+        staffName: adv.staff?.name || '-',
+        employeeId: adv.staff?.employeeId || '-',
+        department: adv.staff?.department || 'General',
+        date: adv.advanceDate,
+        createdAt: adv.createdAt,
+        type: 'DISBURSEMENT',
+        reference: adv.referenceNo || `ADV-${adv.id.slice(0, 6).toUpperCase()}`,
+        payrollPeriod: '—',
+        disbursed: Number(adv.amount),
+        recovered: 0,
+        paymentMode: adv.paymentMode || 'CASH',
+        status: Number(adv.recovered) >= Number(adv.amount) ? 'RECOVERED' : 'DISBURSED',
+        details: adv.remarks || 'Staff Advance Disbursed',
+      });
+    }
+
+    for (const mp of pendingPayrolls) {
+      timeline.push({
+        id: mp.id,
+        staffId: mp.staffId,
+        staffName: mp.staff?.name || '-',
+        employeeId: mp.staff?.employeeId || '-',
+        department: mp.staff?.department || 'General',
+        date: mp.createdAt,
+        createdAt: mp.createdAt,
+        type: 'RECOVERY_PENDING',
+        reference: `PAY-${mp.month.slice(0, 3)}-${mp.year}`,
+        payrollPeriod: `${mp.month} ${mp.year}`,
+        disbursed: 0,
+        recovered: Number(mp.advanceDeduction),
+        paymentMode: 'PAYROLL_DEDUCTION',
+        status: 'PENDING',
+        details: `Reserved in ${mp.month} ${mp.year} Payroll (Unpaid)`,
+      });
+    }
+
+    for (const sp of salaryPayments) {
+      timeline.push({
+        id: sp.id,
+        staffId: sp.staffId,
+        staffName: sp.staff?.name || '-',
+        employeeId: sp.staff?.employeeId || '-',
+        department: sp.staff?.department || 'General',
+        date: sp.paymentDate,
+        createdAt: sp.createdAt,
+        type: 'RECOVERY',
+        reference: sp.paymentNumber,
+        payrollPeriod: (sp.months || []).join(', ') + ` ${sp.year}`,
+        disbursed: 0,
+        recovered: Number(sp.advanceDeducted),
+        paymentMode: sp.paymentMode || 'PAYROLL_DEDUCTION',
+        status: 'RECOVERED',
+        details: `Recovered via Payroll Voucher #${sp.paymentNumber}`,
+      });
+    }
+
+    // Filter by transactionType if provided
+    let filteredTimeline = timeline;
+    if (transactionType && transactionType !== 'ALL') {
+      filteredTimeline = timeline.filter((t) => t.type === transactionType);
+    }
+
+    if (status && status !== 'ALL') {
+      filteredTimeline = filteredTimeline.filter((t) => t.status === status);
+    }
+
+    // Sort chronologically (oldest to newest) to compute historical running balance
+    timeline.sort((a, b) => {
+      const diff = new Date(a.date) - new Date(b.date);
+      if (diff !== 0) return diff;
+      return new Date(a.createdAt) - new Date(b.createdAt);
     });
 
-    let totalAdvDecimal = new Prisma.Decimal(0);
-    let totalRecDecimal = new Prisma.Decimal(0);
+    let runningBalance = 0;
+    const ledgerMap = new Map();
 
-    const data = advances.map((a) => {
-      const amt = new Prisma.Decimal(a.amount);
-      const rec = new Prisma.Decimal(a.recovered || 0);
-      const bal = amt.minus(rec);
+    for (const item of timeline) {
+      if (item.type === 'DISBURSEMENT') {
+        runningBalance += item.disbursed;
+      } else if (item.type === 'RECOVERY') {
+        runningBalance -= item.recovered;
+      }
+      ledgerMap.set(item.id, Math.max(0, runningBalance));
+    }
 
-      totalAdvDecimal = totalAdvDecimal.plus(amt);
-      totalRecDecimal = totalRecDecimal.plus(rec);
+    const data = filteredTimeline.map((item) => ({
+      ...item,
+      balance: ledgerMap.get(item.id) ?? 0,
+    }));
 
-      return {
-        id: a.id,
-        staffName: a.staff?.name || '-',
-        employeeId: a.staff?.employeeId || '-',
-        department: a.staff?.department || 'General',
-        advanceDate: a.advanceDate,
-        amount: Number(amt),
-        recovered: Number(rec),
-        balance: Number(bal),
-        paymentMode: a.paymentMode,
-        referenceNo: a.referenceNo || '-',
-        status: bal.lte(0) ? 'RECOVERED' : 'PENDING',
-      };
+    // Sort DESCENDING (newest first) for presentation
+    data.sort((a, b) => {
+      const diff = new Date(b.date) - new Date(a.date);
+      if (diff !== 0) return diff;
+      return new Date(b.createdAt) - new Date(a.createdAt);
     });
+
+    const totalDisbursed = advances.reduce((sum, a) => sum + Number(a.amount), 0);
+    const totalRecovered = salaryPayments.reduce((sum, sp) => sum + Number(sp.advanceDeducted), 0);
+    const pendingRecovery = pendingPayrolls.reduce((sum, mp) => sum + Number(mp.advanceDeduction), 0);
+    const totalOutstanding = Number(staffAggregate._sum.advanceBalance || 0);
+    const availableForAllocation = Math.max(0, totalOutstanding - pendingRecovery);
 
     return {
       data,
       summary: {
-        totalAdvances: Number(totalAdvDecimal),
-        totalRecovered: Number(totalRecDecimal),
-        totalOutstandingBalance: Number(totalAdvDecimal.minus(totalRecDecimal)),
+        totalDisbursed,
+        totalRecovered,
+        pendingRecovery,
+        totalOutstanding,
+        availableForAllocation,
       },
     };
   },
 
   /**
-   * Individual Staff Advance Ledger / Statement
+   * Individual Staff Advance Ledger / Statement (Chronological Running Balance, DESC Display)
    */
   async getIndividualStaffAdvanceLedger(schoolId, query = {}) {
     const { staffId, startDate, endDate } = query;
-    if (!staffId) {
-      return { data: [], summary: { totalAdvances: 0, totalRecovered: 0, totalOutstandingBalance: 0 } };
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    if (!staffId || typeof staffId !== 'string' || !uuidRegex.test(staffId)) {
+      return {
+        data: [],
+        summary: {
+          totalDisbursed: 0,
+          totalRecovered: 0,
+          pendingRecovery: 0,
+          totalOutstanding: 0,
+          availableForAllocation: 0,
+        },
+      };
     }
 
     const staff = await prisma.staff.findUnique({
@@ -373,7 +496,16 @@ export const payrollReportsService = {
     });
 
     if (!staff) {
-      return { data: [], summary: { totalAdvances: 0, totalRecovered: 0, totalOutstandingBalance: 0 } };
+      return {
+        data: [],
+        summary: {
+          totalDisbursed: 0,
+          totalRecovered: 0,
+          pendingRecovery: 0,
+          totalOutstanding: 0,
+          availableForAllocation: 0,
+        },
+      };
     }
 
     const dateFilter = {};
@@ -382,7 +514,7 @@ export const payrollReportsService = {
       if (endDate) dateFilter.lte = new Date(`${endDate}T23:59:59.999Z`);
     }
 
-    const [advances, salaryPayments] = await Promise.all([
+    const [advances, pendingPayrolls, salaryPayments] = await Promise.all([
       prisma.staffAdvance.findMany({
         where: {
           schoolId,
@@ -390,6 +522,16 @@ export const payrollReportsService = {
           ...(startDate || endDate ? { advanceDate: dateFilter } : {}),
         },
         orderBy: { advanceDate: 'asc' },
+      }),
+      prisma.monthlyPayroll.findMany({
+        where: {
+          schoolId,
+          staffId,
+          advanceDeduction: { gt: 0 },
+          status: { in: ['UNPAID', 'PARTIAL'] },
+          ...(startDate || endDate ? { createdAt: dateFilter } : {}),
+        },
+        orderBy: { createdAt: 'asc' },
       }),
       prisma.salaryPayment.findMany({
         where: {
@@ -408,13 +550,33 @@ export const payrollReportsService = {
       timeline.push({
         id: adv.id,
         date: adv.advanceDate,
-        type: 'DISBURSED',
+        createdAt: adv.createdAt,
+        type: 'DISBURSEMENT',
         description: adv.remarks ? `Advance Disbursed: ${adv.remarks}` : 'Staff Advance Cash Disbursed',
         refNo: adv.referenceNo || `ADV-${adv.id.slice(0, 6).toUpperCase()}`,
+        payrollPeriod: '—',
         disbursedAmount: Number(adv.amount),
         recoveredAmount: 0,
         paymentMode: adv.paymentMode || 'CASH',
+        status: Number(adv.recovered) >= Number(adv.amount) ? 'RECOVERED' : 'DISBURSED',
         remarks: adv.remarks || '-',
+      });
+    }
+
+    for (const mp of pendingPayrolls) {
+      timeline.push({
+        id: mp.id,
+        date: mp.createdAt,
+        createdAt: mp.createdAt,
+        type: 'RECOVERY_PENDING',
+        description: `Advance Allocated in ${mp.month} ${mp.year} Payroll (Unpaid)`,
+        refNo: `PAY-${mp.month.slice(0, 3)}-${mp.year}`,
+        payrollPeriod: `${mp.month} ${mp.year}`,
+        disbursedAmount: 0,
+        recoveredAmount: Number(mp.advanceDeduction),
+        paymentMode: 'PAYROLL_DEDUCTION',
+        status: 'PENDING',
+        remarks: `Reserved in ${mp.month} ${mp.year} payroll`,
       });
     }
 
@@ -423,29 +585,32 @@ export const payrollReportsService = {
       timeline.push({
         id: sp.id,
         date: sp.paymentDate,
+        createdAt: sp.createdAt,
         type: 'RECOVERY',
         description: `Payroll Advance Recovery (${monthsStr} ${sp.year}) - Voucher #${sp.paymentNumber}`,
         refNo: sp.paymentNumber,
+        payrollPeriod: `${monthsStr} ${sp.year}`,
         disbursedAmount: 0,
         recoveredAmount: Number(sp.advanceDeducted),
         paymentMode: sp.paymentMode || 'PAYROLL_DEDUCTION',
+        status: 'RECOVERED',
         remarks: sp.remarks || `Recovered via salary payment #${sp.paymentNumber}`,
       });
     }
 
-    timeline.sort((a, b) => new Date(a.date) - new Date(b.date));
+    // Sort chronologically to compute running balance correctly
+    timeline.sort((a, b) => {
+      const diff = new Date(a.date) - new Date(b.date);
+      if (diff !== 0) return diff;
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    });
 
     let runningBalance = 0;
-    let totalGiven = 0;
-    let totalRecovered = 0;
-
-    const ledger = timeline.map((entry) => {
-      if (entry.type === 'DISBURSED') {
+    const ledgerWithBalance = timeline.map((entry) => {
+      if (entry.type === 'DISBURSEMENT') {
         runningBalance += entry.disbursedAmount;
-        totalGiven += entry.disbursedAmount;
       } else if (entry.type === 'RECOVERY') {
         runningBalance -= entry.recoveredAmount;
-        totalRecovered += entry.recoveredAmount;
       }
       return {
         ...entry,
@@ -453,13 +618,33 @@ export const payrollReportsService = {
       };
     });
 
+    // Reverse for DESCENDING display presentation (newest first)
+    const ledger = [...ledgerWithBalance].sort((a, b) => {
+      const diff = new Date(b.date) - new Date(a.date);
+      if (diff !== 0) return diff;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    const totalDisbursed = advances.reduce((sum, a) => sum + Number(a.amount), 0);
+    const totalRecovered = salaryPayments.reduce((sum, sp) => sum + Number(sp.advanceDeducted), 0);
+    const pendingRecovery = pendingPayrolls.reduce((sum, mp) => sum + Number(mp.advanceDeduction), 0);
+    const totalOutstanding = Number(staff.advanceBalance || 0);
+    const availableForAllocation = Math.max(0, totalOutstanding - pendingRecovery);
+
     return {
-      staff,
+      staff: {
+        ...staff,
+        advanceBalance: totalOutstanding,
+        pendingRecovery,
+        availableForAllocation,
+      },
       data: ledger,
       summary: {
-        totalAdvances: totalGiven,
-        totalRecovered: totalRecovered,
-        totalOutstandingBalance: Math.max(0, runningBalance),
+        totalDisbursed,
+        totalRecovered,
+        pendingRecovery,
+        totalOutstanding,
+        availableForAllocation,
       },
     };
   },

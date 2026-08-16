@@ -58,6 +58,21 @@ export const payrollController = {
   },
 
   /**
+   * DELETE /api/payroll/monthly/:payrollId
+   */
+  async deleteMonthlyPayroll(req, res, next) {
+    try {
+      const schoolId = req.schoolId || req.user?.schoolId;
+      const userId = req.user?.id;
+      const { payrollId } = req.params;
+      const result = await payrollService.deleteMonthlyPayroll(schoolId, payrollId, userId);
+      return ApiResponse.success(res, result, result.message);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  /**
    * GET /api/payroll/pending?staffId=...
    */
   async getPendingPayrollsForStaff(req, res, next) {
