@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { usePermission } from '../../hooks/usePermission.js';
+import { printPdfDocument } from '../../core/documents/documentEngine.js';
 
 export const ReceiptDetailsPage = () => {
   const { id } = useParams();
@@ -45,7 +46,6 @@ export const ReceiptDetailsPage = () => {
   const handleEnginePrint = async () => {
     if (!receipt) return;
     try {
-      const { printPdfDocument } = await import('../../core/documents/documentEngine.js');
       await printPdfDocument({
         templateId: 'receipt',
         data: receipt,

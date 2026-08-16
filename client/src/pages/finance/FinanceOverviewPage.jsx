@@ -8,6 +8,7 @@ import { Skeleton } from '../../components/ui/Skeleton.jsx';
 import { OpeningBalanceModal } from './OpeningBalanceModal.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
+import { printPdfDocument } from '../../core/documents/documentEngine.js';
 import {
   TrendingUp,
   TrendingDown,
@@ -70,7 +71,6 @@ export const FinanceOverviewPage = () => {
 
   const handlePrintStatement = async () => {
     try {
-      const { printPdfDocument } = await import('../../core/documents/documentEngine.js');
       await printPdfDocument({
         templateId: 'financialLedger',
         data: {

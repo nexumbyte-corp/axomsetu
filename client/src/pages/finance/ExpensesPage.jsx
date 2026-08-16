@@ -12,6 +12,7 @@ import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
+import { printPdfDocument } from '../../core/documents/documentEngine.js';
 import {
   Plus,
   Search,
@@ -180,7 +181,6 @@ export const ExpensesPage = () => {
 
   const handlePrintExpenses = async () => {
     try {
-      const { printPdfDocument } = await import('../../core/documents/documentEngine.js');
       await printPdfDocument({
         templateId: 'expenseReport',
         data: {

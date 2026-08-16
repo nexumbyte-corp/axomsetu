@@ -9,6 +9,7 @@ import { Pagination } from '../../components/ui/Pagination.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
+import { printPdfDocument } from '../../core/documents/documentEngine.js';
 import { Search, FileText, Printer } from 'lucide-react';
 
 export const FinancialTransactionsPage = () => {
@@ -84,7 +85,6 @@ export const FinancialTransactionsPage = () => {
     try {
       const overviewRes = await financeService.getOverview();
       const overviewData = overviewRes.data !== undefined ? overviewRes.data : overviewRes;
-      const { printPdfDocument } = await import('../../core/documents/documentEngine.js');
       await printPdfDocument({
         templateId: 'financialLedger',
         data: {

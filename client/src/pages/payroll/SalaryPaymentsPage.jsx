@@ -9,6 +9,7 @@ import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { StaffSubNav } from '../staff/StaffSubNav.jsx';
+import { printPdfDocument, downloadPdfDocument } from '../../core/documents/documentEngine.js';
 import {
   CreditCard,
   Search,
@@ -189,7 +190,6 @@ export const SalaryPaymentsPage = () => {
   const handlePrintReceipt = async () => {
     if (!successModalData) return;
     try {
-      const { printPdfDocument } = await import('../../core/documents/documentEngine.js');
       await printPdfDocument({
         templateId: 'salary',
         data: successModalData,
@@ -203,7 +203,6 @@ export const SalaryPaymentsPage = () => {
   const handleDownloadReceipt = async () => {
     if (!successModalData) return;
     try {
-      const { downloadPdfDocument } = await import('../../core/documents/documentEngine.js');
       await downloadPdfDocument({
         templateId: 'salary',
         data: successModalData,

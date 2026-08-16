@@ -11,6 +11,7 @@ import { Pagination } from '../../components/ui/Pagination.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
+import { printPdfDocument } from '../../core/documents/documentEngine.js';
 import {
   Plus,
   Search,
@@ -178,7 +179,6 @@ export const FundsPage = () => {
 
   const handlePrintFunds = async () => {
     try {
-      const { printPdfDocument } = await import('../../core/documents/documentEngine.js');
       await printPdfDocument({
         templateId: 'fundReport',
         data: {

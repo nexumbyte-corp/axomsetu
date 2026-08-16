@@ -27,7 +27,7 @@ export const loadPdfMake = async () => {
     return pdfMakeCache;
   } catch (err) {
     console.error('Failed to lazy load pdfmake library', err);
-    throw new Error('PDF Engine failed to initialize pdfmake library.');
+    throw new Error('PDF Engine failed to load PDF library. Please refresh the page if a new deployment updated the site.');
   }
 };
 

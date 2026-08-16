@@ -10,6 +10,7 @@ import { Alert } from '../../components/ui/Alert.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { StaffSubNav } from '../staff/StaffSubNav.jsx';
 import { buildSalarySlipData } from '../../core/documents/documentTemplates/salarySlip.js';
+import { printPdfDocument, downloadPdfDocument } from '../../core/documents/documentEngine.js';
 import {
   History,
   FileText,
@@ -103,7 +104,6 @@ export const SalaryHistoryPage = () => {
   const handlePrintVoucher = async (paymentId) => {
     try {
       const res = await staffService.getSalaryPaymentReceiptData(paymentId);
-      const { printPdfDocument } = await import('../../core/documents/documentEngine.js');
       await printPdfDocument({
         templateId: 'salary',
         data: res.data,
@@ -118,7 +118,6 @@ export const SalaryHistoryPage = () => {
   const handleDownloadVoucher = async (paymentId, paymentNo) => {
     try {
       const res = await staffService.getSalaryPaymentReceiptData(paymentId);
-      const { downloadPdfDocument } = await import('../../core/documents/documentEngine.js');
       await downloadPdfDocument({
         templateId: 'salary',
         data: res.data,
@@ -170,7 +169,6 @@ export const SalaryHistoryPage = () => {
     if (!slipPayload) return;
     try {
       const filename = `SalarySlip_${slipPayload.staffName?.replace(/\s+/g, '_') || 'Employee'}.pdf`;
-      const { downloadPdfDocument } = await import('../../core/documents/documentEngine.js');
       await downloadPdfDocument({
         templateId: 'salarySlip',
         data: slipPayload,
@@ -186,7 +184,6 @@ export const SalaryHistoryPage = () => {
   const handlePrintSlipPdf = async () => {
     if (!slipPayload) return;
     try {
-      const { printPdfDocument } = await import('../../core/documents/documentEngine.js');
       await printPdfDocument({
         templateId: 'salarySlip',
         data: slipPayload,

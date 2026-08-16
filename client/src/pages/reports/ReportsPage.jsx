@@ -31,6 +31,7 @@ import { Drawer } from '../../components/ui/Drawer.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { DocumentPreviewModal } from '../../components/documents/DocumentPreviewModal.jsx';
+import { printPdfDocument } from '../../core/documents/documentEngine.js';
 
 import { REPORT_CATEGORIES, REPORT_REGISTRY, getReportById } from '../../core/reports/reportRegistry.js';
 import { reportService } from '../../services/report.service.js';
@@ -244,7 +245,6 @@ export const ReportsPage = () => {
     setActionLoading((prev) => ({ ...prev, print: true }));
 
     try {
-      const { printPdfDocument } = await import('../../core/documents/documentEngine.js');
       await printPdfDocument({
         templateId: activeReport.pdfTemplate || 'genericReport',
         data: payload,

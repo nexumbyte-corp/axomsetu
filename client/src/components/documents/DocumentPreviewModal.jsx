@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Printer, Download, X, Loader2, FileText } from 'lucide-react';
 import { Button } from '../ui/Button.jsx';
 import { toast } from '../ui/Toast.jsx';
+import { createPdfBlobUrl, downloadPdfDocument, printPdfDocument } from '../../core/documents/documentEngine.js';
 
 export const DocumentPreviewModal = ({
   isOpen = false,
@@ -29,7 +30,6 @@ export const DocumentPreviewModal = ({
       setError(null);
 
       try {
-        const { createPdfBlobUrl } = await import('../../core/documents/documentEngine.js');
         const url = await createPdfBlobUrl({ templateId, data, options });
         if (active) {
           setBlobUrl(url);
@@ -59,7 +59,6 @@ export const DocumentPreviewModal = ({
 
   const handleDownload = async () => {
     try {
-      const { downloadPdfDocument } = await import('../../core/documents/documentEngine.js');
       await downloadPdfDocument({ templateId, data, filename, options });
       toast.success(`Downloaded ${filename}`);
     } catch (err) {
@@ -69,7 +68,6 @@ export const DocumentPreviewModal = ({
 
   const handlePrint = async () => {
     try {
-      const { printPdfDocument } = await import('../../core/documents/documentEngine.js');
       await printPdfDocument({ templateId, data, options });
     } catch (err) {
       toast.error('Failed printing PDF document.');

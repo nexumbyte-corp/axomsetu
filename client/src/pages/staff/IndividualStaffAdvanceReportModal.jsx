@@ -10,6 +10,7 @@ import { Card } from '../../components/ui/Card.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { DocumentPreviewModal } from '../../components/documents/DocumentPreviewModal.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
+import { printPdfDocument } from '../../core/documents/documentEngine.js';
 import { Printer, Download, FileText, Filter, RefreshCw } from 'lucide-react';
 
 
@@ -106,7 +107,6 @@ export const IndividualStaffAdvanceReportModal = ({
   const handleDirectPrint = async () => {
     try {
       const payload = preparePdfData();
-      const { printPdfDocument } = await import('../../core/documents/documentEngine.js');
       await printPdfDocument({
         templateId: 'genericReport',
         data: payload,
