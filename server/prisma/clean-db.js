@@ -9,12 +9,19 @@ async function cleanDatabase() {
   console.log('Starting database cleanup: Permanently deleting all data...');
 
   try {
-    // Fetch all table names in public schema
+    // Fetch all table names in public schema (excluding migration history and platform contact/settings tables)
     const tablenames = await prisma.$queryRaw`
       SELECT tablename 
       FROM pg_tables 
       WHERE schemaname='public' 
-        AND tablename != '_prisma_migrations';
+        AND tablename NOT IN (
+          '_prisma_migrations',
+          'platform_contacts',
+          'platform_contact',
+          'contacts',
+          'contact_messages',
+          'platform_settings'
+        );
     `;
 
     if (!tablenames || tablenames.length === 0) {
