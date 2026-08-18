@@ -4,24 +4,14 @@ import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Input } from '../../components/ui/Input.jsx';
-import { Badge } from '../../components/ui/Badge.jsx';
+
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { StaffSubNav } from '../staff/StaffSubNav.jsx';
 import { buildSalarySlipData } from '../../core/documents/documentTemplates/salarySlip.js';
 import { downloadPdfDocument } from '../../core/documents/documentEngine.js';
-import {
-  History,
-  FileText,
-  Download,
-  Search,
-  Calendar,
-  User,
-  CreditCard,
-  CheckCircle2,
-  FileSpreadsheet,
-} from 'lucide-react';
+import { History, FileText, Download, Search, User, CreditCard } from 'lucide-react';
 
 const MONTH_OPTIONS = [
   { value: 'JANUARY', label: 'January' },
@@ -45,7 +35,7 @@ export const SalaryHistoryPage = () => {
   const [payments, setPayments] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [historySearch, setHistorySearch] = useState('');
-  const [page, setPage] = useState(1);
+  const [page, _setPage] = useState(1);
 
   // Salary Slips Generator State
   const [staffList, setStaffList] = useState([]);

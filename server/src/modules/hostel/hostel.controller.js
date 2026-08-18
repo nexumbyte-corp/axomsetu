@@ -183,6 +183,16 @@ export const saveFeeConfig = async (req, res, next) => {
   }
 };
 
+export const getEligibleHostelStudentsForBilling = async (req, res, next) => {
+  try {
+    const schoolId = getSchoolId(req);
+    const data = await hostelService.getEligibleHostelStudentsForBilling(schoolId, req.query);
+    res.status(200).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const generateHostelMonthlyFees = async (req, res, next) => {
   try {
     const schoolId = getSchoolId(req);

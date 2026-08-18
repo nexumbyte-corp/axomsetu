@@ -11,8 +11,7 @@ import { toast } from '../../components/ui/Toast.jsx';
 import { DocumentPreviewModal } from '../../components/documents/DocumentPreviewModal.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
-import { Download, FileText, Filter, RefreshCw } from 'lucide-react';
-
+import { Download, Filter, RefreshCw } from 'lucide-react';
 
 export const IndividualStaffAdvanceReportModal = ({
   isOpen = false,
@@ -28,11 +27,6 @@ export const IndividualStaffAdvanceReportModal = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [error, setError] = useState(null);
-
-  // PDF Preview State
-  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
-  const [pdfPayload, setPdfPayload] = useState(null);
-
 
   const fetchLedger = async (customStartDate = startDate, customEndDate = endDate) => {
     if (!staffId) return;
@@ -80,38 +74,12 @@ export const IndividualStaffAdvanceReportModal = ({
     { key: 'balance', label: 'Advance Balance (₹)', type: 'currency', align: 'right', bold: true },
   ];
 
-  const preparePdfData = () => {
-    return {
-      schoolHeader,
-      reportMeta: {
-        title: `Staff Advance Statement - ${staff.name || staffName || 'Staff Member'}`,
-      },
-      data: ledger,
-      columns,
-      summary,
-      filtersApplied: {
-        ...(staff.name && { 'Staff Name': `${staff.name} (${staff.employeeId})` }),
-        ...(startDate && { 'From Date': startDate }),
-        ...(endDate && { 'To Date': endDate }),
-      },
-    };
-  };
-
-
-  const handleOpenPdf = () => {
-    const payload = preparePdfData();
-    setPdfPayload(payload);
-    setIsPdfModalOpen(true);
-  };
-
-
-
   const handleExportCSV = () => {
     try {
       const filename = `Staff_Advance_Report_${staff.employeeId || 'Staff'}_${new Date().toISOString().split('T')[0]}.csv`;
       exportToCSV(ledger, columns, filename);
       toast.success('CSV exported successfully.');
-    } catch (err) {
+    } catch {
       toast.error('Failed exporting CSV.');
     }
   };

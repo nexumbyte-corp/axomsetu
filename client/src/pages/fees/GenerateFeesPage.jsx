@@ -1,20 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Building2,
-  Users,
-  UserCheck,
-  PlusCircle,
-  AlertTriangle,
-  CheckCircle2,
-  Calendar,
-  Lock,
-  ArrowRight,
-  ArrowLeft,
-  FileSpreadsheet,
-  Trash,
-  Check,
-} from 'lucide-react';
+import { Building2, Users, UserCheck, PlusCircle, AlertTriangle, CheckCircle2, Lock, ArrowRight, ArrowLeft, FileSpreadsheet, Trash, Check } from 'lucide-react';
 import { feeService } from '../../services/fee.service.js';
 import { academicService } from '../../services/academic.service.js';
 import { studentService } from '../../services/student.service.js';
@@ -60,14 +46,10 @@ export const GenerateFeesPage = () => {
   const [streams, setStreams] = useState([]);
   const [sections, setSections] = useState([]);
   const [studentsList, setStudentsList] = useState([]);
-  const [feeTypes, setFeeTypes] = useState([]);
   const [hasTemplates, setHasTemplates] = useState(true);
 
   // Selection Inputs
   const [selectedClassId, setSelectedClassId] = useState('');
-  const [selectedMediumId, setSelectedMediumId] = useState('');
-  const [selectedStreamId, setSelectedStreamId] = useState('');
-  const [selectedSectionId, setSelectedSectionId] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState('');
 
   // Fee Sheet state (Step 2)
@@ -90,12 +72,11 @@ export const GenerateFeesPage = () => {
   useEffect(() => {
     const loadOptions = async () => {
       try {
-        const [clsRes, medRes, stmRes, secRes, ftRes, templatesRes] = await Promise.all([
+        const [clsRes, medRes, stmRes, secRes, templatesRes] = await Promise.all([
           academicService.getClasses(),
           academicService.getMediums(),
           academicService.getStreams(),
           academicService.getSections(),
-          feeService.getFeeTypes({ isActive: 'true' }),
           feeService.getFeeStructures({ academicYearId: selectedYearId }),
         ]);
 
@@ -103,14 +84,13 @@ export const GenerateFeesPage = () => {
         setMediums(medRes.data || []);
         setStreams(stmRes.data || []);
         setSections(secRes.data || []);
-        setFeeTypes(ftRes.data || []);
 
         const templatesList = templatesRes.data || [];
         setHasTemplates(templatesList.length > 0);
 
         if (clsRes.data?.length > 0) setSelectedClassId(clsRes.data[0].id);
-        if (medRes.data?.length > 0) setSelectedMediumId(medRes.data[0].id);
       } catch (err) {
+        console.error('Failed to load setup dropdowns:', err);
         toast.error('Failed to load setup dropdowns');
       }
     };
@@ -130,7 +110,7 @@ export const GenerateFeesPage = () => {
           } else {
             setSelectedStudentId('');
           }
-        } catch (err) {
+        } catch {
           toast.error('Failed to load students list');
         }
       };
@@ -195,7 +175,7 @@ export const GenerateFeesPage = () => {
             studentCount: list.length,
             loading: false,
           });
-        } catch (err) {
+        } catch {
           setClassDetectionInfo({
             mediums: mediums,
             sections: sections,
@@ -241,7 +221,7 @@ export const GenerateFeesPage = () => {
         };
         const res = await feeService.getFeeStructures(params);
         const fsList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
-        
+
         // Group structures by medium for separate review
         const medStructs = fsList.map((fs) => ({
           mediumId: fs.mediumId,
@@ -303,18 +283,18 @@ export const GenerateFeesPage = () => {
         const fs = fsList[0];
         const masterHeads = fs && fs.heads?.length > 0
           ? fs.heads.map((h) => ({
-              feeTypeId: h.feeTypeId,
-              title: h.feeType?.name || 'Fee Head',
-              amount: Number(h.amount),
-              enabled: h.isActive,
-              isTemporary: false,
-            }))
+            feeTypeId: h.feeTypeId,
+            title: h.feeType?.name || 'Fee Head',
+            amount: Number(h.amount),
+            enabled: h.isActive,
+            isTemporary: false,
+          }))
           : [];
 
         const existingTemp = sheetHeads.filter((h) => h.isTemporary);
         setSheetHeads([...masterHeads, ...existingTemp]);
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to load fee sheet template');
     } finally {
       setSheetLoading(false);
@@ -490,20 +470,18 @@ export const GenerateFeesPage = () => {
               <React.Fragment key={item.step}>
                 <div className="flex items-center gap-2">
                   <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                      isDone
+                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${isDone
                         ? 'bg-emerald-600 text-white'
                         : isActive
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-slate-100 text-slate-400'
-                    }`}
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-100 text-slate-400'
+                      }`}
                   >
                     {isDone ? <Check className="w-4 h-4" /> : item.step}
                   </div>
                   <span
-                    className={`text-xs font-semibold hidden sm:inline-block ${
-                      isActive ? 'text-slate-900 font-bold' : isDone ? 'text-emerald-700' : 'text-slate-400'
-                    }`}
+                    className={`text-xs font-semibold hidden sm:inline-block ${isActive ? 'text-slate-900 font-bold' : isDone ? 'text-emerald-700' : 'text-slate-400'
+                      }`}
                   >
                     {item.label}
                   </span>
@@ -565,11 +543,10 @@ export const GenerateFeesPage = () => {
                     key={mode.id}
                     type="button"
                     onClick={() => setGenerationMode(mode.id)}
-                    className={`p-4 rounded-xl border text-left transition-all ${
-                      isSelected
+                    className={`p-4 rounded-xl border text-left transition-all ${isSelected
                         ? 'border-indigo-600 bg-indigo-50/60 shadow-xs ring-2 ring-indigo-500/20'
                         : 'border-slate-200 bg-white hover:border-slate-300'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
@@ -694,9 +671,9 @@ export const GenerateFeesPage = () => {
                 options={
                   studentsList.length > 0
                     ? studentsList.map((s) => ({
-                        label: `${s.name} (${s.admissionNo})${s.enrollment?.class ? ` - ${s.enrollment.class.name}` : ''}`,
-                        value: s.id,
-                      }))
+                      label: `${s.name} (${s.admissionNo})${s.enrollment?.class ? ` - ${s.enrollment.class.name}` : ''}`,
+                      value: s.id,
+                    }))
                     : [{ label: 'No active students found in this academic year', value: '' }]
                 }
                 required
@@ -1030,31 +1007,37 @@ export const GenerateFeesPage = () => {
             </div>
           </div>
 
-          {/* Skipped Charges Breakdown Badges */}
+          {/* Skipped & Duplicate Charges Breakdown Badges */}
           <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
             <div className="flex items-center justify-between font-bold text-slate-800">
-              <span>Duplicate & Business Rules Check:</span>
-              <Badge variant={previewData.skippedCount > 0 ? 'neutral' : 'success'} size="sm">
-                {previewData.skippedCount > 0 ? `${previewData.skippedCount} Skipped` : 'Clean Batch'}
-              </Badge>
+              <span>Duplicate & Eligibility Safeguards:</span>
+              <div className="flex items-center gap-2">
+                {previewData.alreadyExistsCount > 0 && (
+                  <Badge variant="info" size="sm">
+                    {previewData.alreadyExistsCount} Already Exist (Will Skip)
+                  </Badge>
+                )}
+                <Badge variant={previewData.skippedCount > 0 ? 'neutral' : 'success'} size="sm">
+                  {previewData.skippedCount > 0 ? `${previewData.skippedCount} Skipped` : 'Clean Batch'}
+                </Badge>
+              </div>
             </div>
 
             {previewData.skippedBreakdown && (
               <div className="flex flex-wrap gap-2 pt-1">
-                {previewData.skippedBreakdown.inactiveStudent > 0 && (
+                {(previewData.skippedBreakdown.alreadyExists > 0 || previewData.alreadyExistsCount > 0) && (
+                  <Badge variant="info" size="sm">
+                    {previewData.alreadyExistsCount || previewData.skippedBreakdown.alreadyExists} Already Generated (Skipped)
+                  </Badge>
+                )}
+                {previewData.skippedBreakdown.notActive > 0 && (
                   <Badge variant="danger" size="sm">
-                    {previewData.skippedBreakdown.inactiveStudent} Inactive Student
+                    {previewData.skippedBreakdown.notActive} Inactive Student
                   </Badge>
                 )}
-                {previewData.skippedBreakdown.admissionFeeAlreadyGenerated > 0 && (
+                {previewData.skippedBreakdown.noFeeStructure > 0 && (
                   <Badge variant="warning" size="sm">
-                    {previewData.skippedBreakdown.admissionFeeAlreadyGenerated} Admission Fee Already Generated
-                  </Badge>
-                )}
-
-                {previewData.skippedBreakdown.duplicateCharges > 0 && (
-                  <Badge variant="neutral" size="sm">
-                    {previewData.skippedBreakdown.duplicateCharges} Duplicate Charges
+                    {previewData.skippedBreakdown.noFeeStructure} No Fee Structure Configured
                   </Badge>
                 )}
               </div>
@@ -1114,13 +1097,17 @@ export const GenerateFeesPage = () => {
           </div>
 
           <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 text-left text-xs font-mono">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 block uppercase">Generated Charges</span>
+                <span className="text-[10px] font-bold text-slate-400 block uppercase">Created</span>
                 <span className="text-indigo-600 font-extrabold text-sm">{resultData.generatedCount}</span>
               </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 block uppercase">Total Skipped</span>
+                <span className="text-[10px] font-bold text-slate-400 block uppercase">Already Exists</span>
+                <span className="text-sky-600 font-extrabold text-sm">{resultData.alreadyExistsCount || 0}</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 block uppercase">Skipped</span>
                 <span className="text-slate-600 font-bold text-sm">{resultData.skippedCount}</span>
               </div>
             </div>
@@ -1129,20 +1116,19 @@ export const GenerateFeesPage = () => {
               <div className="pt-2 border-t border-slate-200 space-y-1">
                 <span className="text-[10px] font-bold text-slate-400 uppercase block font-sans">Skipped Reasons Breakdown</span>
                 <div className="flex flex-wrap gap-1.5 pt-1 font-sans">
-                  {resultData.skippedBreakdown.inactiveStudent > 0 && (
+                  {(resultData.alreadyExistsCount > 0 || resultData.skippedBreakdown.alreadyExists > 0) && (
+                    <Badge variant="info" size="sm">
+                      {resultData.alreadyExistsCount || resultData.skippedBreakdown.alreadyExists} Already Generated (Skipped)
+                    </Badge>
+                  )}
+                  {resultData.skippedBreakdown.notActive > 0 && (
                     <Badge variant="danger" size="sm">
-                      {resultData.skippedBreakdown.inactiveStudent} Inactive Student
+                      {resultData.skippedBreakdown.notActive} Inactive Student
                     </Badge>
                   )}
-                  {resultData.skippedBreakdown.admissionFeeAlreadyGenerated > 0 && (
+                  {resultData.skippedBreakdown.noFeeStructure > 0 && (
                     <Badge variant="warning" size="sm">
-                      {resultData.skippedBreakdown.admissionFeeAlreadyGenerated} Admission Fee Already Generated
-                    </Badge>
-                  )}
-
-                  {resultData.skippedBreakdown.duplicateCharges > 0 && (
-                    <Badge variant="neutral" size="sm">
-                      {resultData.skippedBreakdown.duplicateCharges} Duplicate Charges
+                      {resultData.skippedBreakdown.noFeeStructure} No Fee Structure Configured
                     </Badge>
                   )}
                 </div>

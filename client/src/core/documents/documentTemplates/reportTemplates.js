@@ -44,7 +44,7 @@ export const buildGenericReportData = (rawData = {}) => {
 /**
  * pdfMake Template Builder for Generic Business Reports
  */
-export const buildGenericReportTemplate = (data, settings = {}) => {
+export const buildGenericReportTemplate = (data, _settings = {}) => {
   const formatCurrency = (val) =>
     `₹${Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 

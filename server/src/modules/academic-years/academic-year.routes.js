@@ -1,8 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/auth.middleware.js';
 import { resolveSchool } from '../../middleware/school.middleware.js';
-import { requirePermission, requireOwnerOrSchoolAdmin } from '../../middleware/permission.middleware.js';
-import { PERMISSIONS } from '../../config/permissions.js';
+import { requireOwnerOrSchoolAdmin } from '../../middleware/permission.middleware.js';
 import { validate } from '../../middleware/validate.middleware.js';
 import * as academicYearController from './academicYear.controller.js';
 import { academicYearIdParamSchema } from './academicYear.validation.js';

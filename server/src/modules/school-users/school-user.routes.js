@@ -14,8 +14,7 @@ const router = Router();
 router.use(authenticate, resolveSchool);
 
 // ── Permission Groups reference (used by UI to build permission matrix)
-// Available to Owner and School Admin only
-router.get('/permission-groups', requireOwnerOrSchoolAdmin(), schoolUserController.getPermissionGroups);
+router.get('/permission-groups', requirePermission([PERMISSIONS.USERS_VIEW, PERMISSIONS.USERS_MANAGE_PERMISSIONS]), schoolUserController.getPermissionGroups);
 
 // ── List and create school users
 router.get(

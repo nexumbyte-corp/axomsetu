@@ -134,7 +134,7 @@ export const staffReportsService = {
   /**
    * Staff Status Report
    */
-  async getStaffStatusReport(schoolId, query = {}) {
+  async getStaffStatusReport(schoolId, _query = {}) {
     const statuses = ['ACTIVE', 'INACTIVE', 'RESIGNED', 'ON_LEAVE'];
     const summary = [];
     let totalAll = 0;

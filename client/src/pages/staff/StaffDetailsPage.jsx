@@ -10,22 +10,7 @@ import { DisburseAdvanceModal } from './DisburseAdvanceModal.jsx';
 import { AddEditStaffModal } from './AddEditStaffModal.jsx';
 import { IndividualStaffAdvanceReportModal } from './IndividualStaffAdvanceReportModal.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
-import {
-  ArrowLeft,
-  User,
-  DollarSign,
-  HandCoins,
-  History,
-  Building,
-  Briefcase,
-  Calendar,
-  Phone,
-  Mail,
-  CreditCard,
-  Plus,
-  Edit,
-  FileText,
-} from 'lucide-react';
+import { ArrowLeft, User, DollarSign, HandCoins, History, CreditCard, Plus, Edit, FileText } from 'lucide-react';
 
 export const StaffDetailsPage = () => {
   const { staffId } = useParams();
@@ -38,7 +23,6 @@ export const StaffDetailsPage = () => {
   const [isAdvanceModalOpen, setIsAdvanceModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-
 
   const fetchStaffProfile = async () => {
     setLoading(true);

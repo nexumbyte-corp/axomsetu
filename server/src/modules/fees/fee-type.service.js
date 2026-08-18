@@ -30,24 +30,6 @@ const SYSTEM_FEE_TYPES = [
     order: 3,
     description: 'System Fee Type for Miscellaneous & Temporary Fees',
   },
-  {
-    systemCode: 'HOSTEL_ADMISSION',
-    name: 'Hostel Admission Fee',
-    code: 'HOSTEL_ADM',
-    category: 'HOSTEL',
-    billingRule: 'ONE_TIME_PER_ACADEMIC_YEAR',
-    order: 4,
-    description: 'System Fee Type for Hostel Admission Fee',
-  },
-  {
-    systemCode: 'HOSTEL',
-    name: 'Hostel Monthly Fee',
-    code: 'HOSTEL_MONTHLY',
-    category: 'HOSTEL',
-    billingRule: 'MONTHLY',
-    order: 5,
-    description: 'System Fee Type for Monthly Hostel Charges',
-  },
 ];
 
 /**

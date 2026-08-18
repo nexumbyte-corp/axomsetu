@@ -25,7 +25,7 @@ export const loadPdfMake = async () => {
 
     pdfMakeCache = pdfMake;
     return pdfMakeCache;
-  } catch (err) {
+  } catch {
     console.error('Failed to lazy load pdfmake library', err);
     throw new Error('PDF Engine failed to load PDF library. Please refresh the page if a new deployment updated the site.');
   }
@@ -70,7 +70,7 @@ export const convertImageToBase64Png = (url) => {
         const dataUrl = canvas.toDataURL('image/png');
         imageBase64Cache.set(url, dataUrl);
         resolve(dataUrl);
-      } catch (err) {
+      } catch {
         resolve(null);
       }
     };
@@ -136,7 +136,7 @@ export const createPdfBlobUrl = async ({ templateId = 'receipt', data = {}, opti
         const url = URL.createObjectURL(blob);
         resolve(url);
       });
-    } catch (err) {
+    } catch {
       reject(err);
     }
   });

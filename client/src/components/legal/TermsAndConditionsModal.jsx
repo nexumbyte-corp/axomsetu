@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal.jsx';
 import { Button } from '../ui/Button.jsx';
-import { ShieldCheck, FileText, Search, Scale, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, FileText, Search, Scale } from 'lucide-react';
 import { TERMS_VERSION, PRIVACY_POLICY_VERSION, TERMS_CLAUSES, PRIVACY_POLICY_SECTIONS } from '../../constants/legalContent.js';
 
-export const TermsAndConditionsModal = ({ isOpen, onClose, onAccept, onDecline, isAccepted = false }) => {
+export const TermsAndConditionsModal = ({ isOpen, onClose: _onClose, onAccept, onDecline, isAccepted = false }) => {
   const [activeTab, setActiveTab] = useState('terms'); // 'terms' | 'privacy'
   const [isChecked, setIsChecked] = useState(isAccepted);
   const [searchTerm, setSearchTerm] = useState('');

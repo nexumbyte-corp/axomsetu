@@ -1,21 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import {
-  Users,
-  Plus,
-  Search,
-  Filter,
-  ArrowUpRight,
-  MoreVertical,
-  Lock,
-  Edit,
-  Eye,
-  Sparkles,
-  UserCheck,
-  UserX,
-  AlertCircle,
-  FileSpreadsheet,
-} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Plus, Search, Filter, MoreVertical, Lock, Edit, Eye, Sparkles, UserCheck, UserX } from 'lucide-react';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
@@ -492,7 +477,6 @@ export const StudentsListPage = () => {
           <div className="md:hidden space-y-3">
             {students.map((item) => {
               const e = item.enrollment || {};
-              const fatherName = item.fatherName || item.guardianName || '—';
               return (
                 <div
                   key={item.id}
@@ -634,7 +618,6 @@ export const StudentsListPage = () => {
           onSuccess={fetchStudents}
         />
       )}
-
 
       {/* Edit Enrollment Modal */}
       {selectedStudentForAction && activeModal === 'EDIT_ENROLLMENT' && (

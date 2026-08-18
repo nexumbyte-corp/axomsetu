@@ -9,19 +9,11 @@ import { Badge } from '../../components/ui/Badge.jsx';
 import { Skeleton } from '../../components/ui/Skeleton.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
+
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
-import {
-  Plus,
-  Search,
-  FileSpreadsheet,
-  Settings,
-  XCircle,
-  CheckCircle2,
-  AlertTriangle,
-} from 'lucide-react';
+import { Plus, Search, FileSpreadsheet, Settings, AlertTriangle } from 'lucide-react';
 
 export const ExpensesPage = () => {
   const { selectedYearId } = useAcademicYear();
@@ -177,8 +169,6 @@ export const ExpensesPage = () => {
 
   const { user } = useAuth();
   const schoolHeader = user?.schoolAdmins?.[0]?.school || {};
-
-
 
   const activeCategories = categories.filter((c) => c.isActive);
 

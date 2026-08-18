@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { GraduationCap, Eye, EyeOff, Lock, Mail, ArrowRight, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { Button } from '../components/ui/Button.jsx';
 import { Input } from '../components/ui/Input.jsx';

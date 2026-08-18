@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { ShieldOff, ArrowLeft, Home } from 'lucide-react';
 import { usePermission } from '../hooks/usePermission.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
-import { BRAND_CONFIG } from '../config/brandConfig.js';
 
 const PERMISSION_LABELS = {
   DASHBOARD_VIEW: 'View Dashboard',

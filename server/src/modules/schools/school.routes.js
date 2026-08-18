@@ -6,7 +6,6 @@ import * as schoolController from './school.controller.js';
 import {
   createSchoolSchema,
   updateSchoolSchema,
-  changeStatusSchema,
   schoolIdParamSchema,
   listSchoolsQuerySchema,
   addSchoolAdminSchema,

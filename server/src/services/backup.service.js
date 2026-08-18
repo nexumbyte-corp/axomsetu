@@ -51,7 +51,7 @@ export const backupService = {
           await execPromise(`gzip -f "${sqlFilePath}"`);
           targetArchive = `${sqlFilePath}.gz`;
         }
-      } catch (pgDumpErr) {
+      } catch {
         // Fallback: Programmatic Prisma export if pg_dump binary is missing
         console.warn('[Backup Notice]: pg_dump binary not found in PATH, using Prisma JSON backup engine fallback.');
         const jsonFileName = `axomsetu_db_${timestamp}.json.gz`;

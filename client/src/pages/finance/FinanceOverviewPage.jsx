@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { financeService } from '../../services/financeService.js';
-import { Card } from '../../components/ui/Card.jsx';
+
 import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Skeleton } from '../../components/ui/Skeleton.jsx';
@@ -9,17 +9,7 @@ import { OpeningBalanceModal } from './OpeningBalanceModal.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
-import {
-  TrendingUp,
-  TrendingDown,
-  Scale,
-  Plus,
-  ArrowUpRight,
-  ArrowDownRight,
-  RefreshCw,
-  Landmark,
-  Calendar,
-} from 'lucide-react';
+import { TrendingUp, TrendingDown, Scale, Plus, ArrowUpRight, ArrowDownRight, RefreshCw, Landmark, Calendar } from 'lucide-react';
 
 export const FinanceOverviewPage = () => {
   const navigate = useNavigate();

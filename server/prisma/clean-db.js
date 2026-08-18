@@ -40,7 +40,7 @@ async function cleanDatabase() {
     const shouldSeed = process.argv.includes('--seed');
     if (shouldSeed) {
       console.log('\nAuto-seeding initial system setup (Super Admin & Subscription Plans)...');
-      const seedModule = await import('./seed.js');
+      const _seedModule = await import('./seed.js');
       // seed.js runs automatically on import or function call if exported
     }
 

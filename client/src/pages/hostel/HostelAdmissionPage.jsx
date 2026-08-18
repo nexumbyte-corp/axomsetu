@@ -1,19 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  UserPlus,
-  Search,
-  Building,
-  DoorOpen,
-  Bed,
-  Calendar,
-  CheckCircle2,
-  AlertCircle,
-  ArrowRight,
-  ArrowLeft,
-  Check,
-  User,
-} from 'lucide-react';
+import { Search, DoorOpen, Bed, ArrowRight, ArrowLeft, Check, User, Eye, AlertTriangle } from 'lucide-react';
 import { hostelService } from '../../services/hostel.service.js';
 import { studentService } from '../../services/student.service.js';
 import { useAcademicYear } from '../../context/AcademicYearContext.jsx';
@@ -24,8 +11,10 @@ import { Badge } from '../../components/ui/Badge.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
+import { Alert } from '../../components/ui/Alert.jsx';
 import { StudentAvatar } from '../../components/students/StudentAvatar.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
+import { StudentPhotoModal } from '../../components/hostel/StudentPhotoModal.jsx';
 
 export const HostelAdmissionPage = () => {
   const location = useLocation();
@@ -35,6 +24,7 @@ export const HostelAdmissionPage = () => {
   const activeAcademicYearId = currentAcademicYear?.id || selectedYearId || (academicYears && academicYears[0]?.id);
 
   const [step, setStep] = useState(1); // 1: Student Search, 2: Hostel & Room, 3: Bed Picker, 4: Date & Review
+  const [selectedPhotoStudent, setSelectedPhotoStudent] = useState(null);
 
   // Step 1: Student Search (Strictly ACTIVE students NOT enrolled in hostel)
   const [studentQuery, setStudentQuery] = useState('');
@@ -50,9 +40,11 @@ export const HostelAdmissionPage = () => {
   const [bedsInRoom, setBedsInRoom] = useState([]);
   const [selectedBed, setSelectedBed] = useState(null);
 
-  // Step 4: Admission Date & Fee Preview
+  // Step 4: Admission Date & Fee Preview & Overrides
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [feeConfig, setFeeConfig] = useState(null);
+  const [admissionFeeOverride, setAdmissionFeeOverride] = useState('');
+  const [monthlyFeeOverride, setMonthlyFeeOverride] = useState('');
 
   // Confirmation Modal
   const [showConfirmAdmission, setShowConfirmAdmission] = useState(false);
@@ -131,7 +123,6 @@ export const HostelAdmissionPage = () => {
       }
       const res = await studentService.listStudents(params);
       const allActive = res.data || [];
-      // Filter out students who are ALREADY enrolled in hostel
       const unenrolled = allActive.filter((st) => !st.hostel?.enrolled);
       setStudentOptions(unenrolled);
     } catch (err) {
@@ -176,6 +167,10 @@ export const HostelAdmissionPage = () => {
         hostelId: selectedHostel.id,
       });
       setFeeConfig(res.data);
+      if (res.data) {
+        setAdmissionFeeOverride(res.data.admissionFeeEnabled ? res.data.admissionFeeAmount : 0);
+        setMonthlyFeeOverride(res.data.monthlyFeeEnabled ? res.data.monthlyFeeAmount : 0);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -197,7 +192,6 @@ export const HostelAdmissionPage = () => {
       }
       const res = await studentService.listStudents(params);
       const allActive = res.data || [];
-      // Filter strictly for students NOT currently enrolled in hostel
       const unenrolled = allActive.filter((st) => !st.hostel?.enrolled);
       setStudentOptions(unenrolled);
     } catch (err) {
@@ -218,6 +212,11 @@ export const HostelAdmissionPage = () => {
       return;
     }
 
+    if (feeConfig && feeConfig.isFeeSet === false) {
+      toast.error(`Hostel fee structure is not set for ${selectedHostel.name}. Please configure hostel fee rates before admitting students.`);
+      return;
+    }
+
     try {
       setSubmitting(true);
       const payload = {
@@ -227,6 +226,8 @@ export const HostelAdmissionPage = () => {
         roomId: selectedRoom.id,
         bedId: selectedBed.id,
         startDate,
+        admissionFeeOverride: admissionFeeOverride !== '' ? parseFloat(admissionFeeOverride) : undefined,
+        monthlyFeeOverride: monthlyFeeOverride !== '' ? parseFloat(monthlyFeeOverride) : undefined,
       };
 
       await hostelService.admitStudent(payload);
@@ -409,26 +410,41 @@ export const HostelAdmissionPage = () => {
                   >
                     <div className="flex items-center gap-3.5 min-w-0">
                       {/* Passport Photo / Avatar */}
-                      <div className="w-12 h-14 rounded-xl bg-slate-100 border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPhotoStudent({ name: st.name, admissionNo: st.admissionNo, photoUrl: st.photoUrl, guardianName: st.guardianName });
+                        }}
+                        className="relative group w-12 h-14 rounded-xl bg-slate-100 border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center shrink-0 focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:opacity-90 transition-all cursor-pointer"
+                        title="Click to view full photo"
+                      >
                         {st.photoUrl ? (
                           <img
                             src={st.photoUrl}
                             alt={st.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
                         ) : (
                           <StudentAvatar name={st.name} size="md" />
                         )}
-                      </div>
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <Eye className="w-4 h-4 text-white" />
+                        </div>
+                      </button>
 
                       {/* Metadata */}
-                      <div className="min-w-0">
+                      <div className="min-w-0 text-left">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-bold text-slate-900 text-sm hover:text-indigo-600 transition-colors">
                             {st.name}
                           </h3>
                           <Badge variant="green" size="xs">ACTIVE</Badge>
                           <Badge variant="neutral" size="xs">Day Scholar</Badge>
+                        </div>
+                        <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                          <span className="font-medium text-slate-400">Guardian:</span>
+                          <span className="font-semibold text-slate-700">{st.guardianName || st.fatherName || 'N/A'}</span>
                         </div>
                         {renderStudentMeta(st)}
                       </div>
@@ -620,9 +636,46 @@ export const HostelAdmissionPage = () => {
             </div>
           )}
 
+          {selectedHostel && feeConfig && feeConfig.isFeeSet === false && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2 text-xs">
+              <div className="flex items-center gap-2 font-bold text-amber-900">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Hostel Fee Structure Not Set</span>
+              </div>
+              <p className="text-amber-800 leading-relaxed">
+                Hostel fee rates have not been configured for <strong>{selectedHostel.name}</strong> for the selected academic year. Students cannot be admitted until fee rates (monthly or admission fee) are set.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/app/hostel/fees')}
+                className="bg-white text-xs text-amber-900 border-amber-300 hover:bg-amber-100"
+              >
+                Go to Hostel Fee Setup & Set Rates →
+              </Button>
+            </div>
+          )}
+
           {selectedHostel && selectedRoom && (
-            <div className="flex justify-end pt-3">
-              <Button size="sm" onClick={() => setStep(3)}>
+            <div className="flex items-center justify-between pt-3">
+              {feeConfig && feeConfig.isFeeSet === false && (
+                <span className="text-xs text-rose-600 font-bold flex items-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Fee structure not set — Admission disabled
+                </span>
+              )}
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (feeConfig && feeConfig.isFeeSet === false) {
+                    toast.error(`Hostel fee structure is not set for ${selectedHostel.name}. Please configure fee rates first.`);
+                    return;
+                  }
+                  setStep(3);
+                }}
+                disabled={Boolean(feeConfig && feeConfig.isFeeSet === false)}
+                className="ml-auto"
+              >
                 Next: Pick Bed Visually
                 <ArrowRight className="w-3.5 h-3.5 ml-1" />
               </Button>
@@ -733,6 +786,22 @@ export const HostelAdmissionPage = () => {
             </Button>
           </div>
 
+          {feeConfig && feeConfig.isFeeSet === false && (
+            <Alert type="warning" title="Admission Blocked — Fee Structure Not Set">
+              Hostel fee rates for <strong>{selectedHostel?.name}</strong> are not configured for the selected academic year. Please set up fee rates before admitting students.
+              <div className="mt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/app/hostel/fees')}
+                  className="bg-white text-xs"
+                >
+                  Configure Hostel Fee Rates →
+                </Button>
+              </div>
+            </Alert>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
             {/* Enrollment Summary */}
             <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
@@ -766,25 +835,55 @@ export const HostelAdmissionPage = () => {
               </div>
             </div>
 
-            {/* Fee Policy Preview */}
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
-              <h3 className="font-bold text-slate-900 text-xs border-b border-slate-200 pb-1 uppercase tracking-wider">
-                Hostel Fee Policy
+            {/* Fee Policy & Admission Fee Overrides */}
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+              <h3 className="font-bold text-slate-900 text-xs border-b border-slate-200 pb-1 uppercase tracking-wider flex items-center justify-between">
+                <span>Hostel Fee Policy & Admission Overrides</span>
+                <span className="text-[10px] text-indigo-600 font-normal">Editable for this student</span>
               </h3>
-              <div className="space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Hostel Admission Fee:</span>
-                  <span className="font-bold text-slate-900">
-                    {feeConfig?.admissionFeeEnabled ? `₹${feeConfig.admissionFeeAmount} (One-time)` : 'Disabled'}
-                  </span>
+              
+              {feeConfig?.admissionFeeEnabled ? (
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    Hostel Admission Fee (Default: ₹{feeConfig.admissionFeeAmount})
+                  </label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={admissionFeeOverride}
+                    onChange={(e) => setAdmissionFeeOverride(e.target.value)}
+                    placeholder={`Default ₹${feeConfig.admissionFeeAmount}`}
+                    className="h-8 text-xs bg-white"
+                  />
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Hostel Monthly Fee:</span>
-                  <span className="font-bold text-slate-900">
-                    {feeConfig?.monthlyFeeEnabled ? `₹${feeConfig.monthlyFeeAmount} / month` : 'Disabled'}
-                  </span>
+              ) : null}
+
+              {feeConfig?.monthlyFeeEnabled ? (
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    Start Month Hostel Monthly Fee (Default: ₹{feeConfig.monthlyFeeAmount})
+                  </label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={monthlyFeeOverride}
+                    onChange={(e) => setMonthlyFeeOverride(e.target.value)}
+                    placeholder={`Default ₹${feeConfig.monthlyFeeAmount}`}
+                    className="h-8 text-xs bg-white"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-0.5">
+                    Setting to ₹0 waives the start month monthly fee charge.
+                  </p>
                 </div>
-              </div>
+              ) : null}
+
+              {feeConfig && feeConfig.isFeeSet === false && (
+                <div className="text-xs text-rose-600 font-bold italic py-2">
+                  No fee rates are enabled or configured for this hostel.
+                </div>
+              )}
             </div>
           </div>
 
@@ -802,7 +901,17 @@ export const HostelAdmissionPage = () => {
             <Button variant="outline" onClick={() => navigate('/app/hostel')}>
               Cancel
             </Button>
-            <Button onClick={() => setShowConfirmAdmission(true)} className="bg-indigo-600 hover:bg-indigo-700">
+            <Button
+              onClick={() => {
+                if (feeConfig && feeConfig.isFeeSet === false) {
+                  toast.error(`Hostel fee structure is not set for ${selectedHostel?.name}. Please configure fee rates first.`);
+                  return;
+                }
+                setShowConfirmAdmission(true);
+              }}
+              disabled={Boolean(feeConfig && feeConfig.isFeeSet === false)}
+              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+            >
               Confirm Hostel Admission
             </Button>
           </div>
@@ -819,6 +928,13 @@ export const HostelAdmissionPage = () => {
         confirmText="Admit Student"
         variant="amber"
         loading={submitting}
+      />
+
+      {/* ── STUDENT PHOTO PREVIEW MODAL ── */}
+      <StudentPhotoModal
+        isOpen={Boolean(selectedPhotoStudent)}
+        onClose={() => setSelectedPhotoStudent(null)}
+        student={selectedPhotoStudent}
       />
     </div>
   );

@@ -1,24 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Printer,
-  Users,
-  Building,
-  Bed,
-  CreditCard,
-  LogOut,
-  ArrowLeftRight,
-} from 'lucide-react';
+import { Users, Building, Bed, CreditCard, LogOut, ArrowLeftRight } from 'lucide-react';
 import { hostelService } from '../../services/hostel.service.js';
 import { useAcademicYear } from '../../context/AcademicYearContext.jsx';
 import { Card } from '../../components/ui/Card.jsx';
-import { Button } from '../../components/ui/Button.jsx';
+
 import { Select } from '../../components/ui/Select.jsx';
 import { Input } from '../../components/ui/Input.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
-import { toast } from '../../components/ui/Toast.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
+import { StudentDetailsCell } from '../../components/hostel/StudentDetailsCell.jsx';
+import { StudentPhotoModal } from '../../components/hostel/StudentPhotoModal.jsx';
 
 export const HostelReportsPage = () => {
   const { currentAcademicYear, academicYears } = useAcademicYear();
@@ -26,6 +19,7 @@ export const HostelReportsPage = () => {
   const [reportType, setReportType] = useState('residents'); // 'residents' | 'occupancy' | 'availability' | 'admissions' | 'transfers' | 'exits' | 'fees'
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
+  const [selectedPhotoStudent, setSelectedPhotoStudent] = useState(null);
 
   // Filters
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState('');
@@ -190,8 +184,7 @@ export const HostelReportsPage = () => {
                 <table className="min-w-full divide-y divide-slate-200 text-xs">
                   <thead className="bg-slate-50 font-semibold text-slate-600">
                     <tr>
-                      <th className="px-3.5 py-2 text-left">Student Name</th>
-                      <th className="px-3.5 py-2 text-left">Admission No</th>
+                      <th className="px-3.5 py-2 text-left">Student Details (Name, Adm No, Guardian)</th>
                       <th className="px-3.5 py-2 text-left">Class & Section</th>
                       <th className="px-3.5 py-2 text-left">Hostel Name</th>
                       <th className="px-3.5 py-2 text-left">Room & Bed</th>
@@ -201,8 +194,9 @@ export const HostelReportsPage = () => {
                   <tbody className="divide-y divide-slate-200">
                     {Array.isArray(reportData) && reportData.map((r) => (
                       <tr key={r.id} className="hover:bg-slate-50/50">
-                        <td className="px-3.5 py-2 font-bold text-slate-900">{r.studentName}</td>
-                        <td className="px-3.5 py-2 text-slate-600 font-mono">{r.admissionNo}</td>
+                        <td className="px-3.5 py-2">
+                          <StudentDetailsCell student={r} onPhotoClick={setSelectedPhotoStudent} />
+                        </td>
                         <td className="px-3.5 py-2 text-slate-700 font-medium">{formatStudentClassInfo(r)}</td>
                         <td className="px-3.5 py-2 font-semibold text-slate-800">{r.hostelName}</td>
                         <td className="px-3.5 py-2 text-indigo-600 font-bold">Room {r.roomNumber} ({r.bedNumber})</td>
@@ -287,8 +281,7 @@ export const HostelReportsPage = () => {
                   <thead className="bg-slate-50 font-semibold text-slate-600">
                     <tr>
                       <th className="px-3.5 py-2 text-left">Admission Date</th>
-                      <th className="px-3.5 py-2 text-left">Student Name</th>
-                      <th className="px-3.5 py-2 text-left">Admission No</th>
+                      <th className="px-3.5 py-2 text-left">Student Details (Name, Adm No, Guardian)</th>
                       <th className="px-3.5 py-2 text-left">Hostel</th>
                       <th className="px-3.5 py-2 text-left">Room & Bed</th>
                     </tr>
@@ -297,8 +290,9 @@ export const HostelReportsPage = () => {
                     {Array.isArray(reportData) && reportData.map((a) => (
                       <tr key={a.id} className="hover:bg-slate-50/50">
                         <td className="px-3.5 py-2 text-slate-500 font-mono">{new Date(a.startDate).toLocaleDateString()}</td>
-                        <td className="px-3.5 py-2 font-bold text-slate-900">{a.student?.name}</td>
-                        <td className="px-3.5 py-2 text-slate-600 font-mono">{a.student?.admissionNo}</td>
+                        <td className="px-3.5 py-2">
+                          <StudentDetailsCell student={a.student} onPhotoClick={setSelectedPhotoStudent} />
+                        </td>
                         <td className="px-3.5 py-2 font-semibold text-slate-800">{a.hostel?.name}</td>
                         <td className="px-3.5 py-2 text-indigo-600 font-bold">Room {a.room?.roomNumber} ({a.bed?.bedNumber})</td>
                       </tr>
@@ -320,7 +314,7 @@ export const HostelReportsPage = () => {
                   <thead className="bg-slate-50 font-semibold text-slate-600">
                     <tr>
                       <th className="px-3.5 py-2 text-left">Transfer Date</th>
-                      <th className="px-3.5 py-2 text-left">Student Name</th>
+                      <th className="px-3.5 py-2 text-left">Student Details (Name, Adm No, Guardian)</th>
                       <th className="px-3.5 py-2 text-left">From</th>
                       <th className="px-3.5 py-2 text-left">To</th>
                       <th className="px-3.5 py-2 text-left">Reason</th>
@@ -330,7 +324,9 @@ export const HostelReportsPage = () => {
                     {Array.isArray(reportData) && reportData.map((t) => (
                       <tr key={t.id} className="hover:bg-slate-50/50">
                         <td className="px-3.5 py-2 text-slate-500 font-mono">{new Date(t.transferDate).toLocaleDateString()}</td>
-                        <td className="px-3.5 py-2 font-bold text-slate-900">{t.enrollment?.student?.name}</td>
+                        <td className="px-3.5 py-2">
+                          <StudentDetailsCell student={t.enrollment?.student} onPhotoClick={setSelectedPhotoStudent} />
+                        </td>
                         <td className="px-3.5 py-2 text-slate-600">{t.fromHostel?.name} (R-{t.fromRoom?.roomNumber})</td>
                         <td className="px-3.5 py-2 font-bold text-indigo-600">{t.toHostel?.name} (R-{t.toRoom?.roomNumber})</td>
                         <td className="px-3.5 py-2 text-slate-500 italic">{t.reason || 'N/A'}</td>
@@ -353,7 +349,7 @@ export const HostelReportsPage = () => {
                   <thead className="bg-slate-50 font-semibold text-slate-600">
                     <tr>
                       <th className="px-3.5 py-2 text-left">Exit Date</th>
-                      <th className="px-3.5 py-2 text-left">Student Name</th>
+                      <th className="px-3.5 py-2 text-left">Student Details (Name, Adm No, Guardian)</th>
                       <th className="px-3.5 py-2 text-left">Hostel & Room</th>
                       <th className="px-3.5 py-2 text-left">Exit Reason</th>
                     </tr>
@@ -362,7 +358,9 @@ export const HostelReportsPage = () => {
                     {Array.isArray(reportData) && reportData.map((x) => (
                       <tr key={x.id} className="hover:bg-slate-50/50">
                         <td className="px-3.5 py-2 text-slate-500 font-mono">{x.endDate ? new Date(x.endDate).toLocaleDateString() : 'N/A'}</td>
-                        <td className="px-3.5 py-2 font-bold text-slate-900">{x.student?.name}</td>
+                        <td className="px-3.5 py-2">
+                          <StudentDetailsCell student={x.student} onPhotoClick={setSelectedPhotoStudent} />
+                        </td>
                         <td className="px-3.5 py-2 text-slate-700">{x.hostel?.name} (R-{x.room?.roomNumber}, {x.bed?.bedNumber})</td>
                         <td className="px-3.5 py-2 text-slate-600">{x.exitReason || 'Hostel Exit'}</td>
                       </tr>
@@ -403,7 +401,7 @@ export const HostelReportsPage = () => {
                   <table className="min-w-full divide-y divide-slate-200 text-xs">
                     <thead className="bg-slate-50 font-semibold text-slate-600">
                       <tr>
-                        <th className="px-3.5 py-2 text-left">Student</th>
+                        <th className="px-3.5 py-2 text-left">Student Details (Name, Adm No, Guardian)</th>
                         <th className="px-3.5 py-2 text-left">Fee Title</th>
                         <th className="px-3.5 py-2 text-left">Month</th>
                         <th className="px-3.5 py-2 text-right">Amount</th>
@@ -414,7 +412,9 @@ export const HostelReportsPage = () => {
                     <tbody className="divide-y divide-slate-200">
                       {reportData.charges.map((c) => (
                         <tr key={c.id} className="hover:bg-slate-50/50">
-                          <td className="px-3.5 py-2 font-bold text-slate-900">{c.student?.name}</td>
+                          <td className="px-3.5 py-2">
+                            <StudentDetailsCell student={c.student} onPhotoClick={setSelectedPhotoStudent} />
+                          </td>
                           <td className="px-3.5 py-2 text-slate-700">{c.title}</td>
                           <td className="px-3.5 py-2 font-mono text-slate-500">{c.month}</td>
                           <td className="px-3.5 py-2 text-right font-bold text-slate-900">₹{c.amount}</td>
@@ -434,6 +434,14 @@ export const HostelReportsPage = () => {
           )}
         </div>
       )}
+
+      {/* ── STUDENT PHOTO PREVIEW MODAL ── */}
+      <StudentPhotoModal
+        isOpen={Boolean(selectedPhotoStudent)}
+        onClose={() => setSelectedPhotoStudent(null)}
+        student={selectedPhotoStudent}
+      />
     </div>
   );
 };
+

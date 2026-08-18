@@ -1,19 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Building,
-  Bed,
-  Users,
-  CheckCircle2,
-  UserPlus,
-  ArrowLeftRight,
-  LogOut,
-  Eye,
-  Search,
-} from 'lucide-react';
+import { Building, Bed, Users, CheckCircle2, UserPlus, ArrowLeftRight, LogOut } from 'lucide-react';
 import { hostelService } from '../../services/hostel.service.js';
 import { useAcademicYear } from '../../context/AcademicYearContext.jsx';
-import { Card } from '../../components/ui/Card.jsx';
+
 import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
@@ -22,6 +12,8 @@ import { Select } from '../../components/ui/Select.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
 import { HostelTransferModal } from '../../components/hostel/HostelTransferModal.jsx';
 import { HostelExitModal } from '../../components/hostel/HostelExitModal.jsx';
+import { StudentDetailsCell } from '../../components/hostel/StudentDetailsCell.jsx';
+import { StudentPhotoModal } from '../../components/hostel/StudentPhotoModal.jsx';
 
 export const HostelDashboardPage = () => {
   const navigate = useNavigate();
@@ -31,6 +23,7 @@ export const HostelDashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [hostels, setHostels] = useState([]);
   const [recentResidents, setRecentResidents] = useState([]);
+  const [selectedPhotoStudent, setSelectedPhotoStudent] = useState(null);
 
   // Modals for Quick Actions from Overview
   const [transferModalOpen, setTransferModalOpen] = useState(false);
@@ -103,7 +96,7 @@ export const HostelDashboardPage = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 text-xs">
       {/* 1. TOP METRICS & QUICK ACTIONS IN COMPACT ERP LAYOUT */}
       <div className="space-y-3">
         {/* Metric Cards - Single Row on Desktop */}
@@ -271,7 +264,7 @@ export const HostelDashboardPage = () => {
             <table className="min-w-full divide-y divide-slate-200 text-xs">
               <thead className="bg-slate-50 text-slate-600 font-semibold">
                 <tr>
-                  <th className="px-3.5 py-2 text-left">Student</th>
+                  <th className="px-3.5 py-2 text-left">Student Details (Name, Adm No, Guardian)</th>
                   <th className="px-3.5 py-2 text-left">Class & Section</th>
                   <th className="px-3.5 py-2 text-left">Hostel</th>
                   <th className="px-3.5 py-2 text-left">Room</th>
@@ -285,8 +278,7 @@ export const HostelDashboardPage = () => {
                 {recentResidents.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50/50">
                     <td className="px-3.5 py-2">
-                      <div className="font-bold text-slate-900">{r.studentName}</div>
-                      <div className="text-[11px] text-slate-500 font-mono">Adm: {r.admissionNo}</div>
+                      <StudentDetailsCell student={r} onPhotoClick={setSelectedPhotoStudent} />
                     </td>
                     <td className="px-3.5 py-2 text-slate-700 font-medium">
                       {formatStudentClassInfo(r)}
@@ -379,6 +371,13 @@ export const HostelDashboardPage = () => {
         onClose={() => setExitModalOpen(false)}
         resident={actionResident}
         onSuccess={fetchOverviewData}
+      />
+
+      {/* ── STUDENT PHOTO PREVIEW MODAL ── */}
+      <StudentPhotoModal
+        isOpen={Boolean(selectedPhotoStudent)}
+        onClose={() => setSelectedPhotoStudent(null)}
+        student={selectedPhotoStudent}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, Calendar, AlertCircle, FileCheck, TrendingUp } from 'lucide-react';
+import { DollarSign, Calendar, AlertCircle, FileCheck } from 'lucide-react';
 
 export const DashboardCards = ({ summary = {}, isLoading = false }) => {
   if (isLoading) {

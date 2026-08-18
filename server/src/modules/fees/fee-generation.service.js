@@ -3,6 +3,7 @@ import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { getSystemFeeType } from './fee-type.service.js';
 import { isStudentOperationallyActive } from '../students/student.service.js';
+import { ensureFeeChargesBulk } from './fee-creation.service.js';
 
 export const FEE_MONTH_INDEX = {
   JANUARY: 0,
@@ -72,8 +73,6 @@ export const isEffectiveForMonth = ({ startDate, endDate, generationMonth, acade
   return true;
 };
 
-
-
 /**
  * Resolves active student enrollments based on mode and filters.
  */
@@ -89,7 +88,6 @@ const getTargetEnrollments = async (schoolId, payload) => {
   if (mode === 'BY_CLASS') {
     if (!classId) throw ApiError.badRequest('Class is required for By Class mode');
 
-    // Check if class exists
     const cls = await prisma.class.findUnique({ where: { id: classId } });
     if (!cls || cls.schoolId !== schoolId) {
       throw ApiError.notFound('Class not found');
@@ -129,7 +127,7 @@ const getTargetEnrollments = async (schoolId, payload) => {
 };
 
 /**
- * Computes fee generation dry-run preview or actual batch payload.
+ * Computes fee generation preview with accurate duplicate detection and eligibility breakdown.
  */
 export const processFeeGenerationPreview = async (schoolId, payload) => {
   const { academicYearId, month, mode, customFeeHeads = [] } = payload;
@@ -153,16 +151,14 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
     throw ApiError.badRequest('No active students found matching the selected filters');
   }
 
-  // 3. Parallelize fetching structure templates, overrides, annual charges, existing charges, system fee types, and all fee types
+  // 3. Batch fetch configuration, overrides, existing charges, and fee types
   const studentIds = enrollments.map((e) => e.studentId);
-  const enrollmentIds = enrollments.map((e) => e.id);
 
   const [
     feeStructures,
     overrides,
-    annualCharges,
-    miscFeeType,
     existingCharges,
+    miscFeeType,
     allFeeTypes,
   ] = await Promise.all([
     prisma.feeStructure.findMany({
@@ -200,26 +196,15 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
       select: {
         studentId: true,
         feeTypeId: true,
-      },
-    }),
-    getSystemFeeType(schoolId, 'MISC'),
-    prisma.studentFeeCharge.findMany({
-      where: {
-        schoolId,
-        academicYearId,
-        month,
-        studentEnrollmentId: { in: enrollmentIds },
-      },
-      select: {
-        studentEnrollmentId: true,
-        feeTypeId: true,
+        month: true,
         title: true,
       },
     }),
+    getSystemFeeType(schoolId, 'MISC'),
     prisma.feeType.findMany({ where: { schoolId } }),
   ]);
 
-  // Map fee structures by key
+  // Map fee structures by class_medium_stream key
   const comboKeys = new Set();
   enrollments.forEach((e) => {
     comboKeys.add(`${e.classId}_${e.mediumId}_${e.streamId || 'null'}`);
@@ -231,7 +216,7 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
     structureMap.set(key, fs);
   });
 
-  // Fallback check for missing combinations in target academic year
+  // Fallback for missing combos in current academic year
   for (const comboKey of comboKeys) {
     if (!structureMap.has(comboKey)) {
       const [classId, mediumId, streamIdStr] = comboKey.split('_');
@@ -271,22 +256,16 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
     overrideMap.set(`${o.studentId}_${o.feeTypeId}`, Number(o.amount));
   });
 
-  // Map annual charges set
-  const annualChargeSet = new Set();
-  annualCharges.forEach((c) => {
-    if (c.feeTypeId) {
-      annualChargeSet.add(`${c.studentId}_${c.feeTypeId}`);
-    }
-  });
+  // Idempotent duplicate check lookup sets (Logical identity ONLY: Student + AcademicYear + FeeType + Month)
+  const monthlyExistingSet = new Set();
+  const oneTimeExistingSet = new Set();
 
-  // Map existing charges set
-  const existingChargeSet = new Set();
   existingCharges.forEach((c) => {
-    const key = `${c.studentEnrollmentId}_ft_${c.feeTypeId}_title_${c.title}`;
-    existingChargeSet.add(key);
+    monthlyExistingSet.add(`${c.studentId}_${c.feeTypeId}_${c.month}`);
+    oneTimeExistingSet.add(`${c.studentId}_${c.feeTypeId}`);
   });
 
-  // Custom fee head map by feeTypeId or temporary title
+  // Custom fee head map
   const customMap = new Map();
   customFeeHeads.forEach((c) => {
     if (c.mediumId && c.feeTypeId) {
@@ -299,25 +278,24 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
     }
   });
 
-  // Map fee types by ID
   const feeTypeMap = new Map();
   allFeeTypes.forEach((ft) => feeTypeMap.set(ft.id, ft));
 
-  // 8. Build Student Charges Generation Plan
+  // Build Charges Generation Candidates & Breakdown
   let totalEstimatedCharges = 0;
   let totalEstimatedAmount = 0;
+  let alreadyExistsCount = 0;
   const skippedStudents = [];
   const skippedBreakdown = {
-    inactiveStudent: 0,
-    admissionFeeAlreadyGenerated: 0,
-    duplicateCharges: 0,
+    notActive: 0,
+    alreadyExists: 0,
     noFeeStructure: 0,
   };
   const chargesToCreate = [];
   const noStructureClasses = new Set();
 
   enrollments.forEach((e) => {
-    // Step 2: Validate Student Operational Status (Only ACTIVE students receive fee charges)
+    // 1. Verify Student Operational Status
     if (!isStudentOperationallyActive(e.student)) {
       skippedStudents.push({
         studentId: e.student.id,
@@ -326,7 +304,7 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
         feeHeadTitle: 'All Heads',
         reason: `Inactive Student (${e.student.status || 'INACTIVE'})`,
       });
-      skippedBreakdown.inactiveStudent += 1;
+      skippedBreakdown.notActive += 1;
       return;
     }
 
@@ -335,21 +313,15 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
 
     const headsToProcess = [];
 
-    // Master structure heads
     if (fs) {
       fs.heads.forEach((h) => {
         const customOverride = mode !== 'ENTIRE_SCHOOL'
           ? (customMap.get(`med_${e.mediumId}_ft_${h.feeTypeId}`) || customMap.get(`ft_${h.feeTypeId}`))
           : null;
-        // If explicitly disabled in UI form (in BY_CLASS or BY_STUDENT mode)
         if (customOverride && customOverride.enabled === false && mode !== 'ENTIRE_SCHOOL') {
           return;
         }
 
-        // Priority order for amounts:
-        // Priority 1: Student Override (StudentFeeOverride)
-        // Priority 2: Temporary Batch Generation Amount (in BY_CLASS or BY_STUDENT mode)
-        // Priority 3: Fee Template Amount (FeeStructureHead)
         const studentOverrideAmt = overrideMap.get(`${e.studentId}_${h.feeTypeId}`);
         let finalAmount;
         if (studentOverrideAmt !== undefined) {
@@ -365,18 +337,16 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
           feeStructureId: fs.id,
           title: h.feeType.name,
           amount: finalAmount,
+          originalAmount: Number(h.amount),
           category: h.feeType.category || 'ACADEMIC',
           billingRule: h.feeType.billingRule || 'MONTHLY',
         });
       });
     }
 
-    // Custom non-master fee heads (such as temporary fees or manual fee heads added in UI)
     const customHeadsForStudent = customFeeHeads.filter((c) => {
       if (!c.enabled) return false;
-      // If head is tied to a specific medium, match student's medium
       if (c.mediumId && c.mediumId !== e.mediumId) return false;
-      // If it's already processed as a master head override in fs.heads, skip duplicate processing
       if (fs && fs.heads.some((h) => h.feeTypeId === c.feeTypeId)) return false;
       return true;
     });
@@ -411,6 +381,7 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
         feeStructureId: null,
         title: temp.title,
         amount: Number(temp.amount),
+        originalAmount: Number(temp.amount),
         category: tempCategory,
         billingRule: tempBillingRule,
       });
@@ -421,44 +392,27 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
         throw ApiError.badRequest(`Fee charge '${head.title}' cannot be generated without a valid Fee Type`);
       }
 
-      const category = head.category || 'ACADEMIC';
       const billingRule = head.billingRule || 'MONTHLY';
 
-      // ==========================================
-      // ONE TIME / ADMISSION FEES
-      // ==========================================
-      if (billingRule === 'ONE_TIME_PER_ACADEMIC_YEAR') {
-        if (annualChargeSet.has(`${e.studentId}_${head.feeTypeId}`)) {
-          skippedStudents.push({
-            studentId: e.student.id,
-            studentName: e.student.name,
-            admissionNo: e.student.admissionNo,
-            feeHeadTitle: head.title,
-            reason: 'Admission Fee Already Generated',
-          });
-          skippedBreakdown.admissionFeeAlreadyGenerated += 1;
-          return;
-        }
-      }
+      // Logical identity duplicate check (ignoring title, amount, batch)
+      const isOneTime = billingRule === 'ONE_TIME_PER_ACADEMIC_YEAR';
+      const isDuplicate = isOneTime
+        ? oneTimeExistingSet.has(`${e.studentId}_${head.feeTypeId}`)
+        : monthlyExistingSet.has(`${e.studentId}_${head.feeTypeId}_${month}`);
 
-      // ==========================================
-      // DUPLICATE CHECK FOR MONTHLY / TITLED CHARGES
-      // ==========================================
-      const dupKey = `${e.id}_ft_${head.feeTypeId}_title_${head.title}`;
-
-      if (existingChargeSet.has(dupKey)) {
+      if (isDuplicate) {
         skippedStudents.push({
           studentId: e.student.id,
           studentName: e.student.name,
           admissionNo: e.student.admissionNo,
           feeHeadTitle: head.title,
-          reason: 'Duplicate Charges',
+          reason: 'Fee Charge Already Exists',
         });
-        skippedBreakdown.duplicateCharges += 1;
+        skippedBreakdown.alreadyExists += 1;
+        alreadyExistsCount += 1;
         return;
       }
 
-      // Add charge to creation plan
       chargesToCreate.push({
         schoolId,
         academicYearId,
@@ -469,7 +423,8 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
         title: head.title,
         month,
         amount: head.amount,
-        status: 'UNPAID',
+        originalAmount: head.originalAmount,
+        billingRule,
       });
       totalEstimatedCharges += 1;
       totalEstimatedAmount += head.amount;
@@ -486,6 +441,7 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
     totalStudents: enrollments.length,
     eligibleStudents: enrollments.length - skippedBreakdown.noFeeStructure,
     generatedCount,
+    alreadyExistsCount,
     skippedCount,
     skippedBreakdown,
     totalEstimatedCharges,
@@ -500,11 +456,27 @@ export const executeFeeGeneration = async (schoolId, payload, actorUserId) => {
   const preview = await processFeeGenerationPreview(schoolId, payload);
 
   if (preview.chargesToCreate.length === 0) {
-    throw ApiError.badRequest('No new charges to generate. All charges either already exist or have no Fee Structure.');
+    if (preview.alreadyExistsCount > 0) {
+      return {
+        batchId: null,
+        month: payload.month,
+        academicYearId: payload.academicYearId,
+        totalStudents: preview.totalStudents,
+        generatedCount: 0,
+        alreadyExistsCount: preview.alreadyExistsCount,
+        skippedCount: preview.skippedCount,
+        skippedBreakdown: preview.skippedBreakdown,
+        totalAmount: 0,
+        noStructureClasses: preview.noStructureClasses,
+        skippedStudents: preview.skippedStudents,
+        message: 'All fees for the selected criteria already exist. No new charges were generated.',
+      };
+    }
+    throw ApiError.badRequest('No new charges to generate. All students either already have charges generated or have no Fee Structure configured.');
   }
 
   return await prisma.$transaction(async (tx) => {
-    // 1. Create Batch History Record
+    // 1. Create Batch Audit Record
     const batch = await tx.feeGenerationBatch.create({
       data: {
         schoolId,
@@ -525,37 +497,21 @@ export const executeFeeGeneration = async (schoolId, payload, actorUserId) => {
           noStructureClasses: preview.noStructureClasses,
           skippedStudents: preview.skippedStudents,
           skippedBreakdown: preview.skippedBreakdown,
+          alreadyExistsCount: preview.alreadyExistsCount,
         },
       },
     });
 
-    // 2. Create Student Fee Charges
-    const chargePayloads = preview.chargesToCreate.map((c) => ({
+    // 2. Delegate Charge Creation to Central Idempotent Fee Engine
+    const result = await ensureFeeChargesBulk(tx, {
       schoolId,
-      academicYearId: c.academicYearId,
-      studentId: c.studentId,
-      studentEnrollmentId: c.studentEnrollmentId,
-      feeTypeId: c.feeTypeId,
-      feeStructureId: c.feeStructureId,
+      academicYearId: payload.academicYearId,
+      month: payload.month,
       generationBatchId: batch.id,
-      month: c.month,
-      title: c.title,
-      amount: new Prisma.Decimal(c.amount),
-      paidAmount: new Prisma.Decimal(0),
-      status: 'UNPAID',
-    }));
+      candidates: preview.chargesToCreate,
+    });
 
-    // Chunk create to prevent potential SQL parameter limits on large batches (500 rows per transaction chunk)
-    const chunkSize = 500;
-    for (let i = 0; i < chargePayloads.length; i += chunkSize) {
-      const chunk = chargePayloads.slice(i, i + chunkSize);
-      await tx.studentFeeCharge.createMany({
-        data: chunk,
-        skipDuplicates: true,
-      });
-    }
-
-    // 3. Audit Log
+    // 3. Create Audit Log
     if (actorUserId) {
       await tx.auditLog.create({
         data: {
@@ -567,9 +523,10 @@ export const executeFeeGeneration = async (schoolId, payload, actorUserId) => {
           newValues: {
             month: payload.month,
             mode: payload.mode,
-            generatedCount: preview.generatedCount,
-            skippedCount: preview.skippedCount,
-            totalAmount: preview.totalEstimatedAmount,
+            generatedCount: result.createdCount,
+            alreadyExistsCount: result.alreadyExistsCount,
+            skippedCount: result.skippedCount,
+            totalAmount: result.totalAmount,
           },
         },
       });
@@ -580,10 +537,11 @@ export const executeFeeGeneration = async (schoolId, payload, actorUserId) => {
       month: batch.month,
       academicYearId: batch.academicYearId,
       totalStudents: preview.totalStudents,
-      generatedCount: preview.generatedCount,
+      generatedCount: result.createdCount,
+      alreadyExistsCount: preview.alreadyExistsCount + result.alreadyExistsCount,
       skippedCount: preview.skippedCount,
       skippedBreakdown: preview.skippedBreakdown,
-      totalAmount: preview.totalEstimatedAmount,
+      totalAmount: result.totalAmount,
       noStructureClasses: preview.noStructureClasses,
       skippedStudents: preview.skippedStudents,
     };

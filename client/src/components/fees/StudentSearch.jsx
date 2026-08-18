@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, User, Phone, CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { Search, X, User, Phone, Loader2, AlertTriangle } from 'lucide-react';
 import { studentService } from '../../services/student.service.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { Badge } from '../ui/Badge.jsx';

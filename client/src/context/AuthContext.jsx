@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
         storage.clearAuth();
         setUser(null);
       }
-    } catch (err) {
+    } catch {
       storage.clearAuth();
       setUser(null);
     } finally {
@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await authService.logout();
-    } catch (err) {
+    } catch {
       // Ignore logout backend errors if token already invalid
     } finally {
       storage.clearAuth();
@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }) => {
         setUser(res.data);
         return res.data;
       }
-    } catch (err) {
+    } catch {
       // Ignore
     }
   };

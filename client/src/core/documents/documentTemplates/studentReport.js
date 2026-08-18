@@ -1,5 +1,5 @@
 import { createPDFHeader } from '../common/header.js';
-import { formatDocDate, sanitizeDocText, getSchoolBranding } from '../common/formatters.js';
+import { sanitizeDocText, getSchoolBranding } from '../common/formatters.js';
 
 /**
  * Student Report Data Builder
@@ -46,7 +46,7 @@ export const buildStudentReportData = (rawData = {}) => {
 /**
  * pdfMake Template Builder for Student Report
  */
-export const buildStudentReportTemplate = (data = {}, settings = {}) => {
+export const buildStudentReportTemplate = (data = {}, _settings = {}) => {
   const headerContent = createPDFHeader({
     school: data.school,
     documentTitle: data.reportTitle,

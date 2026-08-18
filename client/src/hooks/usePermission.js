@@ -25,6 +25,7 @@ export const usePermission = () => {
     hasFullAccess,
     can,
     canVoidReceipt,
+    refreshProfile,
   } = context;
 
   return {
@@ -37,6 +38,7 @@ export const usePermission = () => {
     hasFullAccess,
     can,
     canVoidReceipt,
+    refreshProfile,
     // Convenience role labels for display
     roleLabel: schoolRole === 'OWNER'
       ? 'Owner'

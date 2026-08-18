@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 
 export const studentReportsService = {
@@ -106,7 +105,7 @@ export const studentReportsService = {
   /**
    * Class-wise Student List Report
    */
-  async getClassWiseStudents(schoolId, query = {}, userId) {
+  async getClassWiseStudents(schoolId, query = {}, _userId) {
     const { academicYearId, classId, mediumId, streamId } = query;
 
     const classes = await prisma.class.findMany({
@@ -189,7 +188,7 @@ export const studentReportsService = {
   /**
    * Section-wise Student Report
    */
-  async getSectionWiseStudents(schoolId, query = {}, userId) {
+  async getSectionWiseStudents(schoolId, query = {}, _userId) {
     const { academicYearId, classId, sectionId } = query;
 
     const enrollments = await prisma.studentEnrollment.findMany({
@@ -243,7 +242,7 @@ export const studentReportsService = {
   /**
    * Medium-wise Student Report
    */
-  async getMediumWiseStudents(schoolId, query = {}, userId) {
+  async getMediumWiseStudents(schoolId, query = {}, _userId) {
     const { academicYearId, mediumId } = query;
 
     const [mediums, counts] = await Promise.all([
@@ -289,7 +288,7 @@ export const studentReportsService = {
   /**
    * Stream-wise Student Report (Only applicable to High School / Senior Secondary)
    */
-  async getStreamWiseStudents(schoolId, query = {}, userId) {
+  async getStreamWiseStudents(schoolId, query = {}, _userId) {
     const { academicYearId, streamId } = query;
 
     const [streams, counts] = await Promise.all([
@@ -337,7 +336,7 @@ export const studentReportsService = {
   /**
    * Student Status Breakdown Report
    */
-  async getStudentStatusReport(schoolId, query = {}, userId) {
+  async getStudentStatusReport(schoolId, _query = {}, _userId) {
     const statuses = ['ACTIVE', 'LEFT', 'GRADUATED', 'ARCHIVED'];
 
     const counts = await prisma.student.groupBy({

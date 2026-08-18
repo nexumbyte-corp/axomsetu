@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Building2,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  DollarSign,
-  RefreshCw,
-  Users,
-  ChevronRight,
-  TrendingUp,
-  CreditCard,
-  Building,
-} from 'lucide-react';
+import { Building2, CheckCircle2, XCircle, Clock, DollarSign, RefreshCw } from 'lucide-react';
 import { adminService } from '../../services/adminService.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
@@ -57,10 +45,10 @@ export const SuperAdminDashboardPage = () => {
 
   const {
     schoolStats = {},
-    userStats = {},
-    growthStats = {},
+    userStats: _userStats = {},
+    growthStats: _growthStats = {},
     financialSummary = { currentMonthRevenue: 0, previousMonthRevenue: 0 },
-    expiringSoon = [],
+    expiringSoon: _expiringSoon = [],
     recentPayments = [],
     recentSchools = [],
   } = data || {};

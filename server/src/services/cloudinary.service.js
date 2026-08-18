@@ -27,7 +27,7 @@ const extractPublicIdFromUrl = (url) => {
     // Strip extension (.jpg, .png, .webp, etc.)
     const publicId = pathWithVersion.substring(0, pathWithVersion.lastIndexOf('.'));
     return publicId || null;
-  } catch (err) {
+  } catch {
     return null;
   }
 };

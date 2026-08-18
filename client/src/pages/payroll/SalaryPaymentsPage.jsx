@@ -11,18 +11,7 @@ import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { StaffSubNav } from '../staff/StaffSubNav.jsx';
 import { downloadPdfDocument } from '../../core/documents/documentEngine.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
-import {
-  CreditCard,
-  Search,
-  CheckSquare,
-  Square,
-  Printer,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  DollarSign,
-  Download,
-} from 'lucide-react';
+import { CreditCard, CheckCircle2, AlertCircle, DollarSign } from 'lucide-react';
 
 const PAYMENT_MODES = [
   { value: 'CASH', label: 'Cash' },
@@ -37,7 +26,7 @@ export const SalaryPaymentsPage = () => {
   const [loadingStaff, setLoadingStaff] = useState(true);
 
   const [pendingData, setPendingData] = useState(null);
-  const [staffSummary, setStaffSummary] = useState(null);
+  const [_staffSummary, setStaffSummary] = useState(null);
   const [loadingPending, setLoadingPending] = useState(false);
 
   // Selection state: Map of payrollId -> { selected: boolean, payNowAmount: number, error: string }
@@ -230,8 +219,6 @@ export const SalaryPaymentsPage = () => {
       setPaying(false);
     }
   };
-
-
 
   const handleDownloadReceipt = async () => {
     if (!successModalData) return;

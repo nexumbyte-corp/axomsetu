@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Users, AlertTriangle, CheckCircle2, UserCheck, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Sparkles, Users, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
@@ -31,9 +31,9 @@ export const BulkPromotionPage = () => {
 
   // Setup options
   const [classes, setClasses] = useState([]);
-  const [mediums, setMediums] = useState([]);
+  const [_mediums, setMediums] = useState([]);
   const [sections, setSections] = useState([]);
-  const [streams, setStreams] = useState([]);
+  const [_streams, setStreams] = useState([]);
 
   // Source Selection States
   const [sourceYearId, setSourceYearId] = useState(selectedYearId || '');
@@ -68,7 +68,7 @@ export const BulkPromotionPage = () => {
         if (secRes.success) setSections(secRes.data || []);
         if (medRes.success) setMediums(medRes.data || []);
         if (strRes.success) setStreams(strRes.data || []);
-      } catch (err) {
+      } catch {
         toast.error('Failed loading academic configuration');
       }
     };
@@ -162,7 +162,7 @@ export const BulkPromotionPage = () => {
           setSourceStudents(list);
           setSelectedStudentIds(list.map((s) => s.id));
         }
-      } catch (err) {
+      } catch {
         toast.error(err.message || 'Failed loading source students');
       } finally {
         setLoadingStudents(false);
@@ -243,7 +243,7 @@ export const BulkPromotionPage = () => {
       if (targetYearId) {
         setSelectedYearId(targetYearId);
       }
-    } catch (err) {
+    } catch {
       toast.error(err.message || 'Bulk promotion failed');
     } finally {
       setSubmitting(false);

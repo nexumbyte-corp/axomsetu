@@ -21,10 +21,12 @@ import { Modal } from '../../components/ui/Modal.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
+import { StudentPhotoModal } from '../../components/hostel/StudentPhotoModal.jsx';
 
 export const HostelSetupPage = () => {
   const [activeTab, setActiveTab] = useState('hostels'); // 'hostels' | 'rooms' | 'beds'
   const [loading, setLoading] = useState(true);
+  const [selectedPhotoStudent, setSelectedPhotoStudent] = useState(null);
 
   // Data
   const [hostels, setHostels] = useState([]);
@@ -570,9 +572,19 @@ export const HostelSetupPage = () => {
                     <div className="font-bold text-slate-900 text-xs">{b.bedNumber}</div>
 
                     {isOccupied && b.activeResident && (
-                      <p className="text-[10px] text-indigo-700 font-bold truncate mt-0.5" title={b.activeResident.studentName}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPhotoStudent({
+                          name: b.activeResident.studentName,
+                          admissionNo: b.activeResident.admissionNo,
+                          photoUrl: b.activeResident.photoUrl,
+                          guardianName: b.activeResident.guardianName,
+                        })}
+                        className="text-[10px] text-indigo-700 font-bold truncate mt-0.5 hover:underline cursor-pointer flex items-center justify-center gap-1 mx-auto"
+                        title="Click to view photo & details"
+                      >
                         {b.activeResident.studentName}
-                      </p>
+                      </button>
                     )}
 
                     {!isOccupied && (
@@ -857,11 +869,18 @@ export const HostelSetupPage = () => {
         isOpen={!!bedToToggle}
         onClose={() => setBedToToggle(null)}
         onConfirm={handleConfirmToggleBedStatus}
-        title="Update Bed Status"
-        message={`Are you sure you want to set Bed ${bedToToggle?.bedNumber} to status '${bedToToggle?.newStatus}'?`}
-        confirmText="Update Status"
+        title="Change Bed Status"
+        message={`Are you sure you want to change Bed ${bedToToggle?.bedNumber} status to ${bedToToggle?.newStatus}?`}
+        confirmText="Confirm Status"
         variant="amber"
         loading={submitting}
+      />
+
+      {/* ── STUDENT PHOTO PREVIEW MODAL ── */}
+      <StudentPhotoModal
+        isOpen={Boolean(selectedPhotoStudent)}
+        onClose={() => setSelectedPhotoStudent(null)}
+        student={selectedPhotoStudent}
       />
     </div>
   );

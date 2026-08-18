@@ -44,7 +44,7 @@ export const buildStaffAdvanceData = (rawData = {}) => {
 /**
  * pdfMake Template Builder for Staff Advance Document
  */
-export const buildStaffAdvanceTemplate = (data = {}, settings = {}) => {
+export const buildStaffAdvanceTemplate = (data = {}, _settings = {}) => {
   const headerContent = createPDFHeader({
     school: data.school,
     documentTitle: 'STAFF ADVANCE STATEMENT',

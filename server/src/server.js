@@ -44,7 +44,7 @@ const unexpectedErrorHandler = async (error) => {
     server.close(async () => {
       try {
         await prisma.$disconnect();
-      } catch (err) {
+      } catch {
         // ignore error during forced exit
       }
       process.exit(1);

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, AlertTriangle, CreditCard, ArrowRight } from 'lucide-react';
+import { Lock, AlertTriangle, CreditCard } from 'lucide-react';
 import { useSubscription } from '../hooks/useSubscription.js';
 import { Spinner } from '../components/ui/Spinner.jsx';
 import { Button } from '../components/ui/Button.jsx';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { GraduationCap, CheckCircle2, AlertTriangle, Printer } from 'lucide-react';
+
 import { Badge } from '../ui/Badge.jsx';
 import { amountToWords } from '../../utils/numberToWords.js';
 import { SchoolReportHeader } from '../common/SchoolReportHeader.jsx';

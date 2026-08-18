@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertCircle, CheckCircle2, Info, XCircle } from 'lucide-react';
 
-export const Alert = ({ type = 'info', title, children, className = '', onClose }) => {
+export const Alert = ({ type = 'info', title, children, className = '', onClose: _onClose }) => {
   const styles = {
     info: {
       bg: 'bg-sky-50 border-sky-200 text-sky-900',

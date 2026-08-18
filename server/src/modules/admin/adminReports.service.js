@@ -13,7 +13,7 @@ export const adminReportsService = {
 
     if (planId) {
       where.subscription = {
-        ...(where.subscription || {}),
+        ...(where.subscription),
         planId,
       };
     }

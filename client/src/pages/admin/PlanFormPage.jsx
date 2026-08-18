@@ -1,15 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Package,
-  Save,
-  Check,
-  MoveUp,
-  MoveDown,
-  Trash2,
-  Plus,
-} from 'lucide-react';
+import { ArrowLeft, Save, Check, MoveUp, MoveDown, Trash2, Plus } from 'lucide-react';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';

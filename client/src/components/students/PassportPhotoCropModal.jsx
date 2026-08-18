@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, ZoomIn, ZoomOut, Check, RefreshCw, UploadCloud, Crop, ShieldCheck } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, UploadCloud, Crop } from 'lucide-react';
 import { Button } from '../ui/Button.jsx';
 import { toast } from '../ui/Toast.jsx';
 import { studentService } from '../../services/student.service.js';

@@ -12,14 +12,7 @@ import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
-import {
-  Plus,
-  Search,
-  PiggyBank,
-  Settings,
-  AlertTriangle,
-  Landmark,
-} from 'lucide-react';
+import { Plus, Search, PiggyBank, Settings, AlertTriangle } from 'lucide-react';
 
 export const FundsPage = () => {
   const { selectedYearId } = useAcademicYear();

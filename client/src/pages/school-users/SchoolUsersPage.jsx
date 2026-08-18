@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Users, UserPlus, Shield, ShieldCheck, ShieldOff, Eye, EyeOff,
-  ChevronRight, ArrowLeft, Check, Lock, Save, AlertCircle,
-  Search, RefreshCw, UserCheck, UserX, MoreVertical, Settings2,
-  BadgeCheck, Crown, Sparkles, SlidersHorizontal, CheckSquare, Square,
-  Building, BookOpen, CreditCard, Briefcase, Wallet, BarChart3, FileSpreadsheet, X
+  Users, UserPlus, Shield, ShieldCheck, ChevronRight, ArrowLeft, Check,
+  Lock, Save, AlertCircle, Search, UserCheck, UserX, Settings2,
+  BadgeCheck, Crown, Sparkles, BookOpen, CreditCard, Briefcase, Wallet, BarChart3, X, ChevronDown, RefreshCw
 } from 'lucide-react';
 import { schoolUserService } from '../../services/schoolUser.service.js';
 import { usePermission } from '../../hooks/usePermission.js';
@@ -22,7 +20,20 @@ const GROUP_ICONS = {
   academics: BookOpen,
   reports: BarChart3,
   users: ShieldCheck,
+  hostel: BuildingIcon,
 };
+
+function BuildingIcon(props) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect width="16" height="20" x="4" y="2" rx="2" ry="2"/>
+      <path d="M9 22v-4h6v4"/>
+      <path d="M8 6h.01"/><path d="M16 6h.01"/>
+      <path d="M8 10h.01"/><path d="M16 10h.01"/>
+      <path d="M8 14h.01"/><path d="M16 14h.01"/>
+    </svg>
+  );
+}
 
 // ── Role badge component ───────────────────────────────────────────────────────
 const RoleBadge = ({ role }) => {
@@ -57,7 +68,7 @@ const Spinner = ({ size = 'sm' }) => (
   }`} />
 );
 
-// ── Add User Inline Card / Panel ──────────────────────────────────────────────
+// ── Add User Inline Panel ─────────────────────────────────────────────────────
 const AddUserPanel = ({ isOpen, onClose, onSuccess }) => {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '', schoolRole: 'STAFF',
@@ -75,7 +86,7 @@ const AddUserPanel = ({ isOpen, onClose, onSuccess }) => {
       onSuccess?.();
       onClose();
     } catch (err) {
-      setError(err.message || 'Failed to create user');
+      setError(err.message || 'Failed to create user account');
     } finally {
       setLoading(false);
     }
@@ -173,7 +184,7 @@ const AddUserPanel = ({ isOpen, onClose, onSuccess }) => {
   );
 };
 
-// ── DEDICATED USER PERMISSION EDITOR VIEW (NO MODAL) ───────────────────────────
+// ── STREAMLINED USER PERMISSION EDITOR VIEW ────────────────────────────────────
 const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
   const { refreshProfile } = usePermission();
   const [permGroups, setPermGroups] = useState([]);
@@ -248,10 +259,10 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
     try {
       await schoolUserService.setUserPermissions(targetUser.id, Array.from(selected));
       setInitialPermissions(new Set(selected));
-      setSuccessToast('Permissions saved successfully');
-      setTimeout(() => setSuccessToast(''), 3000);
+      setSuccessToast('Permissions updated successfully!');
+      setTimeout(() => setSuccessToast(''), 3500);
       onSaveSuccess?.();
-      refreshProfile();
+      refreshProfile?.();
     } catch (err) {
       setError(err.message || 'Failed to save permissions');
     } finally {
@@ -267,7 +278,6 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
     return false;
   }, [selected, initialPermissions]);
 
-  // Filter groups based on search input
   const filteredGroups = permGroups.map(group => {
     if (!searchFilter.trim()) return group;
     const term = searchFilter.toLowerCase().trim();
@@ -283,25 +293,25 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
   }).filter(Boolean);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Top Banner / Breadcrumb */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs">
-        <div className="flex items-center gap-4">
+    <div className="space-y-5 animate-in fade-in duration-150 max-w-6xl mx-auto">
+      {/* Sleek Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-2xs">
+        <div className="flex items-center gap-3.5">
           <button
             onClick={onBack}
             className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors text-slate-600 hover:text-slate-900 shrink-0"
             title="Back to User List"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-base border border-indigo-200 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm border border-indigo-200/80 shrink-0">
               {targetUser.name?.charAt(0)?.toUpperCase()}
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-slate-900">{targetUser.name}</h1>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-base font-bold text-slate-900">{targetUser.name}</h1>
                 <RoleBadge role={targetUser.schoolRole} />
                 <StatusBadge isActive={targetUser.isActive} />
               </div>
@@ -310,17 +320,16 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
           </div>
         </div>
 
-        {/* Quick Save Actions */}
-        <div className="flex items-center gap-3 self-end sm:self-center">
+        <div className="flex items-center gap-2.5 self-end sm:self-center">
           {hasUnsavedChanges && (
-            <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200/80 animate-pulse">
+            <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/80 animate-pulse">
               Unsaved changes
             </span>
           )}
 
           <button
             onClick={onBack}
-            className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+            className="px-3.5 py-1.5 text-xs font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
           >
             Cancel
           </button>
@@ -328,81 +337,79 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
           <button
             onClick={handleSave}
             disabled={saving || loading}
-            className="flex items-center gap-2 px-5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs disabled:opacity-50"
+            className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-2xs disabled:opacity-50"
           >
-            {saving ? <><Spinner /> Saving Access...</> : <><Save className="w-4 h-4" /> Save Permissions</>}
+            {saving ? <><Spinner /> Saving...</> : <><Save className="w-3.5 h-3.5" /> Save Permissions</>}
           </button>
         </div>
       </div>
 
-      {/* Success / Error Alerts */}
+      {/* Alerts */}
       {successToast && (
-        <div className="flex items-center gap-2 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-2xs">
+        <div className="flex items-center gap-2 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-2xs">
           <Check className="w-4 h-4 text-emerald-600" />
           <span>{successToast}</span>
         </div>
       )}
 
       {error && (
-        <div className="flex items-center gap-2 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
+        <div className="flex items-center gap-2 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
           <AlertCircle className="w-4 h-4 text-rose-600" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Role Presets Section */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3 shadow-2xs">
+      {/* Compact Quick Role Presets */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2.5 shadow-2xs">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-indigo-600" />
             <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Quick Role Presets</h3>
-            <span className="text-[10px] text-slate-400 font-medium">(1-Click Preconfigured Access)</span>
+            <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">(1-Click Preconfigured Access)</span>
           </div>
           <button
             onClick={() => setSelected(new Set())}
-            className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline"
+            className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:underline"
           >
-            Clear All Permissions
+            Clear All
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           {Object.entries(PERMISSION_PRESETS).map(([key, preset]) => (
             <button
               key={key}
               onClick={() => applyPreset(preset.permissions)}
-              className="p-3 text-left rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-indigo-50/60 hover:border-indigo-300 transition-all text-xs group"
+              title={preset.description}
+              className="px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-indigo-50 hover:border-indigo-300 text-slate-700 hover:text-indigo-700 transition-all text-xs font-semibold flex items-center gap-1.5 group"
             >
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-bold text-slate-900 group-hover:text-indigo-700">{preset.label}</span>
-                {preset.badge && (
-                  <span className="text-[9px] font-extrabold bg-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded">
-                    {preset.badge}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-500 leading-snug line-clamp-2">{preset.description}</p>
+              <span>{preset.label}</span>
+              {preset.badge && (
+                <span className="text-[9px] font-extrabold bg-indigo-100 text-indigo-700 px-1.5 py-0.2 rounded">
+                  {preset.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Search & Permissions Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+      {/* Search & Permissions Counter */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
-            placeholder="Search permissions by keyword or feature (e.g. collect, discount, payroll, student)..."
-            className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
+            placeholder="Search permissions by keyword (e.g. fees, admissions, payroll)..."
+            className="w-full pl-10 pr-4 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
           />
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <span className="text-xs text-slate-500">
-            Total Granted: <strong className="text-indigo-600 font-bold text-sm">{selected.size}</strong> permissions
+            Granted: <strong className="text-indigo-600 font-bold">{selected.size}</strong> permissions
           </span>
         </div>
       </div>
@@ -411,7 +418,7 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
       {loading ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-2xs space-y-3">
           <Spinner size="lg" />
-          <p className="text-xs text-slate-500 font-semibold">Loading access control matrix...</p>
+          <p className="text-xs text-slate-500 font-semibold">Loading access permissions matrix...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -424,21 +431,18 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
             return (
               <div key={group.key} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs flex flex-col">
                 {/* Module Header */}
-                <div className="p-4 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-2xs">
-                      <IconComponent className="w-4 h-4" />
+                <div className="p-3.5 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-indigo-600 shadow-2xs">
+                      <IconComponent className="w-3.5 h-3.5" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-xs font-bold text-slate-900">{group.label}</h3>
-                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                        <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.2 rounded-full border border-indigo-100">
                           {enabledCount}/{assignablePerms.length} enabled
                         </span>
                       </div>
-                      {group.description && (
-                        <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">{group.description}</p>
-                      )}
                     </div>
                   </div>
 
@@ -446,18 +450,18 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
                     <button
                       type="button"
                       onClick={() => toggleModuleAll(group)}
-                      className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors border ${
+                      className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-colors border ${
                         isAllModuleSelected
                           ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
                           : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      {isAllModuleSelected ? 'Deselect Module' : 'Select Module'}
+                      {isAllModuleSelected ? 'Deselect All' : 'Select All'}
                     </button>
                   )}
                 </div>
 
-                {/* Module Permission Items */}
+                {/* Module Items */}
                 <div className="divide-y divide-slate-100 flex-1 bg-white">
                   {group.permissions.map((perm) => {
                     const isChecked = selected.has(perm.key);
@@ -467,7 +471,7 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
                       <div
                         key={perm.key}
                         onClick={() => togglePermission(perm.key, isRestricted)}
-                        className={`p-3.5 flex items-start gap-3 transition-colors ${
+                        className={`p-3 flex items-start gap-3 transition-colors ${
                           isRestricted
                             ? 'bg-amber-50/20 cursor-not-allowed'
                             : 'cursor-pointer hover:bg-slate-50/80'
@@ -475,15 +479,15 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
                       >
                         {/* Custom Toggle Switch */}
                         {isRestricted ? (
-                          <div className="w-5 h-5 rounded-md bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5 border border-amber-200">
-                            <Lock className="w-3 h-3" />
+                          <div className="w-4 h-4 rounded bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5 border border-amber-200">
+                            <Lock className="w-2.5 h-2.5" />
                           </div>
                         ) : (
-                          <div className={`w-9 h-5 rounded-full p-0.5 transition-colors shrink-0 mt-0.5 ${
+                          <div className={`w-8 h-4.5 rounded-full p-0.5 transition-colors shrink-0 mt-0.5 ${
                             isChecked ? 'bg-indigo-600' : 'bg-slate-200'
                           }`}>
-                            <div className={`w-4 h-4 rounded-full bg-white shadow-xs transition-transform ${
-                              isChecked ? 'translate-x-4' : 'translate-x-0'
+                            <div className={`w-3.5 h-3.5 rounded-full bg-white shadow-2xs transition-transform ${
+                              isChecked ? 'translate-x-3.5' : 'translate-x-0'
                             }`} />
                           </div>
                         )}
@@ -512,42 +516,13 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
           })}
         </div>
       )}
-
-      {/* Sticky Bottom Save Bar */}
-      <div className="sticky bottom-4 bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200 p-4 shadow-xl flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
-            {selected.size}
-          </div>
-          <p className="text-xs text-slate-600">
-            Permissions granted for <strong className="text-slate-900 font-bold">{targetUser.name}</strong>
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
-          >
-            Back to User List
-          </button>
-
-          <button
-            onClick={handleSave}
-            disabled={saving || loading}
-            className="flex items-center gap-2 px-5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50"
-          >
-            {saving ? <><Spinner /> Saving Access...</> : <><Save className="w-4 h-4" /> Save Permissions</>}
-          </button>
-        </div>
-      </div>
     </div>
   );
 };
 
 // ── MAIN USERS PAGE ───────────────────────────────────────────────────────────
 export const SchoolUsersPage = () => {
-  const { can, isOwner, isSchoolAdmin, hasFullAccess } = usePermission();
+  const { can, isOwner, isSchoolAdmin: _isSchoolAdmin, hasFullAccess } = usePermission();
   const { user: currentUser } = useAuth();
 
   const [users, setUsers] = useState([]);
@@ -586,7 +561,7 @@ export const SchoolUsersPage = () => {
       await schoolUserService.updateUserStatus(user.id, newStatus);
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isActive: newStatus } : u));
     } catch (err) {
-      alert(err.message || 'Failed to update status');
+      alert(err.message || 'Failed to update user status');
     } finally {
       setStatusLoading(s => ({ ...s, [user.id]: false }));
     }
@@ -602,7 +577,7 @@ export const SchoolUsersPage = () => {
   const canManage = hasFullAccess;
   const canCreate = hasFullAccess && can('USERS_CREATE');
 
-  // If a user is selected for access management, render the Dedicated UserPermissionEditor view (NO MODAL)
+  // If a user is selected for access management, render UserPermissionEditor
   if (selectedUserForAccess) {
     return (
       <UserPermissionEditor
@@ -614,7 +589,7 @@ export const SchoolUsersPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-6xl mx-auto">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -749,12 +724,12 @@ export const SchoolUsersPage = () => {
             return (
               <div
                 key={u.id}
-                className="bg-white rounded-2xl border border-slate-200 p-5 hover:border-indigo-200 transition-all shadow-2xs"
+                className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 hover:border-indigo-200 transition-all shadow-2xs"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   {/* User Profile Summary */}
                   <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-sm font-bold shrink-0 border ${
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 border ${
                       u.schoolRole === 'OWNER' ? 'bg-amber-100 text-amber-800 border-amber-200' :
                       u.schoolRole === 'SCHOOL_ADMIN' ? 'bg-indigo-100 text-indigo-800 border-indigo-200' :
                       'bg-slate-100 text-slate-700 border-slate-200'
@@ -775,7 +750,7 @@ export const SchoolUsersPage = () => {
                   </div>
 
                   {/* Actions Area */}
-                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center pt-2 sm:pt-0">
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                     {/* Status Toggle */}
                     {(canModify || canModifyOwner) && (
                       <button
@@ -796,9 +771,9 @@ export const SchoolUsersPage = () => {
                     {canModify && u.schoolRole === 'STAFF' && (
                       <button
                         onClick={() => setSelectedUserForAccess(u)}
-                        className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200/80 hover:bg-indigo-100 transition-colors shadow-2xs"
+                        className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200/80 hover:bg-indigo-100 transition-colors shadow-2xs"
                       >
-                        <Settings2 className="w-4 h-4" />
+                        <Settings2 className="w-3.5 h-3.5" />
                         Configure Access
                         <ChevronRight className="w-3.5 h-3.5 text-indigo-500" />
                       </button>
@@ -806,8 +781,8 @@ export const SchoolUsersPage = () => {
 
                     {/* Full Access badge for admin/owner */}
                     {(u.schoolRole === 'OWNER' || u.schoolRole === 'SCHOOL_ADMIN') && (
-                      <span className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-3 py-1.5 rounded-xl font-semibold">
-                        <BadgeCheck className="w-4 h-4 text-emerald-600" />
+                      <span className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-3 py-1 rounded-xl font-semibold">
+                        <BadgeCheck className="w-3.5 h-3.5 text-emerald-600" />
                         Full Access
                       </span>
                     )}
@@ -816,14 +791,14 @@ export const SchoolUsersPage = () => {
 
                 {/* Granted Access Summary Pills for STAFF */}
                 {u.schoolRole === 'STAFF' && (
-                  <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Granted Access:</span>
                       {u.permissions.length === 0 ? (
                         <span className="text-xs text-slate-400 italic">No permissions assigned yet</span>
                       ) : u.permissions.length <= 4 ? (
                         u.permissions.map(p => (
-                          <span key={p} className="text-[11px] bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full font-medium border border-slate-200/60">
+                          <span key={p} className="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-medium border border-slate-200/60">
                             {p.replace(/_/g, ' ')}
                           </span>
                         ))

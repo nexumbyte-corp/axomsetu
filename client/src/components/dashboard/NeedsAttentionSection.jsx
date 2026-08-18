@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, CreditCard, Users, CheckCircle2, ArrowRight } from 'lucide-react';
+import { AlertCircle, CreditCard, Users, CheckCircle2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card.jsx';
 import { Badge } from '../ui/Badge.jsx';
 

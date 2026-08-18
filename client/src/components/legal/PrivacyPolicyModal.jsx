@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal } from '../ui/Modal.jsx';
 import { Button } from '../ui/Button.jsx';
-import { ShieldCheck, FileText, Lock } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { PRIVACY_POLICY_VERSION, PRIVACY_POLICY_SECTIONS } from '../../constants/legalContent.js';
 
 export const PrivacyPolicyModal = ({ isOpen, onClose }) => {

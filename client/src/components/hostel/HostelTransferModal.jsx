@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeftRight, Bed, Building, DoorOpen } from 'lucide-react';
+import { ArrowLeftRight, Bed } from 'lucide-react';
 import { hostelService } from '../../services/hostel.service.js';
 import { Modal } from '../ui/Modal.jsx';
 import { Button } from '../ui/Button.jsx';

@@ -1,14 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  TrendingUp,
-  DollarSign,
-  Calendar,
-  Filter,
-  RefreshCw,
-  PieChart,
-  ArrowUpRight,
-  ArrowDownRight,
-} from 'lucide-react';
+import { Filter, RefreshCw } from 'lucide-react';
 import { adminService } from '../../../services/adminService.js';
 import { ModulePageHeader } from '../../../components/ui/ModulePageHeader.jsx';
 import { Spinner } from '../../../components/ui/Spinner.jsx';
@@ -17,7 +8,6 @@ import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '.
 import { Input } from '../../../components/ui/Input.jsx';
 import { Select } from '../../../components/ui/Select.jsx';
 import { Button } from '../../../components/ui/Button.jsx';
-import { Badge } from '../../../components/ui/Badge.jsx';
 
 export const SuperAdminRevenueReportPage = () => {
   const [data, setData] = useState(null);

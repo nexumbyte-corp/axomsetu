@@ -7,8 +7,8 @@ export const createDocumentStyles = (customSettings = {}) => {
   const secondaryColor = customSettings.secondaryColor || '#4f46e5'; // Indigo 600
   const neutralColor = customSettings.neutralColor || '#64748b'; // Slate 500
   const darkColor = '#0f172a'; // Slate 900
-  const lightBg = '#f8fafc'; // Slate 50
-  const borderColor = '#e2e8f0'; // Slate 200
+  const _lightBg = '#f8fafc'; // Slate 50
+  const _borderColor = '#e2e8f0'; // Slate 200
 
   return {
     // School Header Styles

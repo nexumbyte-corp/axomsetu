@@ -7,7 +7,7 @@ import { Badge } from '../ui/Badge.jsx';
 import { EnrollmentFields } from './EnrollmentFields.jsx';
 import { studentService } from '../../services/student.service.js';
 import { toast } from '../ui/Toast.jsx';
-import { ArrowRight, Sparkles, AlertTriangle, GraduationCap, RotateCcw, UserX } from 'lucide-react';
+import { Sparkles, AlertTriangle, GraduationCap, RotateCcw, UserX } from 'lucide-react';
 
 export const IndividualPromotionModal = ({
   isOpen,

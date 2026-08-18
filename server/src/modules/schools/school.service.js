@@ -105,7 +105,7 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null, 
     });
 
     // 5. Create SchoolAdmin membership
-    const schoolAdmin = await tx.schoolAdmin.create({
+    await tx.schoolAdmin.create({
       data: {
         schoolId: school.id,
         userId: ownerUser.id,

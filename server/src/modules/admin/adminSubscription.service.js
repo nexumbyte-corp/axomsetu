@@ -499,7 +499,7 @@ export const createManualSubscription = async (schoolId, data, adminId) => {
       },
     });
 
-    const payment = await tx.subscriptionPayment.create({
+    await tx.subscriptionPayment.create({
       data: {
         schoolId,
         subscriptionId: sub.id,

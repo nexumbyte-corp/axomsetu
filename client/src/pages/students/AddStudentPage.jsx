@@ -1,15 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import {
-  ArrowLeft,
-  UserPlus,
-  ShieldAlert,
-  Camera,
-  Upload,
-  CheckCircle2,
-  Trash2,
-  Phone,
-} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, UserPlus, ShieldAlert, Camera, Upload, CheckCircle2, Trash2, Phone } from 'lucide-react';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { studentService } from '../../services/student.service.js';
@@ -112,7 +103,7 @@ export const AddStudentPage = () => {
         if (secRes.success) setSections(secRes.data || []);
         if (medRes.success) setMediums(medRes.data || []);
         if (strRes.success) setStreams(strRes.data || []);
-      } catch (err) {
+      } catch {
         toast.error('Failed loading academic configuration');
       } finally {
         setLoadingSetup(false);
@@ -163,7 +154,7 @@ export const AddStudentPage = () => {
         } else {
           setFeeStructureHeads([]);
         }
-      } catch (err) {
+      } catch {
         setFeeStructureHeads([]);
       } finally {
         setLoadingFeeStructure(false);
@@ -393,14 +384,10 @@ export const AddStudentPage = () => {
         feeOverrides: feeOverridesPayload.length > 0 ? feeOverridesPayload : null,
       };
 
-      const res = await studentService.createStudent(payload);
+      await studentService.createStudent(payload);
       toast.success('Student registered successfully and initial fee charges generated!');
-      if (res.data?.id) {
-        navigate(`/app/students/${res.data.id}`);
-      } else {
-        navigate('/app/students');
-      }
-    } catch (err) {
+      navigate('/app/students');
+    } catch {
       toast.error(err.message || 'Failed adding student');
       if (err.errors) setErrors(err.errors);
     } finally {

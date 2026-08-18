@@ -25,6 +25,7 @@ export const hostelService = {
   // Fee Config & Monthly Generation
   getFeeConfig: (params) => api.get('/hostel/fees/config', { params }),
   saveFeeConfig: (data) => api.post('/hostel/fees/config', data),
+  getEligibleStudentsForBilling: (params) => api.get('/hostel/fees/eligible-students', { params }),
   generateMonthlyFees: (data) => api.post('/hostel/fees/generate', data),
 
   // Admission

@@ -1,19 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Save,
-  User,
-  Camera,
-  Upload,
-  CheckCircle2,
-  Trash2,
-  Phone,
-  GraduationCap,
-  Sparkles,
-  ShieldCheck,
-  Building,
-} from 'lucide-react';
+import { ArrowLeft, Save, User, Upload, CheckCircle2, Trash2, Phone, ShieldCheck } from 'lucide-react';
 import { studentService } from '../../services/student.service.js';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input } from '../../components/ui/Input.jsx';

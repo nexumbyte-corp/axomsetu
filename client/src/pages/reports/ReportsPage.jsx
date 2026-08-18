@@ -1,29 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  BarChart3,
-  Search,
-  Users,
-  GraduationCap,
-  CreditCard,
-  Building,
-  Briefcase,
-  Calculator,
-  Wallet,
-  ShieldCheck,
-  FileSpreadsheet,
-  ArrowLeft,
-  Printer,
-  Download,
-  FileText,
-  Filter,
-  RefreshCw,
-  Loader2,
-  Calendar,
-  Layers,
-  Clock,
-  Sparkles,
-  UserCheck,
-} from 'lucide-react';
+import { BarChart3, Search, Users, GraduationCap, CreditCard, Briefcase, Calculator, Wallet, ShieldCheck, FileSpreadsheet, ArrowLeft, Download, Filter, RefreshCw, Loader2, Clock, Sparkles, UserCheck } from 'lucide-react';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
@@ -32,7 +8,6 @@ import { Pagination } from '../../components/ui/Pagination.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { DocumentPreviewModal } from '../../components/documents/DocumentPreviewModal.jsx';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
-
 
 import { REPORT_CATEGORIES, REPORT_REGISTRY, getReportById } from '../../core/reports/reportRegistry.js';
 import { reportService } from '../../services/report.service.js';
@@ -54,10 +29,9 @@ const CATEGORY_ICONS = {
 
 export const ReportsPage = () => {
   useDocumentTitle('Reports');
-  const { selectedYearId, selectedYear, academicYears } = useAcademicYear();
+  const { selectedYearId, selectedYear: _selectedYear, academicYears } = useAcademicYear();
   const { user } = useAuth();
   const schoolHeader = user?.schoolAdmins?.[0]?.school || user?.school || {};
-
 
   // Navigation & Search State
   const [activeCategory, setActiveCategory] = useState('all');
@@ -66,7 +40,7 @@ export const ReportsPage = () => {
     try {
       const saved = localStorage.getItem('recent_reports');
       return saved ? JSON.parse(saved) : [];
-    } catch (e) {
+    } catch {
       return [];
     }
   });
@@ -94,7 +68,7 @@ export const ReportsPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [reportResult, setReportResult] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [_currentPage, setCurrentPage] = useState(1);
 
   // PDF Preview Modal State
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
@@ -179,7 +153,7 @@ export const ReportsPage = () => {
       const res = await reportService.fetchReport(activeReport.endpoint, params);
       setReportResult(res);
       setCurrentPage(pageToFetch);
-    } catch (err) {
+    } catch {
       console.error('Report execution failed', err);
       setError(err.message || 'Failed to generate report data.');
       toast.error('Failed to generate report.');
@@ -208,7 +182,7 @@ export const ReportsPage = () => {
 
       exportToCSV(rawData, columns, filename);
       toast.success('CSV exported successfully.');
-    } catch (err) {
+    } catch {
       toast.error('Failed exporting CSV.');
     } finally {
       setActionLoading((prev) => ({ ...prev, csv: false }));
@@ -230,7 +204,6 @@ export const ReportsPage = () => {
     };
   };
 
-
   // Generate PDF modal preview
   const handleOpenPdfModal = () => {
     const payload = preparePdfPayload();
@@ -238,8 +211,6 @@ export const ReportsPage = () => {
     setPdfData(payload);
     setIsPdfModalOpen(true);
   };
-
-
 
   // Helper to translate raw filter IDs to clean human-readable names
   const getFilterHumanLabel = (key, val) => {
@@ -567,7 +538,6 @@ export const ReportsPage = () => {
               </div>
             </div>
           )}
-
 
           {/* Loading Skeleton */}
           {loading ? (

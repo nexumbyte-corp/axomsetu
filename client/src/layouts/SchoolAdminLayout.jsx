@@ -1,15 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import {
-  GraduationCap,
-  Calendar,
-  LogOut,
-  Menu,
-  ChevronDown,
-  Building,
-  Lock,
-  HelpCircle,
-} from 'lucide-react';
+import { Calendar, LogOut, Menu, ChevronDown, Building, Lock, HelpCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { usePermission } from '../hooks/usePermission.js';
 import { useAcademicYear } from '../hooks/useAcademicYear.js';
@@ -37,6 +28,7 @@ export const SchoolAdminLayout = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState({});
+  const [openSubMenus, setOpenSubMenus] = useState({});
 
   // Helper to check if a navigation item matches the current path
   const isItemActive = (item, currentPath) => {
@@ -48,9 +40,9 @@ export const SchoolAdminLayout = () => {
   };
 
   // Get current navigation groups based on permissions & subscription
-  const navGroups = getSidebarNavigation({ isSubscriptionActive, isOwner, hasFullAccess });
+  const navGroups = getSidebarNavigation({ isSubscriptionActive, isOwner, hasFullAccess, can });
 
-  // Auto-expand the group containing the active route whenever location changes
+  // Auto-expand the group and sub-menu containing the active route whenever location changes
   useEffect(() => {
     setIsMobileNavOpen(false);
     setIsLogoutModalOpen(false);
@@ -59,8 +51,20 @@ export const SchoolAdminLayout = () => {
 
     const currentPath = location.pathname;
     navGroups.forEach((group) => {
-      const hasActiveChild = group.items.some((item) => isItemActive(item, currentPath));
-      if (hasActiveChild) {
+      let groupHasActive = false;
+      group.items.forEach((item) => {
+        if (item.children && item.children.length > 0) {
+          const hasActiveChild = item.children.some((child) => isItemActive(child, currentPath));
+          if (hasActiveChild || isItemActive(item, currentPath)) {
+            groupHasActive = true;
+            setOpenSubMenus((prev) => ({ ...prev, [item.label]: true }));
+          }
+        } else if (isItemActive(item, currentPath)) {
+          groupHasActive = true;
+        }
+      });
+
+      if (groupHasActive) {
         setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
       }
     });
@@ -70,6 +74,14 @@ export const SchoolAdminLayout = () => {
     setOpenGroups((prev) => ({
       ...prev,
       [groupId]: !currentlyExpanded,
+    }));
+  };
+
+  const toggleSubMenu = (itemLabel, e) => {
+    e?.stopPropagation();
+    setOpenSubMenus((prev) => ({
+      ...prev,
+      [itemLabel]: !prev[itemLabel],
     }));
   };
 
@@ -96,11 +108,24 @@ export const SchoolAdminLayout = () => {
   const renderNavItems = (onItemClick) => (
     <div className="space-y-4">
       {navGroups.map((group) => {
-        const visibleItems = group.items.filter((item) => !item.permission || can(item.permission));
+        const visibleItems = group.items.filter((item) => {
+          if (item.permission && !can(item.permission)) return false;
+          if (item.children) {
+            const visibleChildren = item.children.filter((child) => !child.permission || can(child.permission));
+            return visibleChildren.length > 0;
+          }
+          return true;
+        });
         if (visibleItems.length === 0) return null;
 
-        const hasActiveChild = visibleItems.some((item) => isItemActive(item, location.pathname));
-        const isExpanded = openGroups[group.id] ?? (hasActiveChild || group.id === 'main');
+        const hasActiveChildGroup = visibleItems.some((item) => {
+          if (isItemActive(item, location.pathname)) return true;
+          if (item.children) {
+            return item.children.some((child) => isItemActive(child, location.pathname));
+          }
+          return false;
+        });
+        const isExpanded = openGroups[group.id] ?? (hasActiveChildGroup || group.id === 'main');
 
         return (
           <div key={group.id} className="select-none">
@@ -122,7 +147,7 @@ export const SchoolAdminLayout = () => {
             <div
               id={`nav-group-${group.id}`}
               className={`space-y-1 transition-all duration-200 overflow-hidden ${
-                isExpanded ? 'max-h-96 opacity-100 mt-1' : 'max-h-0 opacity-0'
+                isExpanded ? 'max-h-[600px] opacity-100 mt-1' : 'max-h-0 opacity-0'
               }`}
             >
               {visibleItems.map((item) => {
@@ -133,7 +158,7 @@ export const SchoolAdminLayout = () => {
                     <div
                       key={item.label}
                       className="flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg text-slate-400 opacity-60 cursor-not-allowed select-none"
-                      title="Hostel module coming soon"
+                      title="Module coming soon"
                     >
                       <div className="flex items-center gap-3">
                         <IconComp className="w-4 h-4 shrink-0 text-slate-400" />
@@ -144,6 +169,69 @@ export const SchoolAdminLayout = () => {
                           {item.badge}
                         </span>
                       )}
+                    </div>
+                  );
+                }
+
+                // If item has sub-items (children)
+                if (item.children && item.children.length > 0) {
+                  const visibleChildren = item.children.filter(
+                    (child) => !child.permission || can(child.permission)
+                  );
+                  if (visibleChildren.length === 0) return null;
+
+                  const isSubActive = visibleChildren.some((child) => isItemActive(child, location.pathname));
+                  const isSubOpen = openSubMenus[item.label] ?? isSubActive;
+
+                  return (
+                    <div key={item.label} className="space-y-1">
+                      <button
+                        type="button"
+                        onClick={(e) => toggleSubMenu(item.label, e)}
+                        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                          isSubActive
+                            ? 'bg-indigo-50 text-indigo-700 font-bold'
+                            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <IconComp className={`w-4 h-4 shrink-0 ${isSubActive ? 'text-indigo-600' : 'text-slate-500'}`} />
+                          <span>{item.label}</span>
+                        </div>
+                        <ChevronDown
+                          className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                            isSubOpen ? 'rotate-180' : ''
+                          }`}
+                        />
+                      </button>
+
+                      <div
+                        className={`pl-3.5 ml-3 border-l-2 border-indigo-100 space-y-1 transition-all duration-200 overflow-hidden ${
+                          isSubOpen ? 'max-h-[350px] opacity-100 mt-1' : 'max-h-0 opacity-0'
+                        }`}
+                      >
+                        {visibleChildren.map((child) => {
+                          const ChildIcon = child.icon;
+                          return (
+                            <NavLink
+                              key={child.path + (child.end ? '-end' : '')}
+                              to={child.path}
+                              end={child.end}
+                              onClick={onItemClick}
+                              className={({ isActive }) =>
+                                `flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                                  isActive
+                                    ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                }`
+                              }
+                            >
+                              {ChildIcon && <ChildIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />}
+                              <span>{child.label}</span>
+                            </NavLink>
+                          );
+                        })}
+                      </div>
                     </div>
                   );
                 }
@@ -324,7 +412,6 @@ export const SchoolAdminLayout = () => {
           <Outlet />
         </main>
       </div>
-
 
       {/* Support Modal */}
       <SupportModal isOpen={isSupportOpen} onClose={() => setIsSupportOpen(false)} />

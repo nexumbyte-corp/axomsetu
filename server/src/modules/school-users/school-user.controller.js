@@ -1,6 +1,6 @@
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { schoolUserService } from './school-user.service.js';
-import { PERMISSION_GROUPS, ASSIGNABLE_PERMISSIONS } from '../../config/permissions.js';
+import { PERMISSION_GROUPS } from '../../config/permissions.js';
 import {
   createSchoolUserSchema,
   updateSchoolUserSchema,

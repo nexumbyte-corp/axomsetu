@@ -1,5 +1,5 @@
 import { createPDFHeader } from '../common/header.js';
-import { formatDocCurrency, formatDocDate, sanitizeDocText, getSchoolBranding } from '../common/formatters.js';
+import { formatDocCurrency, sanitizeDocText, getSchoolBranding } from '../common/formatters.js';
 
 /**
  * Payroll Report Data Builder
@@ -61,7 +61,7 @@ export const buildPayrollReportData = (rawData = {}) => {
 /**
  * pdfMake Template Builder for Payroll Report
  */
-export const buildPayrollReportTemplate = (data = {}, settings = {}) => {
+export const buildPayrollReportTemplate = (data = {}, _settings = {}) => {
   const headerContent = createPDFHeader({
     school: data.school,
     documentTitle: data.reportTitle,

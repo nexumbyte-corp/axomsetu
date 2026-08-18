@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, RefreshCw, FileText } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 import { DashboardCards } from '../../components/fees/DashboardCards.jsx';
 import { ReceiptTable } from '../../components/fees/ReceiptTable.jsx';
 import { usePaymentsList, useDashboardSummary } from '../../hooks/usePaymentEngine.js';

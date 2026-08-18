@@ -1,15 +1,15 @@
 import { ApiError } from '../utils/ApiError.js';
 
 class PaymentProvider {
-  async createOrder(params) {
+  async createOrder(_params) {
     throw new Error('createOrder must be implemented by concrete subclass');
   }
 
-  async verifyPayment(params) {
+  async verifyPayment(_params) {
     throw new Error('verifyPayment must be implemented by concrete subclass');
   }
 
-  async verifyWebhook(params) {
+  async verifyWebhook(_params) {
     throw new Error('verifyWebhook must be implemented by concrete subclass');
   }
 }
@@ -30,7 +30,7 @@ class ManualPaymentProvider extends PaymentProvider {
     };
   }
 
-  async verifyPayment({ referenceNumber }) {
+  async verifyPayment({ referenceNumber: _referenceNumber }) {
     return {
       success: true,
       provider: 'MANUAL',

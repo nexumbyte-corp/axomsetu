@@ -1,7 +1,7 @@
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { generateNextDocumentNumber } from '../../utils/documentSequence.js';
-import { isStaffEligibleForMonth, isStaffOperationallyActive } from '../../utils/staffHelpers.js';
+import { isStaffEligibleForMonth } from '../../utils/staffHelpers.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
 
 export const payrollService = {
@@ -321,8 +321,6 @@ export const payrollService = {
       throw ApiError.badRequest('No operationally active staff members eligible for the selected month.');
     }
 
-    const eligibleMap = new Map(eligibleStaff.map((st) => [st.id, st]));
-
     // Fetch salary setups for target academic year
     const salarySetups = await prisma.staffSalarySetup.findMany({
       where: { schoolId, academicYearId },
@@ -499,7 +497,7 @@ export const payrollService = {
   /**
    * Update individual staff monthly payroll attendance/bonus/deductions
    */
-  async updateStaffMonthlyPayroll(schoolId, payrollId, data, userId) {
+  async updateStaffMonthlyPayroll(schoolId, payrollId, data, _userId) {
     return await prisma.$transaction(async (tx) => {
       const payroll = await tx.monthlyPayroll.findFirst({
         where: { id: payrollId, schoolId },

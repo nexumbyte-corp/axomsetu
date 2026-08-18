@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Eye, Calendar, User, CheckCircle, AlertCircle, FileText } from 'lucide-react';
+import { History, Eye } from 'lucide-react';
 import { feeService } from '../../services/fee.service.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { Badge } from '../../components/ui/Badge.jsx';
@@ -33,7 +33,7 @@ export const GeneratedHistoryPage = () => {
       });
       setHistory(res.data || []);
       setPagination(res.pagination || { page: 1, totalPages: 1, total: 0 });
-    } catch (err) {
+    } catch {
       toast.error('Failed to load generation history');
     } finally {
       setLoading(false);
@@ -50,7 +50,7 @@ export const GeneratedHistoryPage = () => {
     try {
       const res = await feeService.getGenerationBatchDetails(batchId);
       setSelectedBatch(res.data);
-    } catch (err) {
+    } catch {
       toast.error('Failed to load batch details');
       setIsDetailModalOpen(false);
     } finally {

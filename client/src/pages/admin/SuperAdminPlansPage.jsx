@@ -1,15 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Package,
-  Plus,
-  Edit2,
-  Trash2,
-  Search,
-  CheckCircle2,
-  XCircle,
-  RefreshCw,
-} from 'lucide-react';
+import { Plus, Edit2, Trash2, RefreshCw } from 'lucide-react';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';

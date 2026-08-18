@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Calendar, CreditCard, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, CheckCircle2, Clock } from 'lucide-react';
 import { Badge } from '../ui/Badge.jsx';
 
 export const LedgerTimeline = ({ charges = [] }) => {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Lock, Unlock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Calendar, Lock, Unlock, CheckCircle2 } from 'lucide-react';
 import { useAcademicYear } from '../hooks/useAcademicYear.js';
 import { academicService } from '../services/academic.service.js';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../components/ui/Table.jsx';

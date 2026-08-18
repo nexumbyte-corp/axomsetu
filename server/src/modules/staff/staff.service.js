@@ -13,7 +13,7 @@ export const staffService = {
   /**
    * Create a new Staff member
    */
-  async createStaff(schoolId, data, userId) {
+  async createStaff(schoolId, data, _userId) {
     return await prisma.$transaction(async (tx) => {
       let employeeId = data.employeeId?.trim();
       if (!employeeId) {
@@ -165,7 +165,7 @@ export const staffService = {
   /**
    * Update staff profile
    */
-  async updateStaff(schoolId, staffId, data, userId) {
+  async updateStaff(schoolId, staffId, data, _userId) {
     const staff = await prisma.staff.findFirst({
       where: { id: staffId, schoolId },
     });
@@ -214,7 +214,7 @@ export const staffService = {
   /**
    * Delete staff member (or mark inactive if payments exist)
    */
-  async deleteStaff(schoolId, staffId, userId) {
+  async deleteStaff(schoolId, staffId, _userId) {
     const staff = await prisma.staff.findFirst({
       where: { id: staffId, schoolId },
       include: {
@@ -274,7 +274,7 @@ export const staffService = {
       try {
         const currentAy = await ensureCurrentAcademicYear(schoolId);
         academicYearId = currentAy?.id || null;
-      } catch (e) {
+      } catch {
         academicYearId = null;
       }
     }

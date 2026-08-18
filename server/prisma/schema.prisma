@@ -705,7 +705,7 @@ model StudentFeeCharge {
   overriddenBy      User?               @relation("FeeChargeOverriddenBy", fields: [overriddenById], references: [id], onDelete: SetNull)
   allocations       PaymentAllocation[]
 
-  @@unique([schoolId, academicYearId, studentEnrollmentId, feeTypeId, title, month])
+  @@unique([schoolId, academicYearId, studentId, studentEnrollmentId, feeTypeId, month])
   @@index([schoolId])
   @@index([studentId])
   @@index([academicYearId])

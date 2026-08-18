@@ -1,14 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Receipt,
-  Search,
-  Filter,
-  RefreshCw,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  Calendar,
-} from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 import { adminService } from '../../services/adminService.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
@@ -76,7 +67,6 @@ export const SuperAdminPaymentsPage = () => {
         title="Platform Payments Log"
         description="Centralized audit trail for all subscription payments, manual cash/bank records, and Razorpay transactions."
       />
-
 
       {/* Filters Bar */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col sm:flex-row items-center gap-4 shadow-xs">

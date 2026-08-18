@@ -104,7 +104,7 @@ export const salarySetupService = {
    * Copy Previous Year's Salary Setup into Target Academic Year.
    * Does NOT overwrite previous year records.
    */
-  async copyPreviousYearSalary(schoolId, academicYearId, userId) {
+  async copyPreviousYearSalary(schoolId, academicYearId, _userId) {
     const academicYear = await prisma.academicYear.findFirst({
       where: { id: academicYearId, schoolId },
     });
@@ -204,7 +204,7 @@ export const salarySetupService = {
   /**
    * Save / Revise Salary Setup for Academic Year
    */
-  async saveSalarySetup(schoolId, academicYearId, payload, userId) {
+  async saveSalarySetup(schoolId, academicYearId, payload, _userId) {
     const { rows, effectiveFrom } = payload;
 
     if (!Array.isArray(rows) || rows.length === 0) {

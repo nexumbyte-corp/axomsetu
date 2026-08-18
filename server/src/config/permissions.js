@@ -386,7 +386,7 @@ export const PERMISSION_GROUPS = [
  * Predefined Permission Presets for Common School Roles.
  * School Admins can apply a preset with 1-click when managing staff access.
  */
-const PERMISSION_PRESETS = {
+export const PERMISSION_PRESETS = {
   FEE_CASHIER: {
     label: 'Fee Cashier',
     badge: 'Popular',

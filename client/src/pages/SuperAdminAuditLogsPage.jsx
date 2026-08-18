@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  FileText,
-  Search,
-  Filter,
-  RefreshCw,
-  Eye,
-  Calendar,
-  User,
-  ShieldCheck,
-  Tag,
-} from 'lucide-react';
+import { Search, RefreshCw, Eye } from 'lucide-react';
 import { Badge } from '../components/ui/Badge.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { Input } from '../components/ui/Input.jsx';

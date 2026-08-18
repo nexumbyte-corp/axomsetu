@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  Users,
-  Search,
-  Eye,
-  ArrowLeftRight,
-  LogOut,
-  UserPlus,
-  Filter,
-} from 'lucide-react';
+import { Users, Search, Eye, ArrowLeftRight, LogOut, UserPlus } from 'lucide-react';
 import { hostelService } from '../../services/hostel.service.js';
 import { useAcademicYear } from '../../context/AcademicYearContext.jsx';
 import { Card } from '../../components/ui/Card.jsx';
@@ -16,11 +8,14 @@ import { Button } from '../../components/ui/Button.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Drawer } from '../../components/ui/Drawer.jsx';
+
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
 import { HostelTransferModal } from '../../components/hostel/HostelTransferModal.jsx';
 import { HostelExitModal } from '../../components/hostel/HostelExitModal.jsx';
+import { StudentDetailsCell } from '../../components/hostel/StudentDetailsCell.jsx';
+import { StudentPhotoModal } from '../../components/hostel/StudentPhotoModal.jsx';
 
 export const HostelResidentsPage = () => {
   const navigate = useNavigate();
@@ -30,6 +25,7 @@ export const HostelResidentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [residents, setResidents] = useState([]);
   const [hostels, setHostels] = useState([]);
+  const [selectedPhotoStudent, setSelectedPhotoStudent] = useState(null);
 
   // Filters
   const [selectedHostelId, setSelectedHostelId] = useState(location.state?.hostelId || '');
@@ -84,6 +80,7 @@ export const HostelResidentsPage = () => {
     return (
       (r.studentName && r.studentName.toLowerCase().includes(q)) ||
       (r.admissionNo && r.admissionNo.toLowerCase().includes(q)) ||
+      (r.guardianName && r.guardianName.toLowerCase().includes(q)) ||
       (r.phone && r.phone.toLowerCase().includes(q)) ||
       (r.hostelName && r.hostelName.toLowerCase().includes(q)) ||
       (r.roomNumber && r.roomNumber.toLowerCase().includes(q)) ||
@@ -107,7 +104,7 @@ export const HostelResidentsPage = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 text-xs">
       {/* SINGLE-ROW COMPACT TOOLBAR */}
       <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto flex-1">
@@ -117,7 +114,7 @@ export const HostelResidentsPage = () => {
             <input
               type="text"
               className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-slate-50/50"
-              placeholder="Search by name, admission no. or phone..."
+              placeholder="Search by name, admission no., guardian, phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -178,7 +175,7 @@ export const HostelResidentsPage = () => {
           <table className="min-w-full divide-y divide-slate-200 text-xs">
             <thead className="bg-slate-50 text-slate-600 font-semibold">
               <tr>
-                <th className="px-3.5 py-2.5 text-left">Student</th>
+                <th className="px-3.5 py-2.5 text-left">Student Details (Name, Adm No, Guardian)</th>
                 <th className="px-3.5 py-2.5 text-left">Class & Section</th>
                 <th className="px-3.5 py-2.5 text-left">Hostel & Room</th>
                 <th className="px-3.5 py-2.5 text-left">Bed</th>
@@ -191,8 +188,7 @@ export const HostelResidentsPage = () => {
               {filteredResidents.map((r) => (
                 <tr key={r.id} className="hover:bg-slate-50/60 transition-colors">
                   <td className="px-3.5 py-2.5">
-                    <div className="font-bold text-slate-900">{r.studentName}</div>
-                    <div className="text-[11px] text-slate-500 font-mono">Adm: {r.admissionNo}</div>
+                    <StudentDetailsCell student={r} onPhotoClick={setSelectedPhotoStudent} />
                   </td>
                   <td className="px-3.5 py-2.5 font-medium text-slate-700">
                     {formatStudentClassInfo(r)}
@@ -343,6 +339,13 @@ export const HostelResidentsPage = () => {
         onClose={() => setExitModalOpen(false)}
         resident={selectedResident}
         onSuccess={fetchResidents}
+      />
+
+      {/* ── STUDENT PHOTO PREVIEW MODAL ── */}
+      <StudentPhotoModal
+        isOpen={Boolean(selectedPhotoStudent)}
+        onClose={() => setSelectedPhotoStudent(null)}
+        student={selectedPhotoStudent}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Filter, X, RotateCcw } from 'lucide-react';
+import { Filter, RotateCcw } from 'lucide-react';
 import { Select } from '../ui/Select.jsx';
 import { Button } from '../ui/Button.jsx';
 import { Drawer } from '../ui/Drawer.jsx';

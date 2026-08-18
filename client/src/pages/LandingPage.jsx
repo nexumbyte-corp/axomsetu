@@ -1,24 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import {
-  GraduationCap,
-  Users,
-  CreditCard,
-  Building2,
-  Calendar,
-  Menu,
-  Receipt,
-  FileSpreadsheet,
-  ChevronDown,
-  Check,
-  Sliders,
-  UserCheck,
-  Phone,
-} from 'lucide-react';
+import { Users, CreditCard, Building2, Calendar, Menu, Receipt, FileSpreadsheet, ChevronDown, Check, Sliders, UserCheck } from 'lucide-react';
 import { Button } from '../components/ui/Button.jsx';
 import { Drawer } from '../components/ui/Drawer.jsx';
 import { subscriptionService } from '../services/subscriptionService.js';
-import { platformService } from '../services/platformService.js';
+
 import { BRAND_CONFIG } from '../config/brandConfig.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
 import { TermsAndConditionsModal } from '../components/legal/TermsAndConditionsModal.jsx';

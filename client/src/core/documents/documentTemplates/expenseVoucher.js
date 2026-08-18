@@ -31,7 +31,7 @@ export const buildExpenseVoucherData = (rawData = {}) => {
 /**
  * pdfMake Template Builder for Single Expense Voucher
  */
-export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
+export const buildExpenseVoucherTemplate = (data = {}, _settings = {}) => {
   const isCancelled = data.status === 'CANCELLED' || data.status === 'VOID';
 
   const headerContent = createPDFHeader({

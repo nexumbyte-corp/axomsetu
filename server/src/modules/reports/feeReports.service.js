@@ -5,7 +5,7 @@ export const feeReportsService = {
   /**
    * Detailed Fee Collection Report
    */
-  async getCollectionReport(schoolId, query = {}, userId) {
+  async getCollectionReport(schoolId, query = {}, _userId) {
     const {
       academicYearId,
       startDate,
@@ -139,7 +139,7 @@ export const feeReportsService = {
   /**
    * Outstanding Dues Report
    */
-  async getOutstandingReport(schoolId, query = {}, userId) {
+  async getOutstandingReport(schoolId, query = {}, _userId) {
     const {
       academicYearId,
       classId,

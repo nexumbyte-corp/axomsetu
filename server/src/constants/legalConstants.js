@@ -6,7 +6,7 @@
 export const CURRENT_TERMS_VERSION = '1.0';
 export const CURRENT_PRIVACY_POLICY_VERSION = '1.0';
 
-const TERMS_CLAUSES = [
+export const TERMS_CLAUSES = [
   {
     id: 1,
     title: 'Acceptance',
@@ -169,7 +169,7 @@ const TERMS_CLAUSES = [
   },
 ];
 
-const PRIVACY_POLICY_SECTIONS = [
+export const PRIVACY_POLICY_SECTIONS = [
   {
     id: 1,
     title: '1. Information We Collect',

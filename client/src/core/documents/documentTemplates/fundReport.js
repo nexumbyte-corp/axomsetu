@@ -51,7 +51,7 @@ export const buildFundReportData = (rawData = {}) => {
 /**
  * pdfMake Template Builder for School Fund Report
  */
-export const buildFundReportTemplate = (data, settings = {}) => {
+export const buildFundReportTemplate = (data, _settings = {}) => {
   const formatCurrency = (val) =>
     `₹${Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 

@@ -1,29 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Edit,
-  Sparkles,
-  UserCheck,
-  UserX,
-  Lock,
-  Phone,
-  MapPin,
-  User,
-  GraduationCap,
-  ShieldAlert,
-  CreditCard,
-  AlertCircle,
-  FileText,
-  RefreshCw,
-  BookOpen,
-  Layers,
-  Hash,
-  Wallet,
-  Building2,
-  CalendarCheck,
-  Printer,
-} from 'lucide-react';
+import { ArrowLeft, Edit, Sparkles, UserCheck, UserX, Lock, Phone, MapPin, User, ShieldAlert, AlertCircle, FileText, RefreshCw, Building2 } from 'lucide-react';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { studentService } from '../../services/student.service.js';
@@ -40,7 +17,6 @@ import { Dropdown, DropdownItem, DropdownDivider } from '../../components/ui/Dro
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
-import { SchoolReportHeader } from '../../components/common/SchoolReportHeader.jsx';
 
 import { StudentAvatar } from '../../components/students/StudentAvatar.jsx';
 import { StudentStatusBadge } from '../../components/students/StudentStatusBadge.jsx';

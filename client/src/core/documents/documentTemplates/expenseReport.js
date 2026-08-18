@@ -51,7 +51,7 @@ export const buildExpenseReportData = (rawData = {}) => {
 /**
  * pdfMake Template Builder for School Expense Report
  */
-export const buildExpenseReportTemplate = (data, settings = {}) => {
+export const buildExpenseReportTemplate = (data, _settings = {}) => {
   const formatCurrency = (val) =>
     `₹${Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 

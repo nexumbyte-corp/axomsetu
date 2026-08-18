@@ -1,7 +1,7 @@
 import { ApiError } from '../utils/ApiError.js';
 import { env } from '../config/env.js';
 
-export const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err, req, res, _next) => {
   let error = err;
 
   // Standardize error instance

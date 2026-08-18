@@ -1,9 +1,9 @@
-import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { generateNextDocumentNumber } from '../../utils/documentSequence.js';
 import { assertAcademicYearWritable, ensureCurrentAcademicYear } from '../academic-years/academicYear.service.js';
 import { deleteCloudinaryImage } from '../../services/cloudinary.service.js';
+import { ensureFeeCharge } from '../fees/fee-creation.service.js';
 
 /**
  * Generic helper to determine if a student is operationally active.
@@ -258,11 +258,10 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
       }
     });
 
-    const chargesToCreate = [];
     const auditOverrideEvents = [];
 
     if (fs && fs.heads?.length > 0) {
-      fs.heads.forEach((h) => {
+      for (const h of fs.heads) {
         const attemptedOverride = overrideMap.get(`id_${h.feeTypeId}`) || overrideMap.get(`title_${h.feeType.name.trim().toLowerCase()}`);
         const targetMonth = currentMonth;
         const templateAmount = Number(h.amount);
@@ -287,25 +286,30 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
           overrideReason = attemptedOverride.reason ? attemptedOverride.reason.trim() : null;
         }
 
-        chargesToCreate.push({
+        const result = await ensureFeeCharge(tx, {
           schoolId,
           academicYearId: data.academicYearId,
           studentId: student.id,
           studentEnrollmentId: enrollment.id,
+          student,
           feeTypeId: h.feeTypeId,
           feeStructureId: fs.id,
           month: targetMonth,
           title: h.feeType.name,
-          amount: new Prisma.Decimal(finalAmount),
-          originalAmount: new Prisma.Decimal(templateAmount),
-          discountAmount: new Prisma.Decimal(discountAmount),
+          amount: finalAmount,
+          originalAmount: templateAmount,
+          discountAmount,
           isOverridden,
           overrideReason,
           overriddenById: isOverridden ? (actorUserId || null) : null,
           overriddenAt: isOverridden ? new Date() : null,
-          paidAmount: new Prisma.Decimal(0),
-          status: 'UNPAID',
+          billingRule: h.feeType.billingRule || 'MONTHLY',
         });
+
+        if (result.status === 'CREATED') {
+          initialChargesCount += 1;
+          initialTotalAmount += finalAmount;
+        }
 
         if (isOverridden) {
           auditOverrideEvents.push({
@@ -326,17 +330,7 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
             },
           });
         }
-
-        initialChargesCount += 1;
-        initialTotalAmount += finalAmount;
-      });
-    }
-
-    if (chargesToCreate.length > 0) {
-      await tx.studentFeeCharge.createMany({
-        data: chargesToCreate,
-        skipDuplicates: true,
-      });
+      }
     }
 
     for (const auditItem of auditOverrideEvents) {

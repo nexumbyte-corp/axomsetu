@@ -12,6 +12,8 @@ import {
   Building,
   Wallet,
   FileSpreadsheet,
+  UserPlus,
+  Settings,
 } from 'lucide-react';
 
 /**
@@ -35,7 +37,7 @@ import {
  *       └── badge: string (e.g. 'Soon')
  */
 
-export const getSidebarNavigation = ({ isSubscriptionActive, isOwner, hasFullAccess }) => {
+export const getSidebarNavigation = ({ isSubscriptionActive, isOwner, hasFullAccess, can }) => {
   // Restricted Subscription State: Show ONLY Main items
   if (!isSubscriptionActive) {
     return [
@@ -85,15 +87,15 @@ export const getSidebarNavigation = ({ isSubscriptionActive, isOwner, hasFullAcc
     },
     {
       id: 'hostel',
-      title: 'HOSTEL',
+      title: 'HOSTEL MANAGEMENT',
       expandable: true,
       items: [
-        {
-          label: 'Hostel Management',
-          path: '/app/hostel',
-          icon: Building,
-          permission: 'HOSTEL_VIEW',
-        },
+        { label: 'Overview', path: '/app/hostel', icon: LayoutDashboard, end: true, permission: 'HOSTEL_VIEW' },
+        { label: 'Residents', path: '/app/hostel/residents', icon: Users, permission: 'HOSTEL_VIEW' },
+        { label: 'Admission', path: '/app/hostel/admission', icon: UserPlus, permission: 'HOSTEL_ADMIT' },
+        { label: 'Fees', path: '/app/hostel/fees', icon: CreditCard, permission: 'HOSTEL_SETUP' },
+        { label: 'Rooms & Beds', path: '/app/hostel/setup', icon: Settings, permission: 'HOSTEL_SETUP' },
+        { label: 'Reports', path: '/app/hostel/reports', icon: BarChart3, permission: 'HOSTEL_VIEW' },
       ],
     },
     {
@@ -113,9 +115,7 @@ export const getSidebarNavigation = ({ isSubscriptionActive, isOwner, hasFullAcc
         ...(isOwner
           ? [{ label: 'School Profile', path: '/app/settings/profile', icon: Building, permission: 'SETTINGS_VIEW', isOwnerOnly: true }]
           : []),
-        ...(hasFullAccess
-          ? [{ label: 'Users & Permissions', path: '/app/settings/users', icon: FileSpreadsheet, permission: 'USERS_VIEW', isFullAccessOnly: true }]
-          : []),
+        { label: 'Users & Permissions', path: '/app/settings/users', icon: FileSpreadsheet, permission: 'USERS_VIEW' },
       ],
     },
   ];

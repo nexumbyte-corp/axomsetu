@@ -1,25 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  CreditCard,
-  ShieldCheck,
-  Calendar,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  ArrowRight,
-  RefreshCw,
-  Sparkles,
-  Zap,
-  HelpCircle,
-  FileText,
-  Building2,
-  XCircle,
-  Check,
-} from 'lucide-react';
+import { Calendar, AlertTriangle, ArrowRight, RefreshCw, Zap, Check } from 'lucide-react';
 import { subscriptionService } from '../services/subscriptionService.js';
 import { useSubscription } from '../hooks/useSubscription.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
-import { BRAND_CONFIG } from '../config/brandConfig.js';
+
 import { ModulePageHeader } from '../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../components/ui/Toast.jsx';
 import { Button } from '../components/ui/Button.jsx';
@@ -137,7 +121,7 @@ export const SubscriptionPage = () => {
   const sub = currentSubData?.subscription;
   const remainingDays = currentSubData?.remainingDays || 0;
   const hasActiveSubscription = currentSubData?.status === 'ACTIVE' && remainingDays > 0;
-  const isExpired = currentSubData?.status === 'EXPIRED' || (remainingDays === 0 && sub?.status !== 'ACTIVE');
+  const _isExpired = currentSubData?.status === 'EXPIRED' || (remainingDays === 0 && sub?.status !== 'ACTIVE');
   const isSuspended = currentSubData?.status === 'SUSPENDED' || sub?.status === 'SUSPENDED';
 
   return (

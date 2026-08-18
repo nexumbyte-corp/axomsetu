@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { DollarSign, AlertCircle, ShoppingBag, CreditCard } from 'lucide-react';
-import { StudentSearch } from '../../components/fees/StudentSearch.jsx';
+
 import { StudentSummaryCard } from '../../components/fees/StudentSummaryCard.jsx';
 import { OutstandingChargesTable } from '../../components/fees/OutstandingChargesTable.jsx';
 import { PaymentSummaryCard } from '../../components/fees/PaymentSummaryCard.jsx';

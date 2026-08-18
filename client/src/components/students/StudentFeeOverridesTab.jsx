@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Edit2, RotateCcw, CheckCircle, Info, IndianRupee } from 'lucide-react';
+import { RotateCcw, Info } from 'lucide-react';
 import { feeService } from '../../services/fee.service.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { Button } from '../ui/Button.jsx';

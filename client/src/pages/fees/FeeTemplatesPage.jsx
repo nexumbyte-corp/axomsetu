@@ -1,23 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Plus,
-  Search,
-  Edit2,
-  Trash2,
-  FileSpreadsheet,
-  PlusCircle,
-  Trash,
-  X,
-  CheckCircle,
-  XCircle,
-  Info,
-  Copy,
-  RefreshCw,
-  CheckSquare,
-  Square,
-  Layers,
-  Sparkles,
-} from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, FileSpreadsheet, PlusCircle, Trash, X, Info, Copy, RefreshCw, CheckSquare, Square } from 'lucide-react';
 import { feeService } from '../../services/fee.service.js';
 import { academicService } from '../../services/academic.service.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
@@ -82,7 +64,7 @@ export const FeeTemplatesPage = () => {
         setMediums(medRes.data || []);
         setStreams(stmRes.data || []);
         setFeeTypes(ftRes.data || []);
-      } catch (err) {
+      } catch {
         toast.error('Failed to load academic dropdown options');
       }
     };
@@ -95,7 +77,7 @@ export const FeeTemplatesPage = () => {
     try {
       const res = await feeService.getFeeStructures({ academicYearId: selectedYearId });
       setTemplates(res.data || []);
-    } catch (err) {
+    } catch {
       toast.error(err.response?.data?.message || 'Failed to load fee templates');
     } finally {
       setLoading(false);
@@ -254,7 +236,7 @@ export const FeeTemplatesPage = () => {
 
       setIsDrawerOpen(false);
       fetchTemplates();
-    } catch (err) {
+    } catch {
       const errorMsg = err.response?.data?.message || err.message || 'Failed to save fee template';
       setFormError(errorMsg);
       toast.error(errorMsg);
@@ -268,7 +250,7 @@ export const FeeTemplatesPage = () => {
       await feeService.toggleFeeStructureStatus(item.id);
       toast.success('Fee template status updated');
       fetchTemplates();
-    } catch (err) {
+    } catch {
       toast.error(err.response?.data?.message || 'Failed to update status');
     }
   };
@@ -281,7 +263,7 @@ export const FeeTemplatesPage = () => {
       toast.success('Fee template deleted successfully');
       setDeletingTemplate(null);
       fetchTemplates();
-    } catch (err) {
+    } catch {
       toast.error(err.response?.data?.message || 'Failed to delete template');
     } finally {
       setIsDeleting(false);
@@ -340,7 +322,7 @@ export const FeeTemplatesPage = () => {
         }));
         setStagedTemplates(staged);
       }
-    } catch (err) {
+    } catch {
       setBulkError(err.response?.data?.message || 'Failed to fetch templates from source year.');
     } finally {
       setBulkLoading(false);
@@ -459,7 +441,7 @@ export const FeeTemplatesPage = () => {
       toast.success(res.data?.message || res.message || 'Bulk fee templates saved successfully!');
       setIsBulkCopyModalOpen(false);
       fetchTemplates();
-    } catch (err) {
+    } catch {
       setBulkError(err.response?.data?.message || err.message || 'Failed to save bulk fee templates.');
       toast.error('Failed to save bulk fee templates.');
     } finally {

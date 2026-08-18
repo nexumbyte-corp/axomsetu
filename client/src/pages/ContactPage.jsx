@@ -1,18 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import {
-  GraduationCap,
-  Phone,
-  Mail,
-  MessageSquare,
-  Clock,
-  Building2,
-  ShieldCheck,
-  ArrowRight,
-  ArrowLeft,
-  ExternalLink,
-  Menu,
-} from 'lucide-react';
+import { Phone, Mail, MessageSquare, Clock, ShieldCheck, ArrowRight, ArrowLeft, ExternalLink, Menu } from 'lucide-react';
 import { Button } from '../components/ui/Button.jsx';
 import { Drawer } from '../components/ui/Drawer.jsx';
 import { platformService } from '../services/platformService.js';

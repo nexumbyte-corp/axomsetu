@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, FileText, ArrowUpRight } from 'lucide-react';
+import { Eye, FileText } from 'lucide-react';
 import { Badge } from '../ui/Badge.jsx';
 import { Button } from '../ui/Button.jsx';
 
-export const ReceiptTable = ({ payments = [], isLoading = false, onSelectReceipt }) => {
+export const ReceiptTable = ({ payments = [], isLoading = false, onSelectReceipt: _onSelectReceipt }) => {
   const navigate = useNavigate();
 
   if (isLoading) {

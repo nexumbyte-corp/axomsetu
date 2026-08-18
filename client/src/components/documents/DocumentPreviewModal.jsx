@@ -4,7 +4,6 @@ import { Button } from '../ui/Button.jsx';
 import { toast } from '../ui/Toast.jsx';
 import { createPdfBlobUrl, downloadPdfDocument } from '../../core/documents/documentEngine.js';
 
-
 export const DocumentPreviewModal = ({
   isOpen = false,
   onClose,
@@ -35,7 +34,7 @@ export const DocumentPreviewModal = ({
         if (active) {
           setBlobUrl(url);
         }
-      } catch (err) {
+      } catch {
         console.error('Failed generating PDF preview', err);
         if (active) {
           setError('Unable to generate PDF document preview.');
@@ -62,7 +61,7 @@ export const DocumentPreviewModal = ({
     try {
       await downloadPdfDocument({ templateId, data, filename, options });
       toast.success(`Downloaded ${filename}`);
-    } catch (err) {
+    } catch {
       toast.error('Failed downloading PDF.');
     }
   };

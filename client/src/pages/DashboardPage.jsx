@@ -1,19 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  LayoutDashboard,
-  Users,
-  Briefcase,
-  CreditCard,
-  DollarSign,
-  Wallet,
-  Calendar,
-  AlertCircle,
-  RefreshCw,
-} from 'lucide-react';
+import { LayoutDashboard, Users, Briefcase, CreditCard, DollarSign, Wallet, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAcademicYear } from '../hooks/useAcademicYear.js';
 import { dashboardService } from '../services/dashboard.service.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
-import { BRAND_CONFIG } from '../config/brandConfig.js';
+
 import { ModulePageHeader } from '../components/ui/ModulePageHeader.jsx';
 import { Badge } from '../components/ui/Badge.jsx';
 import { Button } from '../components/ui/Button.jsx';
@@ -21,17 +11,13 @@ import { Card, CardContent } from '../components/ui/Card.jsx';
 import { DashboardSkeleton } from '../components/dashboard/DashboardSkeleton.jsx';
 import { DashboardMetricCard } from '../components/dashboard/DashboardMetricCard.jsx';
 import { NeedsAttentionSection } from '../components/dashboard/NeedsAttentionSection.jsx';
-import {
-  RecentFeeCollections,
-  RecentExpenses,
-  RecentSalaryPayments,
-} from '../components/dashboard/RecentActivityTables.jsx';
+import { RecentFeeCollections, RecentExpenses, RecentSalaryPayments } from '../components/dashboard/RecentActivityTables.jsx';
 import { QuickActionsSection } from '../components/dashboard/QuickActionsSection.jsx';
 import { formatCurrency, formatNumber } from '../utils/formatters.js';
 
 export const DashboardPage = () => {
   useDocumentTitle('Dashboard');
-  const { selectedYear, selectedYearId } = useAcademicYear();
+  const { selectedYear: _selectedYear, selectedYearId } = useAcademicYear();
 
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);

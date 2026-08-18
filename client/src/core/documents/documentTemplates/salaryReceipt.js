@@ -80,7 +80,7 @@ export const buildSalaryReceiptData = (rawData = {}) => {
 /**
  * pdfMake Template Builder for Salary Disbursement Voucher
  */
-export const buildSalaryReceiptTemplate = (data, settings = {}) => {
+export const buildSalaryReceiptTemplate = (data, _settings = {}) => {
   const formatCurrency = (val) =>
     `₹${Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 

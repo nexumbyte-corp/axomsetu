@@ -1,4 +1,3 @@
-import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
 import { memoryCache } from '../../utils/cache.js';

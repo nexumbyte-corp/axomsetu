@@ -2,7 +2,6 @@ import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { hashPassword } from '../../utils/password.js';
 import { validateAssignablePermissions } from '../../middleware/permission.middleware.js';
-import { ASSIGNABLE_PERMISSIONS } from '../../config/permissions.js';
 
 /**
  * School-scoped User Management Service.
@@ -111,7 +110,7 @@ export const schoolUserService = {
    * The school-level role is stored in SchoolAdmin.schoolRole.
    */
   async createUser(schoolId, data, actorMembershipId, actorUserId) {
-    const { name, email, password, phone, schoolRole, customRoleLabel, isActive } = data;
+    const { name, email, password, phone, schoolRole, isActive } = data;
 
     // Validate role — cannot create OWNER through this endpoint
     if (schoolRole === 'OWNER') {

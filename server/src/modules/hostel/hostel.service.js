@@ -1,8 +1,51 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
-import { getSystemFeeType } from '../fees/fee-type.service.js';
 import { isEffectiveForMonth } from '../fees/fee-generation.service.js';
+import { ensureFeeCharge } from '../fees/fee-creation.service.js';
+
+export const ensureHostelFeeType = async (schoolId, systemCode, tx = prisma) => {
+  let feeType = await tx.feeType.findUnique({
+    where: {
+      schoolId_systemCode: {
+        schoolId,
+        systemCode,
+      },
+    },
+  });
+
+  if (!feeType) {
+    const isAdmission = systemCode === 'HOSTEL_ADMISSION';
+    const feeName = isAdmission ? 'Hostel Admission Fee' : 'Hostel Monthly Fee';
+
+    feeType = await tx.feeType.findUnique({
+      where: {
+        schoolId_name: {
+          schoolId,
+          name: feeName,
+        },
+      },
+    });
+
+    if (!feeType) {
+      feeType = await tx.feeType.create({
+        data: {
+          schoolId,
+          name: feeName,
+          code: isAdmission ? 'HOSTEL_ADM' : 'HOSTEL_MONTHLY',
+          description: isAdmission ? 'Hostel Admission Fee Charge' : 'Monthly Hostel Accommodation Charge',
+          category: 'HOSTEL',
+          billingRule: isAdmission ? 'ONE_TIME_PER_ACADEMIC_YEAR' : 'MONTHLY',
+          isActive: true,
+          isSystem: true,
+          systemCode,
+        },
+      });
+    }
+  }
+
+  return feeType;
+};
 
 // ==========================================
 // DASHBOARD & OVERVIEW
@@ -103,7 +146,7 @@ export const listHostels = async (schoolId, query = {}) => {
       });
     });
 
-    const { rooms, ...rest } = h;
+    const { rooms: _rooms, ...rest } = h;
     return {
       ...rest,
       totalRooms: h.rooms.length,
@@ -454,17 +497,17 @@ export const listBeds = async (schoolId, query = {}) => {
 
   return beds.map((b) => {
     const activeEnrollment = b.enrollments[0] || null;
-    const { enrollments, ...rest } = b;
+    const { enrollments: _enrollments, ...rest } = b;
     return {
       ...rest,
       activeResident: activeEnrollment
         ? {
-            enrollmentId: activeEnrollment.id,
-            studentId: activeEnrollment.student.id,
-            studentName: activeEnrollment.student.name,
-            admissionNo: activeEnrollment.student.admissionNo,
-            startDate: activeEnrollment.startDate,
-          }
+          enrollmentId: activeEnrollment.id,
+          studentId: activeEnrollment.student.id,
+          studentName: activeEnrollment.student.name,
+          admissionNo: activeEnrollment.student.admissionNo,
+          startDate: activeEnrollment.startDate,
+        }
         : null,
     };
   });
@@ -518,7 +561,7 @@ export const createBed = async (schoolId, data, actorUserId) => {
   return bed;
 };
 
-export const bulkCreateBeds = async (schoolId, data, actorUserId) => {
+export const bulkCreateBeds = async (schoolId, data, _actorUserId) => {
   const room = await prisma.hostelRoom.findUnique({ where: { id: data.roomId } });
   if (!room || room.schoolId !== schoolId || room.hostelId !== data.hostelId) {
     throw ApiError.badRequest('Selected room does not belong to the selected hostel.');
@@ -627,13 +670,21 @@ export const getHostelFeeConfig = async (schoolId, academicYearId, hostelId = nu
     });
   }
 
-  // Ensure default system fee types exist if not set
-  const defaultAdmissionFeeType = await getSystemFeeType(schoolId, 'HOSTEL_ADMISSION');
-  const defaultMonthlyFeeType = await getSystemFeeType(schoolId, 'HOSTEL');
+  // Ensure default hostel fee types exist if not set
+  const defaultAdmissionFeeType = await ensureHostelFeeType(schoolId, 'HOSTEL_ADMISSION');
+  const defaultMonthlyFeeType = await ensureHostelFeeType(schoolId, 'HOSTEL');
+
+  const isFeeSet = Boolean(
+    config && (
+      (config.monthlyFeeEnabled && Number(config.monthlyFeeAmount) > 0) ||
+      (config.admissionFeeEnabled && Number(config.admissionFeeAmount) > 0)
+    )
+  );
 
   return {
     academicYearId,
     hostelId: hostelId || null,
+    isFeeSet,
     admissionFeeEnabled: config ? config.admissionFeeEnabled : false,
     admissionFeeAmount: config ? Number(config.admissionFeeAmount) : 0,
     admissionFeeTypeId: config && config.admissionFeeTypeId ? config.admissionFeeTypeId : defaultAdmissionFeeType.id,
@@ -661,8 +712,8 @@ export const saveHostelFeeConfig = async (schoolId, data, actorUserId) => {
     }
   }
 
-  const defaultAdmissionFeeType = await getSystemFeeType(schoolId, 'HOSTEL_ADMISSION');
-  const defaultMonthlyFeeType = await getSystemFeeType(schoolId, 'HOSTEL');
+  const defaultAdmissionFeeType = await ensureHostelFeeType(schoolId, 'HOSTEL_ADMISSION');
+  const defaultMonthlyFeeType = await ensureHostelFeeType(schoolId, 'HOSTEL');
 
   const config = await prisma.hostelFeeConfig.upsert({
     where: {
@@ -749,6 +800,29 @@ export const admitStudent = async (schoolId, payload, actorUserId) => {
       throw ApiError.badRequest('Selected hostel is currently inactive.');
     }
 
+    // 3b. Verify Hostel Fee Structure is configured for this hostel/academic year
+    const feeConfig = await tx.hostelFeeConfig.findFirst({
+      where: {
+        schoolId,
+        academicYearId,
+        OR: [{ hostelId }, { hostelId: null }],
+      },
+      orderBy: { hostelId: 'desc' },
+    });
+
+    const isFeeSet = Boolean(
+      feeConfig && (
+        (feeConfig.monthlyFeeEnabled && Number(feeConfig.monthlyFeeAmount) > 0) ||
+        (feeConfig.admissionFeeEnabled && Number(feeConfig.admissionFeeAmount) > 0)
+      )
+    );
+
+    if (!isFeeSet) {
+      throw ApiError.badRequest(
+        `Hostel fee structure is not set for ${hostel.name} in this academic year. Please configure hostel fee rates before admitting students.`
+      );
+    }
+
     const room = await tx.hostelRoom.findUnique({ where: { id: roomId } });
     if (!room || room.schoolId !== schoolId || room.hostelId !== hostelId) {
       throw ApiError.badRequest('Selected room does not belong to the selected hostel.');
@@ -800,15 +874,6 @@ export const admitStudent = async (schoolId, payload, actorUserId) => {
     });
 
     // 7. Hostel Fee Charges Generation upon Admission (Admission Fee + Monthly Fee for Start Month)
-    const feeConfig = await tx.hostelFeeConfig.findFirst({
-      where: {
-        schoolId,
-        academicYearId,
-        OR: [{ hostelId }, { hostelId: null }],
-      },
-      orderBy: { hostelId: 'desc' },
-    });
-
     let admissionFeeCharged = false;
     let monthlyFeeCharged = false;
 
@@ -830,74 +895,71 @@ export const admitStudent = async (schoolId, payload, actorUserId) => {
       const monthIdx = isNaN(startD.getTime()) ? new Date().getUTCMonth() : startD.getUTCMonth();
       const feeMonth = monthNames[monthIdx] || 'JANUARY';
 
-      // 7a. One-Time Admission Fee Charge
-      if (feeConfig.admissionFeeEnabled && Number(feeConfig.admissionFeeAmount) > 0) {
-        const admissionFeeType = feeConfig.admissionFeeTypeId
-          ? await tx.feeType.findUnique({ where: { id: feeConfig.admissionFeeTypeId } })
-          : await getSystemFeeType(schoolId, 'HOSTEL_ADMISSION', tx);
+      // 7a. One-Time Admission Fee Charge (with Admin Override support)
+      if (feeConfig.admissionFeeEnabled) {
+        const defaultAdmissionFee = Number(feeConfig.admissionFeeAmount || 0);
+        const appliedAdmissionFee = payload.admissionFeeOverride !== undefined && payload.admissionFeeOverride !== null
+          ? Number(payload.admissionFeeOverride)
+          : defaultAdmissionFee;
 
-        if (admissionFeeType) {
-          const existingAdmissionCharge = await tx.studentFeeCharge.findFirst({
-            where: {
+        if (appliedAdmissionFee > 0) {
+          const admissionFeeType = feeConfig.admissionFeeTypeId
+            ? await tx.feeType.findUnique({ where: { id: feeConfig.admissionFeeTypeId } })
+            : await ensureHostelFeeType(schoolId, 'HOSTEL_ADMISSION', tx);
+
+          if (admissionFeeType) {
+            const res = await ensureFeeCharge(tx, {
               schoolId,
               academicYearId,
               studentId,
+              studentEnrollmentId: activeClassEnrollment ? activeClassEnrollment.id : null,
+              student,
               feeTypeId: admissionFeeType.id,
-            },
-          });
-
-          if (!existingAdmissionCharge) {
-            await tx.studentFeeCharge.create({
-              data: {
-                schoolId,
-                academicYearId,
-                studentId,
-                studentEnrollmentId: activeClassEnrollment ? activeClassEnrollment.id : null,
-                feeTypeId: admissionFeeType.id,
-                month: feeMonth,
-                title: `${admissionFeeType.name} - ${hostel.name}`,
-                amount: feeConfig.admissionFeeAmount,
-                paidAmount: new Prisma.Decimal(0),
-                status: 'UNPAID',
-              },
+              month: feeMonth,
+              title: `${admissionFeeType.name} - ${hostel.name}`,
+              amount: appliedAdmissionFee,
+              originalAmount: defaultAdmissionFee,
+              isOverridden: appliedAdmissionFee !== defaultAdmissionFee,
+              overrideReason: appliedAdmissionFee !== defaultAdmissionFee ? 'Admission fee override' : null,
+              billingRule: 'ONE_TIME_PER_ACADEMIC_YEAR',
             });
-            admissionFeeCharged = true;
+            if (res.status === 'CREATED') {
+              admissionFeeCharged = true;
+            }
           }
         }
       }
 
-      // 7b. Monthly Hostel Fee Charge for Admission Month
-      if (feeConfig.monthlyFeeEnabled && Number(feeConfig.monthlyFeeAmount) > 0) {
+      // 7b. Monthly Hostel Fee Charge for Admission Start Month (with Admin Override & £0 Waived support)
+      if (feeConfig.monthlyFeeEnabled) {
+        const defaultMonthlyFee = Number(feeConfig.monthlyFeeAmount || 0);
+        const rawMonthlyApplied = payload.monthlyFeeApplied !== undefined
+          ? payload.monthlyFeeApplied
+          : payload.monthlyFeeOverride;
+
+        const appliedMonthlyFee = rawMonthlyApplied !== undefined && rawMonthlyApplied !== null
+          ? Number(rawMonthlyApplied)
+          : defaultMonthlyFee;
+
         const monthlyFeeType = feeConfig.monthlyFeeTypeId
           ? await tx.feeType.findUnique({ where: { id: feeConfig.monthlyFeeTypeId } })
-          : await getSystemFeeType(schoolId, 'HOSTEL', tx);
+          : await ensureHostelFeeType(schoolId, 'HOSTEL', tx);
 
         if (monthlyFeeType) {
-          const existingMonthlyCharge = await tx.studentFeeCharge.findFirst({
-            where: {
-              schoolId,
-              academicYearId,
-              studentId,
-              feeTypeId: monthlyFeeType.id,
-              month: feeMonth,
-            },
+          const res = await ensureHostelMonthlyFee(tx, {
+            schoolId,
+            academicYearId,
+            studentId,
+            studentEnrollmentId: activeClassEnrollment ? activeClassEnrollment.id : null,
+            student,
+            feeTypeId: monthlyFeeType.id,
+            month: feeMonth,
+            title: `Hostel Monthly Fee - ${hostel.name}`,
+            defaultFee: defaultMonthlyFee,
+            appliedFee: appliedMonthlyFee,
+            reason: appliedMonthlyFee === 0 ? 'Waived upon admission' : (appliedMonthlyFee !== defaultMonthlyFee ? 'Admission month fee override' : null),
           });
-
-          if (!existingMonthlyCharge) {
-            await tx.studentFeeCharge.create({
-              data: {
-                schoolId,
-                academicYearId,
-                studentId,
-                studentEnrollmentId: activeClassEnrollment ? activeClassEnrollment.id : null,
-                feeTypeId: monthlyFeeType.id,
-                month: feeMonth,
-                title: `${monthlyFeeType.name} - ${hostel.name} (${feeMonth})`,
-                amount: feeConfig.monthlyFeeAmount,
-                paidAmount: new Prisma.Decimal(0),
-                status: 'UNPAID',
-              },
-            });
+          if (res.status === 'CREATED') {
             monthlyFeeCharged = true;
           }
         }
@@ -934,11 +996,466 @@ export const admitStudent = async (schoolId, payload, actorUserId) => {
 };
 
 // ==========================================
-// SEPARATE HOSTEL MONTHLY FEE GENERATION
+// AUTHORITATIVE HOSTEL MONTHLY FEE SERVICE
+// ==========================================
+
+const FEE_MONTH_INDEX_MAP = {
+  JANUARY: 0, FEBRUARY: 1, MARCH: 2, APRIL: 3, MAY: 4, JUNE: 5,
+  JULY: 6, AUGUST: 7, SEPTEMBER: 8, OCTOBER: 9, NOVEMBER: 10, DECEMBER: 11,
+};
+
+/**
+ * Returns a map of studentId -> waivedReason for students who had ₹0 fee (WAIVED) in past generation batches for a month.
+ */
+export const getWaivedStudentIdsForMonth = async (txOrPrisma, { schoolId, academicYearId, month }) => {
+  const tx = txOrPrisma || prisma;
+  const batches = await tx.feeGenerationBatch.findMany({
+    where: {
+      schoolId,
+      academicYearId,
+      month,
+    },
+    select: {
+      details: true,
+    },
+  });
+
+  const waivedMap = new Map(); // studentId -> reason
+
+  batches.forEach((b) => {
+    if (b.details && typeof b.details === 'object' && Array.isArray(b.details.detailsList)) {
+      b.details.detailsList.forEach((item) => {
+        if (item.status === 'WAIVED' && item.studentId) {
+          waivedMap.set(item.studentId, item.reason || 'Hostel Break / Waived');
+        }
+      });
+    }
+  });
+
+  return waivedMap;
+};
+
+/**
+ * Validates selected billing month against Academic Year and Backdate/Future protections.
+ */
+export const validateHostelBillingMonth = (academicYear, generationMonth, options = {}) => {
+  const { isAdmissionException: _isAdmissionException = false } = options;
+
+  const ayStart = new Date(academicYear.startDate);
+  const ayEnd = new Date(academicYear.endDate);
+  const startYear = ayStart.getUTCFullYear();
+  const startMonthIdx = ayStart.getUTCMonth();
+  const endYear = ayEnd.getUTCFullYear();
+
+  const targetMonthIdx = FEE_MONTH_INDEX_MAP[generationMonth] ?? 0;
+  const targetYear = targetMonthIdx >= startMonthIdx ? startYear : endYear;
+
+  const targetKey = targetYear * 12 + targetMonthIdx;
+
+  // Check Academic Year boundaries
+  const ayStartKey = startYear * 12 + startMonthIdx;
+  const ayEndKey = endYear * 12 + ayEnd.getUTCMonth();
+
+  if (targetKey < ayStartKey || targetKey > ayEndKey) {
+    throw ApiError.badRequest(`Selected month '${generationMonth}' does not belong to Academic Year ${academicYear.name}`);
+  }
+
+  // Return calculated academic month metadata
+  return { targetYear, targetMonthIdx, targetKey };
+};
+
+/**
+ * Authoritative single backend service for Hostel Monthly Fee creation.
+ */
+export const ensureHostelMonthlyFee = async (txOrPrisma, candidate) => {
+  const tx = txOrPrisma || prisma;
+  const {
+    schoolId,
+    academicYearId,
+    studentId,
+    studentEnrollmentId: rawEnrollmentId,
+    feeTypeId,
+    month,
+    title,
+    defaultFee: rawDefaultFee = 0,
+    appliedFee: rawAppliedFee = 0,
+    reason = null,
+    isOverridden = false,
+    overriddenById = null,
+    generationBatchId = null,
+  } = candidate;
+
+  // 1. Verify Active Student Status
+  let student = candidate.student;
+  if (!student) {
+    student = await tx.student.findUnique({
+      where: { id: studentId },
+      select: { id: true, name: true, admissionNo: true, status: true },
+    });
+  }
+
+  if (!student || student.status !== 'ACTIVE') {
+    return {
+      status: 'SKIPPED',
+      reason: 'NOT_ACTIVE',
+      detail: `Student ${student?.name || studentId} is not active`,
+      charge: null,
+    };
+  }
+
+  // 2. Verify Hosteller Status (Active or Exited during month)
+  const hostelEnrollment = await tx.hostelEnrollment.findFirst({
+    where: {
+      schoolId,
+      studentId,
+      academicYearId,
+      status: { in: ['ACTIVE', 'EXITED'] },
+    },
+    orderBy: { startDate: 'desc' },
+    select: {
+      id: true,
+      hostelId: true,
+      startDate: true,
+      endDate: true,
+      hostel: { select: { name: true } },
+    },
+  });
+
+  if (!hostelEnrollment) {
+    return {
+      status: 'SKIPPED',
+      reason: 'NOT_HOSTELLER',
+      detail: `Student ${student.name} is not a hosteller`,
+      charge: null,
+    };
+  }
+
+  const academicYearObj = await tx.academicYear.findUnique({ where: { id: academicYearId } });
+  if (academicYearObj) {
+    const isEffective = isEffectiveForMonth({
+      startDate: hostelEnrollment.startDate,
+      endDate: hostelEnrollment.endDate,
+      generationMonth: month,
+      academicYear: academicYearObj,
+    });
+
+    if (!isEffective) {
+      return {
+        status: 'SKIPPED',
+        reason: 'NOT_ENROLLED_IN_MONTH',
+        detail: `Student ${student.name} was not enrolled in hostel during ${month}`,
+        charge: null,
+      };
+    }
+  }
+
+  // 3. Resolve Student Enrollment ID if needed
+  let studentEnrollmentId = rawEnrollmentId;
+  if (!studentEnrollmentId) {
+    const classEnr = await tx.studentEnrollment.findFirst({
+      where: {
+        schoolId,
+        academicYearId,
+        studentId,
+        status: { in: ['ACTIVE', 'PROMOTED'] },
+      },
+      select: { id: true },
+    });
+    if (classEnr) studentEnrollmentId = classEnr.id;
+  }
+
+  const defaultFeeNum = Number(rawDefaultFee || 0);
+  const appliedFeeNum = Number(rawAppliedFee !== undefined ? rawAppliedFee : defaultFeeNum);
+
+  // 4. ZERO / VACATION / WAIVED RULE:
+  // Applied Fee === 0 means WAIVED. DO NOT create a StudentFeeCharge record with amount 0.
+  if (appliedFeeNum === 0) {
+    return {
+      status: 'WAIVED',
+      reason: reason || 'Hostel Break / Vacation',
+      detail: `Fee for ${student.name} (${month}) was set to ₹0 (WAIVED)`,
+      charge: null,
+    };
+  }
+
+  // 5. Duplicate Protection Check (Logical Identity & Past Waived Check)
+  const existingCharge = await tx.studentFeeCharge.findFirst({
+    where: {
+      schoolId,
+      academicYearId,
+      studentId,
+      feeTypeId,
+      month,
+    },
+  });
+
+  if (existingCharge) {
+    return {
+      status: 'ALREADY_EXISTS',
+      reason: 'DUPLICATE',
+      detail: `Fee charge '${existingCharge.title}' already exists for ${month}`,
+      charge: existingCharge,
+    };
+  }
+
+  const waivedStudentMap = await getWaivedStudentIdsForMonth(tx, { schoolId, academicYearId, month });
+  if (waivedStudentMap.has(studentId)) {
+    return {
+      status: 'ALREADY_EXISTS',
+      reason: 'WAIVED_PREVIOUSLY',
+      detail: `Fee for this student was already waived for ${month}`,
+      charge: null,
+    };
+  }
+
+  // 6. Create StudentFeeCharge
+  const finalIsOverridden = isOverridden || appliedFeeNum !== defaultFeeNum;
+  const finalOverrideReason = finalIsOverridden ? (reason || 'Applied fee override') : null;
+  const discountAmt = Math.max(0, defaultFeeNum - appliedFeeNum);
+
+  const hostelName = hostelEnrollment?.hostel?.name;
+  let finalTitle = title;
+  if (!finalTitle || finalTitle === `Hostel Monthly Fee - ${month}` || finalTitle === 'Hostel Monthly Fee') {
+    finalTitle = hostelName ? `Hostel Monthly Fee - ${hostelName}` : `Hostel Monthly Fee - ${month}`;
+  }
+
+  try {
+    const charge = await tx.studentFeeCharge.create({
+      data: {
+        schoolId,
+        academicYearId,
+        studentId,
+        studentEnrollmentId: studentEnrollmentId || null,
+        feeTypeId,
+        generationBatchId,
+        month,
+        title: finalTitle,
+        amount: new Prisma.Decimal(appliedFeeNum),
+        originalAmount: new Prisma.Decimal(defaultFeeNum),
+        discountAmount: new Prisma.Decimal(discountAmt),
+        isOverridden: finalIsOverridden,
+        overrideReason: finalOverrideReason,
+        overriddenById: overriddenById || null,
+        overriddenAt: finalIsOverridden ? new Date() : null,
+        paidAmount: new Prisma.Decimal(0),
+        status: 'UNPAID',
+      },
+    });
+
+    return {
+      status: 'CREATED',
+      reason: null,
+      detail: null,
+      charge,
+    };
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      const concurrentCharge = await tx.studentFeeCharge.findFirst({
+        where: {
+          schoolId,
+          academicYearId,
+          studentId,
+          feeTypeId,
+          month,
+        },
+      });
+      return {
+        status: 'ALREADY_EXISTS',
+        reason: 'CONCURRENT_DUPLICATE',
+        detail: 'Charge was created concurrently',
+        charge: concurrentCharge,
+      };
+    }
+    throw err;
+  }
+};
+
+// ==========================================
+// ELIGIBLE HOSTEL STUDENTS LOADER FOR BILLING
+// ==========================================
+
+export const getEligibleHostelStudentsForBilling = async (schoolId, query) => {
+  const { academicYearId, month, hostelId, classId, sectionId, streamId, mediumId, search } = query;
+
+  if (!academicYearId || !month) {
+    throw ApiError.badRequest('Academic Year ID and Billing Month are required');
+  }
+
+  const academicYear = await prisma.academicYear.findUnique({
+    where: { id: academicYearId },
+  });
+
+  if (!academicYear || academicYear.schoolId !== schoolId) {
+    throw ApiError.notFound('Academic Year not found');
+  }
+
+  // Enforce backdate & future month validations for normal generation
+  validateHostelBillingMonth(academicYear, month, { isAdmissionException: false });
+
+  const enrollmentWhere = {
+    schoolId,
+    academicYearId,
+    status: { in: ['ACTIVE', 'EXITED'] },
+    student: {
+      status: 'ACTIVE',
+    },
+  };
+
+  if (hostelId) {
+    enrollmentWhere.hostelId = hostelId;
+  }
+
+  const hostelEnrollments = await prisma.hostelEnrollment.findMany({
+    where: enrollmentWhere,
+    include: {
+      student: {
+        select: {
+          id: true,
+          name: true,
+          admissionNo: true,
+          status: true,
+          photoUrl: true,
+          guardianName: true,
+          enrollments: {
+            where: { academicYearId, status: { in: ['ACTIVE', 'PROMOTED'] } },
+            take: 1,
+            include: {
+              class: { select: { id: true, name: true } },
+              section: { select: { id: true, name: true } },
+              stream: { select: { id: true, name: true } },
+              medium: { select: { id: true, name: true } },
+            },
+          },
+        },
+      },
+      hostel: { select: { id: true, name: true } },
+    },
+    orderBy: { student: { name: 'asc' } },
+  });
+
+  const defaultMonthlyFeeType = await ensureHostelFeeType(schoolId, 'HOSTEL');
+
+  const feeConfigs = await prisma.hostelFeeConfig.findMany({
+    where: { schoolId, academicYearId },
+  });
+
+  const configMap = new Map();
+  feeConfigs.forEach((cfg) => {
+    configMap.set(cfg.hostelId || 'DEFAULT', cfg);
+  });
+
+  const studentIds = hostelEnrollments.map((h) => h.studentId);
+
+  const [existingCharges, waivedStudentMap] = await Promise.all([
+    prisma.studentFeeCharge.findMany({
+      where: {
+        schoolId,
+        academicYearId,
+        studentId: { in: studentIds },
+        feeTypeId: defaultMonthlyFeeType.id,
+        month,
+      },
+    }),
+    getWaivedStudentIdsForMonth(prisma, { schoolId, academicYearId, month }),
+  ]);
+
+  const existingChargeMap = new Map();
+  existingCharges.forEach((c) => {
+    existingChargeMap.set(c.studentId, c);
+  });
+
+  const studentList = [];
+
+  for (const he of hostelEnrollments) {
+    const classEnr = he.student.enrollments[0] || null;
+
+    if (classId && classEnr?.class?.id !== classId) continue;
+    if (sectionId && classEnr?.section?.id !== sectionId) continue;
+    if (streamId && classEnr?.stream?.id !== streamId) continue;
+    if (mediumId && classEnr?.medium?.id !== mediumId) continue;
+
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      const matchName = he.student.name.toLowerCase().includes(q);
+      const matchAdm = he.student.admissionNo.toLowerCase().includes(q);
+      const matchGuardian = (he.student.guardianName || '').toLowerCase().includes(q);
+      if (!matchName && !matchAdm && !matchGuardian) continue;
+    }
+
+    const effective = isEffectiveForMonth({
+      startDate: he.startDate,
+      endDate: he.endDate,
+      generationMonth: month,
+      academicYear,
+    });
+
+    if (!effective) continue;
+
+    const cfg = configMap.get(he.hostelId) || configMap.get('DEFAULT');
+    const defaultFee = cfg && cfg.monthlyFeeEnabled ? Number(cfg.monthlyFeeAmount) : 3000;
+    const existing = existingChargeMap.get(he.studentId);
+    const waivedReason = waivedStudentMap.get(he.studentId);
+
+    const isAlreadyGenerated = Boolean(existing);
+    const isAlreadyWaived = !isAlreadyGenerated && Boolean(waivedReason);
+
+    let appliedFee = defaultFee;
+    let status = 'NEW';
+    let reason = '';
+    let isSelectable = true;
+
+    if (isAlreadyGenerated) {
+      status = 'ALREADY_GENERATED';
+      appliedFee = Number(existing.amount);
+      reason = 'Already Generated';
+      isSelectable = false;
+    } else if (isAlreadyWaived) {
+      status = 'ALREADY_GENERATED';
+      appliedFee = 0;
+      reason = waivedReason || 'Waived / Hostel Break';
+      isSelectable = false;
+    }
+
+    studentList.push({
+      studentId: he.studentId,
+      studentEnrollmentId: classEnr?.id || null,
+      studentName: he.student.name,
+      admissionNo: he.student.admissionNo,
+      photoUrl: he.student.photoUrl || null,
+      guardianName: he.student.guardianName || null,
+      className: classEnr?.class?.name || 'N/A',
+      sectionName: classEnr?.section?.name || 'N/A',
+      streamName: classEnr?.stream?.name || null,
+      mediumName: classEnr?.medium?.name || null,
+      hostelId: he.hostelId,
+      hostelName: he.hostel.name,
+      hostelEnrollmentStatus: he.status,
+      startDate: he.startDate,
+      endDate: he.endDate,
+      defaultFee,
+      appliedFee,
+      status,
+      reason,
+      isSelectable,
+      isSelected: isSelectable,
+      existingChargeId: existing?.id || null,
+    });
+  }
+
+  return {
+    academicYearId,
+    month,
+    totalHostellers: studentList.length,
+    students: studentList,
+  };
+};
+
+// ==========================================
+// HOSTEL MONTHLY FEE GENERATION EXECUTION
 // ==========================================
 
 export const generateHostelMonthlyFees = async (schoolId, payload, actorUserId) => {
-  const { academicYearId, month, hostelId } = payload;
+  const { academicYearId, month, hostelId: _hostelId, students = [] } = payload;
 
   const academicYear = await prisma.academicYear.findUnique({
     where: { id: academicYearId },
@@ -952,119 +1469,94 @@ export const generateHostelMonthlyFees = async (schoolId, payload, actorUserId) 
     throw ApiError.forbidden('Academic year is locked.');
   }
 
-  // Fetch active hostel residents (including those enrolled in prior academic years who remain active)
-  const enrollmentWhere = {
-    schoolId,
-    status: 'ACTIVE',
-  };
-  if (hostelId) {
-    enrollmentWhere.hostelId = hostelId;
+  // Validate date protections
+  validateHostelBillingMonth(academicYear, month, { isAdmissionException: false });
+
+  if (students.length === 0) {
+    throw ApiError.badRequest('No students provided for fee generation');
   }
 
-  const enrollments = await prisma.hostelEnrollment.findMany({
-    where: enrollmentWhere,
-    include: {
-      student: { select: { id: true, name: true, admissionNo: true, status: true } },
-      hostel: { select: { id: true, name: true } },
-    },
-  });
-
-  if (enrollments.length === 0) {
-    throw ApiError.badRequest('No active hostel residents found for the selected parameters');
-  }
-
-  // Fetch Hostel Fee Configs
-  const feeConfigs = await prisma.hostelFeeConfig.findMany({
-    where: {
-      schoolId,
-      academicYearId,
-    },
-  });
-
-  const configMap = new Map();
-  feeConfigs.forEach((cfg) => {
-    configMap.set(cfg.hostelId || 'DEFAULT', cfg);
-  });
-
-  const defaultMonthlyFeeType = await getSystemFeeType(schoolId, 'HOSTEL');
-
-  let generatedCount = 0;
-  let skippedCount = 0;
-  let totalAmount = 0;
-  const skippedDetails = [];
+  const defaultMonthlyFeeType = await ensureHostelFeeType(schoolId, 'HOSTEL');
 
   return await prisma.$transaction(async (tx) => {
-    for (const enr of enrollments) {
-      if (enr.student.status !== 'ACTIVE') {
-        skippedCount++;
-        skippedDetails.push({ studentName: enr.student.name, reason: 'Student is not active' });
-        continue;
-      }
+    let createdCount = 0;
+    let alreadyExistsCount = 0;
+    let waivedCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+    let totalAmount = 0;
 
-      // Check date eligibility using isEffectiveForMonth helper (STRICT NO BACKDATED FEES)
-      const effective = isEffectiveForMonth({
-        startDate: enr.startDate,
-        endDate: enr.endDate,
-        generationMonth: month,
-        academicYear,
+    const detailsList = [];
+
+    const batch = await tx.feeGenerationBatch.create({
+      data: {
+        schoolId,
+        academicYearId,
+        month,
+        mode: 'BY_STUDENT',
+        totalStudents: students.length,
+        generatedCount: 0,
+        skippedCount: 0,
+        totalAmount: new Prisma.Decimal(0),
+        createdById: actorUserId || null,
+      },
+    });
+
+    for (const item of students) {
+      const { studentId, studentEnrollmentId, appliedFee, defaultFee, reason, isWaived } = item;
+
+      const chargeTitle = `Hostel Monthly Fee`;
+
+      const res = await ensureHostelMonthlyFee(tx, {
+        schoolId,
+        academicYearId,
+        studentId,
+        studentEnrollmentId,
+        feeTypeId: defaultMonthlyFeeType.id,
+        month,
+        title: chargeTitle,
+        defaultFee: defaultFee !== undefined ? Number(defaultFee) : 3000,
+        appliedFee: (isWaived || Number(appliedFee) === 0) ? 0 : Number(appliedFee),
+        reason: reason || (isWaived ? 'Hostel Break / Vacation' : null),
+        generationBatchId: batch.id,
+        overriddenById: actorUserId || null,
       });
 
-      if (!effective) {
+      if (res.status === 'CREATED') {
+        createdCount++;
+        totalAmount += Number(appliedFee);
+        detailsList.push({ studentId, status: 'CREATED', amount: appliedFee });
+      } else if (res.status === 'ALREADY_EXISTS') {
+        alreadyExistsCount++;
+        detailsList.push({ studentId, status: 'ALREADY_EXISTS' });
+      } else if (res.status === 'WAIVED') {
+        waivedCount++;
+        detailsList.push({ studentId, status: 'WAIVED', reason: res.reason });
+      } else if (res.status === 'SKIPPED') {
         skippedCount++;
-        skippedDetails.push({
-          studentName: enr.student.name,
-          reason: `Hostel start date (${new Date(enr.startDate).toLocaleDateString()}) is after target month`,
-        });
-        continue;
+        detailsList.push({ studentId, status: 'SKIPPED', reason: res.reason });
+      } else {
+        failedCount++;
+        detailsList.push({ studentId, status: 'FAILED' });
       }
-
-      // Resolve fee config
-      const cfg = configMap.get(enr.hostelId) || configMap.get('DEFAULT');
-      if (!cfg || !cfg.monthlyFeeEnabled || Number(cfg.monthlyFeeAmount) <= 0) {
-        skippedCount++;
-        skippedDetails.push({ studentName: enr.student.name, reason: 'Hostel Monthly Fee is not configured' });
-        continue;
-      }
-
-      const feeTypeId = cfg.monthlyFeeTypeId || defaultMonthlyFeeType.id;
-      const chargeTitle = `Hostel Monthly Fee - ${enr.hostel.name}`;
-
-      // Duplicate protection check
-      const existingCharge = await tx.studentFeeCharge.findFirst({
-        where: {
-          schoolId,
-          academicYearId,
-          studentId: enr.studentId,
-          feeTypeId,
-          month,
-          title: chargeTitle,
-        },
-      });
-
-      if (existingCharge) {
-        skippedCount++;
-        skippedDetails.push({ studentName: enr.student.name, reason: 'Fee charge already generated for this month' });
-        continue;
-      }
-
-      const chargeAmt = Number(cfg.monthlyFeeAmount);
-      await tx.studentFeeCharge.create({
-        data: {
-          schoolId,
-          academicYearId,
-          studentId: enr.studentId,
-          feeTypeId,
-          month,
-          title: chargeTitle,
-          amount: new Prisma.Decimal(chargeAmt),
-          paidAmount: new Prisma.Decimal(0),
-          status: 'UNPAID',
-        },
-      });
-
-      generatedCount++;
-      totalAmount += chargeAmt;
     }
+
+    await tx.feeGenerationBatch.update({
+      where: { id: batch.id },
+      data: {
+        generatedCount: createdCount,
+        skippedCount: skippedCount + waivedCount + alreadyExistsCount,
+        totalAmount: new Prisma.Decimal(totalAmount),
+        details: {
+          createdCount,
+          alreadyExistsCount,
+          waivedCount,
+          skippedCount,
+          failedCount,
+          detailsList,
+        },
+      },
+    });
 
     if (actorUserId) {
       await tx.auditLog.create({
@@ -1073,18 +1565,28 @@ export const generateHostelMonthlyFees = async (schoolId, payload, actorUserId) 
           userId: actorUserId,
           action: 'GENERATE_HOSTEL_FEES',
           entityType: 'HostelEnrollment',
-          newValues: { month, generatedCount, skippedCount, totalAmount },
+          newValues: {
+            month,
+            createdCount,
+            alreadyExistsCount,
+            waivedCount,
+            skippedCount,
+            failedCount,
+            totalAmount,
+          },
         },
       });
     }
 
     return {
       month,
-      totalResidents: enrollments.length,
-      generatedCount,
+      createdCount,
+      alreadyExistsCount,
+      waivedCount,
       skippedCount,
+      failedCount,
       totalAmount,
-      skippedDetails,
+      details: detailsList,
     };
   });
 };
@@ -1391,7 +1893,7 @@ export const exitStudent = async (schoolId, payload, actorUserId) => {
 // ==========================================
 
 export const getHostelReports = async (schoolId, reportType, query = {}) => {
-  const { academicYearId, hostelId, roomId, status, startDate, endDate } = query;
+  const { academicYearId, hostelId: _hostelId, roomId: _roomId, status, startDate, endDate } = query;
 
   switch (reportType) {
     case 'residents':
@@ -1438,7 +1940,7 @@ export const getHostelReports = async (schoolId, reportType, query = {}) => {
       return await prisma.hostelEnrollment.findMany({
         where,
         include: {
-          student: { select: { id: true, name: true, admissionNo: true, guardianName: true, phone: true } },
+          student: { select: { id: true, name: true, admissionNo: true, guardianName: true, phone: true, photoUrl: true } },
           hostel: { select: { name: true } },
           room: { select: { roomNumber: true } },
           bed: { select: { bedNumber: true } },
@@ -1460,7 +1962,7 @@ export const getHostelReports = async (schoolId, reportType, query = {}) => {
         include: {
           enrollment: {
             include: {
-              student: { select: { id: true, name: true, admissionNo: true } },
+              student: { select: { id: true, name: true, admissionNo: true, photoUrl: true, guardianName: true } },
             },
           },
           fromHostel: { select: { name: true } },
@@ -1487,7 +1989,7 @@ export const getHostelReports = async (schoolId, reportType, query = {}) => {
       return await prisma.hostelEnrollment.findMany({
         where,
         include: {
-          student: { select: { id: true, name: true, admissionNo: true } },
+          student: { select: { id: true, name: true, admissionNo: true, photoUrl: true, guardianName: true } },
           hostel: { select: { name: true } },
           room: { select: { roomNumber: true } },
           bed: { select: { bedNumber: true } },
@@ -1507,7 +2009,7 @@ export const getHostelReports = async (schoolId, reportType, query = {}) => {
       const charges = await prisma.studentFeeCharge.findMany({
         where,
         include: {
-          student: { select: { id: true, name: true, admissionNo: true } },
+          student: { select: { id: true, name: true, admissionNo: true, photoUrl: true, guardianName: true } },
           feeType: { select: { id: true, name: true } },
         },
         orderBy: { createdAt: 'desc' },

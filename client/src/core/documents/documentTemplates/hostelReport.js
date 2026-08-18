@@ -1,5 +1,5 @@
 import { createPDFHeader } from '../common/header.js';
-import { formatDocCurrency, formatDocDate, sanitizeDocText, getSchoolBranding } from '../common/formatters.js';
+import { formatDocCurrency, sanitizeDocText, getSchoolBranding } from '../common/formatters.js';
 
 /**
  * Hostel Report Data Builder
@@ -48,7 +48,7 @@ export const buildHostelReportData = (rawData = {}) => {
 /**
  * pdfMake Template Builder for Hostel Report
  */
-export const buildHostelReportTemplate = (data = {}, settings = {}) => {
+export const buildHostelReportTemplate = (data = {}, _settings = {}) => {
   const headerContent = createPDFHeader({
     school: data.school,
     documentTitle: data.reportTitle,

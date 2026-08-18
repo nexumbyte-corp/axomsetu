@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Building2, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { adminService } from '../../../services/adminService.js';
 import { ModulePageHeader } from '../../../components/ui/ModulePageHeader.jsx';
 import { Spinner } from '../../../components/ui/Spinner.jsx';

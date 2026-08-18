@@ -98,7 +98,7 @@ export const authenticate = asyncHandler(async (req, res, next) => {
 
     req.user = user;
     return next();
-  } catch (err) {
+  } catch {
     throw ApiError.unauthorized('Invalid or expired session token', 'SESSION_EXPIRED');
   }
 });

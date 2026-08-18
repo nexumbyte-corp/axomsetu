@@ -53,7 +53,7 @@ export const buildFeeReportData = (rawData = {}) => {
 /**
  * pdfMake Template Builder for Fee Collection & Dues Report
  */
-export const buildFeeReportTemplate = (data = {}, settings = {}) => {
+export const buildFeeReportTemplate = (data = {}, _settings = {}) => {
   const headerContent = createPDFHeader({
     school: data.school,
     documentTitle: data.reportTitle,

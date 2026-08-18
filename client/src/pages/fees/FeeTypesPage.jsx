@@ -197,7 +197,7 @@ export const FeeTypesPage = () => {
           <EmptyState
             icon={Sliders}
             title="No fee types found"
-            description="Add fee types like Tuition Fee, Admission Fee, Hostel Fee, etc."
+            description="Add academic fee types like Tuition Fee, Admission Fee, Examination Fee, etc."
             actionLabel="Add Fee Type"
             onAction={handleOpenAddModal}
           />

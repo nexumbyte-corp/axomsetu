@@ -1,21 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import {
-  Building2,
-  Search,
-  Plus,
-  CheckCircle2,
-  ShieldAlert,
-  XCircle,
-  Eye,
-  Clock,
-  ExternalLink,
-  Power,
-  Sliders,
-  MoreVertical,
-  UserCheck,
-  CreditCard,
-} from 'lucide-react';
+import { Search, Plus, CheckCircle2, ShieldAlert, XCircle, Eye, ExternalLink, Power, MoreVertical, UserCheck, CreditCard } from 'lucide-react';
 import { adminService } from '../services/adminService.js';
 import { subscriptionService } from '../services/subscriptionService.js';
 import { storage } from '../utils/storage.js';
@@ -34,11 +19,10 @@ import { Dropdown, DropdownItem } from '../components/ui/Dropdown.jsx';
 export const SuperAdminSchoolsPage = () => {
   const navigate = useNavigate();
   const [schools, setSchools] = useState([]);
-  const [plansList, setPlansList] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 15, total: 0 });
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [planFilter, setPlanFilter] = useState('');
+  const [planFilter] = useState('');
   const [trialFilter, setTrialFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);

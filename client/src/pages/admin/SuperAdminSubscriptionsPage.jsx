@@ -1,17 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  CreditCard,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Search,
-  RefreshCw,
-  Plus,
-  Calendar,
-  AlertTriangle,
-  Gift,
-  Building2,
-} from 'lucide-react';
+import { Search, RefreshCw, Plus, Calendar, AlertTriangle } from 'lucide-react';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { adminService } from '../../services/adminService.js';
 import { calculateSubscriptionEndDate, formatDateInput } from '../../utils/subscriptionUtils.js';

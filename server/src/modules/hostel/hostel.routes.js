@@ -29,6 +29,7 @@ router.patch('/beds/:id/status', requirePermission('HOSTEL_SETUP'), hostelContro
 // Fee Configuration & Generation
 router.get('/fees/config', requirePermission('HOSTEL_VIEW'), hostelController.getFeeConfig);
 router.post('/fees/config', requirePermission('HOSTEL_SETUP'), hostelController.saveFeeConfig);
+router.get('/fees/eligible-students', requirePermission('HOSTEL_VIEW'), hostelController.getEligibleHostelStudentsForBilling);
 router.post('/fees/generate', requirePermission('HOSTEL_SETUP'), hostelController.generateHostelMonthlyFees);
 
 // Admission

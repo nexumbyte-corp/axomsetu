@@ -49,7 +49,7 @@ export const buildFinancialLedgerData = (rawData = {}) => {
 /**
  * pdfMake Template Builder for Financial Ledger Statement
  */
-export const buildFinancialLedgerTemplate = (data, settings = {}) => {
+export const buildFinancialLedgerTemplate = (data, _settings = {}) => {
   const formatCurrency = (val) =>
     `₹${Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 

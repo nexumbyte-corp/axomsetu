@@ -110,7 +110,7 @@ export const loginUser = async ({ email, password }, meta = {}) => {
     },
   }).catch(() => {});
 
-  const { passwordHash, ...userWithoutPassword } = user;
+  const { passwordHash: _passwordHash, ...userWithoutPassword } = user;
 
   const normalizedUser = {
     ...userWithoutPassword,
@@ -132,7 +132,7 @@ export const refreshAccessToken = async (refreshToken) => {
   let decoded;
   try {
     decoded = verifyRefreshToken(refreshToken);
-  } catch (err) {
+  } catch {
     throw ApiError.unauthorized('Invalid or expired refresh token');
   }
 

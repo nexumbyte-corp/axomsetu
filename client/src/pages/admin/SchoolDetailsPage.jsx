@@ -1,29 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
-import {
-  Building2,
-  Users,
-  CreditCard,
-  CheckCircle2,
-  ShieldAlert,
-  XCircle,
-  Plus,
-  Trash2,
-  UserCheck,
-  Calendar,
-  Phone,
-  Mail,
-  MapPin,
-  ArrowLeft,
-  RefreshCw,
-  Key,
-  Shield,
-  Edit2,
-  Lock,
-  Power,
-  Check,
-  AlertTriangle,
-} from 'lucide-react';
+import { Building2, Plus, ArrowLeft, Key, Edit2, AlertTriangle } from 'lucide-react';
 import { adminService } from '../../services/adminService.js';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { Spinner } from '../../components/ui/Spinner.jsx';
@@ -33,12 +10,12 @@ import { Select } from '../../components/ui/Select.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../../components/ui/Table.jsx';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
+
 import { Modal } from '../../components/ui/Modal.jsx';
 
 export const SchoolDetailsPage = () => {
   const { schoolId } = useParams();
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'info';
 
@@ -236,7 +213,7 @@ export const SchoolDetailsPage = () => {
     );
   }
 
-  const { school, owner, subscription, subscriptionsHistory = [], termsAcceptances = [] } = data;
+  const { school, owner: _owner, subscription, subscriptionsHistory = [], termsAcceptances = [] } = data;
 
   let daysRemaining = null;
   if (subscription?.endDate) {

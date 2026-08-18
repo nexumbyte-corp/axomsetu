@@ -71,6 +71,9 @@ export const admitStudentSchema = z.object({
   roomId: uuidSchema,
   bedId: uuidSchema,
   startDate: z.string().min(1, 'Start date is required'),
+  admissionFeeOverride: z.number().min(0).optional().nullable(),
+  monthlyFeeOverride: z.number().min(0).optional().nullable(),
+  monthlyFeeApplied: z.number().min(0).optional().nullable(),
 });
 
 export const transferStudentSchema = z.object({
@@ -88,6 +91,15 @@ export const exitStudentSchema = z.object({
   reason: z.string().trim().optional().nullable(),
 });
 
+export const studentFeeItemSchema = z.object({
+  studentId: uuidSchema,
+  studentEnrollmentId: uuidSchema.optional().nullable(),
+  appliedFee: z.number().min(0, 'Applied fee must be non-negative'),
+  defaultFee: z.number().min(0).optional(),
+  isWaived: z.boolean().optional(),
+  reason: z.string().trim().optional().nullable(),
+});
+
 export const generateHostelFeesSchema = z.object({
   academicYearId: uuidSchema,
   month: z.enum([
@@ -95,4 +107,6 @@ export const generateHostelFeesSchema = z.object({
     'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
   ]),
   hostelId: uuidSchema.optional().nullable(),
+  students: z.array(studentFeeItemSchema).optional().default([]),
 });
+
