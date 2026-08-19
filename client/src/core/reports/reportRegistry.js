@@ -168,7 +168,7 @@ export const REPORT_REGISTRY = [
       { key: 'admissionNo', label: 'Admission No' },
       { key: 'studentName', label: 'Student Name', bold: true },
       { key: 'phone', label: 'Phone' },
-      { key: 'className', label: 'Class' },
+      { key: 'className', label: 'Class / Sec / Medium / Stream' },
       { key: 'totalCharged', label: 'Total Charged', type: 'currency', align: 'right' },
       { key: 'paidAmount', label: 'Total Paid', type: 'currency', align: 'right' },
       { key: 'balance', label: 'Outstanding Dues (₹)', type: 'currency', align: 'right', highlight: true },

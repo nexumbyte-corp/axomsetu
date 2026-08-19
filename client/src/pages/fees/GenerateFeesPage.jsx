@@ -13,6 +13,7 @@ import { Modal } from '../../components/ui/Modal.jsx';
 import { Skeleton } from '../../components/ui/Skeleton.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
+import { SearchableStudentSelect } from '../../components/fees/SearchableStudentSelect.jsx';
 
 const MONTH_OPTIONS = [
   { label: 'April', value: 'APRIL' },
@@ -471,10 +472,10 @@ export const GenerateFeesPage = () => {
                 <div className="flex items-center gap-2">
                   <div
                     className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${isDone
-                        ? 'bg-emerald-600 text-white'
-                        : isActive
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-slate-100 text-slate-400'
+                      ? 'bg-emerald-600 text-white'
+                      : isActive
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-100 text-slate-400'
                       }`}
                   >
                     {isDone ? <Check className="w-4 h-4" /> : item.step}
@@ -544,8 +545,8 @@ export const GenerateFeesPage = () => {
                     type="button"
                     onClick={() => setGenerationMode(mode.id)}
                     className={`p-4 rounded-xl border text-left transition-all ${isSelected
-                        ? 'border-indigo-600 bg-indigo-50/60 shadow-xs ring-2 ring-indigo-500/20'
-                        : 'border-slate-200 bg-white hover:border-slate-300'
+                      ? 'border-indigo-600 bg-indigo-50/60 shadow-xs ring-2 ring-indigo-500/20'
+                      : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -664,19 +665,10 @@ export const GenerateFeesPage = () => {
 
           {generationMode === 'BY_STUDENT' && (
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-              <Select
-                label="Search / Select Student"
-                value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
-                options={
-                  studentsList.length > 0
-                    ? studentsList.map((s) => ({
-                      label: `${s.name} (${s.admissionNo})${s.enrollment?.class ? ` - ${s.enrollment.class.name}` : ''}`,
-                      value: s.id,
-                    }))
-                    : [{ label: 'No active students found in this academic year', value: '' }]
-                }
-                required
+              <SearchableStudentSelect
+                students={studentsList}
+                selectedStudentId={selectedStudentId}
+                onSelectStudent={(st) => setSelectedStudentId(st?.id || '')}
               />
             </div>
           )}

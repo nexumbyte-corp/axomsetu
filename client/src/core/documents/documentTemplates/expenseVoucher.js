@@ -31,7 +31,7 @@ export const buildExpenseVoucherData = (rawData = {}) => {
 /**
  * pdfMake Template Builder for Single Expense Voucher
  */
-export const buildExpenseVoucherTemplate = (data = {}, _settings = {}) => {
+export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
   const isCancelled = data.status === 'CANCELLED' || data.status === 'VOID';
 
   const headerContent = createPDFHeader({
@@ -113,18 +113,18 @@ export const buildExpenseVoucherTemplate = (data = {}, _settings = {}) => {
             borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
             margin: [8, 6, 8, 6],
             stack: [
-              { text: 'AMOUNT IN WORDS', fontSize: 7.5, bold: true, color: '#64748b' },
-              { text: data.amountInWords, fontSize: 8.5, bold: true, italics: true, color: '#0f172a' },
+              { text: 'AMOUNT IN WORDS', fontSize: 9, bold: true, color: '#64748b' },
+              { text: data.amountInWords, fontSize: 10, bold: true, italics: true, color: '#0f172a' },
             ],
           },
           {
-            fillColor: '#0f172a',
-            borderColor: ['#0f172a', '#0f172a', '#0f172a', '#0f172a'],
+            fillColor: '#f8fafc',
+            borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
             margin: [8, 6, 8, 6],
             alignment: 'right',
             stack: [
-              { text: 'TOTAL VOUCHER AMOUNT', fontSize: 7.5, bold: true, color: '#94a3b8', alignment: 'right' },
-              { text: data.amountFormatted, fontSize: 13, bold: true, color: '#f87171', alignment: 'right' },
+              { text: 'TOTAL VOUCHER AMOUNT', fontSize: 9, bold: true, color: '#475569', alignment: 'right' },
+              { text: data.amountFormatted, fontSize: 14, bold: true, color: '#b91c1c', alignment: 'right' },
             ],
           },
         ],

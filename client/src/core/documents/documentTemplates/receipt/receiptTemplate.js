@@ -105,8 +105,8 @@ export const buildReceiptTemplate = (data = {}, options = {}) => {
             ].filter(Boolean),
           },
           {
-            fillColor: '#0f172a',
-            borderColor: ['#0f172a', '#0f172a', '#0f172a', '#0f172a'],
+            fillColor: '#f8fafc',
+            borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
             margin: [8, 4, 8, 4],
             alignment: 'right',
             stack: [

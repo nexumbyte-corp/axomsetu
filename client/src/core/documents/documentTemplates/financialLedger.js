@@ -71,8 +71,8 @@ export const buildFinancialLedgerTemplate = (data, _settings = {}) => {
             borderColor: ['#e2e8f0', '#e2e8f0', '#e2e8f0', '#e2e8f0'],
             margin: [6, 6, 6, 6],
             stack: [
-              { text: 'TOTAL CREDIT INFLOW', fontSize: 8, bold: true, color: '#059669' },
-              { text: formatCurrency(data.totalCredit), fontSize: 12, bold: true, color: '#059669', margin: [0, 2, 0, 0] },
+              { text: 'TOTAL CREDIT INFLOW', fontSize: 8.5, bold: true, color: '#059669' },
+              { text: formatCurrency(data.totalCredit), fontSize: 13, bold: true, color: '#059669', margin: [0, 2, 0, 0] },
             ],
           },
           {
@@ -80,8 +80,8 @@ export const buildFinancialLedgerTemplate = (data, _settings = {}) => {
             borderColor: ['#e2e8f0', '#e2e8f0', '#e2e8f0', '#e2e8f0'],
             margin: [6, 6, 6, 6],
             stack: [
-              { text: 'TOTAL DEBIT OUTFLOW', fontSize: 8, bold: true, color: '#dc2626' },
-              { text: formatCurrency(data.totalDebit), fontSize: 12, bold: true, color: '#dc2626', margin: [0, 2, 0, 0] },
+              { text: 'TOTAL DEBIT OUTFLOW', fontSize: 8.5, bold: true, color: '#dc2626' },
+              { text: formatCurrency(data.totalDebit), fontSize: 13, bold: true, color: '#dc2626', margin: [0, 2, 0, 0] },
             ],
           },
           {
@@ -89,8 +89,8 @@ export const buildFinancialLedgerTemplate = (data, _settings = {}) => {
             borderColor: ['#e2e8f0', '#e2e8f0', '#e2e8f0', '#e2e8f0'],
             margin: [6, 6, 6, 6],
             stack: [
-              { text: 'CURRENT NET BALANCE', fontSize: 8, bold: true, color: '#4f46e5' },
-              { text: formatCurrency(data.currentBalance), fontSize: 12, bold: true, color: '#4f46e5', margin: [0, 2, 0, 0] },
+              { text: 'CURRENT NET BALANCE', fontSize: 8.5, bold: true, color: '#4f46e5' },
+              { text: formatCurrency(data.currentBalance), fontSize: 13, bold: true, color: '#4f46e5', margin: [0, 2, 0, 0] },
             ],
           },
         ],
@@ -102,23 +102,23 @@ export const buildFinancialLedgerTemplate = (data, _settings = {}) => {
   // 3. Transactions Table
   const tableRows = [
     [
-      { text: 'Date', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Description', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Source', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Type', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Mode', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Amount (₹)', alignment: 'right', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
+      { text: 'Date', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Description', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Source', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Type', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Mode', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Amount (₹)', alignment: 'right', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
     ],
   ];
 
   data.transactions.forEach((t) => {
     tableRows.push([
-      { text: t.date, fontSize: 8, color: '#334155' },
-      { text: t.description, fontSize: 8, color: '#0f172a' },
-      { text: t.sourceType, fontSize: 8, color: '#475569' },
-      { text: t.isReversal ? `${t.type} (REV)` : t.type, fontSize: 8, bold: true, color: t.type === 'CREDIT' ? '#059669' : '#dc2626' },
-      { text: t.paymentMode, fontSize: 8, color: '#475569' },
-      { text: `${t.type === 'CREDIT' ? '+' : '-'}${formatCurrency(t.amount)}`, fontSize: 8, alignment: 'right', bold: true, color: t.type === 'CREDIT' ? '#059669' : '#dc2626' },
+      { text: t.date, fontSize: 9, color: '#334155' },
+      { text: t.description, fontSize: 9, color: '#0f172a' },
+      { text: t.sourceType, fontSize: 9, color: '#475569' },
+      { text: t.isReversal ? `${t.type} (REV)` : t.type, fontSize: 9, bold: true, color: t.type === 'CREDIT' ? '#059669' : '#dc2626' },
+      { text: t.paymentMode, fontSize: 9, color: '#475569' },
+      { text: `${t.type === 'CREDIT' ? '+' : '-'}${formatCurrency(t.amount)}`, fontSize: 9, alignment: 'right', bold: true, color: t.type === 'CREDIT' ? '#059669' : '#dc2626' },
     ]);
   });
 

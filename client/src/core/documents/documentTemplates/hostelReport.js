@@ -68,8 +68,8 @@ export const buildHostelReportTemplate = (data = {}, _settings = {}) => {
             borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
             margin: [6, 4, 6, 4],
             stack: [
-              { text: 'TOTAL RESIDENTS', fontSize: 7.5, bold: true, color: '#475569' },
-              { text: String(data.totalResidents), fontSize: 11, bold: true, color: '#0f172a' },
+              { text: 'TOTAL RESIDENTS', fontSize: 8.5, bold: true, color: '#475569' },
+              { text: String(data.totalResidents), fontSize: 13, bold: true, color: '#0f172a' },
             ],
           },
           {
@@ -77,8 +77,8 @@ export const buildHostelReportTemplate = (data = {}, _settings = {}) => {
             borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
             margin: [6, 4, 6, 4],
             stack: [
-              { text: 'TOTAL HOSTEL FEES COLLECTED', fontSize: 7.5, bold: true, color: '#475569' },
-              { text: data.totalCollectedFormatted, fontSize: 11, bold: true, color: '#15803d' },
+              { text: 'TOTAL HOSTEL FEES COLLECTED', fontSize: 8.5, bold: true, color: '#475569' },
+              { text: data.totalCollectedFormatted, fontSize: 13, bold: true, color: '#15803d' },
             ],
           },
           {
@@ -86,8 +86,8 @@ export const buildHostelReportTemplate = (data = {}, _settings = {}) => {
             borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
             margin: [6, 4, 6, 4],
             stack: [
-              { text: 'TOTAL HOSTEL DUES', fontSize: 7.5, bold: true, color: '#475569' },
-              { text: data.totalDuesFormatted, fontSize: 11, bold: true, color: data.totalDues > 0 ? '#b91c1c' : '#15803d' },
+              { text: 'TOTAL HOSTEL DUES', fontSize: 8.5, bold: true, color: '#475569' },
+              { text: data.totalDuesFormatted, fontSize: 13, bold: true, color: data.totalDues > 0 ? '#b91c1c' : '#15803d' },
             ],
           },
         ],
@@ -99,33 +99,33 @@ export const buildHostelReportTemplate = (data = {}, _settings = {}) => {
   // Table Body
   const tableRows = [
     [
-      { text: 'Room/Bed', fontSize: 7.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Student Name', fontSize: 7.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Adm No', fontSize: 7.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Class', fontSize: 7.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Monthly Fee (₹)', fontSize: 7.5, bold: true, alignment: 'right', fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Paid (₹)', fontSize: 7.5, bold: true, alignment: 'right', fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Due (₹)', fontSize: 7.5, bold: true, alignment: 'right', fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Status', fontSize: 7.5, bold: true, alignment: 'center', fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Room/Bed', fontSize: 9.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Student Name', fontSize: 9.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Adm No', fontSize: 9.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Class', fontSize: 9.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Monthly Fee (₹)', fontSize: 9.5, bold: true, alignment: 'right', fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Paid (₹)', fontSize: 9.5, bold: true, alignment: 'right', fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Due (₹)', fontSize: 9.5, bold: true, alignment: 'right', fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Status', fontSize: 9.5, bold: true, alignment: 'center', fillColor: '#f1f5f9', color: '#0f172a' },
     ],
   ];
 
   if (data.items.length === 0) {
     tableRows.push([
-      { text: 'No hostel residents found for the selected parameters.', colSpan: 8, alignment: 'center', fontSize: 8, color: '#64748b' },
+      { text: 'No hostel residents found for the selected parameters.', colSpan: 8, alignment: 'center', fontSize: 8.5, color: '#64748b' },
       {}, {}, {}, {}, {}, {}, {},
     ]);
   } else {
     data.items.forEach((item) => {
       tableRows.push([
-        { text: `${item.roomNo} / ${item.bedNo}`, fontSize: 7.5, bold: true, color: '#0f172a' },
-        { text: item.studentName, fontSize: 7.5, bold: true, color: '#0f172a' },
-        { text: item.admissionNo, fontSize: 7.5, color: '#475569' },
-        { text: item.classSection, fontSize: 7.5, color: '#334155' },
-        { text: formatDocCurrency(item.monthlyFee), fontSize: 7.5, alignment: 'right', color: '#0f172a' },
-        { text: formatDocCurrency(item.paidAmount), fontSize: 7.5, alignment: 'right', color: '#15803d' },
-        { text: formatDocCurrency(item.dueAmount), fontSize: 7.5, alignment: 'right', color: item.dueAmount > 0 ? '#b91c1c' : '#475569' },
-        { text: item.status, fontSize: 7, alignment: 'center', bold: true, color: item.dueAmount <= 0 ? '#15803d' : '#b45309' },
+        { text: `${item.roomNo} / ${item.bedNo}`, fontSize: 9, bold: true, color: '#0f172a' },
+        { text: item.studentName, fontSize: 9, bold: true, color: '#0f172a' },
+        { text: item.admissionNo, fontSize: 9, color: '#475569' },
+        { text: item.classSection, fontSize: 9, color: '#334155' },
+        { text: formatDocCurrency(item.monthlyFee), fontSize: 9, alignment: 'right', color: '#0f172a' },
+        { text: formatDocCurrency(item.paidAmount), fontSize: 9, alignment: 'right', color: '#15803d' },
+        { text: formatDocCurrency(item.dueAmount), fontSize: 9, alignment: 'right', color: item.dueAmount > 0 ? '#b91c1c' : '#475569' },
+        { text: item.status, fontSize: 8.5, alignment: 'center', bold: true, color: item.dueAmount <= 0 ? '#15803d' : '#b45309' },
       ]);
     });
   }

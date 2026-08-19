@@ -146,7 +146,7 @@ export const buildSalaryReceiptTemplate = (data, _settings = {}) => {
   for (const item of allocItems) {
     const summaryRows = [
       [
-        { text: 'SALARY SETTLEMENT SUMMARY', style: 'tableHeader', bold: true, fillColor: '#1e293b', color: '#ffffff', colSpan: 2 },
+        { text: 'SALARY SETTLEMENT SUMMARY', style: 'tableHeader', bold: true, fillColor: '#f1f5f9', color: '#0f172a', colSpan: 2 },
         {},
       ],
       [

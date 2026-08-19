@@ -65,31 +65,31 @@ export const buildExpenseReportTemplate = (data, _settings = {}) => {
   // Expenses Table
   const tableRows = [
     [
-      { text: 'Category', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Date', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Description / Purpose', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Mode', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Ref #', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Amount (₹)', alignment: 'right', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
+      { text: 'Category', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Date', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Description / Purpose', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Mode', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Ref #', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Amount (₹)', alignment: 'right', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
     ],
   ];
 
   data.expenses.forEach((e) => {
     tableRows.push([
-      { text: e.category, fontSize: 8, bold: true, color: '#0f172a' },
-      { text: e.date, fontSize: 8, color: '#334155' },
-      { text: e.status === 'CANCELLED' ? `${e.description} (CANCELLED)` : e.description, fontSize: 8, color: e.status === 'CANCELLED' ? '#94a3b8' : '#334155' },
-      { text: e.paymentMode, fontSize: 8, color: '#475569' },
-      { text: e.referenceNo, fontSize: 8, color: '#475569' },
-      { text: formatCurrency(e.amount), fontSize: 8, alignment: 'right', bold: true, color: e.status === 'CANCELLED' ? '#94a3b8' : '#dc2626' },
+      { text: e.category, fontSize: 9, bold: true, color: '#0f172a' },
+      { text: e.date, fontSize: 9, color: '#334155' },
+      { text: e.status === 'CANCELLED' ? `${e.description} (CANCELLED)` : e.description, fontSize: 9, color: e.status === 'CANCELLED' ? '#94a3b8' : '#334155' },
+      { text: e.paymentMode, fontSize: 9, color: '#475569' },
+      { text: e.referenceNo, fontSize: 9, color: '#475569' },
+      { text: formatCurrency(e.amount), fontSize: 9, alignment: 'right', bold: true, color: e.status === 'CANCELLED' ? '#94a3b8' : '#dc2626' },
     ]);
   });
 
   // Summary Row
   tableRows.push([
-    { text: 'TOTAL EXPENDITURE', colSpan: 5, fontSize: 9, bold: true, color: '#0f172a', fillColor: '#f8fafc' },
+    { text: 'TOTAL EXPENDITURE', colSpan: 5, fontSize: 10, bold: true, color: '#0f172a', fillColor: '#f8fafc' },
     {}, {}, {}, {},
-    { text: formatCurrency(data.totalAmount), fontSize: 10, bold: true, alignment: 'right', color: '#b91c1c', fillColor: '#f8fafc' },
+    { text: formatCurrency(data.totalAmount), fontSize: 12, bold: true, alignment: 'right', color: '#b91c1c', fillColor: '#f8fafc' },
   ]);
 
   content.push({

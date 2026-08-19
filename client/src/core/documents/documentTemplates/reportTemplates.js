@@ -82,8 +82,8 @@ export const buildGenericReportTemplate = (data, _settings = {}) => {
         fillColor: '#f8fafc',
         margin: [4, 4, 4, 4],
         stack: [
-          { text: label, fontSize: 7, bold: true, color: '#64748b' },
-          { text: displayVal, fontSize: 10, bold: true, color: '#0f172a', margin: [0, 1, 0, 0] },
+          { text: label, fontSize: 8.5, bold: true, color: '#64748b' },
+          { text: displayVal, fontSize: 12, bold: true, color: '#0f172a', margin: [0, 1, 0, 0] },
         ],
       };
     });
@@ -104,7 +104,7 @@ export const buildGenericReportTemplate = (data, _settings = {}) => {
       text: c.label,
       bold: true,
       fillColor: '#f1f5f9',
-      fontSize: 8,
+      fontSize: 9.5,
       color: '#1e293b',
       alignment: c.align || 'left',
     }));
@@ -127,7 +127,7 @@ export const buildGenericReportTemplate = (data, _settings = {}) => {
 
         return {
           text: String(val),
-          fontSize: 8,
+          fontSize: 9,
           color,
           bold,
           alignment: col.align || 'left',

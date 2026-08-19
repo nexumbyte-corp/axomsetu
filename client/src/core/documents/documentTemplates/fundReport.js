@@ -65,31 +65,31 @@ export const buildFundReportTemplate = (data, _settings = {}) => {
   // Funds Table
   const tableRows = [
     [
-      { text: 'Fund Source', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Date', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Remarks / Purpose', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Mode', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Ref #', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
-      { text: 'Amount (₹)', alignment: 'right', bold: true, fillColor: '#f1f5f9', fontSize: 8, color: '#1e293b' },
+      { text: 'Fund Source', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Date', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Remarks / Purpose', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Mode', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Ref #', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
+      { text: 'Amount (₹)', alignment: 'right', bold: true, fillColor: '#f1f5f9', fontSize: 9.5, color: '#1e293b' },
     ],
   ];
 
   data.funds.forEach((f) => {
     tableRows.push([
-      { text: f.source, fontSize: 8, bold: true, color: '#0f172a' },
-      { text: f.date, fontSize: 8, color: '#334155' },
-      { text: f.status === 'CANCELLED' ? `${f.remarks} (CANCELLED)` : f.remarks, fontSize: 8, color: f.status === 'CANCELLED' ? '#94a3b8' : '#334155' },
-      { text: f.paymentMode, fontSize: 8, color: '#475569' },
-      { text: f.referenceNumber, fontSize: 8, color: '#475569' },
-      { text: `+${formatCurrency(f.amount)}`, fontSize: 8, alignment: 'right', bold: true, color: f.status === 'CANCELLED' ? '#94a3b8' : '#059669' },
+      { text: f.source, fontSize: 9, bold: true, color: '#0f172a' },
+      { text: f.date, fontSize: 9, color: '#334155' },
+      { text: f.status === 'CANCELLED' ? `${f.remarks} (CANCELLED)` : f.remarks, fontSize: 9, color: f.status === 'CANCELLED' ? '#94a3b8' : '#334155' },
+      { text: f.paymentMode, fontSize: 9, color: '#475569' },
+      { text: f.referenceNumber, fontSize: 9, color: '#475569' },
+      { text: `+${formatCurrency(f.amount)}`, fontSize: 9, alignment: 'right', bold: true, color: f.status === 'CANCELLED' ? '#94a3b8' : '#059669' },
     ]);
   });
 
   // Summary Row
   tableRows.push([
-    { text: 'TOTAL FUND INFUSION', colSpan: 5, fontSize: 9, bold: true, color: '#0f172a', fillColor: '#f8fafc' },
+    { text: 'TOTAL FUND INFUSION', colSpan: 5, fontSize: 10, bold: true, color: '#0f172a', fillColor: '#f8fafc' },
     {}, {}, {}, {},
-    { text: formatCurrency(data.totalAmount), fontSize: 10, bold: true, alignment: 'right', color: '#047857', fillColor: '#f8fafc' },
+    { text: formatCurrency(data.totalAmount), fontSize: 12, bold: true, alignment: 'right', color: '#047857', fillColor: '#f8fafc' },
   ]);
 
   content.push({

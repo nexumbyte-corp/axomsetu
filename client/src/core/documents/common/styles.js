@@ -13,33 +13,33 @@ export const createDocumentStyles = (customSettings = {}) => {
   return {
     // School Header Styles
     schoolTitle: {
-      fontSize: 16,
+      fontSize: 18,
       bold: true,
       color: primaryColor,
       margin: [0, 0, 0, 2],
     },
     schoolSubtitle: {
-      fontSize: 8.5,
+      fontSize: 10,
       color: neutralColor,
       margin: [0, 0, 0, 2],
     },
     schoolContact: {
-      fontSize: 8,
+      fontSize: 9.5,
       color: neutralColor,
     },
     docNumberLabel: {
-      fontSize: 7.5,
+      fontSize: 9,
       bold: true,
       color: neutralColor,
     },
     docNumberValue: {
-      fontSize: 11,
+      fontSize: 12.5,
       bold: true,
       color: secondaryColor,
       margin: [0, 1, 0, 2],
     },
     copyBadge: {
-      fontSize: 7,
+      fontSize: 8.5,
       bold: true,
       color: '#ffffff',
       fillColor: secondaryColor,
@@ -49,103 +49,103 @@ export const createDocumentStyles = (customSettings = {}) => {
 
     // Card & Section Box Styles
     boxHeader: {
-      fontSize: 8.5,
+      fontSize: 10,
       bold: true,
       color: secondaryColor,
       margin: [0, 0, 0, 4],
     },
     label: {
-      fontSize: 8,
+      fontSize: 9.5,
       color: neutralColor,
     },
     value: {
-      fontSize: 8.5,
+      fontSize: 10,
       bold: true,
       color: darkColor,
     },
     valueMono: {
-      fontSize: 8.5,
+      fontSize: 10,
       bold: true,
       color: darkColor,
     },
 
     // Table Styles
     tableHeader: {
-      fontSize: 8,
+      fontSize: 9.5,
       bold: true,
       color: darkColor,
       fillColor: '#f1f5f9',
-      margin: [0, 2, 0, 2],
+      margin: [0, 3, 0, 3],
     },
     tableHeaderRight: {
-      fontSize: 8,
+      fontSize: 9.5,
       bold: true,
       color: darkColor,
       fillColor: '#f1f5f9',
       alignment: 'right',
-      margin: [0, 2, 0, 2],
+      margin: [0, 3, 0, 3],
     },
     tableHeaderCenter: {
-      fontSize: 8,
+      fontSize: 9.5,
       bold: true,
       color: darkColor,
       fillColor: '#f1f5f9',
       alignment: 'center',
-      margin: [0, 2, 0, 2],
+      margin: [0, 3, 0, 3],
     },
     tableCell: {
-      fontSize: 8,
+      fontSize: 9,
       color: darkColor,
-      margin: [0, 2, 0, 2],
+      margin: [0, 3, 0, 3],
     },
     tableCellBold: {
-      fontSize: 8,
+      fontSize: 9,
       bold: true,
       color: darkColor,
-      margin: [0, 2, 0, 2],
+      margin: [0, 3, 0, 3],
     },
     tableCellSub: {
-      fontSize: 7,
+      fontSize: 8.5,
       color: neutralColor,
       margin: [0, 0, 0, 1],
     },
     tableCellRight: {
-      fontSize: 8,
+      fontSize: 9,
       color: darkColor,
       alignment: 'right',
-      margin: [0, 2, 0, 2],
+      margin: [0, 3, 0, 3],
     },
     tableCellBoldRight: {
-      fontSize: 8,
+      fontSize: 9,
       bold: true,
       color: darkColor,
       alignment: 'right',
-      margin: [0, 2, 0, 2],
+      margin: [0, 3, 0, 3],
     },
     tableCellCenter: {
-      fontSize: 8,
+      fontSize: 9,
       color: darkColor,
       alignment: 'center',
-      margin: [0, 2, 0, 2],
+      margin: [0, 3, 0, 3],
     },
 
     // Badges inside table
     badgeSuccess: {
-      fontSize: 7,
+      fontSize: 8.5,
       bold: true,
       color: '#15803d',
       fillColor: '#dcfce7',
       alignment: 'center',
     },
     badgeWarning: {
-      fontSize: 7,
+      fontSize: 8.5,
       bold: true,
       color: '#b45309',
       fillColor: '#fef3c7',
       alignment: 'center',
     },
     badgeDanger: {
-      fontSize: 7,
+      fontSize: 8.5,
       bold: true,
       color: '#b91c1c',
       fillColor: '#fee2e2',
@@ -154,22 +154,22 @@ export const createDocumentStyles = (customSettings = {}) => {
 
     // Totals & Amount in Words
     totalBoxLabel: {
-      fontSize: 7.5,
+      fontSize: 9,
       bold: true,
-      color: '#94a3b8',
+      color: '#475569',
     },
     totalBoxValue: {
-      fontSize: 13,
+      fontSize: 14,
       bold: true,
-      color: '#34d399',
+      color: '#15803d',
     },
     amountWordsLabel: {
-      fontSize: 7.5,
+      fontSize: 9,
       bold: true,
       color: neutralColor,
     },
     amountWordsValue: {
-      fontSize: 8.5,
+      fontSize: 10,
       bold: true,
       italics: true,
       color: darkColor,
@@ -177,13 +177,13 @@ export const createDocumentStyles = (customSettings = {}) => {
 
     // Signatures & Disclaimer
     signatureLine: {
-      fontSize: 8,
+      fontSize: 9.5,
       bold: true,
       color: neutralColor,
       alignment: 'center',
     },
     footerDisclaimer: {
-      fontSize: 7,
+      fontSize: 8.5,
       color: '#94a3b8',
       alignment: 'center',
       italics: true,

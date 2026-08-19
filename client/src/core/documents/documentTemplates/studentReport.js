@@ -65,8 +65,8 @@ export const buildStudentReportTemplate = (data = {}, _settings = {}) => {
             borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
             margin: [6, 4, 6, 4],
             stack: [
-              { text: 'TOTAL ENROLLED STUDENTS', fontSize: 7.5, bold: true, color: '#475569' },
-              { text: String(data.totalStudents), fontSize: 11, bold: true, color: '#0f172a' },
+              { text: 'TOTAL ENROLLED STUDENTS', fontSize: 8.5, bold: true, color: '#475569' },
+              { text: String(data.totalStudents), fontSize: 13, bold: true, color: '#0f172a' },
             ],
           },
           {
@@ -74,8 +74,8 @@ export const buildStudentReportTemplate = (data = {}, _settings = {}) => {
             borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
             margin: [6, 4, 6, 4],
             stack: [
-              { text: 'ACTIVE STUDENTS', fontSize: 7.5, bold: true, color: '#475569' },
-              { text: String(data.activeCount), fontSize: 11, bold: true, color: '#15803d' },
+              { text: 'ACTIVE STUDENTS', fontSize: 8.5, bold: true, color: '#475569' },
+              { text: String(data.activeCount), fontSize: 13, bold: true, color: '#15803d' },
             ],
           },
         ],
@@ -87,33 +87,33 @@ export const buildStudentReportTemplate = (data = {}, _settings = {}) => {
   // Table Body
   const tableRows = [
     [
-      { text: 'Adm No', fontSize: 7.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Student Name', fontSize: 7.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Roll', fontSize: 7.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Class & Sec', fontSize: 7.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Medium', fontSize: 7.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Guardian Name', fontSize: 7.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Phone', fontSize: 7.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
-      { text: 'Status', fontSize: 7.5, bold: true, alignment: 'center', fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Adm No', fontSize: 9.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Student Name', fontSize: 9.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Roll', fontSize: 9.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Class & Sec', fontSize: 9.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Medium', fontSize: 9.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Guardian Name', fontSize: 9.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Phone', fontSize: 9.5, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
+      { text: 'Status', fontSize: 9.5, bold: true, alignment: 'center', fillColor: '#f1f5f9', color: '#0f172a' },
     ],
   ];
 
   if (data.items.length === 0) {
     tableRows.push([
-      { text: 'No student records found for the applied report parameters.', colSpan: 8, alignment: 'center', fontSize: 8, color: '#64748b' },
+      { text: 'No student records found for the applied report parameters.', colSpan: 8, alignment: 'center', fontSize: 8.5, color: '#64748b' },
       {}, {}, {}, {}, {}, {}, {},
     ]);
   } else {
     data.items.forEach((item) => {
       tableRows.push([
-        { text: item.admissionNo, fontSize: 7.5, bold: true, color: '#0f172a' },
-        { text: item.name, fontSize: 7.5, bold: true, color: '#0f172a' },
-        { text: item.rollNo, fontSize: 7.5, color: '#475569' },
-        { text: item.classSection, fontSize: 7.5, color: '#334155' },
-        { text: item.medium, fontSize: 7.5, color: '#475569' },
-        { text: item.guardianName, fontSize: 7.5, color: '#334155' },
-        { text: item.phone, fontSize: 7.5, color: '#475569' },
-        { text: item.status, fontSize: 7, alignment: 'center', bold: true, color: item.status === 'ACTIVE' ? '#15803d' : '#b45309' },
+        { text: item.admissionNo, fontSize: 9, bold: true, color: '#0f172a' },
+        { text: item.name, fontSize: 9, bold: true, color: '#0f172a' },
+        { text: item.rollNo, fontSize: 9, color: '#475569' },
+        { text: item.classSection, fontSize: 9, color: '#334155' },
+        { text: item.medium, fontSize: 9, color: '#475569' },
+        { text: item.guardianName, fontSize: 9, color: '#334155' },
+        { text: item.phone, fontSize: 9, color: '#475569' },
+        { text: item.status, fontSize: 8.5, alignment: 'center', bold: true, color: item.status === 'ACTIVE' ? '#15803d' : '#b45309' },
       ]);
     });
   }

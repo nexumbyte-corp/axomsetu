@@ -8,7 +8,6 @@ import { Badge } from '../../components/ui/Badge.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Card } from '../../components/ui/Card.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
-import { DocumentPreviewModal } from '../../components/documents/DocumentPreviewModal.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { Download, Filter, RefreshCw } from 'lucide-react';
@@ -123,6 +122,7 @@ export const IndividualStaffAdvanceReportModal = ({
               }}
               filename={`Staff_Advance_Report_${staff.employeeId || 'Staff'}.pdf`}
               title={`Staff Advance Statement - ${staff.name || staffName}`}
+              variant="full"
             />
             <Button variant="secondary" size="sm" onClick={handleExportCSV} disabled={loading || ledger.length === 0}>
               <Download className="w-3.5 h-3.5 mr-1" />
@@ -283,18 +283,6 @@ export const IndividualStaffAdvanceReportModal = ({
           )}
         </Card>
       </div>
-
-      {/* PDF Document Preview Modal */}
-      {isPdfModalOpen && (
-        <DocumentPreviewModal
-          isOpen={isPdfModalOpen}
-          onClose={() => setIsPdfModalOpen(false)}
-          templateId="genericReport"
-          data={pdfPayload}
-          filename={`Staff_Advance_Report_${staff.employeeId || 'Staff'}.pdf`}
-          title={`Staff Advance Report PDF - ${staff.name || staffName}`}
-        />
-      )}
     </Modal>
   );
 };
