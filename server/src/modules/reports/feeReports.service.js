@@ -62,7 +62,12 @@ export const feeReportsService = {
                 include: {
                   feeType: { select: { name: true } },
                   studentEnrollment: {
-                    include: { class: { select: { name: true } } },
+                    include: {
+                      class: { select: { name: true } },
+                      section: { select: { name: true } },
+                      medium: { select: { name: true } },
+                      stream: { select: { name: true } },
+                    },
                   },
                 },
               },
@@ -101,7 +106,17 @@ export const feeReportsService = {
 
     const data = payments.map((p) => {
       const firstAlloc = p.allocations[0];
-      const className = firstAlloc?.charge?.studentEnrollment?.class?.name || '-';
+      const enr = firstAlloc?.charge?.studentEnrollment;
+      const clsName = enr?.class?.name || '-';
+      const secName = enr?.section?.name;
+      const medName = enr?.medium?.name;
+      const strmName = enr?.stream?.name;
+
+      let fullClass = clsName;
+      if (secName && secName !== '-') fullClass += ` - ${secName}`;
+      const extras = [medName, strmName].filter((x) => x && x !== '-').join(' / ');
+      if (extras) fullClass += ` (${extras})`;
+
       const feeTypes = Array.from(
         new Set(p.allocations.map((a) => a.charge?.feeType?.name).filter(Boolean))
       ).join(', ') || 'General Fee';
@@ -112,7 +127,10 @@ export const feeReportsService = {
         receiptNo: p.receiptNumber,
         studentName: p.student?.name || '-',
         admissionNo: p.student?.admissionNo || '-',
-        className,
+        className: fullClass,
+        sectionName: secName || '-',
+        mediumName: medName || '-',
+        streamName: strmName || '-',
         feeType: feeTypes,
         amount: Number(p.receivedAmount),
         paymentMode: p.paymentMode,
@@ -177,6 +195,8 @@ export const feeReportsService = {
           include: {
             class: { select: { name: true } },
             section: { select: { name: true } },
+            medium: { select: { name: true } },
+            stream: { select: { name: true } },
           },
         },
       },
@@ -188,13 +208,25 @@ export const feeReportsService = {
     for (const c of charges) {
       const sId = c.studentId;
       if (!studentMap.has(sId)) {
+        const clsName = c.studentEnrollment?.class?.name || '-';
+        const secName = c.studentEnrollment?.section?.name;
+        const medName = c.studentEnrollment?.medium?.name;
+        const strmName = c.studentEnrollment?.stream?.name;
+
+        let fullClass = clsName;
+        if (secName && secName !== '-') fullClass += ` - ${secName}`;
+        const extras = [medName, strmName].filter((x) => x && x !== '-').join(' / ');
+        if (extras) fullClass += ` (${extras})`;
+
         studentMap.set(sId, {
           studentId: sId,
           studentName: c.student?.name || '-',
           admissionNo: c.student?.admissionNo || '-',
           phone: c.student?.phone || '-',
-          className: c.studentEnrollment?.class?.name || '-',
-          sectionName: c.studentEnrollment?.section?.name || '-',
+          className: fullClass,
+          sectionName: secName || '-',
+          mediumName: medName || '-',
+          streamName: strmName || '-',
           totalChargedDecimal: new Prisma.Decimal(0),
           totalPaidDecimal: new Prisma.Decimal(0),
           chargesCount: 0,

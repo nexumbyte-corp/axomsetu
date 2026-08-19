@@ -261,8 +261,9 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
   const oneTimeExistingSet = new Set();
 
   existingCharges.forEach((c) => {
-    monthlyExistingSet.add(`${c.studentId}_${c.feeTypeId}_${c.month}`);
-    oneTimeExistingSet.add(`${c.studentId}_${c.feeTypeId}`);
+    const titleKey = (c.title || '').trim().toLowerCase();
+    monthlyExistingSet.add(`${c.studentId}_${c.feeTypeId}_${c.month}_${titleKey}`);
+    oneTimeExistingSet.add(`${c.studentId}_${c.feeTypeId}_${titleKey}`);
   });
 
   // Custom fee head map
@@ -393,12 +394,13 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
       }
 
       const billingRule = head.billingRule || 'MONTHLY';
+      const titleKey = (head.title || '').trim().toLowerCase();
 
-      // Logical identity duplicate check (ignoring title, amount, batch)
+      // Logical identity duplicate check (Student + AcademicYear + FeeType + Title + Month)
       const isOneTime = billingRule === 'ONE_TIME_PER_ACADEMIC_YEAR';
       const isDuplicate = isOneTime
-        ? oneTimeExistingSet.has(`${e.studentId}_${head.feeTypeId}`)
-        : monthlyExistingSet.has(`${e.studentId}_${head.feeTypeId}_${month}`);
+        ? oneTimeExistingSet.has(`${e.studentId}_${head.feeTypeId}_${titleKey}`)
+        : monthlyExistingSet.has(`${e.studentId}_${head.feeTypeId}_${month}_${titleKey}`);
 
       if (isDuplicate) {
         skippedStudents.push({
@@ -411,6 +413,12 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
         skippedBreakdown.alreadyExists += 1;
         alreadyExistsCount += 1;
         return;
+      }
+
+      if (isOneTime) {
+        oneTimeExistingSet.add(`${e.studentId}_${head.feeTypeId}_${titleKey}`);
+      } else {
+        monthlyExistingSet.add(`${e.studentId}_${head.feeTypeId}_${month}_${titleKey}`);
       }
 
       chargesToCreate.push({

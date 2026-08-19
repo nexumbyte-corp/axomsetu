@@ -434,6 +434,7 @@ export const listStudents = async (schoolId, query) => {
     studentWhere.OR = [
       { name: { contains: searchStr, mode: 'insensitive' } },
       { admissionNo: { contains: searchStr, mode: 'insensitive' } },
+      { fatherName: { contains: searchStr, mode: 'insensitive' } },
       { guardianName: { contains: searchStr, mode: 'insensitive' } },
       { phone: { contains: searchStr, mode: 'insensitive' } },
     ];
@@ -477,12 +478,40 @@ export const listStudents = async (schoolId, query) => {
     }),
   ]);
 
+  const studentIds = Array.from(new Set(enrollments.map((e) => e.student.id)));
+
+  let pendingFeeMap = new Map();
+  if (studentIds.length > 0) {
+    const feeAggregates = await prisma.studentFeeCharge.groupBy({
+      by: ['studentId'],
+      where: {
+        schoolId,
+        academicYearId,
+        studentId: { in: studentIds },
+        status: { in: ['UNPAID', 'PARTIAL'] },
+      },
+      _sum: {
+        amount: true,
+        paidAmount: true,
+      },
+    });
+
+    feeAggregates.forEach((agg) => {
+      const totalAmount = Number(agg._sum.amount || 0);
+      const paidAmount = Number(agg._sum.paidAmount || 0);
+      const pendingAmount = Math.max(0, totalAmount - paidAmount);
+      pendingFeeMap.set(agg.studentId, pendingAmount);
+    });
+  }
+
   const mappedData = enrollments.map((e) => {
     const activeHostel = e.student.activeHostelEnrollments?.[0] || null;
+    const pendingFee = pendingFeeMap.get(e.student.id) || 0;
     return {
       id: e.student.id,
       admissionNo: e.student.admissionNo,
       name: e.student.name,
+      fatherName: e.student.fatherName || e.student.guardianName,
       guardianName: e.student.guardianName,
       phone: e.student.phone,
       gender: e.student.gender,
@@ -490,6 +519,7 @@ export const listStudents = async (schoolId, query) => {
       address: e.student.address,
       photoUrl: e.student.photoUrl,
       status: e.student.status,
+      pendingFee,
       createdAt: e.student.createdAt,
       hostel: activeHostel
         ? {

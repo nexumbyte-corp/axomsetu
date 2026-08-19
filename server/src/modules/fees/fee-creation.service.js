@@ -73,7 +73,8 @@ export const ensureFeeCharge = async (txOrPrisma, candidate) => {
     studentEnrollmentId = enrollment.id;
   }
 
-  // 3. Duplicate Protection Check (Logical Identity)
+  // 3. Duplicate Protection Check (Logical Identity including title)
+  const titleKey = (title || '').trim().toLowerCase();
   let existingCharge = null;
   if (billingRule === 'ONE_TIME_PER_ACADEMIC_YEAR') {
     existingCharge = await tx.studentFeeCharge.findFirst({
@@ -82,6 +83,7 @@ export const ensureFeeCharge = async (txOrPrisma, candidate) => {
         academicYearId,
         studentId,
         feeTypeId,
+        title,
       },
     });
   } else {
@@ -92,6 +94,7 @@ export const ensureFeeCharge = async (txOrPrisma, candidate) => {
         studentId,
         feeTypeId,
         month,
+        title,
       },
     });
   }
@@ -176,6 +179,7 @@ export const ensureFeeCharge = async (txOrPrisma, candidate) => {
           studentId,
           feeTypeId,
           month,
+          title,
         },
       });
       return {
@@ -256,8 +260,9 @@ export const ensureFeeChargesBulk = async (txOrPrisma, payload) => {
   const oneTimeChargeSet = new Set();
 
   existingCharges.forEach((c) => {
-    monthlyChargeSet.add(`${c.studentId}_${c.feeTypeId}_${c.month}`);
-    oneTimeChargeSet.add(`${c.studentId}_${c.feeTypeId}`);
+    const titleKey = (c.title || '').trim().toLowerCase();
+    monthlyChargeSet.add(`${c.studentId}_${c.feeTypeId}_${c.month}_${titleKey}`);
+    oneTimeChargeSet.add(`${c.studentId}_${c.feeTypeId}_${titleKey}`);
   });
 
   // Map student overrides
@@ -310,10 +315,11 @@ export const ensureFeeChargesBulk = async (txOrPrisma, payload) => {
     }
 
     // 2. Idempotency Check
+    const titleKey = (c.title || '').trim().toLowerCase();
     const isOneTime = c.billingRule === 'ONE_TIME_PER_ACADEMIC_YEAR';
     const isDup = isOneTime
-      ? oneTimeChargeSet.has(`${c.studentId}_${c.feeTypeId}`)
-      : monthlyChargeSet.has(`${c.studentId}_${c.feeTypeId}_${c.month || month}`);
+      ? oneTimeChargeSet.has(`${c.studentId}_${c.feeTypeId}_${titleKey}`)
+      : monthlyChargeSet.has(`${c.studentId}_${c.feeTypeId}_${c.month || month}_${titleKey}`);
 
     if (isDup) {
       skippedStudents.push({
@@ -365,8 +371,8 @@ export const ensureFeeChargesBulk = async (txOrPrisma, payload) => {
     });
 
     // Add to in-memory set to prevent internal duplicates within the same candidate array
-    monthlyChargeSet.add(`${c.studentId}_${c.feeTypeId}_${c.month || month}`);
-    oneTimeChargeSet.add(`${c.studentId}_${c.feeTypeId}`);
+    monthlyChargeSet.add(`${c.studentId}_${c.feeTypeId}_${c.month || month}_${titleKey}`);
+    oneTimeChargeSet.add(`${c.studentId}_${c.feeTypeId}_${titleKey}`);
 
     totalAmount += finalAmt;
     createdCount += 1;

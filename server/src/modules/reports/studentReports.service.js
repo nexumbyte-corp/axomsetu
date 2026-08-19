@@ -62,19 +62,32 @@ export const studentReportsService = {
       }),
     ]);
 
-    const data = enrollments.map((e) => ({
-      id: e.id,
-      studentId: e.studentId,
-      admissionNo: e.student.admissionNo,
-      studentName: e.student.name,
-      guardianName: e.student.guardianName,
-      phone: e.student.phone || '-',
-      className: e.class?.name || '-',
-      sectionName: e.section?.name || '-',
-      mediumName: e.medium?.name || '-',
-      streamName: e.stream?.name || '-',
-      status: e.status || e.student.status,
-    }));
+    const data = enrollments.map((e) => {
+      const clsName = e.class?.name || '-';
+      const secName = e.section?.name;
+      const medName = e.medium?.name;
+      const strmName = e.stream?.name;
+
+      let fullClass = clsName;
+      if (secName && secName !== '-') fullClass += ` - ${secName}`;
+      const extras = [medName, strmName].filter((x) => x && x !== '-').join(' / ');
+      if (extras) fullClass += ` (${extras})`;
+
+      return {
+        id: e.id,
+        studentId: e.studentId,
+        admissionNo: e.student.admissionNo,
+        studentName: e.student.name,
+        guardianName: e.student.guardianName,
+        phone: e.student.phone || '-',
+        className: fullClass,
+        rawClassName: clsName,
+        sectionName: secName || '-',
+        mediumName: medName || '-',
+        streamName: strmName || '-',
+        status: e.status || e.student.status,
+      };
+    });
 
     if (userId) {
       await prisma.auditLog.create({
