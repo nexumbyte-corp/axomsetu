@@ -178,41 +178,6 @@ async function main() {
     console.log(`Subscription plan ready: ${upsertedPlan.name} (${upsertedPlan.code}) - Final Price: ₹${upsertedPlan.finalPrice}`);
   }
 
-  // 3. Seed Platform Settings if not already present
-  console.log('Seeding default platform settings...');
-  const existingSettings = await prisma.platformSetting.findFirst();
-  if (!existingSettings) {
-    await prisma.platformSetting.create({
-      data: {
-        platformName: 'AxomSetu Platform',
-        contactPersonName: 'Masud Ahmed',
-        contactRole: 'Platform Administrator',
-        supportEmail: 'support@axomsetu.com',
-        supportPhone: '+91 98765 43210',
-        whatsappNumber: '+91 98765 43210',
-        address: 'Guwahati, Assam, India',
-        defaultCurrency: 'INR',
-        defaultTrialDays: 30,
-        allowSelfRegistration: true,
-        maintenanceMode: false,
-        contactPersons: {
-          create: [
-            {
-              name: 'Masud Ahmed',
-              role: 'Platform Administrator & Technical Lead',
-              email: 'support@axomsetu.com',
-              phone: '+91 98765 43210',
-              whatsapp: '+91 98765 43210',
-              isPrimary: true,
-              displayOrder: 1,
-            },
-          ],
-        },
-      },
-    });
-    console.log('Default platform settings & contact personnel initialized.');
-  }
-
   console.log('Database seed completed successfully.');
 }
 
@@ -224,3 +189,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
