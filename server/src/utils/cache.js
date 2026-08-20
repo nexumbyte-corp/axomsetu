@@ -49,9 +49,43 @@ class MemoryCache {
    * @param {string} prefix
    */
   invalidatePrefix(prefix) {
+    if (!prefix) return;
     for (const key of this.cache.keys()) {
       if (key.startsWith(prefix)) {
         this.cache.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Alias for invalidatePrefix
+   * @param {string} prefix
+   */
+  delPrefix(prefix) {
+    this.invalidatePrefix(prefix);
+  }
+
+  /**
+   * Invalidate all keys matching a pattern (string substring, prefix, wildcard or RegExp)
+   * @param {string|RegExp} pattern
+   */
+  delPattern(pattern) {
+    if (!pattern) return;
+    if (pattern instanceof RegExp) {
+      for (const key of this.cache.keys()) {
+        if (pattern.test(key)) {
+          this.cache.delete(key);
+        }
+      }
+      return;
+    }
+
+    if (typeof pattern === 'string') {
+      const cleanPattern = pattern.replace(/\*/g, '');
+      for (const key of this.cache.keys()) {
+        if (key.includes(cleanPattern) || key.startsWith(cleanPattern)) {
+          this.cache.delete(key);
+        }
       }
     }
   }

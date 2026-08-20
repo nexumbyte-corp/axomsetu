@@ -20,4 +20,15 @@ export const adminSettingsController = {
       data: settings,
     });
   }),
+
+  deleteContactPerson: asyncHandler(async (req, res) => {
+    const actorUserId = req.user.id;
+    const { id } = req.params;
+    const remaining = await adminSettingsService.deleteContactPerson(id, actorUserId);
+    res.status(200).json({
+      success: true,
+      message: 'Contact person deleted successfully',
+      data: remaining,
+    });
+  }),
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Phone, Mail, MessageSquare, Clock, ShieldCheck, ArrowRight, ArrowLeft, ExternalLink, Menu } from 'lucide-react';
+import { Phone, Mail, MessageSquare, Clock, ShieldCheck, ArrowRight, ArrowLeft, ExternalLink, Menu, User, MapPin } from 'lucide-react';
 import { Button } from '../components/ui/Button.jsx';
 import { Drawer } from '../components/ui/Drawer.jsx';
 import { platformService } from '../services/platformService.js';
@@ -191,6 +191,93 @@ export const ContactPage = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {/* Multiple Contact Persons Directory */}
+                  {contactInfo?.contactPersons && contactInfo.contactPersons.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                          Key Representatives & Support Leads
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {contactInfo.contactPersons.map((cp, idx) => (
+                          <div
+                            key={cp.id || idx}
+                            className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between gap-3 hover:border-indigo-200 transition-colors"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 flex items-center justify-center shrink-0 mt-0.5">
+                                <User className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <h3 className="text-sm font-bold text-slate-900 leading-snug truncate">{cp.name}</h3>
+                                  {cp.isPrimary && (
+                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                      Primary
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] font-semibold text-indigo-600 mt-0.5 leading-tight">{cp.role || 'Representative'}</p>
+                              </div>
+                            </div>
+
+                            {/* Actions for this person */}
+                            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 text-xs">
+                              {cp.phone && (
+                                <a
+                                  href={`tel:${cp.phone.replace(/[^0-9+]/g, '')}`}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors"
+                                  title={`Call ${cp.name}`}
+                                >
+                                  <Phone className="w-3 h-3 text-emerald-600" />
+                                  <span>Call</span>
+                                </a>
+                              )}
+                              {cp.email && (
+                                <a
+                                  href={`mailto:${cp.email}`}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors"
+                                  title={`Email ${cp.name}`}
+                                >
+                                  <Mail className="w-3 h-3 text-indigo-600" />
+                                  <span>Email</span>
+                                </a>
+                              )}
+                              {cp.whatsapp && (
+                                <a
+                                  href={`https://wa.me/${cp.whatsapp.replace(/[^0-9]/g, '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded bg-teal-50 hover:bg-teal-100 text-teal-700 text-[11px] font-medium transition-colors"
+                                  title={`WhatsApp ${cp.name}`}
+                                >
+                                  <MessageSquare className="w-3 h-3 text-teal-600" />
+                                  <span>WhatsApp</span>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : contactInfo?.contactPersonName ? (
+                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 flex items-center justify-center shrink-0">
+                          <User className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                            {contactInfo.contactRole || 'Platform Contact Person'}
+                          </span>
+                          <h3 className="text-base font-bold text-slate-900 mt-0.5">{contactInfo.contactPersonName}</h3>
+                          <p className="text-xs text-slate-500 mt-0.5">Direct point of contact for customer onboarding & partnerships</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
                   {/* Phone Contact */}
                   <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
@@ -285,17 +372,29 @@ export const ContactPage = () => {
                 <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
                   <img src="/app-icon.png" alt="AxomSetu Logo" className="w-10 h-10 rounded-xl object-cover shadow-xs" />
                   <div>
-                    <h3 className="text-base font-bold text-slate-900 leading-none">{BRAND_CONFIG.productName}</h3>
+                    <h3 className="text-base font-bold text-slate-900 leading-none">{contactInfo?.platformName || BRAND_CONFIG.productName}</h3>
                     <span className="text-[11px] font-medium text-slate-500 mt-1 block">{BRAND_CONFIG.poweredBy}</span>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="font-bold text-slate-900 text-xs mb-1">About AxomSetu</h4>
+                  <h4 className="font-bold text-slate-900 text-xs mb-1">About {contactInfo?.platformName || 'AxomSetu'}</h4>
                   <p className="leading-relaxed">
                     AxomSetu is an enterprise multi-tenant school management platform designed specifically for schools, academies, and educational institutions.
                   </p>
                 </div>
+
+                {contactInfo?.address && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <div className="flex items-start gap-2.5">
+                      <MapPin className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-slate-900 block mb-0.5">Office Address</span>
+                        <p className="text-slate-600 leading-relaxed text-[11px]">{contactInfo.address}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2 pt-2 border-t border-slate-100">
                   <div className="flex items-center gap-2">

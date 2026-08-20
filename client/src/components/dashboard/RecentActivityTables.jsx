@@ -14,7 +14,7 @@ export const RecentFeeCollections = ({ collections = [] }) => {
           <CardTitle className="text-sm font-bold text-slate-900">Recent Fee Collections</CardTitle>
         </div>
         <Link
-          to="/app/fees/payments"
+          to="/app/fees/receipts"
           className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
         >
           <span>View All</span>
@@ -71,7 +71,7 @@ export const RecentExpenses = ({ expenses = [] }) => {
           <CardTitle className="text-sm font-bold text-slate-900">Recent Expenses</CardTitle>
         </div>
         <Link
-          to="/app/expenses"
+          to="/app/finance/expenses"
           className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
         >
           <span>View All</span>
@@ -120,7 +120,7 @@ export const RecentSalaryPayments = ({ payments = [] }) => {
           <CardTitle className="text-sm font-bold text-slate-900">Recent Salary Payments</CardTitle>
         </div>
         <Link
-          to="/app/staff"
+          to="/app/staff/payments"
           className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
         >
           <span>View All</span>

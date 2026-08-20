@@ -216,6 +216,45 @@ model User {
   @@map("users")
 }
 
+model PlatformSetting {
+  id                    String   @id @default(uuid()) @db.Uuid
+  platformName          String   @default("AxomSetu Platform") @map("platform_name")
+  contactPersonName     String?  @map("contact_person_name")
+  contactRole           String?  @map("contact_role")
+  supportEmail          String?  @map("support_email")
+  supportPhone          String?  @map("support_phone")
+  whatsappNumber        String?  @map("whatsapp_number")
+  address               String?  @map("address")
+  defaultCurrency       String   @default("INR") @map("default_currency")
+  defaultTrialDays      Int      @default(60) @map("default_trial_days")
+  allowSelfRegistration Boolean  @default(true) @map("allow_self_registration")
+  maintenanceMode       Boolean  @default(false) @map("maintenance_mode")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  contactPersons        PlatformContactPerson[]
+
+  @@map("platform_settings")
+}
+
+model PlatformContactPerson {
+  id                String          @id @default(uuid()) @db.Uuid
+  platformSettingId String?         @map("platform_setting_id") @db.Uuid
+  name              String
+  role              String?
+  email             String?
+  phone             String?
+  whatsapp          String?
+  isPrimary         Boolean         @default(false) @map("is_primary")
+  displayOrder      Int             @default(0) @map("display_order")
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  platformSetting   PlatformSetting? @relation(fields: [platformSettingId], references: [id], onDelete: Cascade)
+
+  @@index([platformSettingId])
+  @@map("platform_contact_persons")
+}
+
 model School {
   id        String       @id @default(uuid()) @db.Uuid
   name      String

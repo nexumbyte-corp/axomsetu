@@ -260,7 +260,8 @@ export const submitPurchaseRequest = async (schoolId, data, actorUserId) => {
     },
   });
 
-  memoryCache.delPattern(`subscription:${schoolId}`);
+  memoryCache.delPattern(`subscription:`);
+  memoryCache.del(`subscription:current:${schoolId}`);
 
   return {
     payment: {

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, AlertTriangle, ArrowRight, RefreshCw, Zap, Check } from 'lucide-react';
+import { Calendar, AlertTriangle, ArrowRight, RefreshCw, Zap, Check, AlertCircle } from 'lucide-react';
 import { subscriptionService } from '../services/subscriptionService.js';
 import { useSubscription } from '../hooks/useSubscription.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
 
 import { ModulePageHeader } from '../components/ui/ModulePageHeader.jsx';
-import { Toast } from '../components/ui/Toast.jsx';
+import { Toast, toast } from '../components/ui/Toast.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { Badge } from '../components/ui/Badge.jsx';
 import { Card } from '../components/ui/Card.jsx';
@@ -22,7 +22,7 @@ export const SubscriptionPage = () => {
   const [requests, setRequests] = useState([]);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(!contextSubData);
-  const [toast, setToast] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
 
   // Purchase Modal State
   const [selectedPlan, setSelectedPlan] = useState(null);
@@ -31,9 +31,9 @@ export const SubscriptionPage = () => {
   const [remarks, setRemarks] = useState('');
   const [noRefundAccepted, setNoRefundAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [modalError, setModalError] = useState('');
 
   const fetchSubscriptionDetails = useCallback(async () => {
-    if (!currentSubData) setLoading(true);
     try {
       const [subRes, plansRes, reqsRes, histRes] = await Promise.all([
         subscriptionService.getCurrentSubscription(),
@@ -42,12 +42,14 @@ export const SubscriptionPage = () => {
         subscriptionService.getSubscriptionHistory(),
       ]);
 
-      if (subRes.success) setCurrentSubData(subRes.data);
-      if (plansRes.success) setPlans(plansRes.data || []);
-      if (reqsRes.success) setRequests(reqsRes.data || []);
-      if (histRes.success) setHistory(histRes.data || []);
+      if (subRes?.success) setCurrentSubData(subRes.data);
+      if (plansRes?.success) setPlans(plansRes.data || []);
+      if (reqsRes?.success) setRequests(reqsRes.data || []);
+      if (histRes?.success) setHistory(histRes.data || []);
     } catch (err) {
-      setToast({ type: 'danger', message: err.message || 'Failed to load subscription information' });
+      const msg = err.message || 'Failed to load subscription information';
+      setToastMessage({ type: 'danger', message: msg });
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -57,35 +59,50 @@ export const SubscriptionPage = () => {
     fetchSubscriptionDetails();
   }, [fetchSubscriptionDetails]);
 
+  useEffect(() => {
+    if (contextSubData) {
+      setCurrentSubData(contextSubData);
+    }
+  }, [contextSubData]);
+
   const handleOpenPurchaseModal = (plan) => {
     setSelectedPlan(plan);
     setPaymentMethod('UPI');
     setReferenceNumber('');
     setRemarks('');
     setNoRefundAccepted(false);
+    setModalError('');
   };
 
   const handleClosePurchaseModal = () => {
     if (submitting) return;
     setSelectedPlan(null);
+    setModalError('');
   };
 
   const handleSubmitPurchase = async (e) => {
     e.preventDefault();
     if (!selectedPlan) return;
+    setModalError('');
+
+    if (paymentMethod === 'UPI' && !referenceNumber.trim()) {
+      const msg = 'Please enter the 12-digit UPI transaction / reference number.';
+      setModalError(msg);
+      toast.error(msg);
+      return;
+    }
 
     if (!noRefundAccepted) {
-      setToast({ type: 'danger', message: 'You must accept the non-refundable subscription policy before purchasing.' });
+      const msg = 'You must acknowledge and accept the non-refundable subscription policy before submitting.';
+      setModalError(msg);
+      toast.error(msg);
       return;
     }
 
     if (paymentMethod === 'RAZORPAY') {
-      setToast({ type: 'danger', message: 'Razorpay is coming soon. Please select Cash or UPI.' });
-      return;
-    }
-
-    if (paymentMethod === 'UPI' && !referenceNumber.trim()) {
-      setToast({ type: 'danger', message: 'Transaction / Reference number is mandatory for UPI payments.' });
+      const msg = 'Razorpay is coming soon. Please select Cash or UPI.';
+      setModalError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -99,17 +116,27 @@ export const SubscriptionPage = () => {
         noRefundAccepted: true,
       });
 
-      if (res.success) {
-        setToast({
+      if (res && res.success) {
+        const successMsg = res.message || 'Payment request submitted successfully. Awaiting Super Admin approval.';
+        toast.success(successMsg);
+        setToastMessage({
           type: 'success',
-          message: res.message || 'Payment request submitted successfully. Awaiting Super Admin approval.',
+          message: successMsg,
         });
         setSelectedPlan(null);
-        fetchSubscriptionDetails();
-        refreshSubscription();
+        await Promise.all([
+          fetchSubscriptionDetails(),
+          refreshSubscription?.(),
+        ]);
+      } else {
+        const errorMsg = res?.message || 'Failed to submit payment request.';
+        setModalError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err) {
-      setToast({ type: 'danger', message: err.message || 'Failed to submit payment request.' });
+      const errorMsg = err.message || 'Failed to submit payment request. Please try again.';
+      setModalError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -126,7 +153,7 @@ export const SubscriptionPage = () => {
 
   return (
     <div className="space-y-8">
-      {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
+      {toastMessage && <Toast type={toastMessage.type} message={toastMessage.message} onClose={() => setToastMessage(null)} />}
 
       <ModulePageHeader
         title="Subscription Management"
@@ -459,6 +486,14 @@ export const SubscriptionPage = () => {
       {selectedPlan && (
         <Modal isOpen={Boolean(selectedPlan)} onClose={handleClosePurchaseModal} title={`Purchase ${selectedPlan.name} Plan`}>
           <form onSubmit={handleSubmitPurchase} className="space-y-5">
+            {/* Modal-level Error Banner */}
+            {modalError && (
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-medium text-rose-900 flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                <div className="flex-1">{modalError}</div>
+              </div>
+            )}
+
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
               <div className="flex justify-between items-center text-sm font-bold text-slate-900">
                 <span>Selected Plan</span>
@@ -482,7 +517,10 @@ export const SubscriptionPage = () => {
               <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('UPI')}
+                  onClick={() => {
+                    setPaymentMethod('UPI');
+                    if (modalError) setModalError('');
+                  }}
                   className={`p-3 rounded-xl border text-center transition-all ${
                     paymentMethod === 'UPI'
                       ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 font-bold shadow-xs'
@@ -495,7 +533,10 @@ export const SubscriptionPage = () => {
 
                 <button
                   type="button"
-                  onClick={() => setPaymentMethod('CASH')}
+                  onClick={() => {
+                    setPaymentMethod('CASH');
+                    if (modalError) setModalError('');
+                  }}
                   className={`p-3 rounded-xl border text-center transition-all ${
                     paymentMethod === 'CASH'
                       ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 font-bold shadow-xs'
@@ -531,7 +572,10 @@ export const SubscriptionPage = () => {
                   label="UPI Transaction / Reference Number *"
                   placeholder="Enter 12-digit UPI reference number"
                   value={referenceNumber}
-                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  onChange={(e) => {
+                    setReferenceNumber(e.target.value);
+                    if (modalError) setModalError('');
+                  }}
                   required
                 />
                 <p className="text-[11px] text-slate-500">
@@ -544,11 +588,18 @@ export const SubscriptionPage = () => {
               label="Remarks / Notes (Optional)"
               placeholder="Add optional payment details..."
               value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
+              onChange={(e) => {
+                setRemarks(e.target.value);
+                if (modalError) setModalError('');
+              }}
             />
 
             {/* No Refund Policy Notice & Mandatory Confirmation */}
-            <div className="bg-rose-50/80 border border-rose-200 rounded-xl p-3.5 space-y-2">
+            <div className={`rounded-xl p-3.5 space-y-2 border transition-all ${
+              !noRefundAccepted && modalError
+                ? 'bg-rose-100/70 border-rose-400 ring-2 ring-rose-300'
+                : 'bg-rose-50/80 border-rose-200'
+            }`}>
               <div className="flex items-center gap-2 text-xs font-bold text-rose-900">
                 <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                 <span>Subscription Refund Policy Notice</span>
@@ -560,11 +611,14 @@ export const SubscriptionPage = () => {
                 <input
                   type="checkbox"
                   checked={noRefundAccepted}
-                  onChange={(e) => setNoRefundAccepted(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-rose-300 text-rose-600 focus:ring-rose-500"
+                  onChange={(e) => {
+                    setNoRefundAccepted(e.target.checked);
+                    if (modalError) setModalError('');
+                  }}
+                  className="mt-0.5 h-4 w-4 rounded border-rose-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
                 />
                 <span className="text-xs font-bold text-rose-950">
-                  I understand and agree that subscription purchases are non-refundable after activation.
+                  I understand and agree that subscription purchases are non-refundable after activation. <span className="text-rose-600 font-black">*</span>
                 </span>
               </label>
             </div>
@@ -576,10 +630,9 @@ export const SubscriptionPage = () => {
               <Button
                 type="submit"
                 variant="primary"
-                disabled={!noRefundAccepted || submitting}
+                disabled={submitting}
                 loading={submitting}
                 loadingText="Submitting Request..."
-                className={!noRefundAccepted ? 'opacity-50 cursor-not-allowed' : ''}
               >
                 Submit Purchase Request
               </Button>
@@ -590,4 +643,5 @@ export const SubscriptionPage = () => {
     </div>
   );
 };
+
 

@@ -35,4 +35,5 @@ export const adminSettingsRouter = Router();
 adminSettingsRouter.use(authenticate, requireRole('SUPER_ADMIN'));
 adminSettingsRouter.get('/', adminSettingsController.getSettings);
 adminSettingsRouter.put('/', adminSettingsController.updateSettings);
+adminSettingsRouter.delete('/contact-persons/:id', adminSettingsController.deleteContactPerson);
 

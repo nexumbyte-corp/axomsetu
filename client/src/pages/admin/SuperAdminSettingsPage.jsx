@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save } from 'lucide-react';
+import { Save, Plus, Trash2, User, Star } from 'lucide-react';
 import { adminService } from '../../services/adminService.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
@@ -7,6 +7,7 @@ import { Toast } from '../../components/ui/Toast.jsx';
 import { Input } from '../../components/ui/Input.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Button } from '../../components/ui/Button.jsx';
+import { Badge } from '../../components/ui/Badge.jsx';
 
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 
@@ -22,10 +23,12 @@ export const SuperAdminSettingsPage = () => {
     supportEmail: 'support@axomsetu.com',
     supportPhone: '+91 98765 43210',
     whatsappNumber: '+91 98765 43210',
+    address: '',
     defaultCurrency: 'INR',
-    defaultTrialDays: 60,
+    defaultTrialDays: 30,
     allowSelfRegistration: true,
     maintenanceMode: false,
+    contactPersons: [],
   });
 
   const fetchSettings = async () => {
@@ -34,8 +37,27 @@ export const SuperAdminSettingsPage = () => {
       const res = await adminService.getSettings();
       if (res.data) {
         setFormData({
-          ...formData,
-          ...res.data,
+          platformName: res.data.platformName || '',
+          supportEmail: res.data.supportEmail || '',
+          supportPhone: res.data.supportPhone || '',
+          whatsappNumber: res.data.whatsappNumber || '',
+          address: res.data.address || '',
+          defaultCurrency: res.data.defaultCurrency || 'INR',
+          defaultTrialDays: res.data.defaultTrialDays ?? 30,
+          allowSelfRegistration: res.data.allowSelfRegistration ?? true,
+          maintenanceMode: res.data.maintenanceMode ?? false,
+          contactPersons: Array.isArray(res.data.contactPersons)
+            ? res.data.contactPersons.map((cp, idx) => ({
+                id: cp.id || `temp-${idx}`,
+                name: cp.name || '',
+                role: cp.role || '',
+                email: cp.email || '',
+                phone: cp.phone || '',
+                whatsapp: cp.whatsapp || '',
+                isPrimary: Boolean(cp.isPrimary ?? idx === 0),
+                displayOrder: cp.displayOrder ?? idx + 1,
+              }))
+            : [],
         });
       }
     } catch (err) {
@@ -49,12 +71,74 @@ export const SuperAdminSettingsPage = () => {
     fetchSettings();
   }, []);
 
+  const handleAddContactPerson = () => {
+    const newPerson = {
+      id: `temp-${Date.now()}`,
+      name: '',
+      role: '',
+      email: '',
+      phone: '',
+      whatsapp: '',
+      isPrimary: formData.contactPersons.length === 0,
+      displayOrder: formData.contactPersons.length + 1,
+    };
+    setFormData({
+      ...formData,
+      contactPersons: [...formData.contactPersons, newPerson],
+    });
+  };
+
+  const handleRemoveContactPerson = async (indexToRemove) => {
+    const person = formData.contactPersons[indexToRemove];
+    if (!person) return;
+
+    // If already saved in the database, delete directly via API
+    if (person.id && !person.id.startsWith('temp-')) {
+      try {
+        await adminService.deleteContactPerson(person.id);
+        setToast({ type: 'success', message: `Removed "${person.name || 'Contact person'}" from database.` });
+      } catch (err) {
+        console.error('Error deleting contact person:', err);
+        setToast({ type: 'danger', message: err.message || 'Failed to delete contact person from database.' });
+        return;
+      }
+    }
+
+    const updated = formData.contactPersons.filter((_, idx) => idx !== indexToRemove);
+    // If the removed one was primary and list is not empty, make the first one primary
+    if (updated.length > 0 && !updated.some((p) => p.isPrimary)) {
+      updated[0].isPrimary = true;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      contactPersons: updated,
+    }));
+  };
+
+  const handleContactPersonChange = (index, field, value) => {
+    const updated = [...formData.contactPersons];
+    if (field === 'isPrimary' && value === true) {
+      // Uncheck other primaries
+      updated.forEach((p, idx) => {
+        p.isPrimary = idx === index;
+      });
+    } else {
+      updated[index][field] = value;
+    }
+    setFormData({
+      ...formData,
+      contactPersons: updated,
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
       await adminService.updateSettings(formData);
-      setToast({ type: 'success', message: 'Platform configuration saved successfully.' });
+      setToast({ type: 'success', message: 'Platform configuration saved permanently in database.' });
+      // Refresh to get server assigned IDs
+      await fetchSettings();
     } catch (err) {
       setToast({ type: 'danger', message: err.message || 'Failed to save platform configuration' });
     } finally {
@@ -75,8 +159,8 @@ export const SuperAdminSettingsPage = () => {
       {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
 
       <ModulePageHeader
-        title="Platform"
-        description="Global platform settings, branding, support contacts, and system execution parameters."
+        title="Platform Settings"
+        description="Global platform branding, multi-contact personnel directory, support channels, and system defaults (persisted securely in database)."
       />
 
       {/* Settings Navigation Tabs */}
@@ -99,7 +183,7 @@ export const SuperAdminSettingsPage = () => {
               : 'text-slate-500 hover:text-slate-900'
           }`}
         >
-          Contact
+          Contact & Personnel ({formData.contactPersons.length})
         </button>
         <button
           onClick={() => setActiveSection('system')}
@@ -139,32 +223,165 @@ export const SuperAdminSettingsPage = () => {
           </div>
         )}
 
-        {/* Section 2: Contact Information */}
+        {/* Section 2: Contact Information & Multiple Contact Persons */}
         {activeSection === 'contact' && (
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">Support & Contact Information</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-              <Input
-                label="Support Email *"
-                type="email"
-                required
-                value={formData.supportEmail}
-                onChange={(e) => setFormData({ ...formData, supportEmail: e.target.value })}
-              />
+          <div className="space-y-6">
+            {/* 2A. Contact Persons Directory */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Platform Contact Personnel Directory</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Configure multiple representatives (Administrators, Technical Support, Sales, Billing).
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  icon={Plus}
+                  onClick={handleAddContactPerson}
+                  className="text-xs"
+                >
+                  Add Contact Person
+                </Button>
+              </div>
 
-              <Input
-                label="Support Phone *"
-                required
-                value={formData.supportPhone}
-                onChange={(e) => setFormData({ ...formData, supportPhone: e.target.value })}
-              />
+              {formData.contactPersons.length === 0 ? (
+                <div className="p-6 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50 text-slate-500 text-xs">
+                  <User className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                  <p className="font-semibold text-slate-700">No contact persons configured yet.</p>
+                  <p className="mt-1">Click "Add Contact Person" above to add representatives.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {formData.contactPersons.map((person, idx) => (
+                    <div
+                      key={person.id || idx}
+                      className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3 relative group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                            {idx + 1}
+                          </div>
+                          <span className="text-xs font-bold text-slate-800">
+                            {person.name || `Representative #${idx + 1}`}
+                          </span>
+                          {person.isPrimary && (
+                            <Badge variant="primary" size="sm" className="flex items-center gap-1">
+                              <Star className="w-3 h-3 fill-current" /> Primary Contact
+                            </Badge>
+                          )}
+                        </div>
 
-              <Input
-                label="WhatsApp Support Number *"
-                required
-                value={formData.whatsappNumber}
-                onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
-              />
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-1.5 text-xs text-slate-600 font-semibold cursor-pointer">
+                            <input
+                              type="radio"
+                              name="primaryContactRadio"
+                              checked={person.isPrimary}
+                              onChange={() => handleContactPersonChange(idx, 'isPrimary', true)}
+                              className="w-3.5 h-3.5 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span>Set Primary</span>
+                          </label>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveContactPerson(idx)}
+                            className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-100/70 rounded-lg transition-colors flex items-center justify-center cursor-pointer border border-slate-200 hover:border-rose-300 shadow-2xs"
+                            title="Delete Contact Person"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 pointer-events-none text-rose-600" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <Input
+                          label="Person Name *"
+                          placeholder="e.g. Masud Ahmed"
+                          required
+                          value={person.name}
+                          onChange={(e) => handleContactPersonChange(idx, 'name', e.target.value)}
+                        />
+
+                        <Input
+                          label="Role / Designation *"
+                          placeholder="e.g. Technical Support Lead / Administrator"
+                          value={person.role}
+                          onChange={(e) => handleContactPersonChange(idx, 'role', e.target.value)}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <Input
+                          label="Email"
+                          type="email"
+                          placeholder="e.g. masud@axomsetu.com"
+                          value={person.email}
+                          onChange={(e) => handleContactPersonChange(idx, 'email', e.target.value)}
+                        />
+
+                        <Input
+                          label="Phone Number"
+                          placeholder="e.g. +91 98765 43210"
+                          value={person.phone}
+                          onChange={(e) => handleContactPersonChange(idx, 'phone', e.target.value)}
+                        />
+
+                        <Input
+                          label="WhatsApp Number"
+                          placeholder="e.g. +91 98765 43210"
+                          value={person.whatsapp}
+                          onChange={(e) => handleContactPersonChange(idx, 'whatsapp', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 2B. General Platform Support Channels & Address */}
+            <div className="space-y-4 pt-4 border-t border-slate-200">
+              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
+                Official Platform Helpdesk Channels & Address
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <Input
+                  label="General Support Email *"
+                  type="email"
+                  required
+                  value={formData.supportEmail}
+                  onChange={(e) => setFormData({ ...formData, supportEmail: e.target.value })}
+                />
+
+                <Input
+                  label="General Support Phone *"
+                  required
+                  value={formData.supportPhone}
+                  onChange={(e) => setFormData({ ...formData, supportPhone: e.target.value })}
+                />
+
+                <Input
+                  label="General WhatsApp Support *"
+                  required
+                  value={formData.whatsappNumber}
+                  onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
+                />
+              </div>
+
+              <div className="text-xs">
+                <Input
+                  label="Office / Headquarters Address"
+                  placeholder="e.g. Guwahati, Assam, India - 781001"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                />
+              </div>
             </div>
           </div>
         )}

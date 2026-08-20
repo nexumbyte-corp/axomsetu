@@ -6,13 +6,13 @@ import { Button } from '../ui/Button.jsx';
 
 export const QuickActionsSection = () => {
   const actions = [
-    { label: 'Add Student', path: '/app/students', icon: UserPlus, variant: 'outline' },
+    { label: 'Add Student', path: '/app/students/new', icon: UserPlus, variant: 'outline' },
     { label: 'Add Staff', path: '/app/staff', icon: UserCheck, variant: 'outline' },
-    { label: 'Generate Fees', path: '/app/fees', icon: Zap, variant: 'outline' },
-    { label: 'Collect Fee', path: '/app/fees', icon: CreditCard, variant: 'outline' },
-    { label: 'Pay Salary', path: '/app/staff', icon: DollarSign, variant: 'outline' },
-    { label: 'Add Expense', path: '/app/expenses', icon: Receipt, variant: 'outline' },
-    { label: 'Add Fund', path: '/app/finance', icon: PlusCircle, variant: 'outline' },
+    { label: 'Generate Fees', path: '/app/fees/generate', icon: Zap, variant: 'outline' },
+    { label: 'Collect Fee', path: '/app/fees/collect', icon: CreditCard, variant: 'outline' },
+    { label: 'Pay Salary', path: '/app/staff/payments', icon: DollarSign, variant: 'outline' },
+    { label: 'Add Expense', path: '/app/finance/expenses', icon: Receipt, variant: 'outline' },
+    { label: 'Add Fund', path: '/app/finance/funds', icon: PlusCircle, variant: 'outline' },
   ];
 
   return (

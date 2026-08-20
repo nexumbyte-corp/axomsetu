@@ -145,6 +145,7 @@ export const AppRoutes = () => {
           <Route path="settings" element={<Navigate to="settings/types" replace />} />
           <Route path="settings/types" element={<PermissionRoute permission="FEES_MANAGE_STRUCTURE"><FeeTypesPage /></PermissionRoute>} />
           {/* Legacy route fallbacks */}
+          <Route path="payments" element={<Navigate to="/app/fees/receipts" replace />} />
           <Route path="structures" element={<Navigate to="/app/fees/templates" replace />} />
           <Route path="types" element={<Navigate to="/app/fees/settings/types" replace />} />
         </Route>

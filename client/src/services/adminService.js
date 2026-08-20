@@ -94,4 +94,8 @@ export const adminService = {
   async updateSettings(data) {
     return await api.put('/admin/settings', data);
   },
+
+  async deleteContactPerson(contactPersonId) {
+    return await api.delete(`/admin/settings/contact-persons/${contactPersonId}`);
+  },
 };
