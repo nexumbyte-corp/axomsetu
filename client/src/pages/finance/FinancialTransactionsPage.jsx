@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { financeService } from '../../services/financeService.js';
-import { Input } from '../../components/ui/Input.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
@@ -10,6 +9,8 @@ import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
+import { formatDate } from '../../utils/formatters.js';
 import { Search, FileText } from 'lucide-react';
 
 export const FinancialTransactionsPage = () => {
@@ -163,18 +164,16 @@ export const FinancialTransactionsPage = () => {
             options={paymentModes}
           />
 
-          <Input
+          <DatePicker
             label="From Date"
-            type="date"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={(val) => setStartDate(val)}
           />
 
-          <Input
+          <DatePicker
             label="To Date"
-            type="date"
             value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            onChange={(val) => setEndDate(val)}
           />
         </div>
 
@@ -215,7 +214,7 @@ export const FinancialTransactionsPage = () => {
                 {transactions.map((t) => (
                   <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="p-3.5 whitespace-nowrap text-slate-600 font-mono">
-                      {new Date(t.transactionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {formatDate(t.transactionDate)}
                     </td>
 
                     <td className="p-3.5 max-w-sm">

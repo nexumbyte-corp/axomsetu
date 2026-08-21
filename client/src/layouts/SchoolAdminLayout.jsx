@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { usePermission } from '../hooks/usePermission.js';
 import { useAcademicYear } from '../hooks/useAcademicYear.js';
 import { useSubscription } from '../hooks/useSubscription.js';
+import { usePageHeader } from '../context/PageHeaderContext.jsx';
 import { SupportModal } from '../components/support/SupportModal.jsx';
 import { Drawer } from '../components/ui/Drawer.jsx';
 import { Dropdown, DropdownItem, DropdownDivider } from '../components/ui/Dropdown.jsx';
@@ -22,6 +23,8 @@ export const SchoolAdminLayout = () => {
   const { isOwner, hasFullAccess, can, roleLabel } = usePermission();
   const { academicYears, selectedYear, selectedYearId, setSelectedYearId } = useAcademicYear();
   const { isSubscriptionActive } = useSubscription();
+  const { headerInfo } = usePageHeader();
+
 
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -262,11 +265,51 @@ export const SchoolAdminLayout = () => {
     </div>
   );
 
+const ROUTE_TITLE_MAP = {
+  '/app': 'Dashboard',
+  '/app/subscription': 'Subscription',
+  '/app/academic-years': 'Academic Years',
+  '/app/classes': 'Classes',
+  '/app/mediums': 'Mediums',
+  '/app/streams': 'Streams',
+  '/app/sections': 'Sections',
+  '/app/students': 'Students',
+  '/app/students/new': 'Add Student',
+  '/app/students/promote': 'Bulk Promotion',
+  '/app/fees': 'Fee Management',
+  '/app/staff': 'Staff & Payroll',
+  '/app/hostel': 'Hostel Overview',
+  '/app/hostel/residents': 'Hostel Residents',
+  '/app/hostel/admission': 'Hostel Admission',
+  '/app/hostel/fees': 'Hostel Fees',
+  '/app/hostel/setup': 'Rooms & Beds',
+  '/app/hostel/reports': 'Hostel Reports',
+  '/app/finance': 'Finance & Ledger',
+  '/app/reports': 'Reports',
+  '/app/settings/profile': 'School Profile',
+  '/app/settings/users': 'Users & Permissions',
+};
+
+const getPageTitle = (locationPath, headerTitle) => {
+  if (headerTitle) return headerTitle;
+  if (ROUTE_TITLE_MAP[locationPath]) return ROUTE_TITLE_MAP[locationPath];
+  const sortedKeys = Object.keys(ROUTE_TITLE_MAP).sort((a, b) => b.length - a.length);
+  for (const key of sortedKeys) {
+    if (key !== '/app' && locationPath.startsWith(key)) {
+      return ROUTE_TITLE_MAP[key];
+    }
+  }
+  return 'Dashboard';
+};
+
+  const activePageTitle = getPageTitle(location.pathname, headerInfo?.title);
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-2xs h-16 flex items-center px-3 sm:px-6">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-2.5 sm:gap-4">
+        <div className="flex items-center justify-between w-full gap-2 sm:gap-4">
+          {/* Left Side: Branding Hierarchy */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               onClick={() => setIsMobileNavOpen(true)}
               className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
@@ -274,24 +317,45 @@ export const SchoolAdminLayout = () => {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <Link to="/app" className="flex items-center gap-2.5 sm:gap-3">
+            <Link to="/app" className="flex items-center gap-2 sm:gap-3">
               <SchoolHeaderLogo logoUrl={schoolLogoUrl} schoolName={schoolName} />
-              <div className="hidden sm:block">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <span className="text-xs font-extrabold text-indigo-600 uppercase tracking-wider">{BRAND_CONFIG.productName}</span>
-                  <span className="text-slate-300">|</span>
-                  <h1 className="text-xs font-bold text-slate-900 truncate max-w-[130px] md:max-w-[220px]">{schoolName}</h1>
+              <div className="flex flex-col justify-center">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black tracking-wider text-indigo-600 uppercase">
+                    {BRAND_CONFIG.productName}
+                  </span>
+                  <span className="text-slate-300 font-normal">|</span>
+                  <h1 className="text-xs font-bold text-slate-900 truncate max-w-[100px] sm:max-w-[140px] lg:max-w-[180px]">
+                    {schoolName}
+                  </h1>
                 </div>
-                <span className="text-[10px] text-slate-500 font-mono hidden md:block">{BRAND_CONFIG.poweredBy}</span>
+                <span className="text-[10px] text-slate-400 font-medium tracking-tight">
+                  {BRAND_CONFIG.poweredBy}
+                </span>
               </div>
             </Link>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Center: Dynamic Route-Aware Page Title & Page Actions */}
+          <div className="flex items-center gap-3 min-w-0 flex-1 justify-start md:justify-center px-1 sm:px-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-wide truncate">
+                {activePageTitle}
+              </h2>
+            </div>
+            {headerInfo?.actions && (
+              <div className="hidden md:flex items-center gap-2 shrink-0">
+                {headerInfo.actions}
+              </div>
+            )}
+          </div>
+
+          {/* Right Side: Global Controls */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* Dynamic Support Button */}
             <button
               onClick={() => setIsSupportOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-2xs"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-2xs cursor-pointer"
               title="Platform Help & Support"
             >
               <HelpCircle className="w-4 h-4 text-indigo-600 shrink-0" />
@@ -303,9 +367,9 @@ export const SchoolAdminLayout = () => {
                 <Dropdown
                   align="right"
                   trigger={
-                    <button className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors">
+                    <button className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors cursor-pointer">
                       <Calendar className="w-4 h-4 text-indigo-600 shrink-0" />
-                      <span className="truncate max-w-[90px] sm:max-w-[130px]">{selectedYear ? selectedYear.name : 'Select Year'}</span>
+                      <span className="truncate max-w-[90px] sm:max-w-[130px] font-bold">{selectedYear ? selectedYear.name : 'Select Year'}</span>
                       {selectedYear?.isCurrent && (
                         <span className="hidden md:inline-block px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">
                           Current

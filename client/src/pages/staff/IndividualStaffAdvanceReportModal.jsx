@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { reportService } from '../../services/report.service.js';
 import { exportToCSV } from '../../utils/csvExport.js';
+import { formatDate } from '../../utils/formatters.js';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Button } from '../../components/ui/Button.jsx';
-import { Input } from '../../components/ui/Input.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Card } from '../../components/ui/Card.jsx';
@@ -49,7 +50,7 @@ export const IndividualStaffAdvanceReportModal = ({
 
   useEffect(() => {
     if (isOpen && staffId) {
-      fetchLedger();
+      fetchLedger(startDate, endDate);
     } else {
       setReportResult(null);
       setStartDate('');
@@ -134,19 +135,15 @@ export const IndividualStaffAdvanceReportModal = ({
         {/* Date Filters Bar */}
         <div className="flex flex-col sm:flex-row items-end gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
           <div className="flex-1 grid grid-cols-2 gap-3 w-full">
-            <Input
+            <DatePicker
               label="From Date"
-              type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="bg-white text-xs"
+              onChange={(val) => setStartDate(val)}
             />
-            <Input
+            <DatePicker
               label="To Date"
-              type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="bg-white text-xs"
+              onChange={(val) => setEndDate(val)}
             />
           </div>
           <div className="flex items-center gap-2">
@@ -240,7 +237,7 @@ export const IndividualStaffAdvanceReportModal = ({
                     return (
                       <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                         <td className="py-3 px-4 font-mono text-slate-800 whitespace-nowrap">
-                          {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {formatDate(item.date)}
                         </td>
                         <td className="py-3 px-4 text-center whitespace-nowrap">
                           {isDisbursed ? (

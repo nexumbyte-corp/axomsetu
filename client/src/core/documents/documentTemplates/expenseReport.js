@@ -1,4 +1,5 @@
 import { createPDFHeader } from '../common/header.js';
+import { formatDocDate } from '../common/formatters.js';
 
 /**
  * Expense Report Data Builder
@@ -27,18 +28,12 @@ export const buildExpenseReportData = (rawData = {}) => {
       logoUrl: school.logoUrl || null,
       logoBase64: school.logoBase64 || null,
     },
-    reportDate: new Date().toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }),
+    reportDate: formatDocDate(new Date()),
     totalAmount,
     totalCount: expenses.length,
     expenses: expenses.map((e) => ({
       category: e.category?.name || 'Uncategorized',
-      date: e.expenseDate
-        ? new Date(e.expenseDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-        : 'N/A',
+      date: formatDocDate(e.expenseDate),
       description: e.description || '-',
       paymentMode: e.paymentMode || 'CASH',
       referenceNo: e.referenceNo || '-',

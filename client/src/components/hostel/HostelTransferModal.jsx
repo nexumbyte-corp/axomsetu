@@ -4,6 +4,7 @@ import { hostelService } from '../../services/hostel.service.js';
 import { Modal } from '../ui/Modal.jsx';
 import { Button } from '../ui/Button.jsx';
 import { Input } from '../ui/Input.jsx';
+import { DatePicker } from '../ui/DatePicker.jsx';
 import { Select } from '../ui/Select.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { toast } from '../ui/Toast.jsx';
@@ -216,11 +217,10 @@ export const HostelTransferModal = ({ isOpen, onClose, resident, onSuccess }) =>
 
         {/* Transfer Date and Reason */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Input
+          <DatePicker
             label="Transfer Effective Date *"
-            type="date"
             value={transferDate}
-            onChange={(e) => setTransferDate(e.target.value)}
+            onChange={(val) => setTransferDate(val)}
             required
           />
           <Input

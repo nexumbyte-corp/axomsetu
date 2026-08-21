@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Input } from '../../components/ui/Input.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Textarea } from '../../components/ui/Textarea.jsx';
 import { Button } from '../../components/ui/Button.jsx';
@@ -90,11 +91,10 @@ export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess }) => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input
+          <DatePicker
             label="Transaction Date *"
-            type="date"
             value={formData.transactionDate}
-            onChange={(e) => setFormData({ ...formData, transactionDate: e.target.value })}
+            onChange={(val) => setFormData({ ...formData, transactionDate: val })}
             required
           />
 

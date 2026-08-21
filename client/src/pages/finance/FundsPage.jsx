@@ -12,6 +12,8 @@ import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
+import { formatDate } from '../../utils/formatters.js';
 import { Plus, Search, PiggyBank, Settings, AlertTriangle } from 'lucide-react';
 
 export const FundsPage = () => {
@@ -233,18 +235,16 @@ export const FundsPage = () => {
           ]}
         />
 
-        <Input
+        <DatePicker
           label="From Date"
-          type="date"
           value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
+          onChange={(val) => setStartDate(val)}
         />
 
-        <Input
+        <DatePicker
           label="To Date"
-          type="date"
           value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
+          onChange={(val) => setEndDate(val)}
         />
 
         <div className="flex items-end">
@@ -297,7 +297,7 @@ export const FundsPage = () => {
                       {f.fundSource?.name || 'General Fund'}
                     </td>
                     <td className="p-3.5 whitespace-nowrap text-slate-600 font-mono">
-                      {new Date(f.transactionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {formatDate(f.transactionDate)}
                     </td>
                     <td className="p-3.5 max-w-sm">
                       <div className="font-semibold text-slate-800 truncate">{f.remarks || '-'}</div>
@@ -352,11 +352,10 @@ export const FundsPage = () => {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
+            <DatePicker
               label="Date *"
-              type="date"
               value={fundForm.transactionDate}
-              onChange={(e) => setFundForm({ ...fundForm, transactionDate: e.target.value })}
+              onChange={(val) => setFundForm({ ...fundForm, transactionDate: val })}
               required
             />
 
@@ -491,7 +490,7 @@ export const FundsPage = () => {
             <div className="p-3 bg-slate-50 rounded-xl text-xs space-y-1">
               <p><span className="font-bold text-slate-700">Source:</span> {cancelModalFund.fundSource?.name}</p>
               <p><span className="font-bold text-slate-700">Amount:</span> {formatCurrency(cancelModalFund.amount)}</p>
-              <p><span className="font-bold text-slate-700">Date:</span> {new Date(cancelModalFund.transactionDate).toLocaleDateString('en-IN')}</p>
+              <p><span className="font-bold text-slate-700">Date:</span> {formatDate(cancelModalFund.transactionDate)}</p>
             </div>
           )}
 

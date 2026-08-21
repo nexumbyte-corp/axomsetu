@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Calendar, Lock, Unlock, CheckCircle2 } from 'lucide-react';
 import { useAcademicYear } from '../hooks/useAcademicYear.js';
 import { academicService } from '../services/academic.service.js';
+import { formatDate } from '../utils/formatters.js';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../components/ui/Table.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { Badge } from '../components/ui/Badge.jsx';
@@ -79,8 +80,7 @@ export const AcademicYearsPage = () => {
 
                   <TableCell>
                     <span className="font-mono text-[11px] text-slate-600">
-                      {new Date(yr.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} –{' '}
-                      {new Date(yr.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {formatDate(yr.startDate)} – {formatDate(yr.endDate)}
                     </span>
                   </TableCell>
 

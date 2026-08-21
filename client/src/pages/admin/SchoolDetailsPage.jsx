@@ -5,6 +5,7 @@ import { adminService } from '../../services/adminService.js';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
+import { formatDate } from '../../utils/formatters.js';
 import { Input } from '../../components/ui/Input.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Button } from '../../components/ui/Button.jsx';
@@ -389,11 +390,7 @@ export const SchoolDetailsPage = () => {
               <div>
                 <span className="text-slate-400 font-semibold block text-[11px]">Registered Date</span>
                 <span className="font-mono text-slate-700 mt-0.5 block">
-                  {new Date(school.createdAt).toLocaleDateString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
+                  {formatDate(school.createdAt)}
                 </span>
               </div>
 
@@ -456,18 +453,14 @@ export const SchoolDetailsPage = () => {
                 <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
                   <span className="text-slate-400 font-semibold block text-[10px] uppercase">Start Date</span>
                   <span className="font-bold text-slate-900 font-mono mt-1 block">
-                    {new Date(subscription.startDate).toLocaleDateString('en-IN')}
+                    {formatDate(subscription.startDate)}
                   </span>
                 </div>
 
                 <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
                   <span className="text-slate-400 font-semibold block text-[10px] uppercase">Expiry Date</span>
                   <span className="font-bold text-slate-900 font-mono mt-1 block">
-                    {subscription.endDate ? (
-                      new Date(subscription.endDate).toLocaleDateString('en-IN')
-                    ) : (
-                      <span className="text-rose-600">N/A (Expired)</span>
-                    )}
+                    {formatDate(subscription.endDate, 'N/A (Expired)')}
                   </span>
                 </div>
 
@@ -500,9 +493,9 @@ export const SchoolDetailsPage = () => {
                   {subscriptionsHistory.map((sub) => (
                     <tr key={sub.id} className="hover:bg-slate-50/50">
                       <td className="py-2.5 font-bold text-slate-900">{sub.plan?.name || sub.planNameSnapshot}</td>
-                      <td className="py-2.5 font-mono text-slate-600">{new Date(sub.startDate).toLocaleDateString()}</td>
+                      <td className="py-2.5 font-mono text-slate-600">{formatDate(sub.startDate)}</td>
                       <td className="py-2.5 font-mono text-slate-600">
-                        {sub.endDate ? new Date(sub.endDate).toLocaleDateString() : <span className="text-rose-600 font-medium">N/A (Expired)</span>}
+                        {formatDate(sub.endDate, 'N/A (Expired)')}
                       </td>
                       <td className="py-2.5">
                         <Badge variant={sub.status === 'ACTIVE' ? 'success' : sub.status === 'SUSPENDED' ? 'warning' : 'danger'}>{sub.status}</Badge>
@@ -650,7 +643,7 @@ export const SchoolDetailsPage = () => {
                           </TableCell>
 
                           <TableCell className="text-xs font-mono text-slate-500">
-                            {new Date(u.createdAt).toLocaleDateString('en-IN')}
+                            {formatDate(u.createdAt)}
                           </TableCell>
 
                           <TableCell className="text-right">

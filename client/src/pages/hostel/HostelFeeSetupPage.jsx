@@ -12,6 +12,7 @@ import { Alert } from '../../components/ui/Alert.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
+import { formatDate } from '../../utils/formatters.js';
 import { StudentDetailsCell } from '../../components/hostel/StudentDetailsCell.jsx';
 import { StudentPhotoModal } from '../../components/hostel/StudentPhotoModal.jsx';
 
@@ -716,7 +717,7 @@ export const HostelFeeSetupPage = () => {
                               <span className="text-slate-500 block text-[11px]">Room {row.roomNumber} (Bed {row.bedNumber})</span>
                               {row.hostelEnrollmentStatus === 'EXITED' && row.endDate && (
                                 <span className="text-amber-700 font-semibold block text-[10px] mt-0.5">
-                                  Stayed: {new Date(row.startDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} - {new Date(row.endDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                                  Stayed: {formatDate(row.startDate)} - {formatDate(row.endDate)}
                                 </span>
                               )}
                             </td>

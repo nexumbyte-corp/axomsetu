@@ -9,7 +9,6 @@ import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { StaffSubNav } from '../staff/StaffSubNav.jsx';
-import { downloadPdfDocument } from '../../core/documents/documentEngine.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { CreditCard, CheckCircle2, AlertCircle, DollarSign } from 'lucide-react';
 
@@ -23,7 +22,7 @@ const PAYMENT_MODES = [
 export const SalaryPaymentsPage = () => {
   const [staffList, setStaffList] = useState([]);
   const [selectedStaffId, setSelectedStaffId] = useState('');
-  const [loadingStaff, setLoadingStaff] = useState(true);
+  const [_loadingStaff, setLoadingStaff] = useState(true);
 
   const [pendingData, setPendingData] = useState(null);
   const [_staffSummary, setStaffSummary] = useState(null);
@@ -217,20 +216,6 @@ export const SalaryPaymentsPage = () => {
       alert(err.response?.data?.message || err.message || 'Payment processing failed.');
     } finally {
       setPaying(false);
-    }
-  };
-
-  const handleDownloadReceipt = async () => {
-    if (!successModalData) return;
-    try {
-      await downloadPdfDocument({
-        templateId: 'salary',
-        data: successModalData,
-        filename: `SalaryReceipt_${successModalData.paymentNumber}.pdf`,
-      });
-    } catch (err) {
-      console.error('Failed to download receipt PDF:', err);
-      alert('Failed to download PDF receipt.');
     }
   };
 

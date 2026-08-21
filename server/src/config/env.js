@@ -19,6 +19,7 @@ const envSchema = z.object({
   BACKUP_DIR: z.string().default('./backups'),
   BACKUP_RETENTION_DAYS: z.string().transform((val) => parseInt(val, 10)).default('7'),
   REMOTE_BACKUP_COMMAND: z.string().default(''),
+  TZ: z.string().default('Asia/Kolkata'),
   SEED_ADMIN_NAME: z.string().default('Super Admin'),
   SEED_ADMIN_EMAIL: z.string().email().default('admin@schoolsaas.com'),
   SEED_ADMIN_PASSWORD: z.string().default('SuperAdminPass123!'),
@@ -32,6 +33,8 @@ const parseEnv = () => {
   }
 
   const data = result.data;
+  process.env.TZ = data.TZ;
+
   if (data.NODE_ENV === 'production') {
     if (data.SEED_ADMIN_PASSWORD === 'SuperAdminPass123!') {
       console.warn('WARNING: Using default SEED_ADMIN_PASSWORD in production environment!');

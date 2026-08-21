@@ -37,7 +37,7 @@ import {
  *       └── badge: string (e.g. 'Soon')
  */
 
-export const getSidebarNavigation = ({ isSubscriptionActive, isOwner, hasFullAccess, can }) => {
+export const getSidebarNavigation = ({ isSubscriptionActive, isOwner, _hasFullAccess, _can }) => {
   // Restricted Subscription State: Show ONLY Main items
   if (!isSubscriptionActive) {
     return [

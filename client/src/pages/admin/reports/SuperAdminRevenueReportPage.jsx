@@ -5,9 +5,10 @@ import { ModulePageHeader } from '../../../components/ui/ModulePageHeader.jsx';
 import { Spinner } from '../../../components/ui/Spinner.jsx';
 import { Toast } from '../../../components/ui/Toast.jsx';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../../../components/ui/Table.jsx';
-import { Input } from '../../../components/ui/Input.jsx';
+import { DatePicker } from '../../../components/ui/DatePicker.jsx';
 import { Select } from '../../../components/ui/Select.jsx';
 import { Button } from '../../../components/ui/Button.jsx';
+import { formatDate } from '../../../utils/formatters.js';
 
 export const SuperAdminRevenueReportPage = () => {
   const [data, setData] = useState(null);
@@ -73,18 +74,20 @@ export const SuperAdminRevenueReportPage = () => {
       {/* Filter Bar */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col sm:flex-row items-center gap-4 shadow-xs">
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Input
-            type="date"
-            label="Start Date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <Input
-            type="date"
-            label="End Date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+          <div className="w-40">
+            <DatePicker
+              label="Start Date"
+              value={startDate}
+              onChange={(val) => setStartDate(val)}
+            />
+          </div>
+          <div className="w-40">
+            <DatePicker
+              label="End Date"
+              value={endDate}
+              onChange={(val) => setEndDate(val)}
+            />
+          </div>
         </div>
         <div className="w-full sm:w-48">
           <Select
@@ -205,7 +208,7 @@ export const SuperAdminRevenueReportPage = () => {
                 {recentTransactions.map((tx) => (
                   <TableRow key={tx.id}>
                     <TableCell className="text-xs font-mono text-slate-500">
-                      {new Date(tx.date).toLocaleDateString()}
+                      {formatDate(tx.date)}
                     </TableCell>
                     <TableCell className="font-bold text-slate-900">{tx.schoolName}</TableCell>
                     <TableCell className="text-slate-700 font-semibold">{tx.planName}</TableCell>

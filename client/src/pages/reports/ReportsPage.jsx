@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BarChart3, Search, Users, GraduationCap, CreditCard, Briefcase, Calculator, Wallet, ShieldCheck, FileSpreadsheet, ArrowLeft, Download, Filter, RefreshCw, Loader2, Clock, Sparkles, UserCheck } from 'lucide-react';
+import { BarChart3, Search, Users, GraduationCap, CreditCard, Briefcase, Calculator, Wallet, ShieldCheck, FileSpreadsheet, ArrowLeft, Download, Filter, RefreshCw, Loader2, Clock, Sparkles, UserCheck, Building } from 'lucide-react';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Drawer } from '../../components/ui/Drawer.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
-import { toast } from '../../components/ui/Toast.jsx';
-import { DocumentPreviewModal } from '../../components/documents/DocumentPreviewModal.jsx';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
 
 import { REPORT_CATEGORIES, REPORT_REGISTRY, getReportById } from '../../core/reports/reportRegistry.js';
 import { reportService } from '../../services/report.service.js';
 import { exportToCSV } from '../../utils/csvExport.js';
+import { formatDate } from '../../utils/formatters.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -24,6 +24,7 @@ const CATEGORY_ICONS = {
   staff: Briefcase,
   payroll: Calculator,
   finance: Wallet,
+  hostel: Building,
   audit: ShieldCheck,
 };
 
@@ -70,9 +71,6 @@ export const ReportsPage = () => {
   const [reportResult, setReportResult] = useState(null);
   const [_currentPage, setCurrentPage] = useState(1);
 
-  // PDF Preview Modal State
-  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
-  const [pdfData, setPdfData] = useState(null);
   const [actionLoading, setActionLoading] = useState({ pdf: false, print: false, csv: false });
 
   // Load filter options on mount
@@ -204,14 +202,6 @@ export const ReportsPage = () => {
     };
   };
 
-  // Generate PDF modal preview
-  const handleOpenPdfModal = () => {
-    const payload = preparePdfPayload();
-    if (!payload) return;
-    setPdfData(payload);
-    setIsPdfModalOpen(true);
-  };
-
   // Helper to translate raw filter IDs to clean human-readable names
   const getFilterHumanLabel = (key, val) => {
     if (!val) return null;
@@ -282,7 +272,7 @@ export const ReportsPage = () => {
       return `₹${Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
     }
     if (col.type === 'date' && val) {
-      return new Date(val).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+      return formatDate(val);
     }
     if (col.type === 'badge') {
       const badgeVariant =
@@ -469,7 +459,7 @@ export const ReportsPage = () => {
                 templateId={activeReport?.pdfTemplate || 'genericReport'}
                 data={preparePdfPayload()}
                 filename={`${activeReport?.id || 'Report'}_${new Date().toISOString().split('T')[0]}.pdf`}
-                title={activeReport?.title || 'Report PDF Preview'}
+                title={activeReport?.title || 'Report'}
                 disabled={loading || !reportResult}
               />
 
@@ -729,21 +719,17 @@ export const ReportsPage = () => {
           {activeReport?.filters?.includes('startDate') && (
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">From Date</label>
-                <input
-                  type="date"
+                <DatePicker
+                  label="From Date"
                   value={filters.startDate || ''}
-                  onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                  className="w-full p-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold"
+                  onChange={(val) => handleFilterChange('startDate', val)}
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">To Date</label>
-                <input
-                  type="date"
+                <DatePicker
+                  label="To Date"
                   value={filters.endDate || ''}
-                  onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                  className="w-full p-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-semibold"
+                  onChange={(val) => handleFilterChange('endDate', val)}
                 />
               </div>
             </div>
@@ -957,15 +943,6 @@ export const ReportsPage = () => {
         </div>
       </Drawer>
 
-      {/* PDF Document Preview Modal */}
-      <DocumentPreviewModal
-        isOpen={isPdfModalOpen}
-        onClose={() => setIsPdfModalOpen(false)}
-        templateId={activeReport?.pdfTemplate || 'genericReport'}
-        data={pdfData}
-        filename={`${activeReport?.id || 'Report'}.pdf`}
-        title={activeReport?.title || 'Report PDF Document'}
-      />
     </div>
   );
 };

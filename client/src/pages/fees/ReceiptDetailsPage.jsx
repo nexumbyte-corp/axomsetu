@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Ban, Loader2, Lock } from 'lucide-react';
 import { ReceiptCard } from '../../components/fees/ReceiptCard.jsx';
 import { usePaymentDetails, useVoidPayment } from '../../hooks/usePaymentEngine.js';
@@ -12,6 +12,7 @@ import { DocumentActions } from '../../components/documents/DocumentActions.jsx'
 export const ReceiptDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { canVoidReceipt } = usePermission();
 
   const { data: receiptRes, isLoading, refetch } = usePaymentDetails(id);
@@ -22,6 +23,15 @@ export const ReceiptDetailsPage = () => {
   const [printMode, setPrintMode] = useState('DUAL'); // 'SINGLE' | 'DUAL'
 
   const receipt = receiptRes?.data || receiptRes;
+
+  useEffect(() => {
+    if (searchParams.get('print') === 'true' && receipt) {
+      const timer = setTimeout(() => {
+        window.print();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, receipt]);
 
   const handleVoidPayment = async () => {
     if (!voidReason || voidReason.trim().length === 0) {

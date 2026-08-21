@@ -7,6 +7,7 @@ import { useAcademicYear } from '../../context/AcademicYearContext.jsx';
 import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input } from '../../components/ui/Input.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
@@ -888,11 +889,10 @@ export const HostelAdmissionPage = () => {
           </div>
 
           <div className="max-w-xs">
-            <Input
-              label="Hostel Start Date *"
-              type="date"
+            <DatePicker
+              label="Hostel Start Date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(val) => setStartDate(val)}
               required
             />
           </div>

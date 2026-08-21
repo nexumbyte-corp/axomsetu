@@ -105,6 +105,7 @@ export const getHostelDashboardData = async (schoolId, academicYearId) => {
 
 export const listHostels = async (schoolId, query = {}) => {
   const where = { schoolId };
+  if (query.hostelId) where.id = query.hostelId;
   if (query.isActive === 'true') where.isActive = true;
   if (query.type) where.type = query.type;
   if (query.search && query.search.trim()) {
@@ -1603,6 +1604,18 @@ export const listResidents = async (schoolId, query = {}) => {
   if (query.status) where.status = query.status;
   else where.status = 'ACTIVE';
 
+  if (query.search && query.search.trim()) {
+    const s = query.search.trim();
+    where.student = {
+      OR: [
+        { name: { contains: s, mode: 'insensitive' } },
+        { admissionNo: { contains: s, mode: 'insensitive' } },
+        { guardianName: { contains: s, mode: 'insensitive' } },
+        { phone: { contains: s, mode: 'insensitive' } },
+      ],
+    };
+  }
+
   const enrollments = await prisma.hostelEnrollment.findMany({
     where,
     include: {
@@ -1893,17 +1906,18 @@ export const exitStudent = async (schoolId, payload, actorUserId) => {
 // ==========================================
 
 export const getHostelReports = async (schoolId, reportType, query = {}) => {
-  const { academicYearId, hostelId: _hostelId, roomId: _roomId, status, startDate, endDate } = query;
+  const { academicYearId, hostelId, roomId, status, startDate, endDate, search, availabilityStatus } = query;
 
   switch (reportType) {
     case 'residents':
       return await listResidents(schoolId, query);
 
     case 'occupancy': {
-      const hostels = await listHostels(schoolId, { hostelId });
+      const hostels = await listHostels(schoolId, { hostelId, isActive: 'true' });
       return hostels.map((h) => ({
         hostelId: h.id,
         hostelName: h.name,
+        code: h.code,
         type: h.type,
         totalRooms: h.totalRooms,
         totalBeds: h.totalBeds,
@@ -1915,64 +1929,212 @@ export const getHostelReports = async (schoolId, reportType, query = {}) => {
 
     case 'availability': {
       const rooms = await listRooms(schoolId, { hostelId, isActive: 'true' });
-      return rooms.map((r) => ({
+      let result = rooms.map((r) => ({
         roomId: r.id,
-        hostelName: r.hostel.name,
+        hostelId: r.hostelId,
+        hostelName: r.hostel?.name || '',
+        hostelType: r.hostel?.type || 'COMBINED',
         roomNumber: r.roomNumber,
-        floor: r.floor,
+        floor: r.floor || 'G',
         capacity: r.capacity,
+        totalBedsCount: r.totalBedsCount,
         availableBedsCount: r.availableBedsCount,
         occupiedBedsCount: r.occupiedBedsCount,
-        availableBedNumbers: r.beds.filter((b) => b.status === 'AVAILABLE').map((b) => b.bedNumber),
+        availableBedNumbers: r.beds.filter((b) => b.status === 'AVAILABLE' && b.isActive).map((b) => b.bedNumber),
+        occupiedBedNumbers: r.beds.filter((b) => b.status === 'OCCUPIED' && b.isActive).map((b) => b.bedNumber),
       }));
+
+      if (availabilityStatus === 'AVAILABLE') {
+        result = result.filter((r) => r.availableBedsCount > 0);
+      } else if (availabilityStatus === 'FULL') {
+        result = result.filter((r) => r.availableBedsCount === 0);
+      }
+
+      if (search && search.trim()) {
+        const s = search.trim().toLowerCase();
+        result = result.filter(
+          (r) =>
+            r.roomNumber.toLowerCase().includes(s) ||
+            r.hostelName.toLowerCase().includes(s) ||
+            r.availableBedNumbers.some((b) => b.toLowerCase().includes(s))
+        );
+      }
+
+      return result;
     }
 
     case 'admissions': {
       const where = { schoolId };
       if (academicYearId) where.academicYearId = academicYearId;
       if (hostelId) where.hostelId = hostelId;
+      if (roomId) where.roomId = roomId;
       if (startDate || endDate) {
         where.startDate = {};
         if (startDate) where.startDate.gte = new Date(startDate);
         if (endDate) where.startDate.lte = new Date(endDate);
       }
+      if (search && search.trim()) {
+        const s = search.trim();
+        where.student = {
+          OR: [
+            { name: { contains: s, mode: 'insensitive' } },
+            { admissionNo: { contains: s, mode: 'insensitive' } },
+            { guardianName: { contains: s, mode: 'insensitive' } },
+            { phone: { contains: s, mode: 'insensitive' } },
+          ],
+        };
+      }
 
-      return await prisma.hostelEnrollment.findMany({
+      const admissions = await prisma.hostelEnrollment.findMany({
         where,
         include: {
-          student: { select: { id: true, name: true, admissionNo: true, guardianName: true, phone: true, photoUrl: true } },
-          hostel: { select: { name: true } },
-          room: { select: { roomNumber: true } },
-          bed: { select: { bedNumber: true } },
+          student: {
+            select: {
+              id: true,
+              name: true,
+              admissionNo: true,
+              guardianName: true,
+              phone: true,
+              photoUrl: true,
+              enrollments: {
+                where: academicYearId ? { academicYearId } : undefined,
+                take: 1,
+                include: {
+                  class: { select: { id: true, name: true } },
+                  section: { select: { id: true, name: true } },
+                  stream: { select: { id: true, name: true } },
+                  medium: { select: { id: true, name: true } },
+                },
+              },
+            },
+          },
+          hostel: { select: { id: true, name: true, type: true } },
+          room: { select: { id: true, roomNumber: true, floor: true } },
+          bed: { select: { id: true, bedNumber: true } },
         },
         orderBy: { startDate: 'desc' },
+      });
+
+      return admissions.map((a) => {
+        const sc = a.student?.enrollments?.[0];
+        return {
+          id: a.id,
+          startDate: a.startDate,
+          endDate: a.endDate,
+          status: a.status,
+          student: a.student,
+          studentName: a.student?.name,
+          admissionNo: a.student?.admissionNo,
+          guardianName: a.student?.guardianName,
+          phone: a.student?.phone,
+          photoUrl: a.student?.photoUrl,
+          className: sc?.class?.name || null,
+          sectionName: sc?.section?.name || null,
+          streamName: sc?.stream?.name || null,
+          mediumName: sc?.medium?.name || null,
+          hostel: a.hostel,
+          hostelName: a.hostel?.name,
+          room: a.room,
+          roomNumber: a.room?.roomNumber,
+          bed: a.bed,
+          bedNumber: a.bed?.bedNumber,
+        };
       });
     }
 
     case 'transfers': {
       const where = { schoolId };
+      if (academicYearId) {
+        where.enrollment = { academicYearId };
+      }
+      if (hostelId) {
+        where.OR = [{ fromHostelId: hostelId }, { toHostelId: hostelId }];
+      }
       if (startDate || endDate) {
         where.transferDate = {};
         if (startDate) where.transferDate.gte = new Date(startDate);
         if (endDate) where.transferDate.lte = new Date(endDate);
       }
+      if (search && search.trim()) {
+        const s = search.trim();
+        where.enrollment = {
+          ...(where.enrollment || {}),
+          student: {
+            OR: [
+              { name: { contains: s, mode: 'insensitive' } },
+              { admissionNo: { contains: s, mode: 'insensitive' } },
+              { guardianName: { contains: s, mode: 'insensitive' } },
+            ],
+          },
+        };
+      }
 
-      return await prisma.hostelTransferHistory.findMany({
+      const transfers = await prisma.hostelTransferHistory.findMany({
         where,
         include: {
           enrollment: {
             include: {
-              student: { select: { id: true, name: true, admissionNo: true, photoUrl: true, guardianName: true } },
+              student: {
+                select: {
+                  id: true,
+                  name: true,
+                  admissionNo: true,
+                  photoUrl: true,
+                  guardianName: true,
+                  phone: true,
+                  enrollments: {
+                    where: academicYearId ? { academicYearId } : undefined,
+                    take: 1,
+                    include: {
+                      class: { select: { id: true, name: true } },
+                      section: { select: { id: true, name: true } },
+                      stream: { select: { id: true, name: true } },
+                      medium: { select: { id: true, name: true } },
+                    },
+                  },
+                },
+              },
             },
           },
-          fromHostel: { select: { name: true } },
-          fromRoom: { select: { roomNumber: true } },
-          fromBed: { select: { bedNumber: true } },
-          toHostel: { select: { name: true } },
-          toRoom: { select: { roomNumber: true } },
-          toBed: { select: { bedNumber: true } },
+          fromHostel: { select: { id: true, name: true } },
+          fromRoom: { select: { id: true, roomNumber: true } },
+          fromBed: { select: { id: true, bedNumber: true } },
+          toHostel: { select: { id: true, name: true } },
+          toRoom: { select: { id: true, roomNumber: true } },
+          toBed: { select: { id: true, bedNumber: true } },
         },
         orderBy: { transferDate: 'desc' },
+      });
+
+      return transfers.map((t) => {
+        const st = t.enrollment?.student;
+        const sc = st?.enrollments?.[0];
+        return {
+          id: t.id,
+          transferDate: t.transferDate,
+          reason: t.reason,
+          student: st,
+          studentName: st?.name,
+          admissionNo: st?.admissionNo,
+          guardianName: st?.guardianName,
+          phone: st?.phone,
+          photoUrl: st?.photoUrl,
+          className: sc?.class?.name || null,
+          sectionName: sc?.section?.name || null,
+          streamName: sc?.stream?.name || null,
+          fromHostel: t.fromHostel,
+          fromHostelName: t.fromHostel?.name,
+          fromRoom: t.fromRoom,
+          fromRoomNumber: t.fromRoom?.roomNumber,
+          fromBed: t.fromBed,
+          fromBedNumber: t.fromBed?.bedNumber,
+          toHostel: t.toHostel,
+          toHostelName: t.toHostel?.name,
+          toRoom: t.toRoom,
+          toRoomNumber: t.toRoom?.roomNumber,
+          toBed: t.toBed,
+          toBedNumber: t.toBed?.bedNumber,
+        };
       });
     }
 
@@ -1985,51 +2147,198 @@ export const getHostelReports = async (schoolId, reportType, query = {}) => {
         if (startDate) where.endDate.gte = new Date(startDate);
         if (endDate) where.endDate.lte = new Date(endDate);
       }
+      if (search && search.trim()) {
+        const s = search.trim();
+        where.student = {
+          OR: [
+            { name: { contains: s, mode: 'insensitive' } },
+            { admissionNo: { contains: s, mode: 'insensitive' } },
+            { guardianName: { contains: s, mode: 'insensitive' } },
+            { phone: { contains: s, mode: 'insensitive' } },
+          ],
+        };
+      }
 
-      return await prisma.hostelEnrollment.findMany({
+      const exits = await prisma.hostelEnrollment.findMany({
         where,
         include: {
-          student: { select: { id: true, name: true, admissionNo: true, photoUrl: true, guardianName: true } },
-          hostel: { select: { name: true } },
-          room: { select: { roomNumber: true } },
-          bed: { select: { bedNumber: true } },
+          student: {
+            select: {
+              id: true,
+              name: true,
+              admissionNo: true,
+              photoUrl: true,
+              guardianName: true,
+              phone: true,
+              enrollments: {
+                where: academicYearId ? { academicYearId } : undefined,
+                take: 1,
+                include: {
+                  class: { select: { id: true, name: true } },
+                  section: { select: { id: true, name: true } },
+                  stream: { select: { id: true, name: true } },
+                  medium: { select: { id: true, name: true } },
+                },
+              },
+            },
+          },
+          hostel: { select: { id: true, name: true, type: true } },
+          room: { select: { id: true, roomNumber: true, floor: true } },
+          bed: { select: { id: true, bedNumber: true } },
         },
         orderBy: { endDate: 'desc' },
+      });
+
+      return exits.map((x) => {
+        const sc = x.student?.enrollments?.[0];
+        return {
+          id: x.id,
+          startDate: x.startDate,
+          endDate: x.endDate,
+          exitReason: x.exitReason,
+          student: x.student,
+          studentName: x.student?.name,
+          admissionNo: x.student?.admissionNo,
+          guardianName: x.student?.guardianName,
+          phone: x.student?.phone,
+          photoUrl: x.student?.photoUrl,
+          className: sc?.class?.name || null,
+          sectionName: sc?.section?.name || null,
+          streamName: sc?.stream?.name || null,
+          hostel: x.hostel,
+          hostelName: x.hostel?.name,
+          room: x.room,
+          roomNumber: x.room?.roomNumber,
+          bed: x.bed,
+          bedNumber: x.bed?.bedNumber,
+        };
       });
     }
 
     case 'fees': {
       const where = {
         schoolId,
-        feeType: { category: 'HOSTEL' },
+        OR: [
+          { feeType: { category: 'HOSTEL' } },
+          { feeType: { systemCode: 'HOSTEL' } },
+          { title: { contains: 'Hostel', mode: 'insensitive' } },
+        ],
       };
       if (academicYearId) where.academicYearId = academicYearId;
-      if (status) where.status = status;
+      if (status && status !== 'ALL') where.status = status;
+      if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = new Date(startDate);
+        if (endDate) where.createdAt.lte = new Date(endDate);
+      }
+      if (hostelId) {
+        where.student = {
+          activeHostelEnrollments: {
+            some: {
+              hostelId,
+              ...(academicYearId ? { academicYearId } : {}),
+            },
+          },
+        };
+      }
+      if (search && search.trim()) {
+        const s = search.trim();
+        where.student = {
+          ...(where.student || {}),
+          OR: [
+            { name: { contains: s, mode: 'insensitive' } },
+            { admissionNo: { contains: s, mode: 'insensitive' } },
+            { guardianName: { contains: s, mode: 'insensitive' } },
+          ],
+        };
+      }
 
       const charges = await prisma.studentFeeCharge.findMany({
         where,
         include: {
-          student: { select: { id: true, name: true, admissionNo: true, photoUrl: true, guardianName: true } },
-          feeType: { select: { id: true, name: true } },
+          student: {
+            select: {
+              id: true,
+              name: true,
+              admissionNo: true,
+              photoUrl: true,
+              guardianName: true,
+              phone: true,
+              enrollments: {
+                where: academicYearId ? { academicYearId } : undefined,
+                take: 1,
+                include: {
+                  class: { select: { id: true, name: true } },
+                  section: { select: { id: true, name: true } },
+                  stream: { select: { id: true, name: true } },
+                  medium: { select: { id: true, name: true } },
+                },
+              },
+              activeHostelEnrollments: {
+                where: { status: 'ACTIVE' },
+                take: 1,
+                include: {
+                  hostel: { select: { name: true } },
+                  room: { select: { roomNumber: true } },
+                  bed: { select: { bedNumber: true } },
+                },
+              },
+            },
+          },
+          feeType: { select: { id: true, name: true, category: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ month: 'desc' }, { createdAt: 'desc' }],
       });
 
       let totalAmount = 0;
       let totalPaid = 0;
       let totalUnpaid = 0;
 
-      charges.forEach((c) => {
+      const mappedCharges = charges.map((c) => {
         const amt = Number(c.amount);
         const paid = Number(c.paidAmount);
+        const due = Math.max(0, amt - paid);
         totalAmount += amt;
         totalPaid += paid;
-        totalUnpaid += amt - paid;
+        totalUnpaid += due;
+
+        const sc = c.student?.enrollments?.[0];
+        const he = c.student?.activeHostelEnrollments?.[0];
+
+        return {
+          id: c.id,
+          month: c.month,
+          title: c.title,
+          amount: amt,
+          paidAmount: paid,
+          dueAmount: due,
+          status: c.status,
+          dueDate: c.dueDate,
+          createdAt: c.createdAt,
+          student: c.student,
+          studentName: c.student?.name,
+          admissionNo: c.student?.admissionNo,
+          guardianName: c.student?.guardianName,
+          phone: c.student?.phone,
+          photoUrl: c.student?.photoUrl,
+          className: sc?.class?.name || null,
+          sectionName: sc?.section?.name || null,
+          streamName: sc?.stream?.name || null,
+          hostelName: he?.hostel?.name || null,
+          roomNumber: he?.room?.roomNumber || null,
+          bedNumber: he?.bed?.bedNumber || null,
+          feeTypeName: c.feeType?.name,
+        };
       });
 
       return {
-        summary: { totalCharges: charges.length, totalAmount, totalPaid, totalUnpaid },
-        charges,
+        summary: {
+          totalCharges: mappedCharges.length,
+          totalAmount,
+          totalPaid,
+          totalUnpaid,
+        },
+        charges: mappedCharges,
       };
     }
 

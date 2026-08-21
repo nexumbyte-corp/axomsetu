@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Users, UserPlus, Shield, ShieldCheck, ChevronRight, ArrowLeft, Check,
   Lock, Save, AlertCircle, Search, UserCheck, UserX, Settings2,
-  BadgeCheck, Crown, Sparkles, BookOpen, CreditCard, Briefcase, Wallet, BarChart3, X, ChevronDown, RefreshCw
+  BadgeCheck, Crown, Sparkles, BookOpen, CreditCard, Briefcase, Wallet, BarChart3, X
 } from 'lucide-react';
 import { schoolUserService } from '../../services/schoolUser.service.js';
 import { usePermission } from '../../hooks/usePermission.js';

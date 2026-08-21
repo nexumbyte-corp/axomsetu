@@ -10,10 +10,11 @@ import { Button } from '../components/ui/Button.jsx';
 import { Card, CardContent } from '../components/ui/Card.jsx';
 import { DashboardSkeleton } from '../components/dashboard/DashboardSkeleton.jsx';
 import { DashboardMetricCard } from '../components/dashboard/DashboardMetricCard.jsx';
+import { TodayCollectionSection } from '../components/dashboard/TodayCollectionSection.jsx';
 import { NeedsAttentionSection } from '../components/dashboard/NeedsAttentionSection.jsx';
 import { RecentFeeCollections, RecentExpenses, RecentSalaryPayments } from '../components/dashboard/RecentActivityTables.jsx';
 import { QuickActionsSection } from '../components/dashboard/QuickActionsSection.jsx';
-import { formatCurrency, formatNumber } from '../utils/formatters.js';
+import { formatCurrency, formatNumber, formatDate } from '../utils/formatters.js';
 
 export const DashboardPage = () => {
   useDocumentTitle('Dashboard');
@@ -117,7 +118,7 @@ export const DashboardPage = () => {
             <div className="text-right hidden md:block">
               <span className="text-slate-400 block text-[11px]">Expires / Next Date</span>
               <span className="font-semibold text-slate-200 font-mono">
-                {subscription.endDate ? new Date(subscription.endDate).toLocaleDateString('en-IN') : '-'}
+                {formatDate(subscription.endDate)}
               </span>
             </div>
             <a
@@ -191,8 +192,12 @@ export const DashboardPage = () => {
         />
       </div>
 
+      {/* Today Collection Widget with DatePicker */}
+      <TodayCollectionSection selectedYearId={selectedYearId} />
+
       {/* Items Requiring Attention */}
       <NeedsAttentionSection items={needsAttention} />
+
 
       {/* Recent Fee Collections & Recent Expenses */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

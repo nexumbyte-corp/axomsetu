@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
 import { TableSkeleton } from '../../components/ui/Skeleton.jsx';
+import { formatDate } from '../../utils/formatters.js';
 
 export const SuperAdminPaymentsPage = () => {
   const [payments, setPayments] = useState([]);
@@ -121,7 +122,7 @@ export const SuperAdminPaymentsPage = () => {
                   return (
                     <TableRow key={p.id}>
                       <TableCell className="text-slate-500 text-xs font-mono">
-                        {new Date(p.paymentDate || p.createdAt || p.startDate).toLocaleDateString()}
+                        {formatDate(p.paymentDate || p.createdAt || p.startDate)}
                       </TableCell>
 
                       <TableCell className="font-bold text-slate-900">

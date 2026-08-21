@@ -148,6 +148,7 @@ export const StaffListPage = () => {
           can('STAFF_CREATE') && (
             <Button
               variant="primary"
+              size="sm"
               icon={UserPlus}
               onClick={() => setIsAddModalOpen(true)}
             >

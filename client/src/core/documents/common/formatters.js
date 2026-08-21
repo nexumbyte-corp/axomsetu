@@ -18,19 +18,32 @@ export const formatDocCurrency = (amount, showFraction = true) => {
 };
 
 /**
- * Format date values to standard document date format (e.g. 16 Aug 2026).
+ * Format date values to standard document date format strictly as DD-MM-YYYY (e.g. 21-08-2026).
  * @param {Date|string} date
+ * @param {string} fallback
  * @returns {string}
  */
-export const formatDocDate = (date) => {
-  if (!date) return 'N/A';
+export const formatDocDate = (date, fallback = 'N/A') => {
+  if (!date) return fallback;
+
+  if (typeof date === 'string') {
+    const trimmed = date.trim();
+    const yyyymmdd = trimmed.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+    if (yyyymmdd) {
+      return `${yyyymmdd[3]}-${yyyymmdd[2]}-${yyyymmdd[1]}`;
+    }
+    const ddmmyyyy = trimmed.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+    if (ddmmyyyy) {
+      return `${ddmmyyyy[1]}-${ddmmyyyy[2]}-${ddmmyyyy[3]}`;
+    }
+  }
+
   const d = new Date(date);
-  if (isNaN(d.getTime())) return 'N/A';
-  return d.toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  if (isNaN(d.getTime())) return fallback;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
 };
 
 /**

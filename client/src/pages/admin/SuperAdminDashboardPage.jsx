@@ -5,6 +5,7 @@ import { adminService } from '../../services/adminService.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
+import { formatDate } from '../../utils/formatters.js';
 
 export const SuperAdminDashboardPage = () => {
   const [data, setData] = useState(null);
@@ -236,7 +237,7 @@ export const SuperAdminDashboardPage = () => {
                     <tr key={p.id} className="hover:bg-slate-50/50">
                       <td className="py-2.5 font-bold text-slate-900">{p.schoolName}</td>
                       <td className="py-2.5 text-slate-600 font-medium">{p.planName}</td>
-                      <td className="py-2.5 font-mono text-slate-500">{new Date(p.date).toLocaleDateString()}</td>
+                      <td className="py-2.5 font-mono text-slate-500">{formatDate(p.date)}</td>
                       <td className="py-2.5 text-right font-bold text-emerald-600 font-mono">
                         {formatCurrency(p.amount)}
                       </td>

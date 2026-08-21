@@ -10,8 +10,11 @@ import { Alert } from '../../components/ui/Alert.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { StaffSubNav } from '../staff/StaffSubNav.jsx';
 import { buildSalarySlipData } from '../../core/documents/documentTemplates/salarySlip.js';
-import { downloadPdfDocument } from '../../core/documents/documentEngine.js';
-import { History, FileText, Download, Search, User, CreditCard } from 'lucide-react';
+import { downloadPdfDocument, printPdfDocument } from '../../core/documents/documentEngine.js';
+import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
+import { formatDate } from '../../utils/formatters.js';
+import { toast } from '../../components/ui/Toast.jsx';
+import { History, FileText, Download, Printer, Search, User, CreditCard } from 'lucide-react';
 
 const MONTH_OPTIONS = [
   { value: 'JANUARY', label: 'January' },
@@ -98,9 +101,24 @@ export const SalaryHistoryPage = () => {
         data: res.data,
         filename: `SalaryVoucher_${paymentNo}.pdf`,
       });
+      toast.success(`Downloaded voucher ${paymentNo}`);
     } catch (err) {
       console.error('Failed to download voucher PDF:', err);
-      alert('Failed to download PDF voucher.');
+      toast.error('Failed to download PDF voucher.');
+    }
+  };
+
+  // Print voucher PDF
+  const handlePrintVoucher = async (paymentId) => {
+    try {
+      const res = await staffService.getSalaryPaymentReceiptData(paymentId);
+      await printPdfDocument({
+        templateId: 'salary',
+        data: res.data,
+      });
+    } catch (err) {
+      console.error('Failed to print voucher:', err);
+      toast.error('Failed to print PDF voucher.');
     }
   };
 
@@ -136,22 +154,6 @@ export const SalaryHistoryPage = () => {
       setSlipPayload(null);
     } finally {
       setGeneratingPdf(false);
-    }
-  };
-
-  // Download Slip PDF
-  const handleDownloadSlipPdf = async () => {
-    if (!slipPayload) return;
-    try {
-      const filename = `SalarySlip_${slipPayload.staffName?.replace(/\s+/g, '_') || 'Employee'}.pdf`;
-      await downloadPdfDocument({
-        templateId: 'salarySlip',
-        data: slipPayload,
-        filename,
-      });
-    } catch (err) {
-      console.error('Failed to download salary slip PDF:', err);
-      alert('Failed to download Salary Slip PDF.');
     }
   };
 
@@ -253,11 +255,7 @@ export const SalaryHistoryPage = () => {
                           </td>
 
                           <td className="py-3.5 px-4 font-mono text-slate-600">
-                            {new Date(p.paymentDate).toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
+                            {formatDate(p.paymentDate)}
                           </td>
 
                           <td className="py-3.5 px-4">
@@ -296,15 +294,26 @@ export const SalaryHistoryPage = () => {
                           </td>
 
                           <td className="py-3.5 px-4 text-center">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              icon={Download}
-                              title="Download PDF Voucher"
-                              onClick={() => handleDownloadVoucher(p.id, p.paymentNumber)}
-                            >
-                              Download PDF
-                            </Button>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                title="Print Salary Voucher"
+                                aria-label="Print Salary Voucher"
+                                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 hover:text-indigo-600 text-slate-600 shadow-2xs transition-colors"
+                                onClick={() => handlePrintVoucher(p.id)}
+                              >
+                                <Printer className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                title="Download PDF Voucher"
+                                aria-label="Download PDF Voucher"
+                                className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 hover:text-indigo-600 text-slate-600 shadow-2xs transition-colors"
+                                onClick={() => handleDownloadVoucher(p.id, p.paymentNumber)}
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -434,10 +443,13 @@ export const SalaryHistoryPage = () => {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <Button variant="primary" icon={Download} onClick={handleDownloadSlipPdf}>
-                    Download Salary Slip PDF
-                  </Button>
+                <div className="flex items-center gap-2">
+                  <DocumentActions
+                    templateId="salarySlip"
+                    data={slipPayload}
+                    filename={`SalarySlip_${slipPayload.staffName?.replace(/\s+/g, '_') || 'Employee'}.pdf`}
+                    title={`Salary Slip - ${slipPayload.staffName}`}
+                  />
                 </div>
               </div>
 

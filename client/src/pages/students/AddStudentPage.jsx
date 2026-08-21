@@ -15,7 +15,7 @@ import { Badge } from '../../components/ui/Badge.jsx';
 import { EnrollmentFields } from '../../components/students/EnrollmentFields.jsx';
 import { PassportPhotoCropModal } from '../../components/students/PassportPhotoCropModal.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
-import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
+import { usePageHeader } from '../../context/PageHeaderContext.jsx';
 
 const MONTH_NAMES = [
   'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
@@ -397,44 +397,42 @@ export const AddStudentPage = () => {
 
   const isLocked = Boolean(selectedYear?.isLocked);
 
+  const { setHeaderInfo } = usePageHeader();
+
+  useEffect(() => {
+    setHeaderInfo({
+      title: 'Add Student',
+      icon: UserPlus,
+      actions: (
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            icon={UserPlus}
+            onClick={handleSubmit}
+            loading={submitting}
+            disabled={isLocked || loadingSetup || hasAnyOverrideError}
+          >
+            Add Student
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={ArrowLeft}
+            onClick={() => navigate('/app/students')}
+          >
+            Back
+          </Button>
+        </div>
+      ),
+    });
+
+    return () => setHeaderInfo(null);
+  }, [setHeaderInfo, navigate, handleSubmit, submitting, isLocked, loadingSetup, hasAnyOverrideError]);
+
   return (
     <div className="w-full space-y-5 pb-20 sm:pb-6">
-      {/* Standardized Module Header with Top Action Button */}
-      <ModulePageHeader
-        icon={UserPlus}
-        title="Add New Student"
-        description="Register a student master profile with photo, mandatory contact details & initial fee structure."
-        actions={
-          <div className="flex items-center gap-2">
-            {selectedYear && (
-              <Badge variant="indigo" size="md">
-                {selectedYear.name}
-              </Badge>
-            )}
-
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              icon={UserPlus}
-              onClick={handleSubmit}
-              loading={submitting}
-              disabled={isLocked || loadingSetup || hasAnyOverrideError}
-            >
-              Add Student
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              icon={ArrowLeft}
-              onClick={() => navigate('/app/students')}
-            >
-              Back to Students
-            </Button>
-          </div>
-        }
-      />
 
       {isLocked && (
         <Alert variant="warning" icon={ShieldAlert} title="Locked Academic Year">

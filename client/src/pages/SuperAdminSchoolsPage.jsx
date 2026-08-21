@@ -4,6 +4,7 @@ import { Search, Plus, CheckCircle2, ShieldAlert, XCircle, Eye, ExternalLink, Po
 import { adminService } from '../services/adminService.js';
 import { subscriptionService } from '../services/subscriptionService.js';
 import { storage } from '../utils/storage.js';
+import { formatDate } from '../utils/formatters.js';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../components/ui/Table.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { Badge } from '../components/ui/Badge.jsx';
@@ -291,7 +292,7 @@ export const SuperAdminSchoolsPage = () => {
                       <TableCell className="text-xs font-mono text-slate-600">
                         {expiryDate ? (
                           <span className={isExpired ? 'text-rose-600 font-bold' : ''}>
-                            {expiryDate.toLocaleDateString('en-IN')}
+                            {formatDate(expiryDate)}
                           </span>
                         ) : (
                           '-'
@@ -299,7 +300,7 @@ export const SuperAdminSchoolsPage = () => {
                       </TableCell>
 
                       <TableCell className="text-xs font-mono text-slate-500">
-                        {new Date(sch.createdAt).toLocaleDateString('en-IN')}
+                        {formatDate(sch.createdAt)}
                       </TableCell>
 
                       <TableCell className="text-right">

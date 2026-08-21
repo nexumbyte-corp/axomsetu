@@ -9,6 +9,7 @@ import { OpeningBalanceModal } from './OpeningBalanceModal.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
+import { formatDate } from '../../utils/formatters.js';
 import { TrendingUp, TrendingDown, Scale, Plus, ArrowUpRight, ArrowDownRight, RefreshCw, Landmark, Calendar } from 'lucide-react';
 
 export const FinanceOverviewPage = () => {
@@ -278,7 +279,7 @@ export const FinanceOverviewPage = () => {
                 recentTxns.map((t) => (
                   <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="p-3 whitespace-nowrap text-slate-600 font-mono">
-                      {new Date(t.transactionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                      {formatDate(t.transactionDate)}
                     </td>
                     <td className="p-3 text-slate-900 font-semibold max-w-xs truncate">
                       {t.description || t.sourceType}

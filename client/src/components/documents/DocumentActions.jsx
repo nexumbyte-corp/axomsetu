@@ -1,27 +1,30 @@
 import React, { useState } from 'react';
-import { Eye, Download, Loader2 } from 'lucide-react';
-import { Button } from '../ui/Button.jsx';
+import { Printer, Download, Loader2 } from 'lucide-react';
 import { toast } from '../ui/Toast.jsx';
-import { DocumentPreviewModal } from './DocumentPreviewModal.jsx';
-import { downloadPdfDocument, loadPdfMake } from '../../core/documents/documentEngine.js';
+import { downloadPdfDocument, printPdfDocument, loadPdfMake } from '../../core/documents/documentEngine.js';
 
 /**
- * Standard Reusable Document Action Controls Component.
- * Renders [ Preview ] and [ Download PDF ] buttons.
+ * Standard Central Document Action Controls Component.
+ * Pure icon-only buttons for direct [ Print ] and [ Download PDF ].
+ * PDF Preview has been removed across the entire application as requested.
  */
 export const DocumentActions = ({
   templateId = 'receipt',
   data = null,
   filename = 'Document.pdf',
-  title = 'Document PDF Preview',
+  title = 'Document',
   options = {},
-  variant = 'printOnly', // 'printOnly' | 'full' | 'compact' | 'minimal'
+  variant = 'default', // 'default' | 'printOnly' | 'downloadOnly' | 'minimal' | 'compact'
   className = '',
   disabled = false,
+  showPrint = true,
+  showDownload = true,
+  onPrint = null,
+  onDownload = null,
+  size = 'sm', // 'xs' | 'sm' | 'md'
 }) => {
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [actionType, setActionType] = useState(null); // 'download' | null
+  const [actionType, setActionType] = useState(null); // 'print' | 'download' | null
 
   // Pre-warm PDF engine and fonts on mount for instant zero-latency generation
   React.useEffect(() => {
@@ -30,19 +33,45 @@ export const DocumentActions = ({
 
   const validateData = () => {
     if (!data) {
-      toast.error('Unable to generate document: data unavailable.');
+      toast.error('Unable to process document: data unavailable.');
       return false;
     }
     return true;
   };
 
-  const handlePreview = () => {
+  const handlePrint = async (e) => {
+    if (e) e.stopPropagation();
+    if (onPrint) {
+      onPrint();
+      return;
+    }
     if (!validateData()) return;
-    setIsPreviewOpen(true);
+
+    setIsGenerating(true);
+    setActionType('print');
+    try {
+      await printPdfDocument({
+        templateId,
+        data,
+        options,
+      });
+    } catch (err) {
+      console.error('Failed to print document:', err);
+      toast.error('Unable to open print dialog. Please try again.');
+    } finally {
+      setIsGenerating(false);
+      setActionType(null);
+    }
   };
 
-  const handleDownload = async () => {
+  const handleDownload = async (e) => {
+    if (e) e.stopPropagation();
+    if (onDownload) {
+      onDownload();
+      return;
+    }
     if (!validateData()) return;
+
     setIsGenerating(true);
     setActionType('download');
     try {
@@ -62,102 +91,62 @@ export const DocumentActions = ({
     }
   };
 
-  const isBtnDisabled = disabled || !data || isGenerating;
+  const isBtnDisabled = disabled || (!data && !onPrint && !onDownload) || isGenerating;
 
-  if (variant === 'printOnly' || variant === 'default') {
-    return (
-      <Button
-        variant="primary"
-        size="sm"
-        onClick={handleDownload}
-        disabled={isBtnDisabled}
-        isLoading={isGenerating && actionType === 'download'}
-        loadingText="Downloading PDF..."
-        className={className}
-      >
-        <Download className="w-4 h-4 mr-2" />
-        Download PDF
-      </Button>
-    );
-  }
+  const shouldShowPrint = showPrint && variant !== 'downloadOnly';
+  const shouldShowDownload = showDownload && variant !== 'printOnly';
 
-  if (variant === 'minimal') {
-    return (
-      <>
-        <div className={`flex items-center gap-1.5 ${className}`}>
-          <button
-            type="button"
-            onClick={handlePreview}
-            disabled={isBtnDisabled}
-            title="Preview Document PDF"
-            className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={handleDownload}
-            disabled={isBtnDisabled}
-            title="Download PDF"
-            className="p-1.5 text-slate-600 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {isGenerating && actionType === 'download' ? (
-              <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-          </button>
-        </div>
+  // Size styling tokens for icon-only action buttons
+  const sizeClasses = {
+    xs: 'p-1.5 rounded-md text-xs',
+    sm: 'p-2 rounded-lg text-xs',
+    md: 'p-2.5 rounded-xl text-sm',
+  }[size] || 'p-2 rounded-lg text-xs';
 
-        <DocumentPreviewModal
-          isOpen={isPreviewOpen}
-          onClose={() => setIsPreviewOpen(false)}
-          templateId={templateId}
-          data={data}
-          filename={filename}
-          title={title}
-          options={options}
-        />
-      </>
-    );
-  }
+  const iconSizes = {
+    xs: 'w-3.5 h-3.5',
+    sm: 'w-4 h-4',
+    md: 'w-4.5 h-4.5',
+  }[size] || 'w-4 h-4';
 
   return (
-    <>
-      <div className={`flex items-center gap-2 flex-wrap ${className}`}>
-        <Button
-          variant="outline"
-          size={variant === 'compact' ? 'xs' : 'sm'}
-          onClick={handlePreview}
+    <div className={`inline-flex items-center gap-1.5 ${className}`}>
+      {/* Print Icon Button */}
+      {shouldShowPrint && (
+        <button
+          type="button"
+          onClick={handlePrint}
           disabled={isBtnDisabled}
+          title={`Print ${title || 'Document'}`}
+          aria-label={`Print ${title || 'Document'}`}
+          className={`${sizeClasses} border border-slate-200 bg-white hover:bg-slate-100 hover:text-indigo-600 text-slate-700 shadow-2xs transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-95`}
         >
-          <Eye className="w-3.5 h-3.5 mr-1.5" />
-          Preview
-        </Button>
+          {isGenerating && actionType === 'print' ? (
+            <Loader2 className={`${iconSizes} animate-spin text-indigo-600`} />
+          ) : (
+            <Printer className={iconSizes} />
+          )}
+        </button>
+      )}
 
-        <Button
-          variant="primary"
-          size={variant === 'compact' ? 'xs' : 'sm'}
+      {/* Download Icon Button */}
+      {shouldShowDownload && (
+        <button
+          type="button"
           onClick={handleDownload}
           disabled={isBtnDisabled}
-          isLoading={isGenerating && actionType === 'download'}
-          loadingText="Generating PDF..."
+          title={`Download ${filename || 'PDF'}`}
+          aria-label={`Download ${filename || 'PDF'}`}
+          className={`${sizeClasses} border border-slate-200 bg-white hover:bg-slate-100 hover:text-indigo-600 text-slate-700 shadow-2xs transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none active:scale-95`}
         >
-          <Download className="w-3.5 h-3.5 mr-1.5" />
-          Download PDF
-        </Button>
-      </div>
-
-      <DocumentPreviewModal
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        templateId={templateId}
-        data={data}
-        filename={filename}
-        title={title}
-        options={options}
-      />
-    </>
+          {isGenerating && actionType === 'download' ? (
+            <Loader2 className={`${iconSizes} animate-spin text-indigo-600`} />
+          ) : (
+            <Download className={iconSizes} />
+          )}
+        </button>
+      )}
+    </div>
   );
 };
 

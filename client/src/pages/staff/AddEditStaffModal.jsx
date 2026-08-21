@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Input } from '../../components/ui/Input.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { staffService } from '../../services/staff.service.js';
@@ -176,12 +177,11 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
             options={ROLE_OPTIONS}
           />
 
-          <Input
+          <DatePicker
             label="Joining Date *"
             name="joiningDate"
-            type="date"
             value={formData.joiningDate}
-            onChange={handleChange}
+            onChange={(e, isoVal) => setFormData({ ...formData, joiningDate: isoVal || e?.target?.value || '' })}
             required
           />
 

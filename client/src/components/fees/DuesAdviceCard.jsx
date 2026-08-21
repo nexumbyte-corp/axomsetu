@@ -1,6 +1,7 @@
 import React from 'react';
 import { Badge } from '../ui/Badge.jsx';
 import { amountToWords } from '../../utils/numberToWords.js';
+import { formatDate } from '../../utils/formatters.js';
 import { SchoolReportHeader } from '../common/SchoolReportHeader.jsx';
 
 export const DuesAdviceCard = ({
@@ -90,7 +91,7 @@ export const DuesAdviceCard = ({
             <div className="flex justify-between">
               <span className="text-slate-500">Statement Date:</span>
               <span className="font-bold text-slate-900 font-mono">
-                {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                {formatDate(new Date())}
               </span>
             </div>
             <div className="flex justify-between">

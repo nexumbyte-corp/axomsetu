@@ -12,6 +12,7 @@ import { Drawer } from '../../components/ui/Drawer.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
+import { formatDate } from '../../utils/formatters.js';
 import { HostelTransferModal } from '../../components/hostel/HostelTransferModal.jsx';
 import { HostelExitModal } from '../../components/hostel/HostelExitModal.jsx';
 import { StudentDetailsCell } from '../../components/hostel/StudentDetailsCell.jsx';
@@ -198,8 +199,8 @@ export const HostelResidentsPage = () => {
                     <div className="text-[11px] text-slate-500">Room {r.roomNumber}</div>
                   </td>
                   <td className="px-3.5 py-2.5 font-bold text-indigo-600">{r.bedNumber}</td>
-                  <td className="px-3.5 py-2.5 text-slate-600">
-                    {new Date(r.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  <td className="px-3.5 py-2.5 text-slate-600 font-mono">
+                    {formatDate(r.startDate)}
                   </td>
                   <td className="px-3.5 py-2.5 text-center">
                     <Badge variant={r.status === 'ACTIVE' ? 'green' : 'gray'} className="text-[10px] py-0.5 px-2">
@@ -261,8 +262,8 @@ export const HostelResidentsPage = () => {
                 </div>
                 <div>
                   <span className="block text-slate-500 text-[11px]">Hostel Start Date:</span>
-                  <span className="font-semibold text-slate-800">
-                    {new Date(selectedResident.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  <span className="font-semibold text-slate-800 font-mono">
+                    {formatDate(selectedResident.startDate)}
                   </span>
                 </div>
                 <div>
@@ -314,7 +315,7 @@ export const HostelResidentsPage = () => {
                     <div key={t.id} className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-[11px] space-y-0.5">
                       <div className="flex justify-between font-semibold text-slate-900">
                         <span>{t.fromHostel?.name} (R-{t.fromRoom?.roomNumber}) → {t.toHostel?.name} (R-{t.toRoom?.roomNumber})</span>
-                        <span className="text-slate-400 font-mono">{new Date(t.transferDate).toLocaleDateString()}</span>
+                        <span className="text-slate-400 font-mono">{formatDate(t.transferDate)}</span>
                       </div>
                       <p className="text-slate-500 italic">{t.reason || 'Routine Transfer'}</p>
                     </div>

@@ -1,4 +1,5 @@
 import { createPDFHeader } from '../common/header.js';
+import { formatDocDate } from '../common/formatters.js';
 
 /**
  * Financial Ledger Data Builder
@@ -23,18 +24,12 @@ export const buildFinancialLedgerData = (rawData = {}) => {
       logoUrl: school.logoUrl || null,
       logoBase64: school.logoBase64 || null,
     },
-    reportDate: new Date().toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }),
+    reportDate: formatDocDate(new Date()),
     totalCredit: Number(overview.totalCredit || rawData.totalCredit || 0),
     totalDebit: Number(overview.totalDebit || rawData.totalDebit || 0),
     currentBalance: Number(overview.currentBalance || rawData.currentBalance || 0),
     transactions: transactions.map((t) => ({
-      date: t.transactionDate
-        ? new Date(t.transactionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-        : 'N/A',
+      date: formatDocDate(t.transactionDate),
       description: t.description || t.sourceType || 'Transaction',
       sourceType: t.sourceType ? t.sourceType.replace(/_/g, ' ') : 'N/A',
       type: t.type || 'CREDIT',

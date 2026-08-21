@@ -10,3 +10,13 @@ export const getDashboardSummary = asyncHandler(async (req, res) => {
     new ApiResponse(200, summary, 'Dashboard summary operational metrics fetched successfully')
   );
 });
+
+export const getDailyCollection = asyncHandler(async (req, res) => {
+  const schoolId = req.schoolId;
+  const collection = await dashboardService.getDailyCollection(schoolId, req.query);
+
+  res.status(200).json(
+    new ApiResponse(200, collection, 'Daily collection details fetched successfully')
+  );
+});
+

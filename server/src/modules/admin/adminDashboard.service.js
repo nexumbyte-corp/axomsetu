@@ -1,5 +1,6 @@
 import { prisma } from '../../config/prisma.js';
 import { memoryCache } from '../../utils/cache.js';
+import { getISTMonthBounds, getISTDateParts } from '../../utils/dateUtils.js';
 
 export const adminDashboardService = {
   /**
@@ -10,10 +11,11 @@ export const adminDashboardService = {
     return await memoryCache.getOrSet('admin:dashboard:summary', async () => {
       const now = new Date();
       
-      // Start of current month & previous month
-      const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      const { year: currentYear, month: currentMonth } = getISTDateParts();
+      const { startOfMonth: startOfCurrentMonth } = getISTMonthBounds(currentYear, currentMonth);
+      const prevMonthNum = currentMonth === 1 ? 12 : currentMonth - 1;
+      const prevYearNum = currentMonth === 1 ? currentYear - 1 : currentYear;
+      const { startOfMonth: startOfPreviousMonth, endOfMonth: endOfPreviousMonth } = getISTMonthBounds(prevYearNum, prevMonthNum);
 
       const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 

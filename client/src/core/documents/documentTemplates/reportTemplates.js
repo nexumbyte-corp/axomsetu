@@ -1,4 +1,6 @@
 import { createPDFHeader } from '../common/header.js';
+import { formatDocDate } from '../common/formatters.js';
+import { formatDateTime } from '../../../utils/formatters.js';
 
 /**
  * Data builder for dynamic tabular reports
@@ -27,13 +29,7 @@ export const buildGenericReportData = (rawData = {}) => {
       logoBase64: school.logoBase64 || null,
     },
     reportTitle: reportMeta.title || 'School Official Report',
-    generatedDate: new Date().toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }),
+    generatedDate: formatDateTime(new Date()),
     columns,
     rows,
     summary,
@@ -120,7 +116,7 @@ export const buildGenericReportTemplate = (data, _settings = {}) => {
         if (col.type === 'currency') {
           val = formatCurrency(val);
         } else if (col.type === 'date' && val) {
-          val = new Date(val).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+          val = formatDocDate(val);
         } else if (val === null || val === undefined) {
           val = '-';
         }

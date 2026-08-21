@@ -11,6 +11,7 @@ import { ModulePageHeader } from '../components/ui/ModulePageHeader.jsx';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../components/ui/Table.jsx';
 import { Pagination } from '../components/ui/Pagination.jsx';
 import { adminService } from '../services/adminService.js';
+import { formatDateTime } from '../utils/formatters.js';
 
 export const SuperAdminAuditLogsPage = () => {
   const [loading, setLoading] = useState(true);
@@ -60,18 +61,6 @@ export const SuperAdminAuditLogsPage = () => {
     setPagination((prev) => ({ ...prev, page: 1 }));
     fetchAuditLogs();
   };
-
-  const formatDate = (d) =>
-    d
-      ? new Date(d).toLocaleString('en-IN', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        })
-      : 'N/A';
 
   const formatActionBadge = (action) => {
     if (action.includes('CREATED') || action.includes('REGISTERED') || action.includes('ACTIVATED')) {
@@ -168,7 +157,7 @@ export const SuperAdminAuditLogsPage = () => {
               ) : (
                 logs.map((log) => (
                   <TableRow key={log.id}>
-                    <TableCell className="font-mono text-xs text-slate-500">{formatDate(log.createdAt)}</TableCell>
+                    <TableCell className="font-mono text-xs text-slate-500">{formatDateTime(log.createdAt)}</TableCell>
 
                     <TableCell className="font-bold text-slate-900 text-xs">
                       {log.user?.name || 'System'}
@@ -237,7 +226,7 @@ export const SuperAdminAuditLogsPage = () => {
 
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase block">Timestamp</span>
-                <span className="font-mono text-slate-800">{formatDate(selectedLog.createdAt)}</span>
+                <span className="font-mono text-slate-800">{formatDateTime(selectedLog.createdAt)}</span>
               </div>
             </div>
 

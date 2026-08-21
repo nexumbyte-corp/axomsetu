@@ -1,4 +1,5 @@
 import { createPDFHeader } from '../common/header.js';
+import { formatDocDate } from '../common/formatters.js';
 
 /**
  * Fund Report Data Builder
@@ -27,18 +28,12 @@ export const buildFundReportData = (rawData = {}) => {
       logoUrl: school.logoUrl || null,
       logoBase64: school.logoBase64 || null,
     },
-    reportDate: new Date().toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }),
+    reportDate: formatDocDate(new Date()),
     totalAmount,
     totalCount: funds.length,
     funds: funds.map((f) => ({
       source: f.fundSource?.name || 'General Fund',
-      date: f.transactionDate
-        ? new Date(f.transactionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-        : 'N/A',
+      date: formatDocDate(f.transactionDate),
       remarks: f.remarks || '-',
       paymentMode: f.paymentMode || 'BANK_TRANSFER',
       referenceNumber: f.referenceNumber || '-',

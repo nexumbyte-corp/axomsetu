@@ -4,13 +4,13 @@
  */
 
 export const BRAND_CONFIG = {
-  productName: 'AxomSetu',
+  productName: 'AXOMSETU',
   companyName: 'NEXUMBYTE',
   poweredBy: 'Powered by NEXUMBYTE',
   productTagline: 'School Management Platform',
-  metaTitle: 'AxomSetu — School Management Platform',
+  metaTitle: 'AXOMSETU — School Management Platform',
   metaDescription:
-    'AxomSetu is a comprehensive school management platform for students, fees, attendance, staff, payroll, finance, reports and administration.',
+    'AXOMSETU is a comprehensive school management platform for students, fees, attendance, staff, payroll, finance, reports and administration.',
   copyrightYear: new Date().getFullYear(),
 };
 

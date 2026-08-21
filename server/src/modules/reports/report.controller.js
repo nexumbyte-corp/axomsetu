@@ -7,6 +7,7 @@ import { staffReportsService } from './staffReports.service.js';
 import { payrollReportsService } from './payrollReports.service.js';
 import { financeReportsService } from './financeReports.service.js';
 import { auditReportsService } from './auditReports.service.js';
+import * as hostelService from '../hostel/hostel.service.js';
 import { genericReportQuerySchema } from './report.validation.js';
 
 // --- Legacy / General Collection ---
@@ -220,4 +221,14 @@ export const getAuditLogsReport = asyncHandler(async (req, res) => {
   const query = genericReportQuerySchema.parse(req.query);
   const result = await auditReportsService.getAuditLogs(req.schoolId, query);
   res.status(200).json({ success: true, message: 'Audit logs report generated', ...result });
+});
+
+// --- Hostel Reports ---
+export const getHostelReport = asyncHandler(async (req, res) => {
+  const { type } = req.params;
+  const data = await hostelService.getHostelReports(req.schoolId, type, req.query);
+  if (data && typeof data === 'object' && !Array.isArray(data) && data.charges) {
+    return res.status(200).json({ success: true, message: `Hostel ${type} report generated`, ...data });
+  }
+  res.status(200).json({ success: true, message: `Hostel ${type} report generated`, data });
 });

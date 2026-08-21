@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma.js';
+import { getISTMonthBounds, getISTYearBounds, getISTDateParts } from '../../utils/dateUtils.js';
 
 export const adminReportsService = {
   /**
@@ -24,15 +25,16 @@ export const adminReportsService = {
 
     if (startDate || endDate) {
       where.paymentDate = {};
-      if (startDate) where.paymentDate.gte = new Date(startDate);
-      if (endDate) where.paymentDate.lte = new Date(endDate);
+      if (startDate) where.paymentDate.gte = new Date(`${startDate}T00:00:00.000+05:30`);
+      if (endDate) where.paymentDate.lte = new Date(`${endDate}T23:59:59.999+05:30`);
     }
 
-    const now = new Date();
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    const { year: currentYear, month: currentMonth } = getISTDateParts();
+    const { startOfYear } = getISTYearBounds(currentYear);
+    const { startOfMonth: startOfCurrentMonth } = getISTMonthBounds(currentYear, currentMonth);
+    const prevMonthNum = currentMonth === 1 ? 12 : currentMonth - 1;
+    const prevYearNum = currentMonth === 1 ? currentYear - 1 : currentYear;
+    const { startOfMonth: startOfPreviousMonth, endOfMonth: endOfPreviousMonth } = getISTMonthBounds(prevYearNum, prevMonthNum);
 
     const [
       totalRevenueAgg,

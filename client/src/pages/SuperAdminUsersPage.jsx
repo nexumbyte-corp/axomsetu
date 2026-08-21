@@ -11,6 +11,7 @@ import { Spinner } from '../components/ui/Spinner.jsx';
 import { EmptyState } from '../components/ui/EmptyState.jsx';
 import { Dropdown, DropdownItem } from '../components/ui/Dropdown.jsx';
 import { adminService } from '../services/adminService.js';
+import { formatDate } from '../utils/formatters.js';
 
 export const SuperAdminUsersPage = () => {
   const [loading, setLoading] = useState(true);
@@ -175,8 +176,6 @@ export const SuperAdminUsersPage = () => {
       setSubmitting(false);
     }
   };
-
-  const formatDate = (d) => (d ? new Date(d).toLocaleDateString('en-IN') : 'N/A');
 
   return (
     <div className="space-y-6 pb-12 font-sans">

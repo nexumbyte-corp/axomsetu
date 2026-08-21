@@ -3,12 +3,14 @@ import { Search, RefreshCw, Plus, Calendar, AlertTriangle } from 'lucide-react';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { adminService } from '../../services/adminService.js';
 import { calculateSubscriptionEndDate, formatDateInput } from '../../utils/subscriptionUtils.js';
+import { formatDate } from '../../utils/formatters.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../../components/ui/Table.jsx';
 import { Input } from '../../components/ui/Input.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
@@ -348,7 +350,7 @@ export const SuperAdminSubscriptionsPage = () => {
                     </TableCell>
 
                     <TableCell className="text-xs font-mono text-slate-500">
-                      {new Date(p.requestedAt).toLocaleDateString('en-IN')}
+                      {formatDate(p.requestedAt)}
                     </TableCell>
 
                     <TableCell>
@@ -435,15 +437,11 @@ export const SuperAdminSubscriptionsPage = () => {
                     </TableCell>
 
                     <TableCell className="text-xs font-mono text-slate-500">
-                      {new Date(s.startDate).toLocaleDateString('en-IN')}
+                      {formatDate(s.startDate)}
                     </TableCell>
 
                     <TableCell className="text-xs font-mono text-slate-500">
-                      {s.endDate ? (
-                        new Date(s.endDate).toLocaleDateString('en-IN')
-                      ) : (
-                        <span className="text-rose-600 font-bold">N/A (Expired)</span>
-                      )}
+                      {formatDate(s.endDate, 'N/A (Expired)')}
                     </TableCell>
 
                     <TableCell>
@@ -545,7 +543,7 @@ export const SuperAdminSubscriptionsPage = () => {
             <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
               <span className="font-bold text-slate-900">{extendingSub.schoolName}</span>
               <span className="block text-slate-500 mt-0.5">
-                Current Expiry: {new Date(extendingSub.endDate).toLocaleDateString('en-IN')}
+                Current Expiry: {formatDate(extendingSub.endDate)}
               </span>
             </div>
 
@@ -652,17 +650,15 @@ export const SuperAdminSubscriptionsPage = () => {
             </Select>
 
             <div className="grid grid-cols-2 gap-3">
-              <Input
+              <DatePicker
                 label="Start Date"
-                type="date"
                 value={manualForm.startDate}
-                onChange={(e) => setManualForm({ ...manualForm, startDate: e.target.value })}
+                onChange={(val) => setManualForm({ ...manualForm, startDate: val })}
               />
-              <Input
+              <DatePicker
                 label="End Date"
-                type="date"
                 value={manualForm.endDate}
-                onChange={(e) => setManualForm({ ...manualForm, endDate: e.target.value })}
+                onChange={(val) => setManualForm({ ...manualForm, endDate: val })}
               />
             </div>
 

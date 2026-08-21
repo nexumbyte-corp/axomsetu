@@ -1,15 +1,22 @@
 import React from 'react';
 import { NavLink, Outlet, Navigate, useLocation } from 'react-router-dom';
 import { CreditCard, CalendarCheck, FileSpreadsheet, History, Settings, Receipt, DollarSign } from 'lucide-react';
-import { useAcademicYear } from '../../hooks/useAcademicYear.js';
-import { Badge } from '../../components/ui/Badge.jsx';
-import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
+import { usePageHeader } from '../../context/PageHeaderContext.jsx';
 import { usePermission } from '../../hooks/usePermission.js';
+import { useEffect } from 'react';
 
 export const FeeManagementLayout = () => {
   const location = useLocation();
-  const { selectedYear } = useAcademicYear();
   const { can } = usePermission();
+  const { setHeaderInfo } = usePageHeader();
+
+  useEffect(() => {
+    setHeaderInfo({
+      title: 'Fee Management',
+      icon: CreditCard,
+    });
+    return () => setHeaderInfo(null);
+  }, [setHeaderInfo]);
 
   const tabs = [
     { label: 'Collect Fees ⭐', path: '/app/fees/collect', icon: DollarSign, permission: 'FEES_COLLECT' },
@@ -27,31 +34,8 @@ export const FeeManagementLayout = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Standardized Module Header */}
-      <ModulePageHeader
-        icon={CreditCard}
-        title="Fee Management"
-        description="Manage Fee Structures, Student Collections, Dues, Payments & Receipts"
-        actions={
-          selectedYear && (
-            <div className="flex items-center gap-2 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200 text-xs font-semibold text-slate-700">
-              <span className="text-[11px] text-slate-400">Year:</span>
-              <span className="text-indigo-600 font-bold text-xs">{selectedYear.name}</span>
-              {selectedYear.isCurrent && (
-                <Badge variant="success" size="sm">
-                  Current
-                </Badge>
-              )}
-              {selectedYear.isLocked && (
-                <Badge variant="neutral" size="sm">
-                  Locked
-                </Badge>
-              )}
-            </div>
-          )
-        }
-      />
+    <div className="space-y-4">
+
 
       {/* Sub Navigation Tabs */}
       <div className="border-b border-slate-200">

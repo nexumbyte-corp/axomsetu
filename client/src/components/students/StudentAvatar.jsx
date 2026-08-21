@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const COLORS = [
   'bg-indigo-100 text-indigo-700 border-indigo-200',
@@ -26,12 +26,18 @@ const getColorClass = (name = '') => {
 };
 
 export const StudentAvatar = ({ name = '', photoUrl = null, size = 'md', className = '', onClick = null }) => {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [photoUrl]);
+
   const sizeClasses = {
     sm: 'w-7 h-7 text-xs',
     md: 'w-9 h-9 text-sm font-semibold',
     lg: 'w-14 h-14 text-lg font-bold',
     xl: 'w-20 h-20 text-2xl font-bold',
-    passport: 'w-20 h-24 rounded-xl text-base font-bold', // Passport format
+    passport: 'w-20 h-24 rounded-xl text-base font-bold',
   };
 
   const selectedSize = sizeClasses[size] || sizeClasses.md;
@@ -39,20 +45,14 @@ export const StudentAvatar = ({ name = '', photoUrl = null, size = 'md', classNa
   const colorClass = getColorClass(name);
   const cursorClass = onClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : '';
 
-  if (photoUrl) {
+  if (photoUrl && !hasError) {
     return (
       <img
         src={photoUrl}
         alt={name}
         onClick={onClick}
-        className={`${selectedSize} ${size === 'passport' ? 'rounded-xl' : 'rounded-full'} object-cover border border-slate-200 shadow-2xs ${cursorClass} ${className}`}
-        onError={(e) => {
-          // Fallback if image link fails
-          e.target.style.display = 'none';
-          if (e.target.nextSibling) {
-            e.target.nextSibling.style.display = 'flex';
-          }
-        }}
+        onError={() => setHasError(true)}
+        className={`${selectedSize} ${size === 'passport' ? 'rounded-xl' : 'rounded-full'} object-cover border border-slate-200 shadow-2xs shrink-0 ${cursorClass} ${className}`}
       />
     );
   }
@@ -66,3 +66,5 @@ export const StudentAvatar = ({ name = '', photoUrl = null, size = 'md', classNa
     </div>
   );
 };
+
+export default StudentAvatar;

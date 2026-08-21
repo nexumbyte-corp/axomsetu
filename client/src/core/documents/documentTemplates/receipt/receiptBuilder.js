@@ -1,5 +1,5 @@
 import { amountToWords } from '../../../../utils/numberToWords.js';
-import { formatFeeMonthYear } from '../../common/formatters.js';
+import { formatFeeMonthYear, formatDocDate } from '../../common/formatters.js';
 
 /**
  * Receipt Builder Data Transformer.
@@ -37,18 +37,38 @@ export const buildReceiptData = (rawBackendData = {}) => {
 
   const receivedAmount = Number(payment.receivedAmount || 0);
 
-  const formattedAllocations = (payment.allocations || []).map((alloc) => ({
-    title: alloc.title || alloc.chargeTitle || 'Fee Head',
-    feeType: alloc.feeType?.name || '',
-    month: formatFeeMonthYear(
-      alloc.month,
-      alloc.year || alloc.charge?.year,
-      payment.academicYear?.name || payment.academicYear || payment.paymentDate
-    ),
-    chargeAmount: `₹${Number(alloc.chargeAmount || alloc.amount || 0).toFixed(2)}`,
-    allocatedAmount: `₹${Number(alloc.allocatedAmount || 0).toFixed(2)}`,
-    status: alloc.chargeStatus || 'ALLOCATED',
-  }));
+  const formattedAllocations = (payment.allocations || []).map((alloc) => {
+    const chargeAmt = Number(alloc.chargeAmount || alloc.originalAmount || alloc.amount || 0);
+    const prevPaidAmt = Number(
+      alloc.previouslyPaidAmount !== undefined
+        ? alloc.previouslyPaidAmount
+        : alloc.paidAmount !== undefined && alloc.allocatedAmount !== undefined
+        ? Math.max(0, alloc.paidAmount - alloc.allocatedAmount)
+        : 0
+    );
+    const paidAmt = Number(alloc.paidNowAmount !== undefined ? alloc.paidNowAmount : alloc.allocatedAmount !== undefined ? alloc.allocatedAmount : alloc.paidAmount || 0);
+    const remainingAmt = alloc.remainingBalance !== undefined
+      ? Number(alloc.remainingBalance)
+      : alloc.remainingAmount !== undefined
+      ? Number(alloc.remainingAmount)
+      : Math.max(0, chargeAmt - (prevPaidAmt + paidAmt));
+
+    return {
+      title: alloc.title || alloc.chargeTitle || alloc.charge?.title || 'Fee Head',
+      feeType: alloc.feeType?.name || alloc.charge?.feeType?.name || '',
+      month: formatFeeMonthYear(
+        alloc.month || alloc.charge?.month,
+        alloc.year || alloc.charge?.year,
+        payment.academicYear?.name || payment.academicYear || payment.paymentDate
+      ),
+      chargeAmount: `₹${chargeAmt.toFixed(2)}`,
+      previouslyPaidAmount: `₹${prevPaidAmt.toFixed(2)}`,
+      paidAmount: `₹${paidAmt.toFixed(2)}`,
+      allocatedAmount: `₹${paidAmt.toFixed(2)}`,
+      remainingAmount: `₹${remainingAmt.toFixed(2)}`,
+      status: alloc.chargeStatus || alloc.charge?.status || 'PAID',
+    };
+  });
 
   return {
     school: {
@@ -67,13 +87,7 @@ export const buildReceiptData = (rawBackendData = {}) => {
     },
     receiptNumber: payment.receiptNumber || 'RCPT-000000',
     status: payment.status || 'SUCCESS',
-    paymentDate: payment.paymentDate
-      ? new Date(payment.paymentDate).toLocaleDateString('en-IN', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        })
-      : '—',
+    paymentDate: formatDocDate(payment.paymentDate, '—'),
     paymentMode: payment.paymentMode || 'CASH',
     referenceNumber: payment.referenceNumber || '—',
     cashierName: payment.receivedBy?.name || 'Authorized Cashier',

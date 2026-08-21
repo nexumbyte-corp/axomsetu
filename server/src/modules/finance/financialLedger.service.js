@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { getISTMonthBounds } from '../../utils/dateUtils.js';
 
 export const financialLedgerService = {
   /**
@@ -115,14 +116,12 @@ export const financialLedgerService = {
     if (academicYearId) where.academicYearId = academicYearId;
     if (startDate || endDate) {
       where.transactionDate = {
-        ...(startDate && { gte: new Date(startDate) }),
-        ...(endDate && { lte: new Date(`${endDate}T23:59:59.999Z`) }),
+        ...(startDate && { gte: new Date(`${startDate}T00:00:00.000+05:30`) }),
+        ...(endDate && { lte: new Date(`${endDate}T23:59:59.999+05:30`) }),
       };
     }
 
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const { startOfMonth, endOfMonth } = getISTMonthBounds();
 
     const [creditsAgg, debitsAgg, sourceGroupAgg, monthGroupAgg] = await Promise.all([
       prisma.financialTransaction.aggregate({

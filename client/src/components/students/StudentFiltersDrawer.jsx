@@ -102,7 +102,7 @@ export const StudentFiltersDrawer = ({
   return (
     <>
       {/* Desktop Toolbar Filter Bar (Inline) */}
-      <div className="hidden lg:flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs mb-4">
+      <div className="hidden lg:flex items-center gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs mb-4">
         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider px-2 border-r border-slate-200">
           <Filter className="w-3.5 h-3.5 text-indigo-600" />
           <span>Filters</span>
@@ -114,10 +114,10 @@ export const StudentFiltersDrawer = ({
         </div>
 
         <div className="flex-1 grid grid-cols-5 gap-3">
-          <select
+          <Select
             value={filters.classId || ''}
             onChange={(e) => onChange('classId', e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="text-xs py-1.5"
           >
             <option value="">All Classes</option>
             {classes.map((c) => (
@@ -125,12 +125,12 @@ export const StudentFiltersDrawer = ({
                 Class {c.name}
               </option>
             ))}
-          </select>
+          </Select>
 
-          <select
+          <Select
             value={filters.sectionId || ''}
             onChange={(e) => onChange('sectionId', e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="text-xs py-1.5"
           >
             <option value="">All Sections</option>
             <option value="null">No Section</option>
@@ -139,12 +139,12 @@ export const StudentFiltersDrawer = ({
                 Section {s.name}
               </option>
             ))}
-          </select>
+          </Select>
 
-          <select
+          <Select
             value={filters.mediumId || ''}
             onChange={(e) => onChange('mediumId', e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="text-xs py-1.5"
           >
             <option value="">All Mediums</option>
             {mediums.map((m) => (
@@ -152,12 +152,12 @@ export const StudentFiltersDrawer = ({
                 {m.name}
               </option>
             ))}
-          </select>
+          </Select>
 
-          <select
+          <Select
             value={filters.streamId || ''}
             onChange={(e) => onChange('streamId', e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="text-xs py-1.5"
           >
             <option value="">All Streams</option>
             {streams.map((st) => (
@@ -165,19 +165,19 @@ export const StudentFiltersDrawer = ({
                 {st.name}
               </option>
             ))}
-          </select>
+          </Select>
 
-          <select
+          <Select
             value={filters.status || ''}
             onChange={(e) => onChange('status', e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="text-xs py-1.5"
           >
             <option value="">All Statuses</option>
             <option value="ACTIVE">ACTIVE</option>
             <option value="LEFT">LEFT</option>
             <option value="GRADUATED">GRADUATED</option>
             <option value="ARCHIVED">ARCHIVED</option>
-          </select>
+          </Select>
         </div>
 
         {activeCount > 0 && (
@@ -204,3 +204,5 @@ export const StudentFiltersDrawer = ({
     </>
   );
 };
+
+export default StudentFiltersDrawer;

@@ -2,6 +2,7 @@ import React from 'react';
 
 import { Badge } from '../ui/Badge.jsx';
 import { amountToWords } from '../../utils/numberToWords.js';
+import { formatDate } from '../../utils/formatters.js';
 import { SchoolReportHeader } from '../common/SchoolReportHeader.jsx';
 import { formatFeeMonthYear } from '../../core/documents/common/formatters.js';
 
@@ -102,7 +103,7 @@ export const ReceiptCard = ({ receipt, schoolHeader, copyLabel = 'Original Copy'
             <div className="flex justify-between">
               <span className="text-slate-500">Date:</span>
               <span className="font-bold text-slate-900 font-mono">
-                {new Date(receipt.paymentDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                {formatDate(receipt.paymentDate)}
               </span>
             </div>
             <div className="flex justify-between">
@@ -134,40 +135,71 @@ export const ReceiptCard = ({ receipt, schoolHeader, copyLabel = 'Original Copy'
               <tr>
                 <th className="py-2 px-3">Fee Head / Particulars</th>
                 <th className="py-2 px-3">Month</th>
-                <th className="py-2 px-3 text-right">Fee Amount</th>
-                <th className="py-2 px-3 text-right">Allocated</th>
+                <th className="py-2 px-3 text-right">Total Fee</th>
+                <th className="py-2 px-3 text-right">Prev. Paid</th>
+                <th className="py-2 px-3 text-right">Paid Now</th>
+                <th className="py-2 px-3 text-right">Remaining</th>
                 <th className="py-2 px-3 text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {receipt.allocations?.map((alloc) => (
-                <tr key={alloc.id} className="hover:bg-slate-50">
-                  <td className="py-2 px-3 font-bold text-slate-900">
-                    {alloc.title || alloc.chargeTitle}
-                    {alloc.feeType?.name && (
-                      <span className="block text-[9px] text-slate-400 font-normal">{alloc.feeType.name}</span>
-                    )}
-                  </td>
-                  <td className="py-2 px-3 text-slate-700 font-semibold">
-                    {formatFeeMonthYear(
-                      alloc.month,
-                      alloc.year || alloc.charge?.year,
-                      academicYearName || receipt.paymentDate
-                    )}
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono text-slate-600">
-                    ₹{Number(alloc.originalAmount || alloc.chargeAmount || alloc.amount || 0).toFixed(2)}
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono font-bold text-emerald-700">
-                    ₹{Number(alloc.allocatedAmount).toFixed(2)}
-                  </td>
-                  <td className="py-2 px-3 text-center">
-                    <Badge variant={alloc.chargeStatus === 'PAID' ? 'success' : 'warning'} size="sm">
-                      {alloc.chargeStatus || 'ALLOCATED'}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
+              {receipt.allocations?.map((alloc) => {
+                const chargeAmt = Number(alloc.originalAmount || alloc.chargeAmount || alloc.amount || 0);
+                const prevPaidAmt = Number(
+                  alloc.previouslyPaidAmount !== undefined
+                    ? alloc.previouslyPaidAmount
+                    : alloc.paidAmount !== undefined && alloc.allocatedAmount !== undefined
+                    ? Math.max(0, alloc.paidAmount - alloc.allocatedAmount)
+                    : 0
+                );
+                const paidNowAmt = Number(
+                  alloc.paidNowAmount !== undefined
+                    ? alloc.paidNowAmount
+                    : alloc.allocatedAmount !== undefined
+                    ? alloc.allocatedAmount
+                    : alloc.paidAmount || 0
+                );
+                const remainingAmt = alloc.remainingBalance !== undefined
+                  ? Number(alloc.remainingBalance)
+                  : alloc.remainingAmount !== undefined
+                  ? Number(alloc.remainingAmount)
+                  : Math.max(0, chargeAmt - (prevPaidAmt + paidNowAmt));
+
+                return (
+                  <tr key={alloc.id} className="hover:bg-slate-50">
+                    <td className="py-2 px-3 font-bold text-slate-900">
+                      {alloc.title || alloc.chargeTitle}
+                      {alloc.feeType?.name && (
+                        <span className="block text-[9px] text-slate-400 font-normal">{alloc.feeType.name}</span>
+                      )}
+                    </td>
+                    <td className="py-2 px-3 text-slate-700 font-semibold">
+                      {formatFeeMonthYear(
+                        alloc.month,
+                        alloc.year || alloc.charge?.year,
+                        academicYearName || receipt.paymentDate
+                      )}
+                    </td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-600">
+                      ₹{chargeAmt.toFixed(2)}
+                    </td>
+                    <td className="py-2 px-3 text-right font-mono text-slate-500 font-medium">
+                      ₹{prevPaidAmt.toFixed(2)}
+                    </td>
+                    <td className="py-2 px-3 text-right font-mono font-bold text-emerald-700">
+                      ₹{paidNowAmt.toFixed(2)}
+                    </td>
+                    <td className="py-2 px-3 text-right font-mono font-semibold text-amber-700">
+                      ₹{remainingAmt.toFixed(2)}
+                    </td>
+                    <td className="py-2 px-3 text-center">
+                      <Badge variant={alloc.chargeStatus === 'PAID' ? 'success' : 'warning'} size="sm">
+                        {alloc.chargeStatus || 'ALLOCATED'}
+                      </Badge>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

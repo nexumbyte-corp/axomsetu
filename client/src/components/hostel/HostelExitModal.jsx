@@ -4,6 +4,7 @@ import { hostelService } from '../../services/hostel.service.js';
 import { Modal } from '../ui/Modal.jsx';
 import { Button } from '../ui/Button.jsx';
 import { Input } from '../ui/Input.jsx';
+import { DatePicker } from '../ui/DatePicker.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { toast } from '../ui/Toast.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
@@ -80,11 +81,10 @@ export const HostelExitModal = ({ isOpen, onClose, resident, onSuccess }) => {
           </span>
         </div>
 
-        <Input
+        <DatePicker
           label="Hostel Exit Date *"
-          type="date"
           value={exitDate}
-          onChange={(e) => setExitDate(e.target.value)}
+          onChange={(val) => setExitDate(val)}
           required
         />
 

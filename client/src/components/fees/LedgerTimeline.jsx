@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, CheckCircle2, Clock } from 'lucide-react';
 import { Badge } from '../ui/Badge.jsx';
+import { formatDate } from '../../utils/formatters.js';
 
 export const LedgerTimeline = ({ charges = [] }) => {
   const [expandedIds, setExpandedIds] = useState([]);
@@ -126,12 +127,8 @@ export const LedgerTimeline = ({ charges = [] }) => {
                           <div>
                             <span className="font-mono font-bold text-indigo-700">{p.receiptNumber}</span>
                             <span className="text-slate-400 mx-1.5">•</span>
-                            <span className="text-slate-600">
-                              {new Date(p.paymentDate).toLocaleDateString('en-IN', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric',
-                              })}
+                            <span className="text-slate-600 font-mono">
+                              {formatDate(p.paymentDate)}
                             </span>
                             <span className="text-slate-400 mx-1.5">•</span>
                             <Badge variant="info" size="sm">{p.paymentMode}</Badge>

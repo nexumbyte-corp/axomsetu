@@ -1,4 +1,5 @@
 import { createPDFHeader } from '../common/header.js';
+import { formatDocDate } from '../common/formatters.js';
 
 /**
  * Salary Receipt / Voucher Data Builder
@@ -15,13 +16,7 @@ export const buildSalaryReceiptData = (rawData = {}) => {
 
   return {
     voucherNo: rawData.paymentNumber || 'SDV-VOUCHER',
-    paymentDate: rawData.paymentDate
-      ? new Date(rawData.paymentDate).toLocaleDateString('en-IN', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        })
-      : 'N/A',
+    paymentDate: formatDocDate(rawData.paymentDate),
     paymentMode: rawData.paymentMode || 'CASH',
     referenceNo: rawData.referenceNo || 'N/A',
     remarks: rawData.remarks || '',

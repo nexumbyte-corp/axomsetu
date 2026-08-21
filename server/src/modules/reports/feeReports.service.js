@@ -30,8 +30,8 @@ export const feeReportsService = {
 
     if (startDate || endDate) {
       paymentWhere.paymentDate = {
-        ...(startDate && { gte: new Date(`${startDate}T00:00:00.000Z`) }),
-        ...(endDate && { lte: new Date(`${endDate}T23:59:59.999Z`) }),
+        ...(startDate && { gte: new Date(`${startDate}T00:00:00.000+05:30`) }),
+        ...(endDate && { lte: new Date(`${endDate}T23:59:59.999+05:30`) }),
       };
     }
 

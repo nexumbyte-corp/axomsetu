@@ -10,6 +10,7 @@ import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '.
 import { Select } from '../../components/ui/Select.jsx';
 import { TableSkeleton } from '../../components/ui/Skeleton.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
+import { formatDate } from '../../utils/formatters.js';
 
 export const SuperAdminPlansPage = () => {
   const navigate = useNavigate();
@@ -172,7 +173,7 @@ export const SuperAdminPlansPage = () => {
                     </TableCell>
 
                     <TableCell className="text-xs font-mono text-slate-500">
-                      {new Date(p.createdAt).toLocaleDateString('en-IN')}
+                      {formatDate(p.createdAt)}
                     </TableCell>
 
                     <TableCell className="text-right">

@@ -64,4 +64,7 @@ router.get('/finance/payment-modes', reportController.getPaymentModeSummaryRepor
 // --- Audit Report ---
 router.get('/audit/logs', reportController.getAuditLogsReport);
 
+// --- Hostel Reports ---
+router.get('/hostel/:type', reportController.getHostelReport);
+
 export default router;

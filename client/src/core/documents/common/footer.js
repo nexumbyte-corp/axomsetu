@@ -2,16 +2,12 @@
  * Reusable PDF Footer Component for pdfmake.
  * Renders page numbering, generation timestamp, and system disclaimer.
  */
+import { formatDateTime } from '../../../utils/formatters.js';
+
 export const createPDFFooter = (currentPage, pageCount, options = {}) => {
   if (options.footerEnabled === false) return null;
 
-  const timestamp = new Date().toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const timestamp = formatDateTime(new Date());
 
   return {
     margin: [30, 0, 30, 0],

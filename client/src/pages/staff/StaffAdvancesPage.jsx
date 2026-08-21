@@ -3,6 +3,7 @@ import { staffService } from '../../services/staff.service.js';
 import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input } from '../../components/ui/Input.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
@@ -285,11 +286,10 @@ export const StaffAdvancesPage = () => {
           />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input
+            <DatePicker
               label="Advance Date *"
-              type="date"
               value={advanceDate}
-              onChange={(e) => setAdvanceDate(e.target.value)}
+              onChange={(val) => setAdvanceDate(val)}
               required
             />
 

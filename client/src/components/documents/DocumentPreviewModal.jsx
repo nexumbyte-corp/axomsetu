@@ -34,7 +34,7 @@ export const DocumentPreviewModal = ({
         if (active) {
           setBlobUrl(url);
         }
-      } catch {
+      } catch (err) {
         console.error('Failed generating PDF preview', err);
         if (active) {
           setError('Unable to generate PDF document preview.');
@@ -53,7 +53,7 @@ export const DocumentPreviewModal = ({
         URL.revokeObjectURL(blobUrl);
       }
     };
-  }, [isOpen, data, templateId]);
+  }, [isOpen, data, templateId, options]);
 
   if (!isOpen) return null;
 

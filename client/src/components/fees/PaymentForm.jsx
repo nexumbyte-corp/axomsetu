@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CreditCard, CheckCircle2 } from 'lucide-react';
 import { Button } from '../ui/Button.jsx';
+import { DatePicker } from '../ui/DatePicker.jsx';
 
 export const PaymentForm = ({
   onSubmit,
@@ -59,13 +60,11 @@ export const PaymentForm = ({
       <div className="grid grid-cols-2 gap-2">
         {/* Date */}
         <div>
-          <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Date</label>
-          <input
-            type="date"
+          <DatePicker
+            label="Date"
             value={paymentDate}
-            onChange={(e) => setPaymentDate(e.target.value)}
+            onChange={(val) => setPaymentDate(val)}
             required
-            className="w-full py-1.5 px-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium text-slate-900"
           />
         </div>
 

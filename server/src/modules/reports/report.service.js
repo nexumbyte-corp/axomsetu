@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
-
+import { getISTDayBounds, getISTYearBounds, getISTDateParts } from '../../utils/dateUtils.js';
 
 const REPORT_AUDIT_EVENTS = {
   VIEW_REPORT: 'VIEW_REPORT',
@@ -18,11 +18,8 @@ export const reportService = {
    * @param {string} [userId]
    */
   async getDailyCollection(schoolId, query = {}, userId) {
-    const targetDateStr = query.date || new Date().toISOString().split('T')[0];
+    const { startOfDay, endOfDay, dateStr: targetDateStr } = getISTDayBounds(query.date);
     const { academicYearId } = query;
-
-    const startOfDay = new Date(`${targetDateStr}T00:00:00.000Z`);
-    const endOfDay = new Date(`${targetDateStr}T23:59:59.999Z`);
 
     const whereClause = {
       schoolId,
@@ -91,10 +88,7 @@ export const reportService = {
    */
   async getMonthlyCollection(schoolId, query = {}, userId) {
     const { academicYearId, year } = query;
-    const targetYear = Number(year) || new Date().getFullYear();
-
-    const startOfYear = new Date(`${targetYear}-01-01T00:00:00.000Z`);
-    const endOfYear = new Date(`${targetYear}-12-31T23:59:59.999Z`);
+    const { startOfYear, endOfYear, year: targetYear } = getISTYearBounds(year);
 
     const whereClause = {
       schoolId,

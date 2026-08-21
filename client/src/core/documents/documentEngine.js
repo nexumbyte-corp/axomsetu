@@ -146,6 +146,10 @@ export const createPdfBlobUrl = async ({ templateId = 'receipt', data = {}, opti
  * Downloads a generated PDF with custom clean filename.
  * Uses pdfMake's built-in cross-browser download engine.
  */
+/**
+ * Downloads a generated PDF with custom clean filename.
+ * Uses pdfMake's built-in cross-browser download engine.
+ */
 export const downloadPdfDocument = async ({
   templateId = 'receipt',
   data = {},
@@ -154,6 +158,19 @@ export const downloadPdfDocument = async ({
 }) => {
   const pdfInstance = await generateDocument({ templateId, data, options });
   pdfInstance.download(filename);
+};
+
+/**
+ * Triggers direct browser printing for a generated PDF document.
+ * Uses pdfMake's built-in print engine.
+ */
+export const printPdfDocument = async ({
+  templateId = 'receipt',
+  data = {},
+  options = {},
+}) => {
+  const pdfInstance = await generateDocument({ templateId, data, options });
+  pdfInstance.print();
 };
 
 /**

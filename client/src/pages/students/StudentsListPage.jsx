@@ -15,8 +15,8 @@ import { Skeleton } from '../../components/ui/Skeleton.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
-import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { usePermission } from '../../hooks/usePermission.js';
+import { usePageHeader } from '../../context/PageHeaderContext.jsx';
 
 import { StudentAvatar } from '../../components/students/StudentAvatar.jsx';
 import { StudentStatusBadge } from '../../components/students/StudentStatusBadge.jsx';
@@ -29,6 +29,7 @@ export const StudentsListPage = () => {
   const navigate = useNavigate();
   const { selectedYear, selectedYearId, academicYears } = useAcademicYear();
   const { can } = usePermission();
+  const { setHeaderInfo } = usePageHeader();
 
   // Data States
   const [students, setStudents] = useState([]);
@@ -60,6 +61,44 @@ export const StudentsListPage = () => {
   const [targetStatus, setTargetStatus] = useState(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState(null);
+
+  const isLocked = Boolean(selectedYear?.isLocked);
+
+  // Synchronize global top header title ("Students") and page actions
+  useEffect(() => {
+    setHeaderInfo({
+      title: 'Students',
+      icon: Users,
+      actions: (
+        <div className="flex items-center gap-2">
+          {can('STUDENTS_PROMOTE') && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/app/students/promote')}
+              icon={Sparkles}
+              disabled={isLocked}
+            >
+              Bulk Promote
+            </Button>
+          )}
+          {can('STUDENTS_CREATE') && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => navigate('/app/students/new')}
+              icon={Plus}
+              disabled={isLocked}
+            >
+              Add Student
+            </Button>
+          )}
+        </div>
+      ),
+    });
+
+    return () => setHeaderInfo(null);
+  }, [setHeaderInfo, navigate, can, isLocked]);
 
   // 1. Fetch Academic Setup Options Once
   useEffect(() => {
@@ -166,8 +205,6 @@ export const StudentsListPage = () => {
     }
   };
 
-  const isLocked = Boolean(selectedYear?.isLocked);
-
   return (
     <div className="space-y-6">
       {/* Locked Academic Year Warning Banner */}
@@ -177,44 +214,54 @@ export const StudentsListPage = () => {
         </Alert>
       )}
 
-      {/* Standardized Module Page Header */}
-      <ModulePageHeader
-        icon={Users}
-        title="Student Management"
-        description="Manage Student Profiles, Admissions, Academic Records & Student Information"
-        actions={
-          <div className="flex items-center gap-2">
-            {selectedYear && (
-              <Badge variant="indigo" size="md">
-                {selectedYear.name}
-              </Badge>
-            )}
-            {can('STUDENTS_PROMOTE') && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/app/students/promote')}
-                icon={Sparkles}
-                disabled={isLocked}
-              >
-                Bulk Promote
-              </Button>
-            )}
+      {/* Content Bar: Count Indicator & Mobile Actions */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+        <div className="flex items-center gap-2.5">
+          <span className="text-sm font-extrabold text-slate-900">
+            {pagination.total > 0
+              ? `${pagination.total} ${pagination.total === 1 ? 'Student' : 'Students'}`
+              : 'Student Directory'}
+          </span>
+          {pagination.total > 0 && (
+            <span className="text-xs font-medium text-slate-500 font-mono">
+              (Showing {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)})
+            </span>
+          )}
+          {selectedYear && (
+            <Badge variant="indigo" size="sm">
+              {selectedYear.name}
+            </Badge>
+          )}
+        </div>
 
-            {can('STUDENTS_CREATE') && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => navigate('/app/students/new')}
-                icon={Plus}
-                disabled={isLocked}
-              >
-                Add Student
-              </Button>
-            )}
-          </div>
-        }
-      />
+        {/* Mobile Action Triggers */}
+        <div className="flex items-center gap-2 sm:hidden w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+          {can('STUDENTS_PROMOTE') && (
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => navigate('/app/students/promote')}
+              icon={Sparkles}
+              disabled={isLocked}
+              className="flex-1"
+            >
+              Promote
+            </Button>
+          )}
+          {can('STUDENTS_CREATE') && (
+            <Button
+              variant="primary"
+              size="xs"
+              onClick={() => navigate('/app/students/new')}
+              icon={Plus}
+              disabled={isLocked}
+              className="flex-1"
+            >
+              + Add
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* Search & Filter Toolbar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">

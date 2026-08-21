@@ -3,6 +3,7 @@ import { Calendar, AlertTriangle, ArrowRight, RefreshCw, Zap, Check, AlertCircle
 import { subscriptionService } from '../services/subscriptionService.js';
 import { useSubscription } from '../hooks/useSubscription.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
+import { formatDate } from '../utils/formatters.js';
 
 import { ModulePageHeader } from '../components/ui/ModulePageHeader.jsx';
 import { Toast, toast } from '../components/ui/Toast.jsx';
@@ -215,8 +216,8 @@ export const SubscriptionPage = () => {
               <p className="text-xs text-slate-300 mt-1 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-indigo-400" />
                 <span>
-                  Validity: {sub?.startDate ? new Date(sub.startDate).toLocaleDateString('en-IN') : '-'} to{' '}
-                  {sub?.endDate ? new Date(sub.endDate).toLocaleDateString('en-IN') : 'N/A (Expired)'}
+                  Validity: {formatDate(sub?.startDate, '-')} to{' '}
+                  {formatDate(sub?.endDate, 'N/A (Expired)')}
                 </span>
               </p>
             </div>
@@ -392,7 +393,7 @@ export const SubscriptionPage = () => {
               requests.map((req) => (
                 <TableRow key={req.id}>
                   <TableCell className="text-xs font-mono text-slate-500">
-                    {new Date(req.requestedAt).toLocaleDateString('en-IN')}
+                    {formatDate(req.requestedAt)}
                   </TableCell>
                   <TableCell className="font-semibold text-slate-900 text-xs">{req.planName}</TableCell>
                   <TableCell className="text-xs text-slate-600 font-medium">{req.paymentMethod}</TableCell>
@@ -458,10 +459,10 @@ export const SubscriptionPage = () => {
                     </TableCell>
                     <TableCell className="text-xs text-slate-600">{h.duration}</TableCell>
                     <TableCell className="text-xs font-mono text-slate-500">
-                      {new Date(h.startDate).toLocaleDateString('en-IN')}
+                      {formatDate(h.startDate)}
                     </TableCell>
                     <TableCell className="text-xs font-mono text-slate-500">
-                      {h.endDate ? new Date(h.endDate).toLocaleDateString('en-IN') : <span className="text-rose-600 font-medium">N/A (Expired)</span>}
+                      {h.endDate ? formatDate(h.endDate) : <span className="text-rose-600 font-medium">N/A (Expired)</span>}
                     </TableCell>
                     <TableCell className="text-right font-bold text-slate-900 font-mono text-xs">
                       {formatCurrency(h.finalPrice)}

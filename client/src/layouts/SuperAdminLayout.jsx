@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-do
 import { ShieldCheck, LayoutDashboard, Building2, CreditCard, Package, FileText, Settings, LogOut, Menu, ChevronDown, Bell, Lock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { authService } from '../services/auth.service.js';
+import { usePageHeader } from '../context/PageHeaderContext.jsx';
 
 import { Drawer } from '../components/ui/Drawer.jsx';
 import { Dropdown, DropdownItem, DropdownDivider } from '../components/ui/Dropdown.jsx';
@@ -17,7 +18,9 @@ export const SuperAdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { headerInfo } = usePageHeader();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [toast, setToast] = useState(null);
@@ -157,8 +160,30 @@ export const SuperAdminLayout = () => {
             </Link>
           </div>
 
+          {/* Active Page Header Badge */}
+          {headerInfo && (
+            <div className="hidden md:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-800 text-white shadow-xs shrink min-w-0 max-w-xs lg:max-w-md mx-2 border border-slate-700">
+              {headerInfo.icon && (
+                <div className="w-6 h-6 rounded-lg bg-indigo-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                  <headerInfo.icon className="w-3.5 h-3.5" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <h2 className="text-xs font-extrabold text-white truncate tracking-wide">{headerInfo.title}</h2>
+              </div>
+            </div>
+          )}
+
+
           <div className="flex items-center gap-2 sm:gap-3">
+            {headerInfo?.actions && (
+              <div className="hidden sm:flex items-center gap-2">
+                {headerInfo.actions}
+              </div>
+            )}
+
             <button
+
               onClick={() => setToast({ type: 'info', message: 'No new platform notifications.' })}
               className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors relative"
               title="Notifications"

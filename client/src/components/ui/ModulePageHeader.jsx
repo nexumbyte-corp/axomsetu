@@ -1,15 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { usePageHeader } from '../../context/PageHeaderContext.jsx';
 
 /**
- * Reusable Standardized Module Page Header Component
+ * Standardized Module Page Header Component
  *
- * @param {Object} props
- * @param {React.ElementType} [props.icon] - Lucide icon component to display on left
- * @param {string} props.title - Prominent module page title
- * @param {string} [props.description] - Short subtitle description of module purpose
- * @param {React.ReactNode} [props.actions] - Right-hand action buttons or badges
- * @param {React.ReactNode} [props.children] - Additional elements rendered on the right
- * @param {string} [props.className] - Optional extra wrapper CSS classes
+ * Registers page metadata (icon, title, description, actions) into the top navigation header bar.
  */
 export const ModulePageHeader = ({
   icon: Icon,
@@ -17,37 +12,47 @@ export const ModulePageHeader = ({
   description,
   actions,
   children,
-  className = '',
 }) => {
+  const { setHeaderInfo } = usePageHeader();
+
+  const actionElements = actions || children;
+
+  useEffect(() => {
+    setHeaderInfo({
+      icon: Icon,
+      title,
+      description,
+      actions: actionElements,
+    });
+
+    return () => {
+      setHeaderInfo(null);
+    };
+  }, [Icon, title, description, actionElements, setHeaderInfo]);
+
+  // Mobile fallback inline header (hidden on desktop md+ since top navigation bar presents it cleanly)
   return (
-    <div
-      className={`bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4 ${className}`}
-    >
-      <div className="flex items-center gap-3.5">
+    <div className="md:hidden bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center gap-2.5 min-w-0">
         {Icon && (
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
-            <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+          <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+            <Icon className="w-4 h-4" />
           </div>
         )}
-        <div>
-          <h1 className="text-lg sm:text-xl font-bold text-slate-900">{title}</h1>
+        <div className="min-w-0">
+          <h1 className="text-sm font-bold text-slate-900 truncate">{title}</h1>
           {description && (
-            <p className="text-xs text-slate-500 font-medium mt-0.5">
-              {description}
-            </p>
+            <p className="text-[11px] text-slate-500 font-medium truncate">{description}</p>
           )}
         </div>
       </div>
-
-      {(actions || children) && (
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {actions}
-          {children}
+      {actionElements && (
+        <div className="flex items-center gap-1.5 shrink-0">
+          {actionElements}
         </div>
       )}
     </div>
   );
 };
-
 
 export default ModulePageHeader;

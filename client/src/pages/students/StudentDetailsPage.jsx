@@ -17,6 +17,7 @@ import { Dropdown, DropdownItem, DropdownDivider } from '../../components/ui/Dro
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
+import { formatDate } from '../../utils/formatters.js';
 
 import { StudentAvatar } from '../../components/students/StudentAvatar.jsx';
 import { StudentStatusBadge } from '../../components/students/StudentStatusBadge.jsx';
@@ -200,15 +201,6 @@ export const StudentDetailsPage = () => {
     }
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString(undefined, {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
   const formatCurrency = (amount) => {
     return `₹${parseFloat(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
   };
@@ -222,7 +214,8 @@ export const StudentDetailsPage = () => {
       <ModulePageHeader
         icon={User}
         title={`Student Profile: ${student.name}`}
-        description={`Admission No: ${student.admissionNo} | Academic Year: ${selectedYear?.name || 'Current'}`}
+        description={`Admission No: ${student.admissionNo}`}
+
         actions={
           <div className="flex items-center gap-2">
             <Button

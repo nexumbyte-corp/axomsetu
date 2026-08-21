@@ -1,4 +1,5 @@
 import { createPDFHeader } from '../common/header.js';
+import { formatDocDate } from '../common/formatters.js';
 
 /**
  * Converts a numeric amount to Indian Rupee Words representation.
@@ -90,7 +91,7 @@ export const buildSalarySlipData = (rawData = {}) => {
     totalNet,
     totalPaid,
     netInWords: numberToIndianWords(totalNet),
-    generatedDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+    generatedDate: formatDocDate(new Date()),
   };
 };
 

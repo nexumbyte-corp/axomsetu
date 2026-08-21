@@ -76,10 +76,12 @@ export const buildReceiptTemplate = (data = {}, options = {}) => {
   // 3. Allocations Table
   const tableColumns = [
     { header: 'Fee Head / Particulars', key: 'title', width: '*' },
-    { header: 'Month', key: 'month', width: 70 },
-    { header: 'Fee Amount', key: 'chargeAmount', width: 80, align: 'right' },
-    { header: 'Allocated', key: 'allocatedAmount', width: 80, align: 'right' },
-    { header: 'Status', key: 'status', width: 65, align: 'center' },
+    { header: 'Month', key: 'month', width: 50 },
+    { header: 'Total Fee', key: 'chargeAmount', width: 55, align: 'right' },
+    { header: 'Prev Paid', key: 'previouslyPaidAmount', width: 55, align: 'right' },
+    { header: 'Paid Now', key: 'paidAmount', width: 55, align: 'right' },
+    { header: 'Remaining', key: 'remainingAmount', width: 55, align: 'right' },
+    { header: 'Status', key: 'status', width: 45, align: 'center' },
   ];
 
   const allocationsTable = createPDFTable({

@@ -1,6 +1,7 @@
 import { prisma } from '../../config/prisma.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
 import { memoryCache } from '../../utils/cache.js';
+import { getISTDayBounds } from '../../utils/dateUtils.js';
 
 export const dashboardService = {
   /**
@@ -312,4 +313,109 @@ export const dashboardService = {
     };
     }, 30);
   },
+
+  /**
+   * Fetch daily fee collection summary and transactions list for a specific date
+   * @param {string} schoolId
+   * @param {object} query - { date, academicYearId }
+   */
+  async getTodayCollection(schoolId, query = {}) {
+    const { academicYearId, date } = query;
+    const { startOfDay, endOfDay, dateStr: formattedDateString } = getISTDayBounds(date);
+
+    const paymentWhere = {
+      schoolId,
+      status: 'SUCCESS',
+      paymentDate: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+      ...(academicYearId && { academicYearId }),
+    };
+
+    const [totalAggregate, modeGroup, studentGroup, paymentsList] = await Promise.all([
+      prisma.feePayment.aggregate({
+        where: paymentWhere,
+        _sum: { receivedAmount: true },
+        _count: { id: true },
+      }),
+
+      prisma.feePayment.groupBy({
+        by: ['paymentMode'],
+        where: paymentWhere,
+        _sum: { receivedAmount: true },
+        _count: { id: true },
+      }),
+
+      prisma.feePayment.groupBy({
+        by: ['studentId'],
+        where: paymentWhere,
+      }),
+
+      prisma.feePayment.findMany({
+        where: paymentWhere,
+        include: {
+          student: {
+            select: {
+              id: true,
+              name: true,
+              admissionNo: true,
+              enrollments: {
+                select: {
+                  class: { select: { name: true } },
+                  section: { select: { name: true } },
+                },
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+              },
+            },
+          },
+          receivedBy: { select: { id: true, name: true } },
+        },
+        orderBy: { paymentDate: 'desc' },
+        take: 50,
+      }),
+    ]);
+
+    const totalAmount = Number(totalAggregate._sum.receivedAmount || 0);
+    const transactionCount = totalAggregate._count.id || 0;
+    const studentCount = studentGroup.length;
+
+    const modeBreakdown = modeGroup.map((mg) => ({
+      mode: mg.paymentMode,
+      amount: Number(mg._sum.receivedAmount || 0),
+      count: mg._count.id,
+    }));
+
+    const payments = paymentsList.map((p) => {
+      const enrollment = p.student?.enrollments?.[0];
+      const className = enrollment?.class?.name || '';
+      const sectionName = enrollment?.section?.name || '';
+      const classSection = className ? (sectionName ? `${className} - ${sectionName}` : className) : '-';
+
+      return {
+        id: p.id,
+        receiptNumber: p.receiptNumber,
+        paymentDate: p.paymentDate,
+        receivedAmount: Number(p.receivedAmount),
+        paymentMode: p.paymentMode,
+        transactionId: p.transactionId,
+        remarks: p.remarks,
+        studentName: p.student?.name || 'Student',
+        admissionNo: p.student?.admissionNo || '-',
+        classSection,
+        receivedByName: p.receivedBy?.name || 'System',
+      };
+    });
+
+    return {
+      date: formattedDateString,
+      totalAmount,
+      transactionCount,
+      studentCount,
+      modeBreakdown,
+      payments,
+    };
+  },
 };
+

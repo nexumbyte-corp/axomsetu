@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { getISTDayBounds, getISTMonthBounds } from '../../utils/dateUtils.js';
 import receiptService from './receipt.service.js';
 import { getTargetYearForFeeMonth } from './fee-generation.service.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
@@ -426,6 +427,7 @@ export const paymentService = {
             admissionNo: true,
             guardianName: true,
             phone: true,
+            photoUrl: true,
             address: true,
             enrollments: {
               select: {
@@ -459,6 +461,20 @@ export const paymentService = {
                 },
                 feeType: {
                   select: { id: true, name: true, code: true },
+                },
+                allocations: {
+                  where: {
+                    payment: {
+                      status: 'SUCCESS',
+                    },
+                  },
+                  select: {
+                    id: true,
+                    allocatedAmount: true,
+                    payment: {
+                      select: { id: true, createdAt: true },
+                    },
+                  },
                 },
               },
             },
@@ -510,12 +526,28 @@ export const paymentService = {
       receivedBy: payment.receivedBy ? { id: payment.receivedBy.id, name: payment.receivedBy.name } : null,
       schoolHeader: school,
       allocations: payment.allocations.map((alloc) => {
+        const currentPaymentTime = new Date(payment.createdAt).getTime();
+        const prevAllocations = (alloc.charge.allocations || []).filter((other) => {
+          if (!other.payment) return false;
+          const otherTime = new Date(other.payment.createdAt).getTime();
+          if (otherTime < currentPaymentTime) return true;
+          if (otherTime === currentPaymentTime && other.payment.id < payment.id) return true;
+          return false;
+        });
+
+        const previouslyPaidAmount = prevAllocations.reduce(
+          (sum, a) => sum + Number(a.allocatedAmount || 0),
+          0
+        );
+
         const chargeAmt = Number(alloc.charge.amount);
-        const paidAmt = Number(alloc.charge.paidAmount || 0);
-        const remaining = Math.max(0, chargeAmt - paidAmt);
+        const allocatedAmt = Number(alloc.allocatedAmount);
+        const totalPaidAfterThis = previouslyPaidAmount + allocatedAmt;
+        const remaining = Math.max(0, chargeAmt - totalPaidAfterThis);
         const targetYear = alloc.charge.academicYear
           ? getTargetYearForFeeMonth(alloc.charge.academicYear, alloc.charge.month)
           : null;
+
         return {
           id: alloc.id,
           chargeId: alloc.chargeId,
@@ -526,9 +558,12 @@ export const paymentService = {
           originalAmount: chargeAmt,
           chargeAmount: chargeAmt,
           amount: chargeAmt,
-          paidAmount: paidAmt,
+          previouslyPaidAmount,
+          allocatedAmount: allocatedAmt,
+          paidNowAmount: allocatedAmt,
+          totalPaidAmount: totalPaidAfterThis,
+          paidAmount: totalPaidAfterThis,
           remainingBalance: remaining,
-          allocatedAmount: Number(alloc.allocatedAmount),
           chargeStatus: alloc.charge.status,
         };
       }),
@@ -885,6 +920,7 @@ export const paymentService = {
               name: true,
               admissionNo: true,
               phone: true,
+              photoUrl: true,
               guardianName: true,
               enrollments: {
                 select: {
@@ -1124,11 +1160,8 @@ export const paymentService = {
    */
   async getDashboardSummary(schoolId, query = {}) {
     const academicYearId = query.academicYearId;
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const { startOfDay: startOfToday, endOfDay: endOfToday } = getISTDayBounds();
+    const { startOfMonth, endOfMonth } = getISTMonthBounds();
 
     const paymentWhere = {
       schoolId,

@@ -99,8 +99,8 @@ export const payrollReportsService = {
 
     if (startDate || endDate) {
       paymentWhere.paymentDate = {
-        ...(startDate && { gte: new Date(`${startDate}T00:00:00.000Z`) }),
-        ...(endDate && { lte: new Date(`${endDate}T23:59:59.999Z`) }),
+        ...(startDate && { gte: new Date(`${startDate}T00:00:00.000+05:30`) }),
+        ...(endDate && { lte: new Date(`${endDate}T23:59:59.999+05:30`) }),
       };
     }
 
@@ -294,8 +294,8 @@ export const payrollReportsService = {
 
     const dateFilter = {};
     if (startDate || endDate) {
-      if (startDate) dateFilter.gte = new Date(`${startDate}T00:00:00.000Z`);
-      if (endDate) dateFilter.lte = new Date(`${endDate}T23:59:59.999Z`);
+      if (startDate) dateFilter.gte = new Date(`${startDate}T00:00:00.000+05:30`);
+      if (endDate) dateFilter.lte = new Date(`${endDate}T23:59:59.999+05:30`);
     }
 
     const [advances, pendingPayrolls, salaryPayments, staffAggregate] = await Promise.all([
@@ -510,8 +510,8 @@ export const payrollReportsService = {
 
     const dateFilter = {};
     if (startDate || endDate) {
-      if (startDate) dateFilter.gte = new Date(`${startDate}T00:00:00.000Z`);
-      if (endDate) dateFilter.lte = new Date(`${endDate}T23:59:59.999Z`);
+      if (startDate) dateFilter.gte = new Date(`${startDate}T00:00:00.000+05:30`);
+      if (endDate) dateFilter.lte = new Date(`${endDate}T23:59:59.999+05:30`);
     }
 
     const [advances, pendingPayrolls, salaryPayments] = await Promise.all([

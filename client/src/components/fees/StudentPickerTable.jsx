@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Users, CreditCard, Loader2, Filter, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Search, Users, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';

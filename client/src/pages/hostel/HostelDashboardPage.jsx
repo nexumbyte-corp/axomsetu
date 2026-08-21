@@ -10,6 +10,7 @@ import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
+import { formatDate } from '../../utils/formatters.js';
 import { HostelTransferModal } from '../../components/hostel/HostelTransferModal.jsx';
 import { HostelExitModal } from '../../components/hostel/HostelExitModal.jsx';
 import { StudentDetailsCell } from '../../components/hostel/StudentDetailsCell.jsx';
@@ -286,8 +287,8 @@ export const HostelDashboardPage = () => {
                     <td className="px-3.5 py-2 font-semibold text-slate-800">{r.hostelName}</td>
                     <td className="px-3.5 py-2 text-slate-700">Room {r.roomNumber}</td>
                     <td className="px-3.5 py-2 font-bold text-indigo-600">{r.bedNumber}</td>
-                    <td className="px-3.5 py-2 text-slate-600">
-                      {new Date(r.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    <td className="px-3.5 py-2 text-slate-600 font-mono">
+                      {formatDate(r.startDate)}
                     </td>
                     <td className="px-3.5 py-2 text-center">
                       <Badge variant="green" className="text-[10px] py-0.5 px-2">ACTIVE</Badge>

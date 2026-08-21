@@ -10,6 +10,7 @@ import { DisburseAdvanceModal } from './DisburseAdvanceModal.jsx';
 import { AddEditStaffModal } from './AddEditStaffModal.jsx';
 import { IndividualStaffAdvanceReportModal } from './IndividualStaffAdvanceReportModal.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
+import { formatDate } from '../../utils/formatters.js';
 import { ArrowLeft, User, DollarSign, HandCoins, History, CreditCard, Plus, Edit, FileText } from 'lucide-react';
 
 export const StaffDetailsPage = () => {
@@ -212,9 +213,7 @@ export const StaffDetailsPage = () => {
               <div>
                 <span className="text-slate-400 font-medium">Joining Date</span>
                 <p className="text-slate-800 mt-0.5">
-                  {staff.joiningDate
-                    ? new Date(staff.joiningDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                    : '—'}
+                  {formatDate(staff.joiningDate)}
                 </p>
               </div>
 
@@ -323,7 +322,7 @@ export const StaffDetailsPage = () => {
                     <tr key={s.id}>
                       <td className="p-3 font-bold text-slate-900">{s.academicYear?.name || 'Academic Year'}</td>
                       <td className="p-3 font-mono text-slate-600">
-                        {new Date(s.effectiveFrom).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {formatDate(s.effectiveFrom)}
                       </td>
                       <td className="p-3 text-right font-mono font-bold text-slate-900">
                         ₹{Number(s.baseSalary).toLocaleString('en-IN')}
@@ -415,7 +414,7 @@ export const StaffDetailsPage = () => {
                     return (
                       <tr key={adv.id}>
                         <td className="p-3 font-mono text-slate-800">
-                          {new Date(adv.advanceDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {formatDate(adv.advanceDate)}
                         </td>
                         <td className="p-3 text-right font-mono font-bold text-slate-900">
                           ₹{amount.toLocaleString('en-IN')}
@@ -459,7 +458,7 @@ export const StaffDetailsPage = () => {
                 <tr>
                   <td className="p-3 font-bold text-slate-900">Current Academic Year</td>
                   <td className="p-3 font-mono text-slate-600">
-                    {staff.joiningDate ? new Date(staff.joiningDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '01-Apr'}
+                    {formatDate(staff.joiningDate, '01-04-2026')}
                   </td>
                   <td className="p-3 text-right font-mono font-bold text-slate-900">
                     ₹{Number(staff.baseSalary || 0).toLocaleString('en-IN')}
@@ -473,7 +472,7 @@ export const StaffDetailsPage = () => {
                   <tr key={s.id}>
                     <td className="p-3 font-bold text-slate-900">{s.academicYear?.name || 'Academic Year'}</td>
                     <td className="p-3 font-mono text-slate-600">
-                      {new Date(s.effectiveFrom).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {formatDate(s.effectiveFrom)}
                     </td>
                     <td className="p-3 text-right font-mono font-bold text-slate-900">
                       ₹{Number(s.baseSalary).toLocaleString('en-IN')}

@@ -5,6 +5,7 @@ import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Input } from '../../components/ui/Input.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
@@ -212,10 +213,9 @@ export const SalarySetupPage = () => {
         </div>
 
         <div className="w-48">
-          <Input
-            type="date"
+          <DatePicker
             value={effectiveFrom}
-            onChange={(e) => setEffectiveFrom(e.target.value)}
+            onChange={(val) => setEffectiveFrom(val)}
           />
         </div>
       </Card>
