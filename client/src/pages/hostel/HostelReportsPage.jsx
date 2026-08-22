@@ -202,6 +202,7 @@ export const HostelReportsPage = () => {
     } else if (reportType === 'exits') {
       const list = Array.isArray(reportData) ? reportData : [];
       const columns = [
+        { key: 'effectiveDate', label: 'Hostel Effective Date' },
         { key: 'endDate', label: 'Exit Date' },
         { key: 'studentName', label: 'Student Name' },
         { key: 'admissionNo', label: 'Admission No' },
@@ -775,6 +776,7 @@ export const HostelReportsPage = () => {
                 <table className="min-w-full divide-y divide-slate-200 text-xs">
                   <thead className="bg-slate-50 font-semibold text-slate-600">
                     <tr>
+                      <th className="px-4 py-2.5 text-left">Hostel Effective Date</th>
                       <th className="px-4 py-2.5 text-left">Exit Date</th>
                       <th className="px-4 py-2.5 text-left">Student Details (Name, Adm No, Guardian)</th>
                       <th className="px-4 py-2.5 text-left">Class & Section</th>
@@ -785,7 +787,10 @@ export const HostelReportsPage = () => {
                   <tbody className="divide-y divide-slate-200">
                     {reportData.map((x) => (
                       <tr key={x.id} className="hover:bg-slate-50/70">
-                        <td className="px-4 py-2.5 text-slate-500 font-mono text-[11px]">
+                        <td className="px-4 py-2.5 text-indigo-700 font-mono text-[11px] font-semibold">
+                          {formatDate(x.effectiveDate || x.startDate, 'N/A')}
+                        </td>
+                        <td className="px-4 py-2.5 text-rose-700 font-mono text-[11px] font-semibold">
                           {formatDate(x.endDate, 'N/A')}
                         </td>
                         <td className="px-4 py-2.5">

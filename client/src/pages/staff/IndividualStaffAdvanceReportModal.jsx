@@ -134,7 +134,7 @@ export const IndividualStaffAdvanceReportModal = ({
 
         {/* Date Filters Bar */}
         <div className="flex flex-col sm:flex-row items-end gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
-          <div className="flex-1 grid grid-cols-2 gap-3 w-full">
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
             <DatePicker
               label="From Date"
               value={startDate}

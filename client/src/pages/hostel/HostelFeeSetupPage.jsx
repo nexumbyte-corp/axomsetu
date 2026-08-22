@@ -42,6 +42,13 @@ const getCurrentSystemMonth = () => {
   return FEE_MONTHS_ALL[currentMonthIdx] || 'JANUARY';
 };
 
+const getActualExitMonthName = (endDate) => {
+  if (!endDate) return null;
+  const d = new Date(endDate);
+  if (isNaN(d.getTime())) return null;
+  return FEE_MONTHS_ALL[d.getMonth()] || null;
+};
+
 export const HostelFeeSetupPage = () => {
   const navigate = useNavigate();
   const { currentAcademicYear, academicYears } = useAcademicYear();
@@ -420,7 +427,7 @@ export const HostelFeeSetupPage = () => {
           }`}
         >
           <Building className="w-4 h-4" />
-          <span>Step 1: Hostel Fee Rates</span>
+          <span>Hostel Fee Rates</span>
         </button>
 
         <button
@@ -432,7 +439,7 @@ export const HostelFeeSetupPage = () => {
           }`}
         >
           <Play className="w-4 h-4" />
-          <span>Step 2: Generate Monthly Dues</span>
+          <span>Generate Monthly Fees</span>
         </button>
 
         <button
@@ -444,7 +451,7 @@ export const HostelFeeSetupPage = () => {
           }`}
         >
           <Receipt className="w-4 h-4" />
-          <span>Step 3: Billed Dues & History ({feeRecords.length})</span>
+          <span>Billed Dues & History ({feeRecords.length})</span>
         </button>
       </div>
 
@@ -760,7 +767,7 @@ export const HostelFeeSetupPage = () => {
                               </div>
                               {row.hostelEnrollmentStatus === 'EXITED' && (
                                 <Badge variant="warning" size="xs font-mono" className="block mx-auto text-[10px]">
-                                  EXITED IN {billingMonth}
+                                  EXITED IN {getActualExitMonthName(row.endDate) || billingMonth}
                                 </Badge>
                               )}
                             </td>

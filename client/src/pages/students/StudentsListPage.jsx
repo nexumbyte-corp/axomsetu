@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Search, Filter, MoreVertical, Lock, Edit, Eye, Sparkles, UserCheck, UserX } from 'lucide-react';
+import { Users, Plus, Search, Filter, MoreVertical, Lock, Edit, Eye, Sparkles, UserCheck, UserX, Trash2 } from 'lucide-react';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
@@ -202,6 +202,22 @@ export const StudentsListPage = () => {
       setActiveModal(null);
       setSelectedStudentForAction(null);
       setTargetStatus(null);
+    }
+  };
+
+  const handleDeleteStudentHard = async () => {
+    if (!selectedStudentForAction) return;
+    setStatusUpdating(true);
+    try {
+      const res = await studentService.deleteStudentHard(selectedStudentForAction.id);
+      toast.success(res.message || `Student '${selectedStudentForAction.name}' deleted successfully.`);
+      fetchStudents();
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete student.');
+    } finally {
+      setStatusUpdating(false);
+      setActiveModal(null);
+      setSelectedStudentForAction(null);
     }
   };
 
@@ -509,6 +525,21 @@ export const StudentsListPage = () => {
                                   Reactivate Student
                                 </DropdownItem>
                               )}
+                              {can('STUDENTS_DELETE') && (
+                                <>
+                                  <DropdownDivider />
+                                  <DropdownItem
+                                    icon={Trash2}
+                                    danger
+                                    onClick={() => {
+                                      setSelectedStudentForAction(item);
+                                      setActiveModal('DELETE_HARD');
+                                    }}
+                                  >
+                                    Hard Delete Student
+                                  </DropdownItem>
+                                </>
+                              )}
                             </>
                           )}
                         </Dropdown>
@@ -697,6 +728,23 @@ export const StudentsListPage = () => {
         confirmText="Update Status"
         loading={statusUpdating}
         loadingText="Updating..."
+      />
+
+      {/* Hard Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={activeModal === 'DELETE_HARD'}
+        onClose={() => {
+          setActiveModal(null);
+          setSelectedStudentForAction(null);
+        }}
+        onConfirm={handleDeleteStudentHard}
+        title={`Hard Delete Student (${selectedStudentForAction?.name})`}
+        message={`Are you sure you want to permanently hard-delete '${selectedStudentForAction?.name}' (Adm No: ${selectedStudentForAction?.admissionNo})? All initial registration records will be completely removed from the database. (Hard deletion is allowed for initial registrations without paid fee receipts).`}
+        confirmText="Hard Delete Permanently"
+        cancelText="Cancel"
+        variant="danger"
+        loading={statusUpdating}
+        loadingText="Deleting..."
       />
 
       {/* Photo Preview Modal */}

@@ -4,6 +4,7 @@ import { ArrowLeft, Save, User, Upload, CheckCircle2, Trash2, Phone, ShieldCheck
 import { studentService } from '../../services/student.service.js';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input } from '../../components/ui/Input.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { Textarea } from '../../components/ui/Textarea.jsx';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
@@ -37,6 +38,7 @@ export const EditStudentProfilePage = () => {
   // Form State
   const [formData, setFormData] = useState({
     admissionNo: '',
+    admissionDate: '',
     name: '',
     guardianName: '',
     phone: '',
@@ -72,8 +74,13 @@ export const EditStudentProfilePage = () => {
             custom = s.caste;
           }
 
+          const formattedAdmDate = s.admissionDate
+            ? new Date(s.admissionDate).toISOString().split('T')[0]
+            : '';
+
           setFormData({
             admissionNo: s.admissionNo || '',
+            admissionDate: formattedAdmDate,
             name: s.name || '',
             guardianName: s.guardianName || '',
             phone: s.phone || '',
@@ -178,6 +185,7 @@ export const EditStudentProfilePage = () => {
     try {
       const payload = {
         admissionNo: formData.admissionNo.trim() || undefined,
+        admissionDate: formData.admissionDate || null,
         name: formData.name.trim(),
         guardianName: formData.guardianName.trim(),
         phone: trimmedPhone,
@@ -467,6 +475,17 @@ export const EditStudentProfilePage = () => {
                       className="text-xs"
                     />
                   </div>
+
+                  {/* Admission Date */}
+                  <div>
+                    <DatePicker
+                      label="Admission Date"
+                      disabled={submitting}
+                      value={formData.admissionDate}
+                      onChange={(val) => setFormData({ ...formData, admissionDate: val || '' })}
+                      error={errors.admissionDate}
+                    />
+                  </div>
                 </div>
 
                 {/* Residential Address */}
@@ -579,7 +598,7 @@ export const EditStudentProfilePage = () => {
           <Button
             type="button"
             variant="outline"
-            size="md"
+            size="sm"
             className="flex-1 justify-center"
             onClick={() => navigate(`/app/students/${studentId}`)}
             disabled={submitting}
@@ -590,7 +609,7 @@ export const EditStudentProfilePage = () => {
           <Button
             type="submit"
             variant="primary"
-            size="md"
+            size="sm"
             className="flex-[2] justify-center"
             loading={submitting}
             loadingText="Saving..."

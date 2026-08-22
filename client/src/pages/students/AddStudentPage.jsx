@@ -8,6 +8,7 @@ import { academicService } from '../../services/academic.service.js';
 import { feeService } from '../../services/fee.service.js';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input } from '../../components/ui/Input.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { Textarea } from '../../components/ui/Textarea.jsx';
 import { Card, CardHeader, CardContent } from '../../components/ui/Card.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
@@ -52,9 +53,15 @@ export const AddStudentPage = () => {
   const [streams, setStreams] = useState([]);
   const [loadingSetup, setLoadingSetup] = useState(true);
 
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const minAdmissionDate = selectedYear?.startDate
+    ? new Date(selectedYear.startDate).toISOString().split('T')[0]
+    : '';
+
   // Form State
   const [studentInfo, setStudentInfo] = useState({
     admissionNo: '',
+    admissionDate: todayDateStr,
     name: '',
     guardianName: '',
     phone: '',
@@ -310,6 +317,12 @@ export const AddStudentPage = () => {
       newErrors.guardianName = 'Guardian name is required';
     }
 
+    if (!studentInfo.admissionDate) {
+      newErrors.admissionDate = 'Admission date is required';
+    } else if (minAdmissionDate && studentInfo.admissionDate < minAdmissionDate) {
+      newErrors.admissionDate = `Back date before ${minAdmissionDate} is not allowed for ${selectedYear?.name || 'this Academic Year'}`;
+    }
+
     // Phone validation: mandatory 10 digits
     const trimmedPhone = studentInfo.phone.trim();
     if (!trimmedPhone) {
@@ -366,6 +379,7 @@ export const AddStudentPage = () => {
       const payload = {
         photoUrl: studentInfo.photoUrl.trim(),
         admissionNo: studentInfo.admissionNo.trim() || null,
+        admissionDate: studentInfo.admissionDate,
         name: studentInfo.name.trim(),
         guardianName: studentInfo.guardianName.trim(),
         phone: trimmedPhone,
@@ -387,9 +401,9 @@ export const AddStudentPage = () => {
       await studentService.createStudent(payload);
       toast.success('Student registered successfully and initial fee charges generated!');
       navigate('/app/students');
-    } catch {
-      toast.error(err.message || 'Failed adding student');
-      if (err.errors) setErrors(err.errors);
+    } catch (err) {
+      toast.error(err?.message || 'Failed adding student');
+      if (err?.errors) setErrors(err.errors);
     } finally {
       setSubmitting(false);
     }
@@ -398,6 +412,9 @@ export const AddStudentPage = () => {
   const isLocked = Boolean(selectedYear?.isLocked);
 
   const { setHeaderInfo } = usePageHeader();
+
+  const handleSubmitRef = useRef();
+  handleSubmitRef.current = handleSubmit;
 
   useEffect(() => {
     setHeaderInfo({
@@ -410,13 +427,14 @@ export const AddStudentPage = () => {
             variant="primary"
             size="sm"
             icon={UserPlus}
-            onClick={handleSubmit}
+            onClick={(e) => handleSubmitRef.current?.(e)}
             loading={submitting}
             disabled={isLocked || loadingSetup || hasAnyOverrideError}
           >
             Add Student
           </Button>
           <Button
+            type="button"
             variant="outline"
             size="sm"
             icon={ArrowLeft}
@@ -429,7 +447,7 @@ export const AddStudentPage = () => {
     });
 
     return () => setHeaderInfo(null);
-  }, [setHeaderInfo, navigate, handleSubmit, submitting, isLocked, loadingSetup, hasAnyOverrideError]);
+  }, [setHeaderInfo, navigate, submitting, isLocked, loadingSetup, hasAnyOverrideError]);
 
   return (
     <div className="w-full space-y-5 pb-20 sm:pb-6">
@@ -515,21 +533,14 @@ export const AddStudentPage = () => {
                         <Badge variant="warning" size="xs">
                           Passport Ratio (3.5:4.5)
                         </Badge>
-                        <Badge variant="indigo" size="xs">
-                          Max 20KB Cloudinary
-                        </Badge>
                       </div>
-
-                      <p className="text-[11px] text-slate-500">
-                        Selecting photo opens automatic passport-ratio cropping modal before Cloudinary upload.
-                      </p>
 
                       <div className="flex items-center justify-center sm:justify-start gap-2 pt-1 flex-wrap">
                         <button
                           type="button"
                           disabled={submitting || isLocked}
                           onClick={() => fileInputRef.current?.click()}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs disabled:opacity-50"
                         >
                           <Upload className="w-3.5 h-3.5" />
                           <span>{studentInfo.photoUrl ? 'Change Photo' : 'Select Photo & Crop'}</span>
@@ -540,7 +551,7 @@ export const AddStudentPage = () => {
                             type="button"
                             disabled={submitting || isLocked}
                             onClick={handleRemovePhoto}
-                            className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1 px-2 py-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                             <span>Remove</span>
@@ -681,13 +692,35 @@ export const AddStudentPage = () => {
                       Admission Number
                     </label>
                     <Input
-                      placeholder="Optional (Auto-generated if empty)"
-                      disabled={submitting || isLocked}
-                      value={studentInfo.admissionNo}
-                      onChange={(e) => setStudentInfo({ ...studentInfo, admissionNo: e.target.value })}
-                      error={errors.admissionNo}
-                      className="text-xs"
+                      placeholder="Auto-generated automatically"
+                      disabled={true}
+                      value={studentInfo.admissionNo || 'Auto-generated'}
+                      readOnly
+                      className="text-xs bg-slate-100 cursor-not-allowed text-slate-500 font-mono"
                     />
+                  </div>
+
+                  {/* Admission Date */}
+                  <div>
+                    <DatePicker
+                      label="Admission Date"
+                      required
+                      value={studentInfo.admissionDate}
+                      onChange={(val) => {
+                        setStudentInfo({ ...studentInfo, admissionDate: val || '' });
+                        if (errors.admissionDate) setErrors({ ...errors, admissionDate: null });
+                      }}
+                      minDate={minAdmissionDate}
+                      maxDate={todayDateStr}
+                      disabled={submitting || isLocked}
+                      error={errors.admissionDate}
+                      clearable={false}
+                    />
+                    {minAdmissionDate && (
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        Min back-date: <span className="font-semibold text-slate-700">{minAdmissionDate}</span> ({selectedYear?.name})
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -732,7 +765,7 @@ export const AddStudentPage = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    size="md"
+                    size="sm"
                     onClick={() => navigate('/app/students')}
                     disabled={submitting}
                   >
@@ -742,7 +775,7 @@ export const AddStudentPage = () => {
                   <Button
                     type="submit"
                     variant="primary"
-                    size="md"
+                    size="sm"
                     loading={submitting}
                     loadingText="Adding Student & Fees..."
                     disabled={isLocked || loadingSetup || hasAnyOverrideError}
@@ -923,7 +956,7 @@ export const AddStudentPage = () => {
                   <Button
                     type="submit"
                     variant="primary"
-                    size="lg"
+                    size="sm"
                     className="w-full justify-center shadow-sm"
                     loading={submitting}
                     loadingText="Adding student & generating fees..."
@@ -936,6 +969,7 @@ export const AddStudentPage = () => {
                   <Button
                     type="button"
                     variant="outline"
+                    size="sm"
                     className="w-full justify-center"
                     onClick={() => navigate('/app/students')}
                     disabled={submitting}
@@ -953,7 +987,7 @@ export const AddStudentPage = () => {
           <Button
             type="button"
             variant="outline"
-            size="md"
+            size="sm"
             className="flex-1 justify-center"
             onClick={() => navigate('/app/students')}
             disabled={submitting}
@@ -964,7 +998,7 @@ export const AddStudentPage = () => {
           <Button
             type="submit"
             variant="primary"
-            size="md"
+            size="sm"
             className="flex-[2] justify-center"
             loading={submitting}
             loadingText="Adding..."

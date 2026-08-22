@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const createStudentSchema = z.object({
   admissionNo: z.string().trim().min(1, 'Admission number cannot be empty').optional().nullable(),
+  admissionDate: z.string().or(z.date()).optional().nullable(),
   name: z.string({ required_error: 'Student name is required' }).trim().min(1, 'Student name cannot be empty'),
   guardianName: z.string({ required_error: 'Guardian name is required' }).trim().min(1, 'Guardian name cannot be empty'),
   phone: z
@@ -35,6 +36,7 @@ export const createStudentSchema = z.object({
 
 export const updateStudentProfileSchema = z.object({
   admissionNo: z.string().trim().min(1, 'Admission number cannot be empty').optional().nullable(),
+  admissionDate: z.string().or(z.date()).optional().nullable(),
   name: z.string().trim().min(1, 'Student name cannot be empty').optional(),
   guardianName: z.string().trim().min(1, 'Guardian name cannot be empty').optional(),
   phone: z.string().trim().regex(/^\d{10}$/, 'Phone number must be exactly 10 digits').optional().nullable(),

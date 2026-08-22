@@ -21,14 +21,40 @@ export const FEE_MONTH_INDEX = {
 };
 
 /**
+ * Safely extracts calendar year and 0-indexed month from String or Date inputs
+ * without triggering UTC timezone offset shifts.
+ */
+const parseCalendarYearMonth = (dateInput) => {
+  if (!dateInput) return null;
+
+  if (typeof dateInput === 'string') {
+    const datePart = dateInput.split('T')[0];
+    const parts = datePart.split('-');
+    if (parts.length >= 2) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      if (!isNaN(y) && !isNaN(m)) {
+        return { year: y, monthIndex: m };
+      }
+    }
+  }
+
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return null;
+
+  return { year: d.getFullYear(), monthIndex: d.getMonth() };
+};
+
+/**
  * Computes target calendar year for a given FeeMonth in an AcademicYear.
  */
 export const getTargetYearForFeeMonth = (academicYear, generationMonth) => {
-  const ayStart = new Date(academicYear.startDate);
-  const ayEnd = new Date(academicYear.endDate);
-  const startYear = ayStart.getUTCFullYear();
-  const startMonthIndex = ayStart.getUTCMonth();
-  const endYear = ayEnd.getUTCFullYear();
+  const parsedStart = parseCalendarYearMonth(academicYear.startDate);
+  const parsedEnd = parseCalendarYearMonth(academicYear.endDate);
+
+  const startYear = parsedStart ? parsedStart.year : new Date(academicYear.startDate).getFullYear();
+  const startMonthIndex = parsedStart ? parsedStart.monthIndex : 3;
+  const endYear = parsedEnd ? parsedEnd.year : startYear + 1;
 
   const targetMonthIndex = FEE_MONTH_INDEX[generationMonth] ?? 0;
 
@@ -47,26 +73,26 @@ export const getTargetYearForFeeMonth = (academicYear, generationMonth) => {
 export const isEffectiveForMonth = ({ startDate, endDate, generationMonth, academicYear }) => {
   if (!startDate) return false;
 
+  const parsedStart = parseCalendarYearMonth(startDate);
+  if (!parsedStart) return false;
+
   const targetYear = getTargetYearForFeeMonth(academicYear, generationMonth);
   const targetMonthIndex = FEE_MONTH_INDEX[generationMonth] ?? 0;
   const targetKey = targetYear * 12 + targetMonthIndex;
 
-  const startD = new Date(startDate);
-  const startYear = startD.getUTCFullYear();
-  const startMonthIndex = startD.getUTCMonth();
-  const startKey = startYear * 12 + startMonthIndex;
+  const startKey = parsedStart.year * 12 + parsedStart.monthIndex;
 
   if (targetKey < startKey) {
     return false;
   }
 
   if (endDate) {
-    const endD = new Date(endDate);
-    const endYear = endD.getUTCFullYear();
-    const endMonthIndex = endD.getUTCMonth();
-    const endKey = endYear * 12 + endMonthIndex;
-    if (targetKey > endKey) {
-      return false;
+    const parsedEnd = parseCalendarYearMonth(endDate);
+    if (parsedEnd) {
+      const endKey = parsedEnd.year * 12 + parsedEnd.monthIndex;
+      if (targetKey > endKey) {
+        return false;
+      }
     }
   }
 

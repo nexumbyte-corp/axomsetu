@@ -21,6 +21,14 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
+const getTodayFormatted = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const SalarySetupPage = () => {
   const { academicYears, selectedYearId } = useAcademicYear();
 
@@ -29,7 +37,7 @@ export const SalarySetupPage = () => {
   const [copying, setCopying] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [effectiveFrom, setEffectiveFrom] = useState('');
+  const [effectiveFrom, setEffectiveFrom] = useState(getTodayFormatted());
   const [rows, setRows] = useState([]);
   const [previousYearInfo, setPreviousYearInfo] = useState(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -56,12 +64,7 @@ export const SalarySetupPage = () => {
       if (data.rows?.[0]?.effectiveFrom) {
         setEffectiveFrom(new Date(data.rows[0].effectiveFrom).toISOString().split('T')[0]);
       } else {
-        const selectedYrObj = academicYears.find((y) => y.id === targetYearId);
-        if (selectedYrObj?.startDate) {
-          setEffectiveFrom(new Date(selectedYrObj.startDate).toISOString().split('T')[0]);
-        } else {
-          setEffectiveFrom(new Date().toISOString().split('T')[0]);
-        }
+        setEffectiveFrom(getTodayFormatted());
       }
     } catch (err) {
       console.error('Failed to load salary setup:', err);
@@ -147,8 +150,8 @@ export const SalarySetupPage = () => {
         title="Salary Structure Setup"
         description="Define base monthly salaries and structure parameters by Academic Year for all staff members."
         actions={
-          <div className="flex items-center gap-3">
-            <div className="w-48">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="w-44">
               <Select
                 value={targetYearId}
                 onChange={(e) => setTargetYearId(e.target.value)}
@@ -159,6 +162,7 @@ export const SalarySetupPage = () => {
             {previousYearInfo && (
               <Button
                 variant="outline"
+                size="sm"
                 icon={Copy}
                 loading={copying}
                 loadingText="Copying..."
@@ -171,6 +175,7 @@ export const SalarySetupPage = () => {
 
             <Button
               variant="primary"
+              size="sm"
               icon={Save}
               loading={saving}
               loadingText="Saving..."

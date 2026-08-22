@@ -217,7 +217,7 @@ export const SuperAdminAuditLogsPage = () => {
           title={`Audit Log Record — ${selectedLog.action}`}
         >
           <div className="space-y-4 text-xs">
-            <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 grid grid-cols-2 gap-3">
+            <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase block">Triggered By</span>
                 <span className="font-bold text-slate-900">{selectedLog.user?.name || 'System Auto'}</span>

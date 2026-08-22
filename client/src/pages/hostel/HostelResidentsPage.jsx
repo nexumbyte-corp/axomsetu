@@ -272,6 +272,22 @@ export const HostelResidentsPage = () => {
                     {selectedResident.status}
                   </Badge>
                 </div>
+                {selectedResident.status === 'EXITED' && selectedResident.endDate && (
+                  <div>
+                    <span className="block text-slate-500 text-[11px]">Hostel Exit Date:</span>
+                    <span className="font-semibold text-rose-700 font-mono">
+                      {formatDate(selectedResident.endDate)}
+                    </span>
+                  </div>
+                )}
+                {selectedResident.status === 'EXITED' && selectedResident.exitReason && (
+                  <div className="col-span-2">
+                    <span className="block text-slate-500 text-[11px]">Exit Reason:</span>
+                    <span className="font-medium text-slate-700 italic">
+                      {selectedResident.exitReason}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 

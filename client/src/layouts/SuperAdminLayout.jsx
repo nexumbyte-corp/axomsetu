@@ -136,24 +136,26 @@ export const SuperAdminLayout = () => {
       )}
 
       {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 text-white h-16 flex items-center px-3 sm:px-6">
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-2.5 sm:gap-4">
+      <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 text-white h-16 flex items-center px-2.5 sm:px-6">
+        <div className="flex items-center justify-between w-full gap-1.5 sm:gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
             <button
               onClick={() => setIsMobileNavOpen(true)}
-              className="lg:hidden p-2 rounded-lg text-slate-400 hover:bg-slate-800 transition-colors"
+              className="lg:hidden p-2 rounded-lg text-slate-400 hover:bg-slate-800 active:bg-slate-700 transition-colors"
               aria-label="Toggle navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <Link to="/admin/dashboard" className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-xs shrink-0">
-                <ShieldCheck className="w-5 h-5" />
+            <Link to="/admin/dashboard" className="flex items-center gap-2">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-xs shrink-0">
+                <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div className="hidden sm:block">
-                <h1 className="text-sm font-extrabold text-white leading-tight">{BRAND_CONFIG.productName}</h1>
-                <span className="text-[10px] text-indigo-400 font-medium tracking-wide">
+              <div>
+                <h1 className="text-xs sm:text-sm font-extrabold text-white leading-tight truncate max-w-[120px] sm:max-w-none">
+                  {BRAND_CONFIG.productName}
+                </h1>
+                <span className="text-[9px] sm:text-[10px] text-indigo-400 font-medium tracking-wide hidden sm:block">
                   Platform Administration
                 </span>
               </div>
@@ -174,8 +176,7 @@ export const SuperAdminLayout = () => {
             </div>
           )}
 
-
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {headerInfo?.actions && (
               <div className="hidden sm:flex items-center gap-2">
                 {headerInfo.actions}
@@ -183,7 +184,6 @@ export const SuperAdminLayout = () => {
             )}
 
             <button
-
               onClick={() => setToast({ type: 'info', message: 'No new platform notifications.' })}
               className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors relative"
               title="Notifications"

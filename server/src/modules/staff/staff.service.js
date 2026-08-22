@@ -20,7 +20,6 @@ export const staffService = {
         employeeId = await generateNextDocumentNumber(tx, {
           schoolId,
           documentType: 'STAFF_EMPLOYEE_CODE',
-          prefix: 'EMP-',
         });
       } else {
         const existing = await tx.staff.findUnique({

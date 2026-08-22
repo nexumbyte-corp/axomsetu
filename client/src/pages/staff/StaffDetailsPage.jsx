@@ -179,7 +179,7 @@ export const StaffDetailsPage = () => {
               <User className="w-4 h-4 text-indigo-600" /> Personal & Employment Info
             </h3>
 
-            <div className="grid grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
                 <span className="text-slate-400 font-medium">Full Name</span>
                 <p className="font-bold text-slate-900 mt-0.5">{staff.name}</p>

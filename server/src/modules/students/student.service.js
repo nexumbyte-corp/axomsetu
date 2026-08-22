@@ -140,7 +140,7 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
 
   return await prisma.$transaction(async (tx) => {
     // 1. Validate configuration
-    await validateEnrollmentConfiguration({
+    const { academicYear } = await validateEnrollmentConfiguration({
       schoolId,
       academicYearId: data.academicYearId,
       classId: data.classId,
@@ -150,6 +150,23 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
       requireWritableYear: true,
       tx,
     });
+
+    // 1b. Admission Date handling & Academic Year back-date validation
+    let admissionDateObj = data.admissionDate ? new Date(data.admissionDate) : new Date();
+    if (isNaN(admissionDateObj.getTime())) {
+      admissionDateObj = new Date();
+    }
+
+    const ayStartDate = new Date(academicYear.startDate);
+    ayStartDate.setHours(0, 0, 0, 0);
+
+    const admDateNormalized = new Date(admissionDateObj);
+    admDateNormalized.setHours(0, 0, 0, 0);
+
+    if (admDateNormalized < ayStartDate) {
+      const formattedStart = ayStartDate.toISOString().split('T')[0];
+      throw ApiError.badRequest(`Admission date cannot be earlier than academic year start date (${formattedStart})`);
+    }
 
     // 2. Admission Number Handling
     let admNo;
@@ -171,7 +188,6 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
         schoolId,
         academicYearId: data.academicYearId,
         documentType: 'STUDENT_ADMISSION',
-        prefix: 'ADM',
       });
     }
 
@@ -180,6 +196,7 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
       data: {
         schoolId,
         admissionNo: admNo,
+        admissionDate: admissionDateObj,
         name: data.name.trim(),
         guardianName: data.guardianName.trim(),
         phone: data.phone?.trim() || null,
@@ -213,7 +230,7 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
       },
     });
 
-    // 5. Mandatory Initial Fee Charges Generation
+    // 5. Mandatory Initial Fee Charges Generation (from admission month up to current month)
     let initialChargesCount = 0;
     let initialTotalAmount = 0;
 
@@ -221,13 +238,28 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
       'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
       'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
     ];
-    const getCurrentFeeMonth = (dateObj = new Date()) => {
-      const d = new Date(dateObj);
-      const monthIdx = isNaN(d.getTime()) ? new Date().getMonth() : d.getMonth();
-      return MONTH_NAMES[monthIdx] || 'JANUARY';
+
+    const getFeeMonthsRange = (startDate, endDate) => {
+      const months = [];
+      const start = new Date(startDate);
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(endDate);
+      end.setDate(1);
+      end.setHours(0, 0, 0, 0);
+
+      const curr = new Date(start);
+      while (curr <= end) {
+        months.push(MONTH_NAMES[curr.getMonth()]);
+        curr.setMonth(curr.getMonth() + 1);
+      }
+      return months.length > 0 ? months : [MONTH_NAMES[end.getMonth()] || 'JANUARY'];
     };
 
-    const currentMonth = getCurrentFeeMonth(new Date());
+    const today = new Date();
+    const endDateForFees = admissionDateObj > today ? admissionDateObj : today;
+    const monthsToGenerate = getFeeMonthsRange(admissionDateObj, endDateForFees);
 
     const fs = await tx.feeStructure.findFirst({
       where: {
@@ -263,8 +295,12 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
     if (fs && fs.heads?.length > 0) {
       for (const h of fs.heads) {
         const attemptedOverride = overrideMap.get(`id_${h.feeTypeId}`) || overrideMap.get(`title_${h.feeType.name.trim().toLowerCase()}`);
-        const targetMonth = currentMonth;
         const templateAmount = Number(h.amount);
+        const billingRule = h.feeType.billingRule || 'MONTHLY';
+
+        const targetMonths = billingRule === 'ONE_TIME_PER_ACADEMIC_YEAR'
+          ? [monthsToGenerate[0]]
+          : monthsToGenerate;
 
         let finalAmount = templateAmount;
         let discountAmount = 0;
@@ -286,29 +322,31 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
           overrideReason = attemptedOverride.reason ? attemptedOverride.reason.trim() : null;
         }
 
-        const result = await ensureFeeCharge(tx, {
-          schoolId,
-          academicYearId: data.academicYearId,
-          studentId: student.id,
-          studentEnrollmentId: enrollment.id,
-          student,
-          feeTypeId: h.feeTypeId,
-          feeStructureId: fs.id,
-          month: targetMonth,
-          title: h.feeType.name,
-          amount: finalAmount,
-          originalAmount: templateAmount,
-          discountAmount,
-          isOverridden,
-          overrideReason,
-          overriddenById: isOverridden ? (actorUserId || null) : null,
-          overriddenAt: isOverridden ? new Date() : null,
-          billingRule: h.feeType.billingRule || 'MONTHLY',
-        });
+        for (const targetMonth of targetMonths) {
+          const result = await ensureFeeCharge(tx, {
+            schoolId,
+            academicYearId: data.academicYearId,
+            studentId: student.id,
+            studentEnrollmentId: enrollment.id,
+            student,
+            feeTypeId: h.feeTypeId,
+            feeStructureId: fs.id,
+            month: targetMonth,
+            title: h.feeType.name,
+            amount: finalAmount,
+            originalAmount: templateAmount,
+            discountAmount,
+            isOverridden,
+            overrideReason,
+            overriddenById: isOverridden ? (actorUserId || null) : null,
+            overriddenAt: isOverridden ? new Date() : null,
+            billingRule,
+          });
 
-        if (result.status === 'CREATED') {
-          initialChargesCount += 1;
-          initialTotalAmount += finalAmount;
+          if (result.status === 'CREATED') {
+            initialChargesCount += 1;
+            initialTotalAmount += finalAmount;
+          }
         }
 
         if (isOverridden) {
@@ -451,9 +489,9 @@ export const listStudents = async (schoolId, query) => {
       skip,
       take: limit,
       orderBy: [
+        { student: { name: 'asc' } },
         { class: { order: 'asc' } },
         { rollNo: 'asc' },
-        { createdAt: 'asc' },
       ],
       include: {
         student: {
@@ -562,8 +600,9 @@ export const getStudentById = async (schoolId, studentId, targetAcademicYearId =
     where: { id: studentId },
     include: {
       activeHostelEnrollments: {
-        where: { status: 'ACTIVE' },
-        take: 1,
+        where: { status: { in: ['ACTIVE', 'EXITED'] } },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
         include: {
           hostel: { select: { id: true, name: true, type: true } },
           room: { select: { id: true, roomNumber: true, floor: true } },
@@ -703,11 +742,13 @@ export const getStudentById = async (schoolId, studentId, targetAcademicYearId =
     createdAt: e.createdAt,
   }));
 
-  const activeHostel = student.activeHostelEnrollments?.[0] || null;
+  const activeHostel = student.activeHostelEnrollments?.find((h) => h.status === 'ACTIVE') || null;
+  const exitedHostel = !activeHostel ? (student.activeHostelEnrollments?.find((h) => h.status === 'EXITED') || null) : null;
 
   return {
     id: student.id,
     admissionNo: student.admissionNo,
+    admissionDate: student.admissionDate,
     name: student.name,
     guardianName: student.guardianName,
     phone: student.phone,
@@ -719,13 +760,28 @@ export const getStudentById = async (schoolId, studentId, targetAcademicYearId =
     hostel: activeHostel
       ? {
           enrolled: true,
+          status: 'ACTIVE',
+          hostelId: activeHostel.hostelId,
           hostelName: activeHostel.hostel.name,
           hostelType: activeHostel.hostel.type,
           roomNumber: activeHostel.room.roomNumber,
           bedNumber: activeHostel.bed.bedNumber,
           startDate: activeHostel.startDate,
         }
-      : { enrolled: false },
+      : exitedHostel
+      ? {
+          enrolled: false,
+          status: 'EXITED',
+          hostelId: exitedHostel.hostelId,
+          hostelName: exitedHostel.hostel.name,
+          hostelType: exitedHostel.hostel.type,
+          roomNumber: exitedHostel.room.roomNumber,
+          bedNumber: exitedHostel.bed.bedNumber,
+          startDate: exitedHostel.startDate,
+          endDate: exitedHostel.endDate,
+          exitReason: exitedHostel.exitReason,
+        }
+      : { enrolled: false, status: 'NONE' },
     createdAt: student.createdAt,
     updatedAt: student.updatedAt,
 
@@ -770,6 +826,17 @@ export const updateStudentProfile = async (schoolId, studentId, data, actorUserI
   }
 
   const updateData = {};
+
+  if (data.admissionDate !== undefined) {
+    if (data.admissionDate === null || data.admissionDate === '') {
+      updateData.admissionDate = null;
+    } else {
+      const parsedDate = new Date(data.admissionDate);
+      if (!isNaN(parsedDate.getTime())) {
+        updateData.admissionDate = parsedDate;
+      }
+    }
+  }
 
   if (data.name !== undefined) updateData.name = data.name.trim();
   if (data.guardianName !== undefined) updateData.guardianName = data.guardianName.trim();
@@ -1570,6 +1637,104 @@ export const bulkPromoteStudents = async (schoolId, data, actorUserId) => {
     return {
       promotedCount: results.length,
       details: results,
+    };
+  });
+};
+
+// ==========================================
+// STUDENT HARD DELETE (INITIAL STAGE ONLY)
+// ==========================================
+export const deleteStudentHard = async (schoolId, studentId, actorUserId) => {
+  return await prisma.$transaction(async (tx) => {
+    // 1. Verify Student exists
+    const student = await tx.student.findUnique({
+      where: { id: studentId },
+      include: {
+        activeHostelEnrollments: {
+          where: { status: 'ACTIVE' },
+        },
+      },
+    });
+
+    if (!student || student.schoolId !== schoolId) {
+      throw ApiError.notFound('Student record not found');
+    }
+
+    // 2. Financial Safety Guard: Hard deletion is ONLY allowed in initial stage (no paid fee transactions / receipts)
+    const paidChargesCount = await tx.studentFeeCharge.count({
+      where: {
+        studentId,
+        OR: [
+          { status: 'PAID' },
+          { status: 'PARTIAL' },
+          { paidAmount: { gt: 0 } },
+        ],
+      },
+    });
+
+    const paymentsCount = await tx.feePayment.count({
+      where: {
+        studentId,
+        status: { not: 'VOID' },
+      },
+    });
+
+    if (paidChargesCount > 0 || paymentsCount > 0) {
+      throw ApiError.badRequest(
+        `Cannot hard delete student '${student.name}' (${student.admissionNo}): Financial payment receipts or paid fee transactions exist. Hard deletion is strictly restricted to initial registrations without payment transactions.`
+      );
+    }
+
+    // 3. Release any active hostel bed
+    if (student.activeHostelEnrollments && student.activeHostelEnrollments.length > 0) {
+      for (const he of student.activeHostelEnrollments) {
+        if (he.bedId) {
+          await tx.hostelBed.update({
+            where: { id: he.bedId },
+            data: { status: 'AVAILABLE' },
+          });
+        }
+      }
+    }
+
+    // 4. Cascade delete associated initial stage records
+    await tx.studentFeeCharge.deleteMany({ where: { studentId } });
+    await tx.studentFeeOverride.deleteMany({ where: { studentId } });
+    await tx.hostelEnrollment.deleteMany({ where: { studentId } });
+    await tx.studentHostelEnrollment.deleteMany({ where: { studentId } });
+    await tx.studentEnrollment.deleteMany({ where: { studentId } });
+
+    // 5. Delete Student record
+    await tx.student.delete({ where: { id: studentId } });
+
+    // 6. Delete Cloudinary photo if exists
+    if (student.photoUrl) {
+      deleteCloudinaryImage(student.photoUrl).catch((err) => {
+        console.warn(`[Cloudinary Warning] Failed to delete photo during student hard delete (${student.photoUrl}):`, err.message);
+      });
+    }
+
+    // 7. Audit log entry
+    if (actorUserId) {
+      await tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: actorUserId,
+          action: 'DELETE_STUDENT_HARD',
+          entityType: 'Student',
+          entityId: studentId,
+          newValues: {
+            admissionNo: student.admissionNo,
+            name: student.name,
+            deletedAt: new Date().toISOString(),
+          },
+        },
+      });
+    }
+
+    return {
+      success: true,
+      message: `Student '${student.name}' (${student.admissionNo}) hard deleted successfully. Admission number released.`,
     };
   });
 };

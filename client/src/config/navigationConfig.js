@@ -92,8 +92,7 @@ export const getSidebarNavigation = ({ isSubscriptionActive, isOwner, _hasFullAc
       items: [
         { label: 'Overview', path: '/app/hostel', icon: LayoutDashboard, end: true, permission: 'HOSTEL_VIEW' },
         { label: 'Residents', path: '/app/hostel/residents', icon: Users, permission: 'HOSTEL_VIEW' },
-        { label: 'Admission', path: '/app/hostel/admission', icon: UserPlus, permission: 'HOSTEL_ADMIT' },
-        { label: 'Fees', path: '/app/hostel/fees', icon: CreditCard, permission: 'HOSTEL_SETUP' },
+        { label: 'Hostel Fees', path: '/app/hostel/fees', icon: CreditCard, permission: 'HOSTEL_SETUP' },
         { label: 'Rooms & Beds', path: '/app/hostel/setup', icon: Settings, permission: 'HOSTEL_SETUP' },
         { label: 'Reports', path: '/app/hostel/reports', icon: BarChart3, permission: 'HOSTEL_VIEW' },
       ],

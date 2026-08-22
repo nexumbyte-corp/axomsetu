@@ -28,6 +28,16 @@
   * {
     -webkit-overflow-scrolling: touch;
   }
+
+  /* Safe interactive touch sizing for mobile devices */
+  @media (max-width: 640px) {
+    html {
+      font-size: 15px;
+    }
+    input, select, textarea, button {
+      font-size: 16px !important; /* Prevents auto-zoom on iOS inputs */
+    }
+  }
 }
 
 /* Custom scrollbar for tables, sidebars, and drawers */
@@ -54,6 +64,7 @@
 .table-responsive-wrapper {
   position: relative;
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: 0.75rem;
@@ -67,23 +78,30 @@
   background: #a5b4fc;
 }
 
-/* Scroll Hint Overlay Shadow for Table Overflow on Tablets */
+/* Scroll Hint Overlay Shadow for Table Overflow on Mobile/Tablets */
 .table-scroll-hint {
-  background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(241, 245, 249, 0.8));
+  background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(241, 245, 249, 0.85));
   pointer-events: none;
 }
 
-/* Scrollable Tab Navigation Bar for Tablets */
+/* Scrollable Tab Navigation Bar for Tablets & Mobile */
 .tab-scroll-container {
   display: flex;
   overflow-x: auto;
   white-space: nowrap;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  touch-action: pan-x;
 }
 
 .tab-scroll-container::-webkit-scrollbar {
   display: none;
+}
+
+/* Touch-optimized active touch feedback */
+.active-touch-feedback:active {
+  transform: scale(0.98);
+  opacity: 0.9;
 }
 
 /* Printable Receipt Rules */
@@ -120,4 +138,5 @@
     box-shadow: none !important;
   }
 }
+
 

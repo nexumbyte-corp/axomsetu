@@ -489,6 +489,7 @@ model Student {
   id           String        @id @default(uuid()) @db.Uuid
   schoolId     String        @map("school_id") @db.Uuid
   admissionNo  String        @map("admission_no")
+  admissionDate DateTime?    @map("admission_date") @db.Date
   name         String
   guardianName String        @map("guardian_name")
   phone        String?

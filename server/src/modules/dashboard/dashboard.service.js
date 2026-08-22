@@ -319,7 +319,7 @@ export const dashboardService = {
    * @param {string} schoolId
    * @param {object} query - { date, academicYearId }
    */
-  async getTodayCollection(schoolId, query = {}) {
+  async getDailyCollection(schoolId, query = {}) {
     const { academicYearId, date } = query;
     const { startOfDay, endOfDay, dateStr: formattedDateString } = getISTDayBounds(date);
 
@@ -416,6 +416,10 @@ export const dashboardService = {
       modeBreakdown,
       payments,
     };
+  },
+
+  async getTodayCollection(schoolId, query = {}) {
+    return this.getDailyCollection(schoolId, query);
   },
 };
 

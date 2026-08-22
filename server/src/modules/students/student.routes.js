@@ -36,6 +36,7 @@ router.get('/:studentId/outstanding', requirePermission(PERMISSIONS.FEES_VIEW), 
 router.get('/:studentId', requirePermission(PERMISSIONS.STUDENTS_VIEW), studentController.getStudentDetails);
 router.patch('/:studentId', requirePermission(PERMISSIONS.STUDENTS_EDIT), studentController.updateStudentProfile);
 router.patch('/:studentId/status', requirePermission(PERMISSIONS.STUDENTS_EDIT), studentController.updateStudentStatus);
+router.delete('/:studentId', requirePermission(PERMISSIONS.STUDENTS_DELETE), studentController.deleteStudentHard);
 
 // 5. Enrollment Operations
 router.patch('/:studentId/enrollments/:enrollmentId', requirePermission(PERMISSIONS.STUDENTS_EDIT), studentController.updateEnrollment);

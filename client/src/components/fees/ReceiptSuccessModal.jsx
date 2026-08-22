@@ -1,26 +1,50 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, FileText, Printer, PlusCircle } from 'lucide-react';
+import { CheckCircle2, FileText, Printer, PlusCircle, Loader2 } from 'lucide-react';
 import { Modal } from '../ui/Modal.jsx';
 import { Button } from '../ui/Button.jsx';
 import { Badge } from '../ui/Badge.jsx';
+import { paymentService } from '../../services/payment.service.js';
+import { printPdfDocument } from '../../core/documents/documentEngine.js';
+import { toast } from '../ui/Toast.jsx';
 
 export const ReceiptSuccessModal = ({ isOpen, onClose, resultData, onCollectAnother }) => {
   const navigate = useNavigate();
+  const [isPrinting, setIsPrinting] = useState(false);
 
   if (!resultData) return null;
 
-  const { paymentId, receiptNumber, receivedAmount, paymentMode } = resultData;
+  const targetId = resultData.paymentId || resultData.id;
+  const { receiptNumber, receivedAmount, paymentMode } = resultData;
   const amount = Number(receivedAmount || 0);
 
   const handleViewReceipt = () => {
     onClose();
-    navigate(`/app/fees/receipts/${paymentId}`);
+    if (targetId) {
+      navigate(`/app/fees/receipts/${targetId}`);
+    }
   };
 
-  const handlePrintReceipt = () => {
-    onClose();
-    navigate(`/app/fees/receipts/${paymentId}?print=true`);
+  const handlePrintReceipt = async () => {
+    if (!targetId) {
+      toast.error('Unable to locate receipt ID for printing');
+      return;
+    }
+    setIsPrinting(true);
+    try {
+      const res = await paymentService.getReceiptReprint(targetId);
+      const receiptData = res.data || res;
+      await printPdfDocument({
+        templateId: 'receipt',
+        data: receiptData,
+        options: { copyLabel: 'Dual Copy' },
+      });
+    } catch (err) {
+      console.error('Failed to print receipt:', err);
+      toast.error('Unable to print receipt. Please try again.');
+    } finally {
+      setIsPrinting(false);
+    }
   };
 
   return (
@@ -63,17 +87,21 @@ export const ReceiptSuccessModal = ({ isOpen, onClose, resultData, onCollectAnot
 
         {/* Action Buttons */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
-          <Button variant="outline" size="sm" onClick={handleViewReceipt}>
+          <Button variant="outline" size="sm" onClick={handleViewReceipt} disabled={isPrinting}>
             <FileText className="w-4 h-4 mr-1.5" />
             View Receipt
           </Button>
 
-          <Button variant="secondary" size="sm" onClick={handlePrintReceipt}>
-            <Printer className="w-4 h-4 mr-1.5" />
-            Print Receipt
+          <Button variant="secondary" size="sm" onClick={handlePrintReceipt} disabled={isPrinting}>
+            {isPrinting ? (
+              <Loader2 className="w-4 h-4 mr-1.5 animate-spin text-slate-600" />
+            ) : (
+              <Printer className="w-4 h-4 mr-1.5" />
+            )}
+            {isPrinting ? 'Printing...' : 'Print Receipt'}
           </Button>
 
-          <Button variant="primary" size="sm" onClick={onCollectAnother}>
+          <Button variant="primary" size="sm" onClick={onCollectAnother} disabled={isPrinting}>
             <PlusCircle className="w-4 h-4 mr-1.5" />
             New Payment
           </Button>

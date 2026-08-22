@@ -1862,6 +1862,21 @@ export const exitStudent = async (schoolId, payload, actorUserId) => {
       throw ApiError.badRequest('Student is not in an active hostel enrollment');
     }
 
+    // Validate exitDate against start date
+    const startD = new Date(enrollment.startDate);
+    startD.setHours(0, 0, 0, 0);
+
+    const exitD = exitDate ? new Date(exitDate) : new Date();
+    if (isNaN(exitD.getTime())) {
+      throw ApiError.badRequest('Invalid hostel exit date provided');
+    }
+    exitD.setHours(0, 0, 0, 0);
+
+    if (exitD < startD) {
+      const formattedStart = startD.toISOString().split('T')[0];
+      throw ApiError.badRequest(`Exit date cannot be before hostel start date (${formattedStart})`);
+    }
+
     // 1. Release bed to AVAILABLE
     await tx.hostelBed.update({
       where: { id: enrollment.bedId },
@@ -2167,6 +2182,7 @@ export const getHostelReports = async (schoolId, reportType, query = {}) => {
               id: true,
               name: true,
               admissionNo: true,
+              admissionDate: true,
               photoUrl: true,
               guardianName: true,
               phone: true,
@@ -2193,6 +2209,8 @@ export const getHostelReports = async (schoolId, reportType, query = {}) => {
         const sc = x.student?.enrollments?.[0];
         return {
           id: x.id,
+          admissionDate: x.student?.admissionDate,
+          effectiveDate: x.startDate,
           startDate: x.startDate,
           endDate: x.endDate,
           exitReason: x.exitReason,

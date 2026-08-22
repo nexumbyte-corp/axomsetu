@@ -242,10 +242,6 @@ export const PassportPhotoCropModal = ({ isOpen, onClose, file, onCropSuccess })
               {Math.round(zoom * 100)}%
             </span>
           </div>
-
-          <p className="text-[11px] text-slate-500 mt-2 text-center">
-            Photo will be automatically compressed to <strong>&le; 20KB</strong> & stored securely on Cloudinary.
-          </p>
         </div>
 
         {/* Modal Footer Actions */}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Sparkles, UserCheck, UserX, Lock, Phone, MapPin, User, ShieldAlert, AlertCircle, FileText, RefreshCw, Building2 } from 'lucide-react';
+import { ArrowLeft, Edit, Sparkles, UserCheck, UserX, Lock, Phone, MapPin, User, ShieldAlert, AlertCircle, FileText, RefreshCw, Building2, Trash2 } from 'lucide-react';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
+import { usePermission } from '../../hooks/usePermission.js';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
 import { paymentService } from '../../services/payment.service.js';
@@ -31,6 +32,7 @@ export const StudentDetailsPage = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
   const { selectedYear, selectedYearId, academicYears } = useAcademicYear();
+  const { can } = usePermission();
 
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -157,7 +159,7 @@ export const StudentDetailsPage = () => {
         <Alert variant="danger" icon={ShieldAlert} title="Unable to load profile">
           {error}
         </Alert>
-        <Button variant="outline" onClick={fetchStudentData} icon={RefreshCw}>
+        <Button variant="outline" size="sm" onClick={fetchStudentData} icon={RefreshCw}>
           Retry Loading Profile
         </Button>
       </div>
@@ -201,6 +203,20 @@ export const StudentDetailsPage = () => {
     }
   };
 
+  const handleDeleteStudentHard = async () => {
+    try {
+      setStatusUpdating(true);
+      const res = await studentService.deleteStudentHard(studentId);
+      toast.success(res.message || `Student '${student.name}' deleted successfully.`);
+      setActiveModal(null);
+      navigate('/app/students');
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete student.');
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
+
   const formatCurrency = (amount) => {
     return `₹${parseFloat(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
   };
@@ -217,7 +233,7 @@ export const StudentDetailsPage = () => {
         description={`Admission No: ${student.admissionNo}`}
 
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -250,7 +266,7 @@ export const StudentDetailsPage = () => {
             <Dropdown
               align="right"
               trigger={
-                <button className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700">
+                <button className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 whitespace-nowrap cursor-pointer">
                   Actions ▾
                 </button>
               }
@@ -312,6 +328,18 @@ export const StudentDetailsPage = () => {
                   Reactivate Student
                 </DropdownItem>
               )}
+              {can('STUDENTS_DELETE') && (
+                <>
+                  <DropdownDivider />
+                  <DropdownItem
+                    icon={Trash2}
+                    danger
+                    onClick={() => setActiveModal('DELETE_HARD')}
+                  >
+                    Hard Delete Student
+                  </DropdownItem>
+                </>
+              )}
             </Dropdown>
           </div>
         }
@@ -355,6 +383,11 @@ export const StudentDetailsPage = () => {
                   <Badge variant="purple" size="sm" className="font-semibold">
                     <Building2 className="w-3 h-3 mr-1 inline" />
                     Hostel Resident
+                  </Badge>
+                ) : student.hostel?.status === 'EXITED' ? (
+                  <Badge variant="warning" size="sm" className="font-semibold">
+                    <Building2 className="w-3 h-3 mr-1 inline" />
+                    Exited Hosteller
                   </Badge>
                 ) : (
                   <Badge variant="neutral" size="sm">Day Scholar</Badge>
@@ -414,7 +447,7 @@ export const StudentDetailsPage = () => {
                 </div>
                 <div>
                   <span className="text-slate-400 font-bold uppercase text-[10px] block">Admission Date</span>
-                  <span className="font-semibold text-slate-800">{formatDate(student.createdAt)}</span>
+                  <span className="font-semibold text-slate-800">{formatDate(student.admissionDate || student.createdAt)}</span>
                 </div>
               </div>
 
@@ -509,6 +542,29 @@ export const StudentDetailsPage = () => {
                     <div>
                       <span className="text-slate-400 font-bold uppercase text-[10px] block">Hostel Admission Date</span>
                       <span className="font-semibold text-slate-700">{formatDate(student.hostel.startDate)}</span>
+                    </div>
+                  )}
+                </div>
+              ) : student.hostel?.status === 'EXITED' ? (
+                <div className="space-y-2.5 bg-amber-50/50 p-3 rounded-xl border border-amber-200">
+                  <div className="flex items-center justify-between pb-2 border-b border-amber-200">
+                    <span className="font-bold text-slate-900 text-xs">{student.hostel.hostelName}</span>
+                    <Badge variant="warning" size="sm">HOSTEL EXITED</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Previous Room & Bed</span>
+                      <span className="font-semibold text-slate-800">Room {student.hostel.roomNumber} ({student.hostel.bedNumber})</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Exit Date</span>
+                      <span className="font-semibold text-rose-700 font-mono">{formatDate(student.hostel.endDate)}</span>
+                    </div>
+                  </div>
+                  {student.hostel.exitReason && (
+                    <div>
+                      <span className="text-slate-400 font-bold uppercase text-[10px] block">Exit Reason</span>
+                      <span className="font-medium text-slate-700 italic">{student.hostel.exitReason}</span>
                     </div>
                   )}
                 </div>
@@ -883,6 +939,20 @@ export const StudentDetailsPage = () => {
         confirmText="Update Status"
         loading={statusUpdating}
         loadingText="Updating..."
+      />
+
+      {/* Hard Delete Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={activeModal === 'DELETE_HARD'}
+        onClose={() => setActiveModal(null)}
+        onConfirm={handleDeleteStudentHard}
+        title={`Hard Delete Student (${student.name})`}
+        message={`Are you sure you want to permanently hard-delete '${student.name}' (Adm No: ${student.admissionNo})? All initial registration records will be completely removed from the database. (Hard deletion is allowed for initial registrations without paid fee receipts).`}
+        confirmText="Hard Delete Permanently"
+        cancelText="Cancel"
+        variant="danger"
+        loading={statusUpdating}
+        loadingText="Deleting..."
       />
     </div>
 

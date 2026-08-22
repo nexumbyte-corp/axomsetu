@@ -53,9 +53,9 @@ export const studentReportsService = {
           stream: { select: { id: true, name: true } },
         },
         orderBy: [
+          { student: { name: 'asc' } },
           { class: { order: 'asc' } },
           { rollNo: 'asc' },
-          { student: { name: 'asc' } },
         ],
         skip,
         take: Number(limit),
@@ -155,7 +155,7 @@ export const studentReportsService = {
         medium: { select: { name: true } },
         stream: { select: { name: true } },
       },
-      orderBy: [{ rollNo: 'asc' }, { student: { name: 'asc' } }],
+      orderBy: [{ student: { name: 'asc' } }, { rollNo: 'asc' }],
     });
 
     const enrollmentMap = new Map();

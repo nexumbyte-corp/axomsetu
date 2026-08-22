@@ -8,11 +8,16 @@ import { DatePicker } from '../ui/DatePicker.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { toast } from '../ui/Toast.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
+import { formatDate } from '../../utils/formatters.js';
 
 export const HostelExitModal = ({ isOpen, onClose, resident, onSuccess }) => {
   const [exitDate, setExitDate] = useState(new Date().toISOString().split('T')[0]);
   const [exitReason, setExitReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const minExitDate = resident?.startDate
+    ? new Date(resident.startDate).toISOString().split('T')[0]
+    : '';
 
   useEffect(() => {
     if (isOpen) {
@@ -29,6 +34,10 @@ export const HostelExitModal = ({ isOpen, onClose, resident, onSuccess }) => {
     }
     if (!exitDate) {
       toast.error('Please specify exit date');
+      return;
+    }
+    if (minExitDate && exitDate < minExitDate) {
+      toast.error(`Exit date cannot be before hostel admission start date (${minExitDate})`);
       return;
     }
 
@@ -72,6 +81,11 @@ export const HostelExitModal = ({ isOpen, onClose, resident, onSuccess }) => {
           <p className="text-slate-800 font-medium pt-1">
             Current Bed: <strong>{resident.hostelName}</strong> → Room <strong>{resident.roomNumber}</strong> ({resident.bedNumber})
           </p>
+          {resident.startDate && (
+            <p className="text-slate-500 text-[11px] pt-0.5 font-mono">
+              Hostel Admission Start Date: <strong className="text-slate-700">{formatDate(resident.startDate)}</strong>
+            </p>
+          )}
         </div>
 
         <div className="p-3 bg-rose-50 rounded-xl border border-rose-100 flex items-start space-x-2.5 text-xs text-rose-800">
@@ -85,6 +99,7 @@ export const HostelExitModal = ({ isOpen, onClose, resident, onSuccess }) => {
           label="Hostel Exit Date *"
           value={exitDate}
           onChange={(val) => setExitDate(val)}
+          minDate={minExitDate}
           required
         />
 

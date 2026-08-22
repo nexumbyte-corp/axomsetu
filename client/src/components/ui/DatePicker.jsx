@@ -401,7 +401,7 @@ export const DatePicker = ({
               backgroundColor: '#ffffff',
               zIndex: 99999,
             }}
-            className="w-76 sm:w-80 rounded-2xl shadow-2xl border border-slate-200 p-3.5 animate-in fade-in zoom-in-95 duration-100 text-slate-900 bg-white"
+            className="w-72 xs:w-76 sm:w-80 max-w-[calc(100vw-1.5rem)] rounded-2xl shadow-2xl border border-slate-200 p-3 sm:p-3.5 animate-in fade-in zoom-in-95 duration-100 text-slate-900 bg-white"
           >
           {/* Header Bar */}
           <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-100">

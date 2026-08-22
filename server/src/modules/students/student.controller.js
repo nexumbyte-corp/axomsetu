@@ -122,3 +122,13 @@ export const bulkPromoteStudents = asyncHandler(async (req, res) => {
   });
 });
 
+export const deleteStudentHard = asyncHandler(async (req, res) => {
+  const result = await studentService.deleteStudentHard(req.schoolId, req.params.studentId, req.user?.id);
+
+  res.status(200).json({
+    success: true,
+    message: result.message,
+    data: result,
+  });
+});
+

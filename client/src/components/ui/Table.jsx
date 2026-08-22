@@ -2,7 +2,7 @@ import React from 'react';
 
 export const Table = ({ children, className = '', minWidth = 'min-w-[640px]', ...props }) => {
   return (
-    <div className="relative w-full overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
+    <div className="relative w-full max-w-full overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs table-responsive-wrapper">
       <table className={`w-full text-left text-sm border-collapse ${minWidth} ${className}`} {...props}>
         {children}
       </table>

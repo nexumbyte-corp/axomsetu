@@ -51,5 +51,10 @@ export const studentService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  // 10. Hard Delete Student (Initial Stage Only)
+  deleteStudentHard: async (studentId) => {
+    return await api.delete(`/students/${studentId}`);
+  },
 };
 

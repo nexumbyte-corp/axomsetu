@@ -137,7 +137,7 @@ export const SchoolAdminLayout = () => {
               onClick={() => toggleGroup(group.id, isExpanded)}
               aria-expanded={isExpanded}
               aria-controls={`nav-group-${group.id}`}
-              className="w-full flex items-center justify-between px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-600 transition-colors rounded-md hover:bg-slate-50 cursor-pointer"
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-slate-600 transition-colors rounded-md hover:bg-slate-50 cursor-pointer"
             >
               <span>{group.title}</span>
               <ChevronDown
@@ -160,7 +160,7 @@ export const SchoolAdminLayout = () => {
                   return (
                     <div
                       key={item.label}
-                      className="flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg text-slate-400 opacity-60 cursor-not-allowed select-none"
+                      className="flex items-center justify-between px-3 py-2.5 sm:py-2 text-xs font-semibold rounded-lg text-slate-400 opacity-60 cursor-not-allowed select-none"
                       title="Module coming soon"
                     >
                       <div className="flex items-center gap-3">
@@ -191,7 +191,7 @@ export const SchoolAdminLayout = () => {
                       <button
                         type="button"
                         onClick={(e) => toggleSubMenu(item.label, e)}
-                        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                        className={`w-full flex items-center justify-between px-3 py-2.5 sm:py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
                           isSubActive
                             ? 'bg-indigo-50 text-indigo-700 font-bold'
                             : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
@@ -222,7 +222,7 @@ export const SchoolAdminLayout = () => {
                               end={child.end}
                               onClick={onItemClick}
                               className={({ isActive }) =>
-                                `flex items-center gap-2.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                                `flex items-center gap-2.5 px-2.5 py-2 sm:py-1.5 text-xs font-semibold rounded-lg transition-colors ${
                                   isActive
                                     ? 'bg-indigo-600 text-white font-bold shadow-xs'
                                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -246,7 +246,7 @@ export const SchoolAdminLayout = () => {
                     end={item.end}
                     onClick={onItemClick}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-colors ${
+                      `flex items-center gap-3 px-3 py-2.5 sm:py-2 text-xs font-semibold rounded-lg transition-colors ${
                         isActive
                           ? 'bg-indigo-50 text-indigo-700 font-bold'
                           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -306,30 +306,30 @@ const getPageTitle = (locationPath, headerTitle) => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-2xs h-16 flex items-center px-3 sm:px-6">
-        <div className="flex items-center justify-between w-full gap-2 sm:gap-4">
+      <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-2xs h-16 flex items-center px-2.5 sm:px-6">
+        <div className="flex items-center justify-between w-full gap-1.5 sm:gap-4">
           {/* Left Side: Branding Hierarchy */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <button
               onClick={() => setIsMobileNavOpen(true)}
-              className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
+              className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
               aria-label="Toggle navigation menu"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <Link to="/app" className="flex items-center gap-2 sm:gap-3">
+            <Link to="/app" className="flex items-center gap-1.5 sm:gap-3">
               <SchoolHeaderLogo logoUrl={schoolLogoUrl} schoolName={schoolName} />
               <div className="flex flex-col justify-center">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-black tracking-wider text-indigo-600 uppercase">
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] sm:text-xs font-black tracking-wider text-indigo-600 uppercase">
                     {BRAND_CONFIG.productName}
                   </span>
-                  <span className="text-slate-300 font-normal">|</span>
-                  <h1 className="text-xs font-bold text-slate-900 truncate max-w-[100px] sm:max-w-[140px] lg:max-w-[180px]">
+                  <span className="text-slate-300 font-normal hidden sm:inline">|</span>
+                  <h1 className="text-xs font-bold text-slate-900 truncate hidden sm:block max-w-[120px] md:max-w-[150px] lg:max-w-[180px]">
                     {schoolName}
                   </h1>
                 </div>
-                <span className="text-[10px] text-slate-400 font-medium tracking-tight">
+                <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium tracking-tight hidden sm:block">
                   {BRAND_CONFIG.poweredBy}
                 </span>
               </div>
@@ -337,9 +337,9 @@ const getPageTitle = (locationPath, headerTitle) => {
           </div>
 
           {/* Center: Dynamic Route-Aware Page Title & Page Actions */}
-          <div className="flex items-center gap-3 min-w-0 flex-1 justify-start md:justify-center px-1 sm:px-3">
+          <div className="hidden sm:flex items-center gap-3 min-w-0 flex-1 justify-center px-1 sm:px-3">
             <div className="flex items-center gap-2 min-w-0">
-              <h2 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-wide truncate">
+              <h2 className="text-xs sm:text-sm md:text-base font-extrabold text-slate-900 tracking-wide truncate">
                 {activePageTitle}
               </h2>
             </div>
@@ -351,11 +351,11 @@ const getPageTitle = (locationPath, headerTitle) => {
           </div>
 
           {/* Right Side: Global Controls */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Dynamic Support Button */}
             <button
               onClick={() => setIsSupportOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-2xs cursor-pointer"
+              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors shadow-2xs cursor-pointer"
               title="Platform Help & Support"
             >
               <HelpCircle className="w-4 h-4 text-indigo-600 shrink-0" />
@@ -367,9 +367,11 @@ const getPageTitle = (locationPath, headerTitle) => {
                 <Dropdown
                   align="right"
                   trigger={
-                    <button className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors cursor-pointer">
+                    <button className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors cursor-pointer">
                       <Calendar className="w-4 h-4 text-indigo-600 shrink-0" />
-                      <span className="truncate max-w-[90px] sm:max-w-[130px] font-bold">{selectedYear ? selectedYear.name : 'Select Year'}</span>
+                      <span className="truncate max-w-[65px] xs:max-w-[90px] sm:max-w-[130px] font-bold">
+                        {selectedYear ? selectedYear.name : 'Year'}
+                      </span>
                       {selectedYear?.isCurrent && (
                         <span className="hidden md:inline-block px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800">
                           Current

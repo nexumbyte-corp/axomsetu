@@ -12,15 +12,14 @@ export const receiptService = {
    * @param {string} params.schoolId
    * @param {string} [params.academicYearId]
    * @param {string} [params.academicYearName]
-   * @returns {Promise<string>} e.g. "RCPT-2026-000001" or "RCPT/2026-27/000001"
+   * @returns {Promise<string>} e.g. "RCPT/2026-27/000009"
    */
-  async generateReceiptNumber(tx, { schoolId, academicYearId, academicYearName = '' }) {
+  async generateReceiptNumber(tx, { schoolId, academicYearId, academicYearName }) {
     return generateNextDocumentNumber(tx, {
       schoolId,
       academicYearId,
       academicYearName,
       documentType: 'FEE_RECEIPT',
-      prefix: 'RCPT',
     });
   },
 };
