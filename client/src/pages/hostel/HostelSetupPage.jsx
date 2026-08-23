@@ -630,7 +630,7 @@ export const HostelSetupPage = () => {
         onClose={() => setHostelModalOpen(false)}
         title={editingHostel ? 'Edit Hostel' : 'Add New Hostel'}
       >
-        <form onSubmit={handleSubmitHostel} className="space-y-3">
+        <form onSubmit={handleSubmitHostel} autoComplete="off" className="space-y-3">
           <Input
             label="Hostel Name *"
             placeholder="Enter Hostel Name (e.g. Boys Hostel Alpha)"
@@ -678,7 +678,7 @@ export const HostelSetupPage = () => {
         onClose={() => setRoomModalOpen(false)}
         title={editingRoom ? 'Edit Room' : 'Add New Room'}
       >
-        <form onSubmit={handleSubmitRoom} className="space-y-3">
+        <form onSubmit={handleSubmitRoom} autoComplete="off" className="space-y-3">
           <Select
             label="Hostel *"
             value={roomForm.hostelId}
@@ -745,7 +745,7 @@ export const HostelSetupPage = () => {
         onClose={() => setBedModalOpen(false)}
         title="Add Single Bed"
       >
-        <form onSubmit={handleSubmitBed} className="space-y-3">
+        <form onSubmit={handleSubmitBed} autoComplete="off" className="space-y-3">
           <Select
             label="Hostel *"
             value={bedForm.hostelId}
@@ -791,7 +791,7 @@ export const HostelSetupPage = () => {
         onClose={() => setBulkBedModalOpen(false)}
         title="Bulk Generate Beds"
       >
-        <form onSubmit={handleSubmitBulkBeds} className="space-y-3">
+        <form onSubmit={handleSubmitBulkBeds} autoComplete="off" className="space-y-3">
           <Select
             label="Hostel *"
             value={bulkBedForm.hostelId}

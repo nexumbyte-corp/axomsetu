@@ -111,7 +111,7 @@ const AddUserPanel = ({ isOpen, onClose, onSuccess }) => {
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
         {error && (
           <div className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 border border-rose-100">
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
@@ -123,7 +123,7 @@ const AddUserPanel = ({ isOpen, onClose, onSuccess }) => {
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">Full Name *</label>
             <input
-              type="text" required value={form.name}
+              type="text" required autoComplete="off" value={form.name}
               onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="Enter user full name"
               className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
@@ -132,7 +132,7 @@ const AddUserPanel = ({ isOpen, onClose, onSuccess }) => {
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">Email Address *</label>
             <input
-              type="email" required value={form.email}
+              type="email" required autoComplete="off" value={form.email}
               onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
               placeholder="Enter email address"
               className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
@@ -141,7 +141,7 @@ const AddUserPanel = ({ isOpen, onClose, onSuccess }) => {
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">Phone Number</label>
             <input
-              type="tel" value={form.phone}
+              type="tel" autoComplete="off" value={form.phone}
               onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))}
               placeholder="Enter 10-digit phone number"
               className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
@@ -150,7 +150,7 @@ const AddUserPanel = ({ isOpen, onClose, onSuccess }) => {
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">Role Type *</label>
             <select
-              value={form.schoolRole}
+              value={form.schoolRole} autoComplete="off"
               onChange={(e) => setForm(f => ({ ...f, schoolRole: e.target.value }))}
               className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
             >
@@ -161,7 +161,7 @@ const AddUserPanel = ({ isOpen, onClose, onSuccess }) => {
           <div className="sm:col-span-2">
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">Initial Password *</label>
             <input
-              type="password" required minLength={6} value={form.password}
+              type="password" required minLength={6} autoComplete="new-password" value={form.password}
               onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))}
               placeholder="Minimum 6 characters"
               className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
@@ -400,6 +400,7 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
+            autoComplete="off"
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
             placeholder="Search permissions by keyword (e.g. fees, admissions, payroll)..."
@@ -659,6 +660,7 @@ export const SchoolUsersPage = () => {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
+            autoComplete="off"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by user name, email, or phone..."

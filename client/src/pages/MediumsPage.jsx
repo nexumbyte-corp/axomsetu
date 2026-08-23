@@ -163,7 +163,7 @@ export const MediumsPage = () => {
       >
         {formError && <Alert type="danger" className="mb-4">{formError}</Alert>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
           <Input
             label="Medium Name"
             placeholder="e.g. English, Assamese, Hindi, Bengali"

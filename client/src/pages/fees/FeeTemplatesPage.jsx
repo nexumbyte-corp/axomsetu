@@ -467,6 +467,7 @@ export const FeeTemplatesPage = () => {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
+            autoComplete="off"
             placeholder="Search by class, medium, or stream..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -719,6 +720,7 @@ export const FeeTemplatesPage = () => {
                         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-mono">₹</span>
                         <input
                           type="number"
+                          autoComplete="off"
                           min="0"
                           step="0.01"
                           value={head.amount}
@@ -906,6 +908,7 @@ export const FeeTemplatesPage = () => {
                                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] font-mono">₹</span>
                                 <input
                                   type="number"
+                                  autoComplete="off"
                                   min="0"
                                   step="0.01"
                                   value={h.amount}

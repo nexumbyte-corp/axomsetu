@@ -260,7 +260,7 @@ export const EditStudentProfilePage = () => {
         onCropSuccess={handlePhotoCropSuccess}
       />
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} autoComplete="off">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* LEFT SIDE: Student Profile Form (7 Cols) */}
           <div className="lg:col-span-7 space-y-5">
@@ -382,6 +382,7 @@ export const EditStudentProfilePage = () => {
                       <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
                       <input
                         type="tel"
+                        autoComplete="off"
                         maxLength={10}
                         placeholder="10-digit mobile number"
                         disabled={submitting}
@@ -453,6 +454,7 @@ export const EditStudentProfilePage = () => {
                     {formData.caste === 'OTHER' && (
                       <input
                         type="text"
+                        autoComplete="off"
                         placeholder="Specify Caste / Category"
                         value={formData.customCaste}
                         onChange={(e) => setFormData({ ...formData, customCaste: e.target.value })}

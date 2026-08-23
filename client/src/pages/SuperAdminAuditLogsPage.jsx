@@ -91,7 +91,7 @@ export const SuperAdminAuditLogsPage = () => {
 
       {/* Read-Only Filter & Search Bar */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-        <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <form onSubmit={handleSearchSubmit} autoComplete="off" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="lg:col-span-2">
             <Input
               placeholder="Search action, entity, user, or IP address..."

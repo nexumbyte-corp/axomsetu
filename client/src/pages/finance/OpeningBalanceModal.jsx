@@ -52,7 +52,7 @@ export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Set Opening Financial Balance" size="md">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
         <div className="bg-indigo-50 border border-indigo-100 p-3.5 rounded-xl flex items-start gap-3 text-xs text-indigo-900">
           <Landmark className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
           <div>

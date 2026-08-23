@@ -354,7 +354,7 @@ export const ExpensesPage = () => {
 
       {/* Add Expense Form Modal */}
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add School Expense" size="md">
-        <form onSubmit={handleCreateExpense} className="space-y-4">
+        <form onSubmit={handleCreateExpense} autoComplete="off" className="space-y-4">
           {formError && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-lg">
               {formError}
@@ -439,7 +439,7 @@ export const ExpensesPage = () => {
       <Modal isOpen={isCategoriesModalOpen} onClose={() => setIsCategoriesModalOpen(false)} title="Manage Expense Categories" size="lg">
         <div className="space-y-5">
           {/* Add Category Form */}
-          <form onSubmit={handleCreateCategory} className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+          <form onSubmit={handleCreateCategory} autoComplete="off" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
             <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">+ Create New Category</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input

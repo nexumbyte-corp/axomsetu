@@ -42,7 +42,7 @@ export const PaymentForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 p-3 shadow-2xs space-y-2.5">
+    <form onSubmit={handleSubmit} autoComplete="off" className="bg-white rounded-xl border border-slate-200 p-3 shadow-2xs space-y-2.5">
       <div className="flex items-center justify-between pb-2 border-b border-slate-100">
         <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
           <CreditCard className="w-3.5 h-3.5 text-indigo-600" />
@@ -73,17 +73,19 @@ export const PaymentForm = ({
           <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Mode</label>
           <select
             value={paymentMode}
+            autoComplete="off"
             onChange={(e) => {
               setPaymentMode(e.target.value);
               setErrorMsg('');
             }}
             className="w-full py-1.5 px-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold text-slate-900"
           >
-            <option value="CASH">💵 CASH</option>
-            <option value="UPI">📱 UPI</option>
-            <option value="BANK_TRANSFER">🏦 BANK</option>
-            <option value="CHEQUE">📑 CHEQUE</option>
-            <option value="DEMAND_DRAFT">📄 DD</option>
+            <option value="CASH">Cash</option>
+            <option value="ONLINE">Online / UPI</option>
+            <option value="BANK_TRANSFER">Bank Transfer / NEFT</option>
+            <option value="CHEQUE">Cheque</option>
+            <option value="DD">Demand Draft</option>
+            <option value="POS">POS Card</option>
           </select>
         </div>
       </div>
@@ -95,6 +97,7 @@ export const PaymentForm = ({
         </label>
         <input
           type="text"
+          autoComplete="off"
           value={referenceNumber}
           onChange={(e) => {
             setReferenceNumber(e.target.value);
@@ -112,6 +115,7 @@ export const PaymentForm = ({
         <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Remarks</label>
         <input
           type="text"
+          autoComplete="off"
           value={remarks}
           onChange={(e) => setRemarks(e.target.value)}
           placeholder="Optional note..."

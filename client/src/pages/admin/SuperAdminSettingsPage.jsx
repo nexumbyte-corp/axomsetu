@@ -197,7 +197,7 @@ export const SuperAdminSettingsPage = () => {
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 shadow-2xs p-6 space-y-6">
+      <form onSubmit={handleSubmit} autoComplete="off" className="bg-white rounded-xl border border-slate-200 shadow-2xs p-6 space-y-6">
         {/* Section 1: General Settings */}
         {activeSection === 'general' && (
           <div className="space-y-4">

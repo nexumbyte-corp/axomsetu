@@ -107,6 +107,7 @@ export const SearchableStudentSelect = ({
           <input
             ref={searchInputRef}
             type="text"
+            autoComplete="off"
             value={isOpen || !selectedStudent ? searchTerm : `${selectedStudent.name} (${selectedStudent.admissionNo})`}
             onFocus={() => setIsOpen(true)}
             onChange={(e) => {

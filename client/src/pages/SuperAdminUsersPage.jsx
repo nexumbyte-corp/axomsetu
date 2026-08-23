@@ -208,7 +208,7 @@ export const SuperAdminUsersPage = () => {
 
       {/* Filter Bar */}
       <Card className="p-4 bg-white">
-        <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-center gap-3">
+        <form onSubmit={handleSearchSubmit} autoComplete="off" className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <Input
@@ -344,7 +344,7 @@ export const SuperAdminUsersPage = () => {
           title="Create New Super Admin Account"
           size="md"
         >
-          <form onSubmit={handleCreateSubmit} className="space-y-4">
+          <form onSubmit={handleCreateSubmit} autoComplete="off" className="space-y-4">
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
               <Input
@@ -408,7 +408,7 @@ export const SuperAdminUsersPage = () => {
           title={`Edit User Profile: ${selectedUser.name}`}
           size="md"
         >
-          <form onSubmit={handleEditSubmit} className="space-y-4">
+          <form onSubmit={handleEditSubmit} autoComplete="off" className="space-y-4">
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
               <Input
@@ -458,7 +458,7 @@ export const SuperAdminUsersPage = () => {
           title={`Change Role: ${selectedUser.email}`}
           size="md"
         >
-          <form onSubmit={handleRoleSubmit} className="space-y-4">
+          <form onSubmit={handleRoleSubmit} autoComplete="off" className="space-y-4">
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">Select Role *</label>
               <Select
@@ -491,7 +491,7 @@ export const SuperAdminUsersPage = () => {
           title={`Reset Password for ${selectedUser.email}`}
           size="md"
         >
-          <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+          <form onSubmit={handleResetPasswordSubmit} autoComplete="off" className="space-y-4">
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">New Password *</label>
               <Input

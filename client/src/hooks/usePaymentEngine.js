@@ -103,3 +103,20 @@ export const useVoidPayment = () => {
     },
   });
 };
+
+// 11. Mutation: Delete Unpaid Fee Charge (Admin Only)
+export const useDeleteUnpaidFeeCharge = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ chargeId }) => paymentService.deleteUnpaidFeeCharge(chargeId),
+    onSuccess: (res, variables) => {
+      queryClient.invalidateQueries({ queryKey: PAYMENT_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: PAYMENT_KEYS.dashboard() });
+      if (variables?.studentId) {
+        queryClient.invalidateQueries({ queryKey: PAYMENT_KEYS.studentOutstanding(variables.studentId) });
+        queryClient.invalidateQueries({ queryKey: PAYMENT_KEYS.studentLedger(variables.studentId) });
+      }
+    },
+  });
+};

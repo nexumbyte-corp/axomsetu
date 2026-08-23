@@ -517,7 +517,7 @@ export const SchoolProfilePage = () => {
       {activeTab === 'school' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <form onSubmit={handleSaveSchoolProfile} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-5">
+            <form onSubmit={handleSaveSchoolProfile} autoComplete="off" className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-5">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Institution Details</h3>
@@ -680,6 +680,7 @@ export const SchoolProfilePage = () => {
                   <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <textarea
                     rows={2}
+                    autoComplete="off"
                     value={schoolData.address}
                     onChange={(e) => setSchoolData({ ...schoolData, address: e.target.value })}
                     placeholder="Enter campus address"
@@ -820,7 +821,7 @@ export const SchoolProfilePage = () => {
             <p className="text-xs text-slate-500">Update your personal owner profile details.</p>
           </div>
 
-          <form onSubmit={handleSaveAccountProfile} className="space-y-4">
+          <form onSubmit={handleSaveAccountProfile} autoComplete="off" className="space-y-4">
             {/* User Avatar Circle */}
             <div className="flex items-center gap-4 py-2">
               <div className="w-16 h-16 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-black text-xl border-2 border-indigo-200 shrink-0">
@@ -934,7 +935,7 @@ export const SchoolProfilePage = () => {
             <p className="text-xs text-slate-500">Update your account login password to maintain system security.</p>
           </div>
 
-          <form onSubmit={handleChangePassword} className="space-y-4">
+          <form onSubmit={handleChangePassword} autoComplete="off" className="space-y-4">
             {/* Current Password */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -944,6 +945,7 @@ export const SchoolProfilePage = () => {
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type={showCurrentPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   value={passwordData.currentPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                   placeholder="Enter current password"
@@ -977,6 +979,7 @@ export const SchoolProfilePage = () => {
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type={showNewPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   value={passwordData.newPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                   placeholder="At least 8 characters"
@@ -1027,6 +1030,7 @@ export const SchoolProfilePage = () => {
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   value={passwordData.confirmPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                   placeholder="Re-enter new password"

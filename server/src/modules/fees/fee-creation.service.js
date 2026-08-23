@@ -73,8 +73,7 @@ export const ensureFeeCharge = async (txOrPrisma, candidate) => {
     studentEnrollmentId = enrollment.id;
   }
 
-  // 3. Duplicate Protection Check (Logical Identity including title)
-  const titleKey = (title || '').trim().toLowerCase();
+  // 3. Duplicate Protection Check
   let existingCharge = null;
   if (billingRule === 'ONE_TIME_PER_ACADEMIC_YEAR') {
     existingCharge = await tx.studentFeeCharge.findFirst({

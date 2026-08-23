@@ -31,6 +31,11 @@ export const paymentService = {
     return await api.post(`/payments/${id}/void`, data);
   },
 
+  // Delete Unpaid Fee Charge (Admin Only)
+  deleteUnpaidFeeCharge: async (chargeId) => {
+    return await api.delete(`/payments/charges/${chargeId}`);
+  },
+
   // Get Financial Dashboard Metrics
   getDashboardSummary: async (params = {}) => {
     return await api.get('/payments/dashboard', { params });

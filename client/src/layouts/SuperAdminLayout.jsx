@@ -274,11 +274,12 @@ export const SuperAdminLayout = () => {
         title="Change Platform Password"
         description="Update your Super Admin account security password."
       >
-        <form onSubmit={handleChangePassword} className="space-y-4">
+        <form onSubmit={handleChangePassword} autoComplete="off" className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Current Password *</label>
             <input
               type="password"
+              autoComplete="new-password"
               value={passwordForm.currentPassword}
               onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500"
@@ -289,6 +290,7 @@ export const SuperAdminLayout = () => {
             <label className="block text-xs font-semibold text-slate-700 mb-1">New Password (min 8 chars) *</label>
             <input
               type="password"
+              autoComplete="new-password"
               value={passwordForm.newPassword}
               onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500"
@@ -299,6 +301,7 @@ export const SuperAdminLayout = () => {
             <label className="block text-xs font-semibold text-slate-700 mb-1">Confirm New Password *</label>
             <input
               type="password"
+              autoComplete="new-password"
               value={passwordForm.confirmPassword}
               onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
               className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500"

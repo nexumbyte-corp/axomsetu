@@ -210,7 +210,7 @@ export const ClassesPage = () => {
       >
         {formError && <Alert type="danger" className="mb-4">{formError}</Alert>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
           <Input
             label="Class Name"
             placeholder="e.g. IX, X, XI, XII"

@@ -45,7 +45,7 @@ export const reportService = {
         fundSources: fundSourcesRes.status === 'fulfilled' ? fundSourcesRes.value?.data || [] : [],
         students: studentsRes.status === 'fulfilled' ? studentsRes.value?.data || [] : [],
       };
-    } catch {
+    } catch (err) {
       console.error('Failed to load filter options', err);
       return {};
     }

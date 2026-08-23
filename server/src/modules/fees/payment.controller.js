@@ -128,3 +128,14 @@ export const getStudentLedger = asyncHandler(async (req, res) => {
     data,
   });
 });
+
+export const deleteUnpaidFeeCharge = asyncHandler(async (req, res) => {
+  const { chargeId } = req.params;
+  const data = await paymentService.deleteUnpaidFeeCharge(req.schoolId, chargeId, req.user?.id);
+
+  res.status(200).json({
+    success: true,
+    message: data.message || 'Unpaid fee charge deleted successfully',
+    data,
+  });
+});

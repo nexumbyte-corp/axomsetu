@@ -121,11 +121,12 @@ export const FinancialTransactionsPage = () => {
               filename="Financial_Ledger_Statement.pdf"
               title="Financial Ledger Statement"
             />
-            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+            <form onSubmit={handleSearchSubmit} autoComplete="off" className="flex items-center gap-2">
               <div className="relative w-full sm:w-64">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
+                  autoComplete="off"
                   placeholder="Search ref #, description..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}

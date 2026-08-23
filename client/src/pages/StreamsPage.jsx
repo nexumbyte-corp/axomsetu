@@ -169,7 +169,7 @@ export const StreamsPage = () => {
       >
         {formError && <Alert type="danger" className="mb-4">{formError}</Alert>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
           <Input
             label="Stream Name"
             placeholder="e.g. Science, Arts, Commerce, Vocational"

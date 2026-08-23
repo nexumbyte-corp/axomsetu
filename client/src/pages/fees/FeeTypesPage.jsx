@@ -172,6 +172,7 @@ export const FeeTypesPage = () => {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
+            autoComplete="off"
             placeholder="Search fee types..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -275,7 +276,7 @@ export const FeeTypesPage = () => {
         title={editingType ? 'Edit Fee Type' : 'Add New Fee Type'}
         size="md"
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
           {formError && (
             <div className="p-3 text-xs rounded-lg bg-rose-50 border border-rose-200 text-rose-700">
               {formError}

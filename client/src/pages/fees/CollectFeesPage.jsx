@@ -4,8 +4,9 @@ import { StudentSummaryCard } from '../../components/fees/StudentSummaryCard.jsx
 import { OutstandingChargesTable } from '../../components/fees/OutstandingChargesTable.jsx';
 import { PaymentSummaryCard } from '../../components/fees/PaymentSummaryCard.jsx';
 import { PaymentForm } from '../../components/fees/PaymentForm.jsx';
+import { PaymentConfirmModal } from '../../components/fees/PaymentConfirmModal.jsx';
 import { ReceiptSuccessModal } from '../../components/fees/ReceiptSuccessModal.jsx';
-import { useStudentOutstanding, useCollectPayment } from '../../hooks/usePaymentEngine.js';
+import { useStudentOutstanding, useCollectPayment, useDeleteUnpaidFeeCharge } from '../../hooks/usePaymentEngine.js';
 import { toast } from '../../components/ui/Toast.jsx';
 
 import { StudentPickerTable } from '../../components/fees/StudentPickerTable.jsx';
@@ -14,6 +15,7 @@ export const CollectFeesPage = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedChargeIds, setSelectedChargeIds] = useState([]);
   const [paymentAmounts, setPaymentAmounts] = useState({});
+  const [confirmModalData, setConfirmModalData] = useState(null);
   const [successModalData, setSuccessModalData] = useState(null);
 
   // Fetch outstanding charges for selected student
@@ -24,6 +26,7 @@ export const CollectFeesPage = () => {
   } = useStudentOutstanding(selectedStudent?.id);
 
   const collectPaymentMutation = useCollectPayment();
+  const deleteChargeMutation = useDeleteUnpaidFeeCharge();
 
   const charges = outstandingRes?.data?.charges || outstandingRes?.charges || [];
   const outstandingSummary = outstandingRes?.data?.summary || outstandingRes?.summary || {};
@@ -114,7 +117,8 @@ export const CollectFeesPage = () => {
     return sum + (isNaN(amt) ? 0 : amt);
   }, 0);
 
-  const handleSubmitPayment = async (formValues) => {
+  // Open confirmation modal with payment breakdown
+  const handlePreSubmitPayment = (formValues) => {
     if (!selectedStudent) return;
     if (selectedChargeIds.length === 0) {
       toast.error('Please select at least one charge to collect.');
@@ -126,6 +130,14 @@ export const CollectFeesPage = () => {
       amount: parseFloat(paymentAmounts[id]),
     }));
 
+    const selectedChargesList = selectedChargeIds.map((id) => {
+      const ch = charges.find((c) => c.id === id);
+      return {
+        ...ch,
+        payingAmount: parseFloat(paymentAmounts[id]),
+      };
+    });
+
     const payload = {
       studentId: selectedStudent.id,
       paymentDate: formValues.paymentDate,
@@ -136,13 +148,43 @@ export const CollectFeesPage = () => {
       charges: payloadCharges,
     };
 
+    setConfirmModalData({
+      formValues: {
+        ...formValues,
+        totalSelectedAmount,
+      },
+      selectedCharges: selectedChargesList,
+      payload,
+    });
+  };
+
+  // Execute collection mutation after user clicks "Confirm & Collect Fee"
+  const handleConfirmCollectPayment = async () => {
+    if (!confirmModalData?.payload) return;
     try {
-      const res = await collectPaymentMutation.mutateAsync(payload);
+      const res = await collectPaymentMutation.mutateAsync(confirmModalData.payload);
       toast.success('Payment collected successfully.');
+      setConfirmModalData(null);
       setSuccessModalData(res.data || res);
       refetchOutstanding();
     } catch (err) {
       toast.error(err.message || 'Unable to collect payment.');
+    }
+  };
+
+  const handleDeleteCharge = async (charge) => {
+    try {
+      await deleteChargeMutation.mutateAsync({ chargeId: charge.id, studentId: selectedStudent?.id });
+      toast.success(`Unpaid fee charge '${charge.title}' deleted successfully.`);
+      setSelectedChargeIds((prev) => prev.filter((id) => id !== charge.id));
+      setPaymentAmounts((prev) => {
+        const copy = { ...prev };
+        delete copy[charge.id];
+        return copy;
+      });
+      refetchOutstanding();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to delete unpaid fee charge.');
     }
   };
 
@@ -178,6 +220,8 @@ export const CollectFeesPage = () => {
                 onToggleCharge={handleToggleCharge}
                 onToggleAll={handleToggleAll}
                 onUpdatePaymentAmount={handleUpdatePaymentAmount}
+                onDeleteCharge={handleDeleteCharge}
+                isDeleting={deleteChargeMutation.isPending}
                 isLoading={isLoadingOutstanding}
               />
             </div>
@@ -191,7 +235,7 @@ export const CollectFeesPage = () => {
               />
 
               <PaymentForm
-                onSubmit={handleSubmitPayment}
+                onSubmit={handlePreSubmitPayment}
                 isSubmitting={collectPaymentMutation.isPending}
                 isDisabled={selectedChargeIds.length === 0}
                 totalSelectedAmount={totalSelectedAmount}
@@ -200,6 +244,17 @@ export const CollectFeesPage = () => {
           </div>
         </div>
       )}
+
+      {/* Payment Confirmation Modal */}
+      <PaymentConfirmModal
+        isOpen={Boolean(confirmModalData)}
+        onClose={() => setConfirmModalData(null)}
+        onConfirm={handleConfirmCollectPayment}
+        isSubmitting={collectPaymentMutation.isPending}
+        student={selectedStudent}
+        paymentDetails={confirmModalData?.formValues}
+        selectedCharges={confirmModalData?.selectedCharges || []}
+      />
 
       {/* Payment Success Confirmation Modal */}
       <ReceiptSuccessModal
@@ -213,3 +268,4 @@ export const CollectFeesPage = () => {
 };
 
 export default CollectFeesPage;
+

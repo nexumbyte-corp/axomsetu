@@ -16,11 +16,13 @@ export const Input = React.forwardRef(
       icon: Icon,
       endElement,
       disabled = false,
+      autoComplete,
       ...props
     },
     ref
   ) => {
     const inputId = id || name || label?.toLowerCase().replace(/\s+/g, '-');
+    const computedAutoComplete = autoComplete || (type === 'password' ? 'new-password' : 'off');
 
     const handleWheel = (e) => {
       if (type === 'number') {
@@ -66,6 +68,7 @@ export const Input = React.forwardRef(
             name={name}
             type={type}
             disabled={disabled}
+            autoComplete={computedAutoComplete}
             onWheel={handleWheel}
             className={`w-full rounded-lg border text-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:cursor-not-allowed ${
               Icon ? 'pl-9' : 'pl-3.5'

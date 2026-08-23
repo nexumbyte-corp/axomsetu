@@ -14,6 +14,7 @@ import { StaffSubNav } from './StaffSubNav.jsx';
 import { AddEditStaffModal } from './AddEditStaffModal.jsx';
 import { usePermission } from '../../hooks/usePermission.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import { formatDate } from '../../utils/formatters.js';
 import {
   Users,
   UserPlus,
@@ -25,6 +26,7 @@ import {
   Building,
   Briefcase,
   ChevronRight,
+  Calendar,
 } from 'lucide-react';
 
 const STATUS_FILTERS = [
@@ -163,7 +165,7 @@ export const StaffListPage = () => {
 
       {/* Filter and Search Section */}
       <Card className="p-4 bg-white border border-slate-200 shadow-2xs">
-        <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <form onSubmit={handleSearchSubmit} autoComplete="off" className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div className="sm:col-span-1">
             <Input
               placeholder="Search staff by name or employee code..."
@@ -223,6 +225,7 @@ export const StaffListPage = () => {
                     <th className="py-3.5 px-4">Employee Code</th>
                     <th className="py-3.5 px-4">Department</th>
                     <th className="py-3.5 px-4">Designation</th>
+                    <th className="py-3.5 px-4">Joining Date</th>
                     <th className="py-3.5 px-4">Phone</th>
                     <th className="py-3.5 px-4">Status</th>
                     <th className="py-3.5 px-4 text-center">Action</th>
@@ -259,6 +262,10 @@ export const StaffListPage = () => {
 
                       <td className="py-3.5 px-4 text-slate-700">
                         {st.designation || '—'}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-slate-700 font-mono">
+                        {formatDate(st.joiningDate)}
                       </td>
 
                       <td className="py-3.5 px-4 text-slate-600 font-mono">
@@ -338,8 +345,12 @@ export const StaffListPage = () => {
                       <Briefcase className="w-3.5 h-3.5 text-slate-400" />
                       <span>{st.designation || 'Staff'}</span>
                     </div>
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="font-mono">{formatDate(st.joiningDate)}</span>
+                    </div>
                     {st.phone && (
-                      <div className="flex items-center gap-1.5 col-span-2">
+                      <div className="flex items-center gap-1.5">
                         <Phone className="w-3.5 h-3.5 text-slate-400" />
                         <span className="font-mono">{st.phone}</span>
                       </div>

@@ -7,6 +7,7 @@ import { Drawer } from '../../components/ui/Drawer.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
+import { toast } from '../../components/ui/Toast.jsx';
 
 import { REPORT_CATEGORIES, REPORT_REGISTRY, getReportById } from '../../core/reports/reportRegistry.js';
 import { reportService } from '../../services/report.service.js';
@@ -151,7 +152,7 @@ export const ReportsPage = () => {
       const res = await reportService.fetchReport(activeReport.endpoint, params);
       setReportResult(res);
       setCurrentPage(pageToFetch);
-    } catch {
+    } catch (err) {
       console.error('Report execution failed', err);
       setError(err.message || 'Failed to generate report data.');
       toast.error('Failed to generate report.');
@@ -174,13 +175,66 @@ export const ReportsPage = () => {
     setActionLoading((prev) => ({ ...prev, csv: true }));
 
     try {
-      const rawData = reportResult.data || [];
-      const columns = activeReport.columns || [];
+      let rawData = reportResult.data || [];
+      let columns = activeReport.columns || [];
       const filename = `${activeReport.id}_${new Date().toISOString().split('T')[0]}.csv`;
+
+      if (activeReport.isCustomLayout === 'financialSummary') {
+        const sum = reportResult.summary || {};
+        columns = [
+          { key: 'section', label: 'Section' },
+          { key: 'category', label: 'Category / Source' },
+          { key: 'amount', label: 'Amount (₹)' },
+        ];
+        rawData = [
+          { section: 'TOTAL CREDIT (INFLOW)', category: 'All Contributions', amount: sum.totalCredit || 0 },
+          ...Object.entries(sum.creditBreakdown || {}).map(([k, v]) => ({
+            section: 'INCOME BREAKDOWN',
+            category: k.replace(/_/g, ' '),
+            amount: v,
+          })),
+          { section: 'TOTAL DEBIT (OUTFLOW)', category: 'All Expenditures', amount: sum.totalDebit || 0 },
+          ...Object.entries(sum.debitBreakdown || {}).map(([k, v]) => ({
+            section: 'EXPENSE BREAKDOWN',
+            category: k.replace(/_/g, ' '),
+            amount: v,
+          })),
+          { section: 'NET MOVEMENT', category: 'Net Cash Flow', amount: sum.netBalance || 0 },
+        ];
+      } else if (activeReport.isCustomLayout === 'paymentModes') {
+        columns = [
+          { key: 'paymentMode', label: 'Payment Mode' },
+          { key: 'credit', label: 'Total Inflow (₹)' },
+          { key: 'debit', label: 'Total Outflow (₹)' },
+          { key: 'netMovement', label: 'Net Movement (₹)' },
+        ];
+        rawData = Object.entries(reportResult.data || {}).map(([mode, vals]) => ({
+          paymentMode: mode.replace(/_/g, ' '),
+          credit: vals.credit || 0,
+          debit: vals.debit || 0,
+          netMovement: vals.netMovement || 0,
+        }));
+      } else if (activeReport.isGrouped && Array.isArray(reportResult.data)) {
+        rawData = [];
+        reportResult.data.forEach((group) => {
+          const groupName = group.className || group.sectionGroup || group.department || group.designation || 'Group';
+          const items = group[activeReport.groupedKey] || group.students || group.staff || [];
+          items.forEach((item) => {
+            rawData.push({
+              ...item,
+              groupName,
+            });
+          });
+        });
+        if (!columns.some((c) => c.key === 'groupName')) {
+          columns = [{ key: 'groupName', label: 'Group / Category', bold: true }, ...columns];
+        }
+      }
 
       exportToCSV(rawData, columns, filename);
       toast.success('CSV exported successfully.');
-    } catch {
+    } catch (err) {
+      console.error('Export CSV error', err);
       toast.error('Failed exporting CSV.');
     } finally {
       setActionLoading((prev) => ({ ...prev, csv: false }));
@@ -190,13 +244,46 @@ export const ReportsPage = () => {
   // Prepare PDF data payload
   const preparePdfPayload = () => {
     if (!activeReport || !reportResult) return null;
+    let dataPayload = reportResult.data || [];
+    let colsPayload = activeReport.columns || [];
+
+    if (activeReport.isCustomLayout === 'paymentModes') {
+      colsPayload = [
+        { key: 'paymentMode', label: 'Payment Mode' },
+        { key: 'credit', label: 'Total Inflow (₹)', type: 'currency', align: 'right' },
+        { key: 'debit', label: 'Total Outflow (₹)', type: 'currency', align: 'right' },
+        { key: 'netMovement', label: 'Net Movement (₹)', type: 'currency', align: 'right', bold: true },
+      ];
+      dataPayload = Object.entries(reportResult.data || {}).map(([mode, vals]) => ({
+        paymentMode: mode.replace(/_/g, ' '),
+        credit: vals.credit || 0,
+        debit: vals.debit || 0,
+        netMovement: vals.netMovement || 0,
+      }));
+    } else if (activeReport.isGrouped && Array.isArray(reportResult.data)) {
+      dataPayload = [];
+      reportResult.data.forEach((group) => {
+        const groupName = group.className || group.sectionGroup || group.department || group.designation || 'Group';
+        const items = group[activeReport.groupedKey] || group.students || group.staff || [];
+        items.forEach((item) => {
+          dataPayload.push({
+            ...item,
+            groupName,
+          });
+        });
+      });
+      if (!colsPayload.some((c) => c.key === 'groupName')) {
+        colsPayload = [{ key: 'groupName', label: 'Category / Group', bold: true }, ...colsPayload];
+      }
+    }
+
     return {
       schoolHeader,
       reportMeta: {
         title: activeReport.title,
       },
-      data: reportResult.data || [],
-      columns: activeReport.columns || [],
+      data: dataPayload,
+      columns: colsPayload,
       summary: reportResult.summary || {},
       filtersApplied: filters,
     };
@@ -312,6 +399,7 @@ export const ReportsPage = () => {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
+                  autoComplete="off"
                   placeholder="Search reports by title or description..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -582,65 +670,205 @@ export const ReportsPage = () => {
                 </div>
               )}
 
-              {/* Table Data View */}
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                        {activeReport?.columns?.map((col) => (
-                          <th
-                            key={col.key}
-                            className={`p-3.5 ${col.align === 'right' ? 'text-right' : 'text-left'}`}
-                          >
-                            {col.label}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {Array.isArray(reportResult.data) && reportResult.data.length > 0 ? (
-                        reportResult.data.map((row, idx) => (
-                          <tr
-                            key={row.id || idx}
-                            className="hover:bg-slate-50/80 transition-colors"
-                          >
-                            {activeReport?.columns?.map((col) => (
-                              <td
-                                key={col.key}
-                                className={`p-3.5 font-medium text-slate-700 whitespace-nowrap ${col.align === 'right' ? 'text-right' : 'text-left'
-                                  } ${col.bold ? 'font-bold text-slate-900' : ''}`}
-                              >
-                                {formatCellValue(row[col.key], col)}
-                              </td>
-                            ))}
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={activeReport?.columns?.length || 1}
-                            className="p-12 text-center text-slate-500 text-xs"
-                          >
-                            No records found for the selected report filters.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination Controls */}
-                {reportResult.pagination && (
-                  <div className="p-4 border-t border-slate-100 bg-slate-50">
-                    <Pagination
-                      currentPage={reportResult.pagination.page}
-                      totalPages={reportResult.pagination.totalPages}
-                      onPageChange={(p) => handleGenerateReport(p)}
-                    />
+              {/* Custom Layout: Financial Summary */}
+              {activeReport?.isCustomLayout === 'financialSummary' ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-2xl">
+                      <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Total Credits (Inflow)</p>
+                      <p className="text-xl sm:text-2xl font-black text-emerald-900 mt-1">
+                        ₹{Number(reportResult.summary?.totalCredit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="bg-rose-50 border border-rose-200 p-5 rounded-2xl">
+                      <p className="text-xs font-bold text-rose-700 uppercase tracking-wider">Total Debits (Outflow)</p>
+                      <p className="text-xl sm:text-2xl font-black text-rose-900 mt-1">
+                        ₹{Number(reportResult.summary?.totalDebit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="bg-indigo-50 border border-indigo-200 p-5 rounded-2xl">
+                      <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Net Cash Movement</p>
+                      <p className="text-xl sm:text-2xl font-black text-indigo-900 mt-1">
+                        ₹{Number(reportResult.summary?.netBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
                   </div>
-                )}
-              </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Credit Breakdown */}
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
+                        Income Sources Breakdown
+                      </h4>
+                      <div className="space-y-3">
+                        {Object.entries(reportResult.summary?.creditBreakdown || {}).map(([key, val]) => (
+                          <div key={key} className="flex items-center justify-between text-xs">
+                            <span className="font-semibold text-slate-600">{key.replace(/_/g, ' ')}</span>
+                            <span className="font-bold text-slate-900">
+                              ₹{Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Debit Breakdown */}
+                    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-4">
+                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
+                        Expenditures Breakdown
+                      </h4>
+                      <div className="space-y-3">
+                        {Object.entries(reportResult.summary?.debitBreakdown || {}).map(([key, val]) => (
+                          <div key={key} className="flex items-center justify-between text-xs">
+                            <span className="font-semibold text-slate-600">{key.replace(/_/g, ' ')}</span>
+                            <span className="font-bold text-slate-900">
+                              ₹{Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : activeReport?.isCustomLayout === 'paymentModes' ? (
+                /* Custom Layout: Payment Modes Summary */
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                          <th className="p-3.5">Payment Mode</th>
+                          <th className="p-3.5 text-right">Total Inflow (Credit)</th>
+                          <th className="p-3.5 text-right">Total Outflow (Debit)</th>
+                          <th className="p-3.5 text-right">Net Movement</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {Object.entries(reportResult.data || {}).map(([mode, vals]) => (
+                          <tr key={mode} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="p-3.5 font-bold text-slate-900">{mode.replace(/_/g, ' ')}</td>
+                            <td className="p-3.5 font-medium text-emerald-700 text-right">
+                              ₹{Number(vals.credit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="p-3.5 font-medium text-rose-700 text-right">
+                              ₹{Number(vals.debit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="p-3.5 font-bold text-slate-900 text-right">
+                              ₹{Number(vals.netMovement || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                /* Standard Table / Grouped Table View */
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                          {activeReport?.columns?.map((col) => (
+                            <th
+                              key={col.key}
+                              className={`p-3.5 ${col.align === 'right' ? 'text-right' : 'text-left'}`}
+                            >
+                              {col.label}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {activeReport?.isGrouped && Array.isArray(reportResult.data) ? (
+                          reportResult.data.length > 0 ? (
+                            reportResult.data.map((group, gIdx) => {
+                              const groupTitle =
+                                group.className || group.sectionGroup || group.department || group.designation || `Group ${gIdx + 1}`;
+                              const items = group[activeReport.groupedKey] || group.students || group.staff || [];
+
+                              return (
+                                <React.Fragment key={group.classId || group.department || group.designation || gIdx}>
+                                  <tr className="bg-slate-100/80 border-y border-slate-200">
+                                    <td
+                                      colSpan={activeReport?.columns?.length || 1}
+                                      className="p-3 font-bold text-slate-800 text-xs"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span>{groupTitle}</span>
+                                        <Badge variant="secondary">{items.length} records</Badge>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                  {items.map((row, idx) => (
+                                    <tr key={row.id || idx} className="hover:bg-slate-50/80 transition-colors">
+                                      {activeReport?.columns?.map((col) => (
+                                        <td
+                                          key={col.key}
+                                          className={`p-3.5 font-medium text-slate-700 whitespace-nowrap ${col.align === 'right' ? 'text-right' : 'text-left'
+                                            } ${col.bold ? 'font-bold text-slate-900' : ''}`}
+                                        >
+                                          {formatCellValue(row[col.key], col)}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </React.Fragment>
+                              );
+                            })
+                          ) : (
+                            <tr>
+                              <td
+                                colSpan={activeReport?.columns?.length || 1}
+                                className="p-12 text-center text-slate-500 text-xs"
+                              >
+                                No records found for the selected report filters.
+                              </td>
+                            </tr>
+                          )
+                        ) : Array.isArray(reportResult.data) && reportResult.data.length > 0 ? (
+                          reportResult.data.map((row, idx) => (
+                            <tr
+                              key={row.id || idx}
+                              className="hover:bg-slate-50/80 transition-colors"
+                            >
+                              {activeReport?.columns?.map((col) => (
+                                <td
+                                  key={col.key}
+                                  className={`p-3.5 font-medium text-slate-700 whitespace-nowrap ${col.align === 'right' ? 'text-right' : 'text-left'
+                                    } ${col.bold ? 'font-bold text-slate-900' : ''}`}
+                                >
+                                  {formatCellValue(row[col.key], col)}
+                                </td>
+                              ))}
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td
+                              colSpan={activeReport?.columns?.length || 1}
+                              className="p-12 text-center text-slate-500 text-xs"
+                            >
+                              No records found for the selected report filters.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {reportResult.pagination && (
+                    <div className="p-4 border-t border-slate-100 bg-slate-50">
+                      <Pagination
+                        currentPage={reportResult.pagination.page}
+                        totalPages={reportResult.pagination.totalPages}
+                        onPageChange={(p) => handleGenerateReport(p)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : null}
         </div>
@@ -894,6 +1122,7 @@ export const ReportsPage = () => {
               <label className="block text-xs font-bold text-slate-700 mb-1">Department</label>
               <input
                 type="text"
+                autoComplete="off"
                 placeholder="e.g. Science, Mathematics, Administration..."
                 value={filters.department || ''}
                 onChange={(e) => handleFilterChange('department', e.target.value)}

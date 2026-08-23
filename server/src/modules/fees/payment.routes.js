@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/auth.middleware.js';
 import { resolveSchool } from '../../middleware/school.middleware.js';
-import { requirePermission } from '../../middleware/permission.middleware.js';
+import { requirePermission, requireOwnerOrSchoolAdmin } from '../../middleware/permission.middleware.js';
 import { requireVoidReceiptAccess } from '../../middleware/permission.middleware.js';
 import { PERMISSIONS } from '../../config/permissions.js';
 import * as paymentController from './payment.controller.js';
@@ -17,7 +17,10 @@ paymentRouter.post('/', requirePermission(PERMISSIONS.FEES_COLLECT), paymentCont
 paymentRouter.get('/search', requirePermission(PERMISSIONS.FEES_VIEW), paymentController.searchReceipts);
 paymentRouter.get('/dashboard', requirePermission(PERMISSIONS.FEES_VIEW), paymentController.getDashboardSummary);
 
-// 2. Parametric Receipt Routes
+// 2. Unpaid Fee Charge Management (OWNER or SCHOOL_ADMIN ONLY)
+paymentRouter.delete('/charges/:chargeId', requireOwnerOrSchoolAdmin('Only School Admin or Owner can delete unpaid fee charges'), paymentController.deleteUnpaidFeeCharge);
+
+// 3. Parametric Receipt Routes
 paymentRouter.get('/:id', requirePermission(PERMISSIONS.FEES_VIEW), paymentController.getPaymentDetails);
 paymentRouter.get('/:id/reprint', requirePermission(PERMISSIONS.FEES_PRINT_RECEIPT), paymentController.getReceiptReprint);
 

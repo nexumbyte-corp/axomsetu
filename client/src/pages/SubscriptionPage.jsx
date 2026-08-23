@@ -486,7 +486,7 @@ export const SubscriptionPage = () => {
       {/* Purchase Plan Modal */}
       {selectedPlan && (
         <Modal isOpen={Boolean(selectedPlan)} onClose={handleClosePurchaseModal} title={`Purchase ${selectedPlan.name} Plan`}>
-          <form onSubmit={handleSubmitPurchase} className="space-y-5">
+          <form onSubmit={handleSubmitPurchase} autoComplete="off" className="space-y-5">
             {/* Modal-level Error Banner */}
             {modalError && (
               <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs font-medium text-rose-900 flex items-start gap-2.5">

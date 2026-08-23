@@ -475,7 +475,7 @@ export const AddStudentPage = () => {
         onCropSuccess={handlePhotoCropSuccess}
       />
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} autoComplete="off">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* LEFT SIDE: Student Profile & Enrollment Form (7 Cols) */}
           <div className="lg:col-span-7 space-y-5">
@@ -607,6 +607,7 @@ export const AddStudentPage = () => {
                       <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
                       <input
                         type="tel"
+                        autoComplete="off"
                         maxLength={10}
                         placeholder="10-digit mobile number"
                         disabled={submitting || isLocked}
@@ -678,6 +679,7 @@ export const AddStudentPage = () => {
                     {studentInfo.caste === 'OTHER' && (
                       <input
                         type="text"
+                        autoComplete="off"
                         placeholder="Specify Caste / Category"
                         value={studentInfo.customCaste}
                         onChange={(e) => setStudentInfo({ ...studentInfo, customCaste: e.target.value })}
@@ -870,6 +872,7 @@ export const AddStudentPage = () => {
                                 </label>
                                 <input
                                   type="number"
+                                  autoComplete="off"
                                   min="0"
                                   step="any"
                                   placeholder="Override Amount"
@@ -892,6 +895,7 @@ export const AddStudentPage = () => {
                                 </label>
                                 <input
                                   type="text"
+                                  autoComplete="off"
                                   placeholder="Reason"
                                   disabled={submitting || isLocked || loadingFeeStructure || !canOverride}
                                   value={ov.reason}

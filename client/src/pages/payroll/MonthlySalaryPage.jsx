@@ -9,6 +9,7 @@ import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Drawer } from '../../components/ui/Drawer.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { StaffSubNav } from '../staff/StaffSubNav.jsx';
+import { getAcademicMonthOptions } from '../../utils/formatters.js';
 import {
   CalendarCheck,
   Play,
@@ -22,27 +23,12 @@ import {
   Edit3,
 } from 'lucide-react';
 
-const MONTH_OPTIONS = [
-  { value: 'JANUARY', label: 'January' },
-  { value: 'FEBRUARY', label: 'February' },
-  { value: 'MARCH', label: 'March' },
-  { value: 'APRIL', label: 'April' },
-  { value: 'MAY', label: 'May' },
-  { value: 'JUNE', label: 'June' },
-  { value: 'JULY', label: 'July' },
-  { value: 'AUGUST', label: 'August' },
-  { value: 'SEPTEMBER', label: 'September' },
-  { value: 'OCTOBER', label: 'October' },
-  { value: 'NOVEMBER', label: 'November' },
-  { value: 'DECEMBER', label: 'December' },
-];
-
 export const MonthlySalaryPage = () => {
-  const { selectedYearId } = useAcademicYear();
+  const { selectedYearId, selectedYear } = useAcademicYear();
 
-  const currentMonthIdx = new Date().getMonth();
-  const defaultMonth = MONTH_OPTIONS[currentMonthIdx]?.value || 'AUGUST';
-  const defaultYear = new Date().getFullYear();
+  const monthOptions = getAcademicMonthOptions(selectedYear);
+  const defaultMonth = monthOptions[0]?.value || 'APRIL';
+  const defaultYear = monthOptions[0]?.year || new Date().getFullYear();
 
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
   const [selectedYearNum, setSelectedYearNum] = useState(defaultYear);
@@ -247,12 +233,6 @@ export const MonthlySalaryPage = () => {
     }
   };
 
-  const yearNumOptions = [
-    { value: defaultYear - 1, label: String(defaultYear - 1) },
-    { value: defaultYear, label: String(defaultYear) },
-    { value: defaultYear + 1, label: String(defaultYear + 1) },
-  ];
-
   const reviewTotalNet = reviewItems.reduce((sum, item) => sum + Number(item.netSalary || 0), 0);
   const reviewTotalBase = reviewItems.reduce((sum, item) => sum + Number(item.baseSalary || 0), 0);
 
@@ -284,19 +264,18 @@ export const MonthlySalaryPage = () => {
 
         {/* Compact Controls & Summary Bar */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="w-32">
+          <div className="w-48">
             <Select
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              options={MONTH_OPTIONS}
-            />
-          </div>
-
-          <div className="w-24">
-            <Select
-              value={selectedYearNum}
-              onChange={(e) => setSelectedYearNum(Number(e.target.value))}
-              options={yearNumOptions}
+              onChange={(e) => {
+                const newMonth = e.target.value;
+                setSelectedMonth(newMonth);
+                const opt = monthOptions.find((m) => m.value === newMonth);
+                if (opt && opt.year) {
+                  setSelectedYearNum(opt.year);
+                }
+              }}
+              options={monthOptions}
             />
           </div>
 
@@ -662,7 +641,7 @@ export const MonthlySalaryPage = () => {
         position="right"
       >
         {selectedPayroll && (
-          <form onSubmit={handleSaveDrawerSalary} className="space-y-4 text-xs p-1">
+          <form onSubmit={handleSaveDrawerSalary} autoComplete="off" className="space-y-4 text-xs p-1">
             <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">
                 {selectedPayroll.staff?.name?.charAt(0)}

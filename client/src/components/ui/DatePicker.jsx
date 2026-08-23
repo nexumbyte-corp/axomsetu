@@ -357,6 +357,7 @@ export const DatePicker = ({
           id={inputId}
           name={name}
           type="text"
+          autoComplete="off"
           disabled={disabled}
           placeholder={placeholder}
           value={inputText}

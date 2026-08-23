@@ -12,26 +12,15 @@ import { StaffSubNav } from '../staff/StaffSubNav.jsx';
 import { buildSalarySlipData } from '../../core/documents/documentTemplates/salarySlip.js';
 import { downloadPdfDocument, printPdfDocument } from '../../core/documents/documentEngine.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
-import { formatDate } from '../../utils/formatters.js';
+import { formatDate, getAcademicMonthOptions } from '../../utils/formatters.js';
+import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { toast } from '../../components/ui/Toast.jsx';
 import { History, FileText, Download, Printer, Search, User, CreditCard } from 'lucide-react';
 
-const MONTH_OPTIONS = [
-  { value: 'JANUARY', label: 'January' },
-  { value: 'FEBRUARY', label: 'February' },
-  { value: 'MARCH', label: 'March' },
-  { value: 'APRIL', label: 'April' },
-  { value: 'MAY', label: 'May' },
-  { value: 'JUNE', label: 'June' },
-  { value: 'JULY', label: 'July' },
-  { value: 'AUGUST', label: 'August' },
-  { value: 'SEPTEMBER', label: 'September' },
-  { value: 'OCTOBER', label: 'October' },
-  { value: 'NOVEMBER', label: 'November' },
-  { value: 'DECEMBER', label: 'December' },
-];
-
 export const SalaryHistoryPage = () => {
+  const { selectedYear: academicYearObj } = useAcademicYear();
+  const monthOptions = getAcademicMonthOptions(academicYearObj);
+
   const [activeTab, setActiveTab] = useState('history'); // 'history' | 'slips'
 
   // Payment History State
@@ -46,8 +35,7 @@ export const SalaryHistoryPage = () => {
   const [rangeType, setRangeType] = useState('SINGLE_MONTH'); // 'SINGLE_MONTH' | 'LAST_3_MONTHS' | 'LAST_6_MONTHS' | 'CUSTOM_RANGE'
 
   const currentYear = new Date().getFullYear();
-  const currentMonthIdx = new Date().getMonth();
-  const [selectedMonth, setSelectedMonth] = useState(MONTH_OPTIONS[currentMonthIdx]?.value || 'AUGUST');
+  const [selectedMonth, setSelectedMonth] = useState(monthOptions[0]?.value || 'APRIL');
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
   const [startMonth, setStartMonth] = useState('APRIL');
@@ -336,7 +324,7 @@ export const SalaryHistoryPage = () => {
 
             {slipError && <Alert type="danger">{slipError}</Alert>}
 
-            <form onSubmit={handleGenerateSlipPayload} className="space-y-4">
+            <form onSubmit={handleGenerateSlipPayload} autoComplete="off" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Select
                   label="Select Employee *"
@@ -365,51 +353,51 @@ export const SalaryHistoryPage = () => {
 
               {/* Conditional Range Selectors */}
               {rangeType === 'SINGLE_MONTH' && (
-                <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
                   <Select
                     label="Month *"
                     value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    options={MONTH_OPTIONS}
-                  />
-
-                  <Select
-                    label="Year *"
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    options={yearOptions}
+                    onChange={(e) => {
+                      const newMonth = e.target.value;
+                      setSelectedMonth(newMonth);
+                      const opt = monthOptions.find((m) => m.value === newMonth);
+                      if (opt && opt.year) {
+                        setSelectedYear(opt.year);
+                      }
+                    }}
+                    options={monthOptions}
                   />
                 </div>
               )}
 
               {rangeType === 'CUSTOM_RANGE' && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
                   <Select
                     label="Start Month *"
                     value={startMonth}
-                    onChange={(e) => setStartMonth(e.target.value)}
-                    options={MONTH_OPTIONS}
-                  />
-
-                  <Select
-                    label="Start Year *"
-                    value={startYear}
-                    onChange={(e) => setStartYear(Number(e.target.value))}
-                    options={yearOptions}
+                    onChange={(e) => {
+                      const newMonth = e.target.value;
+                      setStartMonth(newMonth);
+                      const opt = monthOptions.find((m) => m.value === newMonth);
+                      if (opt && opt.year) {
+                        setStartYear(opt.year);
+                      }
+                    }}
+                    options={monthOptions}
                   />
 
                   <Select
                     label="End Month *"
                     value={endMonth}
-                    onChange={(e) => setEndMonth(e.target.value)}
-                    options={MONTH_OPTIONS}
-                  />
-
-                  <Select
-                    label="End Year *"
-                    value={endYear}
-                    onChange={(e) => setEndYear(Number(e.target.value))}
-                    options={yearOptions}
+                    onChange={(e) => {
+                      const newMonth = e.target.value;
+                      setEndMonth(newMonth);
+                      const opt = monthOptions.find((m) => m.value === newMonth);
+                      if (opt && opt.year) {
+                        setEndYear(opt.year);
+                      }
+                    }}
+                    options={monthOptions}
                   />
                 </div>
               )}

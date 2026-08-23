@@ -510,7 +510,7 @@ export const SuperAdminSubscriptionsPage = () => {
       {/* Reject Payment Request Modal */}
       {rejectingPayment && (
         <Modal isOpen={Boolean(rejectingPayment)} onClose={() => setRejectingPayment(null)} title="Reject Subscription Request">
-          <form onSubmit={handleRejectSubmit} className="space-y-4">
+          <form onSubmit={handleRejectSubmit} autoComplete="off" className="space-y-4">
             <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
               <span className="font-bold text-slate-900">{rejectingPayment.schoolName}</span> —{' '}
               <span>{rejectingPayment.planName} ({formatCurrency(rejectingPayment.amount)})</span>
@@ -539,7 +539,7 @@ export const SuperAdminSubscriptionsPage = () => {
       {/* Extend Subscription Modal */}
       {extendingSub && (
         <Modal isOpen={Boolean(extendingSub)} onClose={() => setExtendingSub(null)} title="Extend Subscription Duration">
-          <form onSubmit={handleExtendSubmit} className="space-y-4">
+          <form onSubmit={handleExtendSubmit} autoComplete="off" className="space-y-4">
             <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
               <span className="font-bold text-slate-900">{extendingSub.schoolName}</span>
               <span className="block text-slate-500 mt-0.5">
@@ -580,7 +580,7 @@ export const SuperAdminSubscriptionsPage = () => {
       {/* Expire Subscription Modal */}
       {expiringSub && (
         <Modal isOpen={Boolean(expiringSub)} onClose={() => setExpiringSub(null)} title="Expire Subscription">
-          <form onSubmit={handleExpireSubmit} className="space-y-4">
+          <form onSubmit={handleExpireSubmit} autoComplete="off" className="space-y-4">
             <div className="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-lg text-xs leading-relaxed">
               <strong>Warning:</strong> Are you sure you want to manually expire the active subscription for{' '}
               <strong>{expiringSub.schoolName}</strong>?
@@ -610,7 +610,7 @@ export const SuperAdminSubscriptionsPage = () => {
       {/* Assign Subscription Modal */}
       {isManualModalOpen && (
         <Modal isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} title="Assign Subscription">
-          <form onSubmit={handleManualSubmit} className="space-y-4">
+          <form onSubmit={handleManualSubmit} autoComplete="off" className="space-y-4">
             <Select
               label="Select School *"
               value={manualForm.schoolId}

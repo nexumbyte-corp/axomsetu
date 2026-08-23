@@ -270,7 +270,7 @@ export const StaffAdvancesPage = () => {
         title="Give Staff Advance"
         size="md"
       >
-        <form onSubmit={handleGiveAdvance} className="space-y-4">
+        <form onSubmit={handleGiveAdvance} autoComplete="off" className="space-y-4">
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg font-medium">
               {error}

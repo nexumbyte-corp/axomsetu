@@ -371,7 +371,7 @@ export const SuperAdminSchoolsPage = () => {
 
       {/* Create School Modal */}
       <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Register School Tenant">
-        <form onSubmit={handleCreateSubmit} className="space-y-4">
+        <form onSubmit={handleCreateSubmit} autoComplete="off" className="space-y-4">
           <Input
             label="School Name *"
             required
@@ -426,7 +426,7 @@ export const SuperAdminSchoolsPage = () => {
         onClose={() => setIsSuspendModalOpen(false)}
         title={`Suspend School — ${selectedSchool?.name}`}
       >
-        <form onSubmit={handleSuspendSubmit} className="space-y-4">
+        <form onSubmit={handleSuspendSubmit} autoComplete="off" className="space-y-4">
           <div className="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-lg text-xs leading-relaxed">
             <strong>Warning:</strong> Suspending this school will restrict school admin and staff logins.
             All tenant records, financial ledgers, and student data remain preserved.

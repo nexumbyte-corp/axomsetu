@@ -163,7 +163,7 @@ export const SectionsPage = () => {
       >
         {formError && <Alert type="danger" className="mb-4">{formError}</Alert>}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
           <Input
             label="Section Name"
             placeholder="e.g. A, B, C, Blue, Red"

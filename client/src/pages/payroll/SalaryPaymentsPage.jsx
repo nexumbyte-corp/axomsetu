@@ -10,7 +10,13 @@ import { Modal } from '../../components/ui/Modal.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { StaffSubNav } from '../staff/StaffSubNav.jsx';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
-import { CreditCard, CheckCircle2, AlertCircle, DollarSign } from 'lucide-react';
+import {
+  CreditCard,
+  CheckCircle2,
+  AlertCircle,
+  DollarSign,
+  User,
+} from 'lucide-react';
 
 const PAYMENT_MODES = [
   { value: 'CASH', label: 'Cash' },
@@ -22,10 +28,9 @@ const PAYMENT_MODES = [
 export const SalaryPaymentsPage = () => {
   const [staffList, setStaffList] = useState([]);
   const [selectedStaffId, setSelectedStaffId] = useState('');
-  const [_loadingStaff, setLoadingStaff] = useState(true);
+  const [loadingStaff, setLoadingStaff] = useState(true);
 
   const [pendingData, setPendingData] = useState(null);
-  const [_staffSummary, setStaffSummary] = useState(null);
   const [loadingPending, setLoadingPending] = useState(false);
 
   // Selection state: Map of payrollId -> { selected: boolean, payNowAmount: number, error: string }
@@ -37,13 +42,14 @@ export const SalaryPaymentsPage = () => {
   const [remarks, setRemarks] = useState('');
   const [paying, setPaying] = useState(false);
 
-  // Success Receipt Modal
+  // Modals state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [successModalData, setSuccessModalData] = useState(null);
 
   const fetchStaffDirectory = async () => {
     setLoadingStaff(true);
     try {
-      const res = await staffService.getStaffList({ limit: 200, status: 'ACTIVE' });
+      const res = await staffService.getStaffList({ limit: 250, status: 'ACTIVE' });
       setStaffList(res.data || []);
     } catch (err) {
       console.error('Failed to load staff list:', err);
@@ -59,7 +65,6 @@ export const SalaryPaymentsPage = () => {
   const fetchPendingPayrolls = async (staffId) => {
     if (!staffId) {
       setPendingData(null);
-      setStaffSummary(null);
       setSelectionMap({});
       return;
     }
@@ -68,23 +73,13 @@ export const SalaryPaymentsPage = () => {
       const res = await staffService.getPendingPayrollsForStaff(staffId);
       const data = res.data;
       setPendingData(data);
-      setStaffSummary({
-        baseSalary: Number(data.staff?.baseSalary || 0),
-        pendingCount: data.pendingCount,
-        totalBalance: data.totalBalance,
-      });
 
-      // Initialize selection map with oldest 1 month checked by default
       const initialMap = {};
       (data.pendingPayrolls || []).forEach((p, idx) => {
         initialMap[p.id] = {
-          selected: idx === 0, // Auto select oldest 1st month
+          selected: idx === 0,
           payNowAmount: p.balance,
           balance: p.balance,
-          month: p.month,
-          year: p.year,
-          netSalary: p.netSalary,
-          paidAmount: p.paidAmount,
           error: '',
         };
       });
@@ -117,6 +112,21 @@ export const SalaryPaymentsPage = () => {
     });
   };
 
+  const handleSelectAll = (select) => {
+    if (!pendingData?.pendingPayrolls) return;
+    setSelectionMap((prev) => {
+      const updated = { ...prev };
+      pendingData.pendingPayrolls.forEach((p) => {
+        if (updated[p.id]) {
+          updated[p.id].selected = select;
+          updated[p.id].payNowAmount = p.balance;
+          updated[p.id].error = '';
+        }
+      });
+      return updated;
+    });
+  };
+
   const handleToggleSelect = (payrollId) => {
     setSelectionMap((prev) => {
       const item = prev[payrollId];
@@ -135,16 +145,13 @@ export const SalaryPaymentsPage = () => {
     setSelectionMap((prev) => {
       const item = prev[payrollId];
       if (!item) return prev;
-
       const numVal = parseFloat(val);
       let error = '';
-
       if (isNaN(numVal) || numVal <= 0) {
-        error = 'Payment amount must be greater than zero.';
+        error = 'Amount must be > 0';
       } else if (numVal > item.balance + 0.01) {
-        error = `Payment amount (₹${numVal.toLocaleString('en-IN')}) cannot exceed the remaining salary of ₹${item.balance.toLocaleString('en-IN')}.`;
+        error = `Exceeds max ₹${item.balance.toLocaleString('en-IN')}`;
       }
-
       return {
         ...prev,
         [payrollId]: {
@@ -172,24 +179,27 @@ export const SalaryPaymentsPage = () => {
     });
   };
 
-  // Selected totals & validation flags
   const selectedEntries = Object.entries(selectionMap).filter(([_, v]) => v.selected);
   const selectedCount = selectedEntries.length;
-  const hasValidationError = selectedEntries.some(([_, v]) => Boolean(v.error) || Number(v.payNowAmount) <= 0 || Number(v.payNowAmount) > v.balance + 0.01);
+  const hasValidationError = selectedEntries.some(
+    ([_, v]) => Boolean(v.error) || Number(v.payNowAmount) <= 0 || Number(v.payNowAmount) > v.balance + 0.01
+  );
   const totalPayNow = selectedEntries.reduce((sum, [_, v]) => sum + (Number(v.payNowAmount) || 0), 0);
 
-  const handlePaySubmit = async (e) => {
+  const handlePreSubmit = (e) => {
     e.preventDefault();
     if (!selectedStaffId || selectedCount === 0) {
       alert('Please select at least one pending month to pay.');
       return;
     }
-
     if (hasValidationError) {
-      alert('Please resolve all validation errors before proceeding with payment.');
+      alert('Please correct validation errors before proceeding with payment.');
       return;
     }
+    setShowConfirmModal(true);
+  };
 
+  const handleConfirmDisbursement = async () => {
     const paymentsPayload = selectedEntries.map(([payrollId, v]) => ({
       monthlyPayrollId: payrollId,
       payNowAmount: Number(v.payNowAmount),
@@ -205,9 +215,9 @@ export const SalaryPaymentsPage = () => {
         remarks,
       });
 
-      // Fetch full receipt data for success dialog
       const receiptRes = await staffService.getSalaryPaymentReceiptData(res.data.salaryPayment.id);
 
+      setShowConfirmModal(false);
       setSuccessModalData(receiptRes.data);
       setReferenceNo('');
       setRemarks('');
@@ -224,286 +234,371 @@ export const SalaryPaymentsPage = () => {
     label: `${st.name} (${st.employeeId}) — ${st.department || 'Staff'}`,
   }));
 
+  const allPayrollsSelected =
+    pendingData?.pendingPayrolls?.length > 0 &&
+    pendingData.pendingPayrolls.every((p) => selectionMap[p.id]?.selected);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <ModulePageHeader
         icon={CreditCard}
-        title="Salary Payments & Partial Settlement"
-        description="Disburse pending monthly staff salaries with partial payment options, strict balance validation, and instant disbursement vouchers."
+        title="Salary Payments & Disbursal"
+        description="Disburse pending monthly staff salaries with partial settlement and instant voucher generation."
       />
 
       <StaffSubNav />
 
-      {/* Staff Selector & Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="p-4 bg-white border border-slate-200 shadow-2xs space-y-3 lg:col-span-2">
-          <label className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
-            Step 1: Select Staff Member
-          </label>
-          <div className="max-w-xl">
+      <Card className="p-3 bg-white border border-slate-200 shadow-2xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="w-full md:w-80">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+              Select Staff Member
+            </label>
             <Select
               value={selectedStaffId}
               onChange={(e) => setSelectedStaffId(e.target.value)}
               options={[{ value: '', label: '-- Select Staff Member to Pay --' }, ...staffSelectOptions]}
+              isDisabled={loadingStaff}
             />
           </div>
-        </Card>
 
-        {/* Staff Salary Position Summary Bar */}
-        {pendingData?.staff && (
-          <Card className="p-4 bg-gradient-to-br from-slate-900 to-indigo-950 text-white shadow-md flex flex-col justify-between">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300 block">
-                Staff Salary Position
-              </span>
-              <h4 className="text-base font-extrabold text-white mt-0.5">{pendingData.staff.name}</h4>
-              <p className="text-[11px] text-slate-300 font-mono">
-                {pendingData.staff.employeeId} | {pendingData.staff.designation || 'Staff'}
-              </p>
-            </div>
-
-            <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <span className="text-[10px] text-slate-400 font-medium block">Total Pending Months</span>
-                <span className="font-bold text-white text-sm font-mono">{pendingData.pendingCount}</span>
-              </div>
-              <div className="text-right">
-                <span className="text-[10px] text-indigo-300 font-medium block">Total Outstanding Balance</span>
-                <span className="font-bold text-emerald-400 text-sm font-mono">
-                  ₹{pendingData.totalBalance.toLocaleString('en-IN')}
-                </span>
-              </div>
-            </div>
-          </Card>
-        )}
-      </div>
-
-      {/* Pending Salary Section */}
-      {selectedStaffId && (
-        <>
-          {loadingPending ? (
-            <div className="flex justify-center items-center py-16">
-              <Spinner size="lg" />
-            </div>
-          ) : !pendingData || pendingData.pendingPayrolls.length === 0 ? (
-            <Card className="p-12 text-center text-slate-500 text-xs">
-              <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-              <p className="font-bold text-slate-800 text-sm">No Pending Salary Dues</p>
-              <p className="mt-1">All prepared salary records for {pendingData?.staff?.name} have been fully paid!</p>
-            </Card>
-          ) : (
-            <div className="space-y-6">
-              {/* Convenience & Pending Summary Bar */}
-              <Card className="p-4 bg-white border border-slate-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {pendingData?.staff ? (
+            <div className="flex flex-wrap items-center gap-4 bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2 flex-1 justify-between text-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shrink-0">
+                  <User className="w-4 h-4" />
+                </div>
                 <div>
-                  <h3 className="font-extrabold text-slate-900 text-sm">Pending Salary Settlements</h3>
-                  <p className="text-xs text-slate-500 font-mono">
-                    Total Pending Months: {pendingData.pendingCount} | Balance Outstanding: ₹
-                    {pendingData.totalBalance.toLocaleString('en-IN')}
+                  <h4 className="font-bold text-slate-900 leading-snug">{pendingData.staff.name}</h4>
+                  <p className="text-[11px] text-slate-500 font-mono">
+                    {pendingData.staff.employeeId} | {pendingData.staff.designation || 'Staff'}
                   </p>
                 </div>
+              </div>
 
-                {/* Convenience dropdown: Select Oldest */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-semibold text-slate-600">Quick Select:</span>
+              <div className="flex items-center gap-4 font-mono text-xs">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-medium block">Pending Months</span>
+                  <span className="font-bold text-slate-900">{pendingData.pendingCount}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 font-medium block">Total Balance Due</span>
+                  <span className="font-extrabold text-rose-600">
+                    ₹{pendingData.totalBalance.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-slate-400 italic py-1">
+              Select a staff member to view pending salary records.
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {!selectedStaffId ? (
+        <Card className="p-12 text-center text-slate-500 text-xs">
+          <CreditCard className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+          <p className="font-bold text-slate-700 text-sm">No Staff Selected</p>
+          <p className="mt-1 text-slate-400">Please choose a staff member above to start disbursing monthly salaries.</p>
+        </Card>
+      ) : loadingPending ? (
+        <div className="flex justify-center items-center py-16">
+          <Spinner size="lg" />
+        </div>
+      ) : !pendingData || pendingData.pendingPayrolls.length === 0 ? (
+        <Card className="p-10 text-center text-slate-500 text-xs space-y-2">
+          <CheckCircle2 className="w-9 h-9 text-emerald-500 mx-auto" />
+          <h4 className="font-bold text-slate-800 text-sm">All Clear! No Pending Salary Dues</h4>
+          <p className="text-slate-500">
+            All prepared salary records for <strong>{pendingData?.staff?.name}</strong> have been fully paid.
+          </p>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-start">
+          <div className="lg:col-span-2 space-y-3">
+            <Card className="overflow-hidden shadow-2xs border border-slate-200">
+              <div className="p-3 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+                    Pending Monthly Salaries ({pendingData.pendingCount})
+                  </h3>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <span className="text-slate-400 font-medium">Quick Select:</span>
                   <button
                     onClick={() => handleSelectOldest(1)}
-                    className="px-2.5 py-1 text-xs font-bold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 rounded-lg transition-colors"
+                    className="px-2 py-0.5 font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 rounded transition-colors"
                   >
-                    Oldest 1 Month
+                    1st Month
                   </button>
                   <button
                     onClick={() => handleSelectOldest(2)}
-                    className="px-2.5 py-1 text-xs font-bold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 rounded-lg transition-colors"
+                    className="px-2 py-0.5 font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 rounded transition-colors"
                   >
-                    Oldest 2 Months
+                    2 Months
                   </button>
                   <button
-                    onClick={() => handleSelectOldest(3)}
-                    className="px-2.5 py-1 text-xs font-bold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 rounded-lg transition-colors"
+                    onClick={() => handleSelectAll(!allPayrollsSelected)}
+                    className="px-2 py-0.5 font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded transition-colors"
                   >
-                    Oldest 3 Months
+                    {allPayrollsSelected ? 'Clear All' : 'Select All'}
                   </button>
                 </div>
-              </Card>
+              </div>
 
-              {/* Pending Salary Table */}
-              <Card className="overflow-hidden shadow-2xs">
-                <div className="table-responsive-wrapper">
-                  <table className="w-full text-xs text-left min-w-[750px]">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-bold text-[10px] tracking-wider">
-                      <tr>
-                        <th className="py-3.5 px-4 w-12 text-center">Select</th>
-                        <th className="py-3.5 px-4">Period</th>
-                        <th className="py-3.5 px-4 text-right">Original Salary Due (₹)</th>
-                        <th className="py-3.5 px-4 text-right">Already Paid (₹)</th>
-                        <th className="py-3.5 px-4 text-right">Remaining Unpaid (₹)</th>
-                        <th className="py-3.5 px-4 text-center">Status</th>
-                        <th className="py-3.5 px-4 text-right w-56">Current Payment / Pay Now (₹)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 font-medium">
-                      {pendingData.pendingPayrolls.map((p) => {
-                        const item = selectionMap[p.id] || {};
-                        const isSelected = Boolean(item.selected);
-                        const hasErr = Boolean(item.error);
+              <div className="table-responsive-wrapper">
+                <table className="w-full text-xs text-left min-w-[650px]">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-bold text-[10px] tracking-wider">
+                    <tr>
+                      <th className="py-2.5 px-3 w-10 text-center">
+                        <input
+                          type="checkbox"
+                          checked={allPayrollsSelected}
+                          onChange={(e) => handleSelectAll(e.target.checked)}
+                          className="w-3.5 h-3.5 text-indigo-600 rounded cursor-pointer"
+                        />
+                      </th>
+                      <th className="py-2.5 px-3">Period</th>
+                      <th className="py-2.5 px-3 text-right">Net Due (₹)</th>
+                      <th className="py-2.5 px-3 text-right">Paid (₹)</th>
+                      <th className="py-2.5 px-3 text-right">Balance (₹)</th>
+                      <th className="py-2.5 px-3 text-center">Status</th>
+                      <th className="py-2.5 px-3 text-right w-44">Disburse Now (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-xs">
+                    {pendingData.pendingPayrolls.map((p) => {
+                      const item = selectionMap[p.id] || {};
+                      const isSelected = Boolean(item.selected);
+                      const hasErr = Boolean(item.error);
 
-                        return (
-                          <tr
-                            key={p.id}
-                            className={`transition-colors ${hasErr ? 'bg-rose-50/50' : isSelected ? 'bg-indigo-50/40' : 'hover:bg-slate-50'
-                              }`}
-                          >
-                            <td className="py-3.5 px-4 text-center">
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => handleToggleSelect(p.id)}
-                                className="w-4 h-4 text-indigo-600 rounded cursor-pointer"
+                      return (
+                        <tr
+                          key={p.id}
+                          className={`transition-colors ${
+                            hasErr ? 'bg-rose-50/60' : isSelected ? 'bg-indigo-50/30' : 'hover:bg-slate-50'
+                          }`}
+                        >
+                          <td className="py-2.5 px-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleSelect(p.id)}
+                              className="w-3.5 h-3.5 text-indigo-600 rounded cursor-pointer"
+                            />
+                          </td>
+
+                          <td className="py-2.5 px-3">
+                            <span className="font-bold text-slate-900">{p.month} {p.year}</span>
+                            {p.academicYearName && (
+                              <span className="text-[10px] text-slate-400 block font-mono">{p.academicYearName}</span>
+                            )}
+                          </td>
+
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-800 font-semibold">
+                            ₹{p.netSalary.toLocaleString('en-IN')}
+                          </td>
+
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-500">
+                            ₹{p.paidAmount.toLocaleString('en-IN')}
+                          </td>
+
+                          <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-600">
+                            ₹{p.balance.toLocaleString('en-IN')}
+                          </td>
+
+                          <td className="py-2.5 px-3 text-center">
+                            {p.paidAmount > 0 ? (
+                              <Badge variant="neutral" size="sm">PARTIAL</Badge>
+                            ) : (
+                              <Badge variant="warning" size="sm">UNPAID</Badge>
+                            )}
+                          </td>
+
+                          <td className="py-2.5 px-3 text-right space-y-1">
+                            <div className="flex items-center gap-1 justify-end">
+                              <button
+                                type="button"
+                                onClick={() => handleFillRemaining(p.id)}
+                                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 underline shrink-0"
+                                title="Set full balance"
+                              >
+                                Full
+                              </button>
+                              <Input
+                                type="number"
+                                min="1"
+                                max={p.balance}
+                                value={item.payNowAmount ?? p.balance}
+                                onChange={(e) => handlePayNowChange(p.id, e.target.value)}
+                                disabled={!isSelected}
+                                className={`w-28 text-right font-mono font-bold text-xs py-1 px-1.5 ${
+                                  hasErr ? 'border-rose-500 focus:ring-rose-500 bg-rose-50' : ''
+                                }`}
                               />
-                            </td>
+                            </div>
+                            {hasErr && isSelected && (
+                              <p className="text-[10px] text-rose-600 font-bold text-right leading-tight">
+                                {item.error}
+                              </p>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </div>
 
-                            <td className="py-3.5 px-4">
-                              <span className="font-bold text-slate-900 text-sm">{p.month} {p.year}</span>
-                              {p.academicYearName && (
-                                <span className="text-[10px] text-slate-500 block">{p.academicYearName}</span>
-                              )}
-                            </td>
+          <div className="space-y-3 sticky top-16">
+            <Card className="p-3.5 bg-emerald-50/70 border border-emerald-200 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between border-b border-emerald-200/60 pb-2">
+                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                  Settlement Summary
+                </span>
+                <Badge variant="success" size="sm">
+                  {selectedCount} Month{selectedCount !== 1 ? 's' : ''} Selected
+                </Badge>
+              </div>
 
-                            <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-800">
-                              ₹{p.netSalary.toLocaleString('en-IN')}
-                            </td>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs font-semibold text-slate-700">Total Disbursement</span>
+                <span className="font-mono text-xl font-extrabold text-emerald-900">
+                  ₹{totalPayNow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </Card>
 
-                            <td className="py-3.5 px-4 text-right font-mono text-slate-600">
-                              ₹{p.paidAmount.toLocaleString('en-IN')}
-                            </td>
+            <Card className="p-3.5 bg-white border border-slate-200 shadow-2xs space-y-3 text-xs">
+              <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                <CreditCard className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Payment Details</span>
+              </h4>
 
-                            <td className="py-3.5 px-4 text-right font-mono font-extrabold text-rose-600">
-                              ₹{p.balance.toLocaleString('en-IN')}
-                            </td>
+              {hasValidationError && (
+                <div className="p-2 bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold rounded-lg flex items-start gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0 mt-0.5" />
+                  <span>Fix validation errors before disbursing salary.</span>
+                </div>
+              )}
 
-                            <td className="py-3.5 px-4 text-center">
-                              {p.paidAmount > 0 ? (
-                                <Badge variant="neutral" size="sm">PARTIAL</Badge>
-                              ) : (
-                                <Badge variant="warning" size="sm">UNPAID</Badge>
-                              )}
-                            </td>
-
-                            <td className="py-3.5 px-4 text-right space-y-1">
-                              <div className="flex items-center gap-1.5 justify-end">
-                                <button
-                                  type="button"
-                                  onClick={() => handleFillRemaining(p.id)}
-                                  className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 underline whitespace-nowrap"
-                                  title="Fill remaining balance"
-                                >
-                                  Pay ₹{p.balance.toLocaleString('en-IN')}
-                                </button>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  max={p.balance}
-                                  value={item.payNowAmount ?? p.balance}
-                                  onChange={(e) => handlePayNowChange(p.id, e.target.value)}
-                                  disabled={!isSelected}
-                                  className={`w-32 text-right font-mono font-bold text-slate-900 ${hasErr ? 'border-rose-500 focus:ring-rose-500 bg-rose-50' : ''
-                                    }`}
-                                />
-                              </div>
-                              {hasErr && isSelected && (
-                                <p className="text-[10px] text-rose-600 font-bold text-right leading-tight">
-                                  ⚠️ {item.error}
-                                </p>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+              <form onSubmit={handlePreSubmit} autoComplete="off" className="space-y-2.5">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Payment Mode *</label>
+                  <Select
+                    value={paymentMode}
+                    onChange={(e) => setPaymentMode(e.target.value)}
+                    options={PAYMENT_MODES}
+                  />
                 </div>
 
-                {/* Selection Summary Footer */}
-                <div className="p-4 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block">
-                      Selected Settlement Summary
-                    </span>
-                    <span className="text-sm font-bold text-white">
-                      {selectedCount} Month{selectedCount !== 1 ? 's' : ''} Selected
-                    </span>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block">
-                      Current Disbursement Total
-                    </span>
-                    <span className="text-xl font-extrabold text-emerald-400 font-mono">
-                      ₹{totalPayNow.toLocaleString('en-IN')}
-                    </span>
-                  </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Ref / UTR / Cheque No.</label>
+                  <Input
+                    placeholder="e.g. UTR / Txn # / Cheque #"
+                    value={referenceNo}
+                    onChange={(e) => setReferenceNo(e.target.value)}
+                  />
                 </div>
-              </Card>
 
-              {/* Payment Details Submission Form */}
-              <Card className="p-5 bg-white border border-slate-200 shadow-2xs space-y-4">
-                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-3">
-                  Step 2: Payment Disbursement Details
-                </h3>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Remarks</label>
+                  <Input
+                    placeholder="Optional disbursement note..."
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
+                  />
+                </div>
 
-                {hasValidationError && (
-                  <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-                    <span>Please correct the payment amounts before confirming disbursement. Current payment cannot exceed the remaining unpaid balance.</span>
-                  </div>
-                )}
-
-                <form onSubmit={handlePaySubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <Select
-                      label="Payment Mode *"
-                      value={paymentMode}
-                      onChange={(e) => setPaymentMode(e.target.value)}
-                      options={PAYMENT_MODES}
-                    />
-
-                    <Input
-                      label="Reference / Transaction Number"
-                      placeholder="e.g. UTR / Txn # / Cheque #"
-                      value={referenceNo}
-                      onChange={(e) => setReferenceNo(e.target.value)}
-                    />
-
-                    <Input
-                      label="Remarks"
-                      placeholder="e.g. Partial salary payment for July"
-                      value={remarks}
-                      onChange={(e) => setRemarks(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex justify-end pt-2">
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      size="lg"
-                      icon={DollarSign}
-                      loading={paying}
-                      loadingText="Processing Payment..."
-                      disabled={selectedCount === 0 || totalPayNow <= 0 || hasValidationError}
-                    >
-                      Disburse Salary (₹{totalPayNow.toLocaleString('en-IN')})
-                    </Button>
-                  </div>
-                </form>
-              </Card>
-            </div>
-          )}
-        </>
+                <div className="pt-1">
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="sm"
+                    fullWidth
+                    icon={DollarSign}
+                    disabled={selectedCount === 0 || totalPayNow <= 0 || hasValidationError}
+                  >
+                    Disburse ₹{totalPayNow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          </div>
+        </div>
       )}
 
-      {/* Payment Success & Receipt Dialog */}
+      <Modal
+        isOpen={showConfirmModal}
+        onClose={paying ? undefined : () => setShowConfirmModal(false)}
+        size="sm"
+        title="Confirm Salary Disbursement"
+        description="Please verify payment details before confirming transaction."
+      >
+        <div className="space-y-4 text-xs">
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shrink-0">
+                <User className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-900">{pendingData?.staff?.name}</h4>
+                <p className="text-[10px] text-slate-500 font-mono">{pendingData?.staff?.employeeId}</p>
+              </div>
+            </div>
+            <Badge variant="info" size="sm">{selectedCount} Month(s)</Badge>
+          </div>
+
+          <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase text-emerald-800">Total Disburse Amount</span>
+              <span className="font-mono text-lg font-extrabold text-emerald-900">
+                ₹{totalPayNow.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-emerald-200/60 text-[11px]">
+              <div className="flex items-center justify-between bg-white/80 px-2 py-1 rounded border border-emerald-100">
+                <span className="text-slate-500 font-medium">Mode</span>
+                <span className="font-bold text-slate-800">{paymentMode}</span>
+              </div>
+              {referenceNo && (
+                <div className="flex items-center justify-between bg-white/80 px-2 py-1 rounded border border-emerald-100">
+                  <span className="text-slate-500 font-medium">Ref #</span>
+                  <span className="font-bold font-mono text-indigo-700">{referenceNo}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowConfirmModal(false)}
+              disabled={paying}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleConfirmDisbursement}
+              isLoading={paying}
+              loadingText="Disbursing..."
+            >
+              <CheckCircle2 className="w-4 h-4 mr-1.5" />
+              Confirm & Disburse
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       <Modal
         isOpen={Boolean(successModalData)}
         onClose={() => setSuccessModalData(null)}
@@ -511,7 +606,7 @@ export const SalaryPaymentsPage = () => {
         size="lg"
       >
         {successModalData && (
-          <div className="space-y-6 text-xs">
+          <div className="space-y-5 text-xs">
             <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-center space-y-1">
               <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
               <h3 className="text-base font-extrabold text-emerald-950">Disbursement Recorded</h3>
@@ -520,23 +615,19 @@ export const SalaryPaymentsPage = () => {
               </p>
             </div>
 
-            {/* Staff & Voucher Info Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
               <div>
                 <span className="text-slate-400 font-medium block">Staff Name</span>
                 <p className="font-bold text-slate-900 text-xs mt-0.5">{successModalData.staff?.name}</p>
               </div>
-
               <div>
                 <span className="text-slate-400 font-medium block">Employee Code</span>
                 <p className="font-mono font-bold text-indigo-700 text-xs mt-0.5">{successModalData.staff?.employeeId}</p>
               </div>
-
               <div>
                 <span className="text-slate-400 font-medium block">Payment Method</span>
                 <p className="font-bold text-slate-800 text-xs mt-0.5">{successModalData.paymentMode}</p>
               </div>
-
               <div>
                 <span className="text-slate-400 font-medium block">Disbursed Amount</span>
                 <p className="font-mono font-extrabold text-emerald-700 text-sm mt-0.5">
@@ -545,17 +636,16 @@ export const SalaryPaymentsPage = () => {
               </div>
             </div>
 
-            {/* Itemized 5-Point Settlement Breakdown Table (Requirements 3 & 4) */}
             <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-              <div className="bg-slate-900 text-white p-2.5 font-bold text-[11px] uppercase tracking-wider">
+              <div className="bg-slate-900 text-white p-2 font-bold text-[11px] uppercase tracking-wider">
                 Salary Settlement Breakdown
               </div>
               <div className="divide-y divide-slate-100">
                 {(successModalData.allocations || []).map((alloc, idx) => {
                   const s = alloc.settlement || {};
                   return (
-                    <div key={alloc.id || idx} className="p-3.5 bg-white space-y-2">
-                      <div className="flex items-center justify-between text-xs border-b border-slate-100 pb-2">
+                    <div key={alloc.id || idx} className="p-3 bg-white space-y-2">
+                      <div className="flex items-center justify-between text-xs border-b border-slate-100 pb-1.5">
                         <span className="font-bold text-slate-900">
                           Period: {alloc.monthlyPayroll?.month} {alloc.monthlyPayroll?.year}
                         </span>
@@ -564,7 +654,7 @@ export const SalaryPaymentsPage = () => {
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs font-mono pt-1">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs font-mono pt-0.5">
                         <div>
                           <span className="text-[10px] text-slate-400 font-semibold block uppercase">Salary Due</span>
                           <span className="font-bold text-slate-900">₹{(s.salaryDue || 0).toLocaleString('en-IN')}</span>
@@ -592,8 +682,8 @@ export const SalaryPaymentsPage = () => {
               </div>
             </div>
 
-            <div className="flex justify-end items-center gap-3 pt-2 border-t border-slate-200">
-              <Button variant="secondary" onClick={() => setSuccessModalData(null)}>
+            <div className="flex justify-end items-center gap-2.5 pt-2 border-t border-slate-200">
+              <Button variant="secondary" size="sm" onClick={() => setSuccessModalData(null)}>
                 Done
               </Button>
               <DocumentActions
@@ -610,3 +700,5 @@ export const SalaryPaymentsPage = () => {
     </div>
   );
 };
+
+export default SalaryPaymentsPage;

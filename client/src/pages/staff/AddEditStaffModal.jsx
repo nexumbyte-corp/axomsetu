@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { User, Briefcase, CreditCard, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
+import { User, Briefcase, CreditCard, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Input } from '../../components/ui/Input.jsx';
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
@@ -229,7 +229,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
       }
       size="lg"
     >
-      <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+      <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4 text-xs">
         {submitError && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
@@ -269,7 +269,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
               <Input
                 label="Employee Code"
                 name="employeeId"
-                value={formData.employeeId || (isEditing ? '' : 'Auto-generated (e.g. AHA-EMP-26-0001)')}
+                value={formData.employeeId || (isEditing ? '' : 'Auto-generated')}
                 disabled={true}
                 readOnly
                 placeholder="Auto-generated automatically"

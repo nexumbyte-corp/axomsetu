@@ -100,6 +100,7 @@ export const TermsAndConditionsModal = ({ isOpen, onClose: _onClose, onAccept, o
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
               <input
                 type="text"
+                autoComplete="off"
                 placeholder="Filter clauses or keywords..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}

@@ -209,6 +209,59 @@ export const formatDateForInput = (date) => {
   }
 };
 
+export const BASE_ACADEMIC_MONTHS = [
+  { value: 'APRIL', label: 'April', index: 3 },
+  { value: 'MAY', label: 'May', index: 4 },
+  { value: 'JUNE', label: 'June', index: 5 },
+  { value: 'JULY', label: 'July', index: 6 },
+  { value: 'AUGUST', label: 'August', index: 7 },
+  { value: 'SEPTEMBER', label: 'September', index: 8 },
+  { value: 'OCTOBER', label: 'October', index: 9 },
+  { value: 'NOVEMBER', label: 'November', index: 10 },
+  { value: 'DECEMBER', label: 'December', index: 11 },
+  { value: 'JANUARY', label: 'January', index: 0 },
+  { value: 'FEBRUARY', label: 'February', index: 1 },
+  { value: 'MARCH', label: 'March', index: 2 },
+];
+
+/**
+ * Get dynamic month options ordered from April to March based on the selected academic year.
+ * @param {Object} [selectedYear]
+ * @param {boolean} [includeYearInLabel=true]
+ * @returns {Array<{value: string, label: string, year: number}>}
+ */
+export const getAcademicMonthOptions = (selectedYear = null, includeYearInLabel = true) => {
+  let startYear = new Date().getFullYear();
+
+  if (selectedYear?.startDate) {
+    const d = new Date(selectedYear.startDate);
+    if (!isNaN(d.getTime())) {
+      startYear = d.getFullYear();
+    }
+  } else if (selectedYear?.name) {
+    const match = String(selectedYear.name).match(/\d{4}/);
+    if (match) {
+      startYear = parseInt(match[0], 10);
+    }
+  } else {
+    const curMonth = new Date().getMonth();
+    if (curMonth < 3) {
+      startYear = startYear - 1;
+    }
+  }
+
+  const endYear = startYear + 1;
+
+  return BASE_ACADEMIC_MONTHS.map((m) => {
+    const y = ['JANUARY', 'FEBRUARY', 'MARCH'].includes(m.value) ? endYear : startYear;
+    return {
+      value: m.value,
+      label: includeYearInLabel ? `${m.label} ${y}` : m.label,
+      year: y,
+    };
+  });
+};
+
 export default {
   TIMEZONE,
   formatCurrency,
@@ -217,4 +270,6 @@ export default {
   formatDateTime,
   formatDateForInput,
   parseDateSafe,
+  BASE_ACADEMIC_MONTHS,
+  getAcademicMonthOptions,
 };

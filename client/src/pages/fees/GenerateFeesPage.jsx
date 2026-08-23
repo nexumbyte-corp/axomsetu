@@ -14,32 +14,19 @@ import { Skeleton } from '../../components/ui/Skeleton.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { SearchableStudentSelect } from '../../components/fees/SearchableStudentSelect.jsx';
-
-const MONTH_OPTIONS = [
-  { label: 'April', value: 'APRIL' },
-  { label: 'May', value: 'MAY' },
-  { label: 'June', value: 'JUNE' },
-  { label: 'July', value: 'JULY' },
-  { label: 'August', value: 'AUGUST' },
-  { label: 'September', value: 'SEPTEMBER' },
-  { label: 'October', value: 'OCTOBER' },
-  { label: 'November', value: 'NOVEMBER' },
-  { label: 'December', value: 'DECEMBER' },
-  { label: 'January', value: 'JANUARY' },
-  { label: 'February', value: 'FEBRUARY' },
-  { label: 'March', value: 'MARCH' },
-];
+import { getAcademicMonthOptions } from '../../utils/formatters.js';
 
 export const GenerateFeesPage = () => {
   const navigate = useNavigate();
   const { selectedYear, selectedYearId } = useAcademicYear();
+  const monthOptions = getAcademicMonthOptions(selectedYear);
 
   // Wizard Step: 1 = Selection, 2 = Review Fee Sheet, 3 = Preview, 4 = Success
   const [currentStep, setCurrentStep] = useState(1);
 
   // Form State
   const [generationMode, setGenerationMode] = useState('BY_CLASS'); // ENTIRE_SCHOOL | BY_CLASS | BY_STUDENT
-  const [selectedMonth, setSelectedMonth] = useState('AUGUST');
+  const [selectedMonth, setSelectedMonth] = useState(monthOptions[0]?.value || 'APRIL');
 
   // Academic Setup Options
   const [classes, setClasses] = useState([]);
@@ -524,7 +511,7 @@ export const GenerateFeesPage = () => {
               label="Billing Month"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              options={MONTH_OPTIONS}
+              options={monthOptions}
               required
             />
           </div>
@@ -814,6 +801,7 @@ export const GenerateFeesPage = () => {
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₹</span>
                                     <input
                                       type="number"
+                                      autoComplete="off"
                                       min="0"
                                       step="0.01"
                                       disabled={!head.enabled}
@@ -910,6 +898,7 @@ export const GenerateFeesPage = () => {
                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₹</span>
                               <input
                                 type="number"
+                                autoComplete="off"
                                 min="0"
                                 step="0.01"
                                 disabled={!head.enabled}
@@ -1146,7 +1135,7 @@ export const GenerateFeesPage = () => {
 
       {/* Temporary Fee Modal */}
       <Modal isOpen={isTempModalOpen} onClose={() => setIsTempModalOpen(false)} title="Add Temporary Fee Head" size="sm">
-        <form onSubmit={handleAddTemporaryHead} className="space-y-4">
+        <form onSubmit={handleAddTemporaryHead} autoComplete="off" className="space-y-4">
           <p className="text-xs text-slate-500">
             This Fee Head will exist only during this generation. It will not alter master Fee Templates.
           </p>

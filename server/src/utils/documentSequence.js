@@ -79,7 +79,22 @@ export const generateNextDocumentNumber = async (tx, {
   overridePrefix = null,
   padLength = 6,
 }) => {
-  const docTag = DOC_TYPE_TAGS[documentType] || documentType || 'RCPT';
+  let docTag = DOC_TYPE_TAGS[documentType] || documentType || 'RCPT';
+
+  // For student admission, dynamically compute prefix based on school name initials (e.g. Alpha Beta Academy -> ABA)
+  if (documentType === 'STUDENT_ADMISSION' && !overridePrefix && schoolId && tx.school) {
+    try {
+      const school = await tx.school.findUnique({
+        where: { id: schoolId },
+        select: { name: true, code: true },
+      });
+      if (school?.name || school?.code) {
+        docTag = getSchoolInitials(school.name, school.code);
+      }
+    } catch {
+      // Fallback to default docTag ('ADM')
+    }
+  }
 
   // 1. Resolve Academic Year Name if not provided
   let ayName = academicYearName;
@@ -97,7 +112,7 @@ export const generateNextDocumentNumber = async (tx, {
 
   const yearLabel = normalizeAcademicYearName(ayName);
 
-  // 2. Build calculated prefix e.g. "RCPT/2026-27"
+  // 2. Build calculated prefix e.g. "ABA/2026-27"
   let calculatedPrefix = overridePrefix;
   if (!calculatedPrefix) {
     calculatedPrefix = `${docTag}/${yearLabel}`;

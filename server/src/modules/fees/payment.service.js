@@ -11,6 +11,7 @@ const PAYMENT_AUDIT_EVENTS = {
   VOID_PAYMENT: 'VOID_PAYMENT',
   VIEW_PAYMENT: 'VIEW_PAYMENT',
   REPRINT_RECEIPT: 'REPRINT_RECEIPT',
+  DELETE_FEE_CHARGE: 'DELETE_FEE_CHARGE',
 };
 
 /**
@@ -1319,6 +1320,74 @@ export const paymentService = {
         };
       }),
     };
+  },
+
+  /**
+   * Hard delete a particular unpaid fee charge.
+   * Permission restricted to School Admin / Owner only.
+   * Hard rule: Charge MUST be strictly UNPAID with 0 paidAmount and no active allocations.
+   *
+   * @param {string} schoolId
+   * @param {string} chargeId
+   * @param {string} [userId]
+   */
+  async deleteUnpaidFeeCharge(schoolId, chargeId, userId) {
+    if (!schoolId || !chargeId) {
+      throw new ApiError(400, 'School ID and Charge ID are required');
+    }
+
+    const charge = await prisma.studentFeeCharge.findFirst({
+      where: { id: chargeId, schoolId },
+      include: {
+        allocations: {
+          where: {
+            payment: {
+              status: { not: 'VOID' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!charge) {
+      throw new ApiError(404, 'Fee charge not found');
+    }
+
+    const paidAmt = new Prisma.Decimal(charge.paidAmount || 0);
+    if (charge.status !== 'UNPAID' || paidAmt.greaterThan(0) || charge.allocations.length > 0) {
+      throw new ApiError(
+        400,
+        `Cannot delete charge '${charge.title}' because it has partial or full payments. Only UNPAID charges with no payment history can be deleted.`
+      );
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      await tx.studentFeeCharge.delete({
+        where: { id: chargeId },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: userId || null,
+          action: PAYMENT_AUDIT_EVENTS.DELETE_FEE_CHARGE,
+          entityType: 'StudentFeeCharge',
+          entityId: chargeId,
+          oldValues: {
+            title: charge.title,
+            amount: charge.amount.toString(),
+            studentId: charge.studentId,
+            month: charge.month,
+            status: charge.status,
+          },
+        },
+      });
+
+      return {
+        success: true,
+        message: `Unpaid fee charge '${charge.title}' deleted successfully`,
+      };
+    });
   },
 };
 

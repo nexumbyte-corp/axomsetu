@@ -107,7 +107,7 @@ export const LoginPage = () => {
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
             <div>
               <Input
                 variant="light"
@@ -116,7 +116,7 @@ export const LoginPage = () => {
                 name="email"
                 placeholder="Enter email address"
                 required
-                autoComplete="email"
+                autoComplete="off"
                 icon={Mail}
                 value={formData.email}
                 onChange={handleChange}
@@ -135,7 +135,7 @@ export const LoginPage = () => {
                 name="password"
                 placeholder="Enter password"
                 required
-                autoComplete="current-password"
+                autoComplete="new-password"
                 icon={Lock}
                 value={formData.password}
                 onChange={handleChange}

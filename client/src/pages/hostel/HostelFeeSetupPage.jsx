@@ -859,7 +859,7 @@ export const HostelFeeSetupPage = () => {
         title={`Set Fee Rates - ${editingHostel?.name || 'Hostel'}`}
         size="md"
       >
-        <form onSubmit={handleSaveHostelFeeRates} className="space-y-4">
+        <form onSubmit={handleSaveHostelFeeRates} autoComplete="off" className="space-y-4">
           <div className="p-3 bg-indigo-50 border border-indigo-100 rounded-xl space-y-1">
             <h4 className="text-xs font-bold text-indigo-900">Hostel Fee Configuration Rule</h4>
             <p className="text-[11px] text-indigo-700">

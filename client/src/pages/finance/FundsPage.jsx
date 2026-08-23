@@ -344,7 +344,7 @@ export const FundsPage = () => {
 
       {/* Add Fund Form Modal */}
       <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add Fund Contribution" size="md">
-        <form onSubmit={handleAddFund} className="space-y-4">
+        <form onSubmit={handleAddFund} autoComplete="off" className="space-y-4">
           {formError && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-lg">
               {formError}
@@ -429,7 +429,7 @@ export const FundsPage = () => {
       <Modal isOpen={isSourcesModalOpen} onClose={() => setIsSourcesModalOpen(false)} title="Manage Fund Sources" size="lg">
         <div className="space-y-5">
           {/* Create Source Form */}
-          <form onSubmit={handleCreateSource} className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+          <form onSubmit={handleCreateSource} autoComplete="off" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
             <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">+ Create New Fund Source</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input

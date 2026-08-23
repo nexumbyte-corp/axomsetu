@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
-import { getISTDayBounds, getISTYearBounds, getISTDateParts } from '../../utils/dateUtils.js';
+import { getISTDayBounds, getISTYearBounds } from '../../utils/dateUtils.js';
 
 const REPORT_AUDIT_EVENTS = {
   VIEW_REPORT: 'VIEW_REPORT',

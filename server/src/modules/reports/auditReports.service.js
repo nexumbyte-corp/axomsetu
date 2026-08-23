@@ -1,3 +1,5 @@
+import { prisma } from '../../config/prisma.js';
+
 function formatAuditDetails(newValues) {
   if (!newValues) return '-';
   if (typeof newValues === 'string') return newValues;

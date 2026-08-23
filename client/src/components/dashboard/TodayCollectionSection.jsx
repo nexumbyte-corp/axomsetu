@@ -1,29 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   DollarSign,
   Receipt,
   Users,
   CreditCard,
   RefreshCw,
-  Search,
-  ArrowRight,
   TrendingUp,
   Sparkles,
-  Printer,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 import { dashboardService } from '../../services/dashboard.service.js';
 import { DatePicker } from '../ui/DatePicker.jsx';
 import { Button } from '../ui/Button.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { Card, CardContent } from '../ui/Card.jsx';
-import { formatCurrency, formatNumber, formatDate, formatDateTime, formatDateForInput } from '../../utils/formatters.js';
+import { formatCurrency, formatNumber, formatDate, formatDateForInput } from '../../utils/formatters.js';
 
 export const TodayCollectionSection = ({ selectedYearId }) => {
-  const navigate = useNavigate();
-
   const getTodayString = () => formatDateForInput(new Date());
   const getYesterdayString = () => {
     const d = new Date();
@@ -36,8 +28,6 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
   const [collectionData, setCollectionData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isExpanded, setIsExpanded] = useState(true);
 
   const isToday = selectedDate === todayStr;
   const isYesterday = selectedDate === getYesterdayString();
@@ -89,23 +79,9 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
     transactionCount = 0,
     studentCount = 0,
     modeBreakdown = [],
-    payments = [],
   } = collectionData || {};
 
   const avgPerReceipt = transactionCount > 0 ? totalAmount / transactionCount : 0;
-
-  // Filter payments by search query
-  const filteredPayments = payments.filter((p) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      p.receiptNumber?.toLowerCase().includes(q) ||
-      p.studentName?.toLowerCase().includes(q) ||
-      p.admissionNo?.toLowerCase().includes(q) ||
-      p.classSection?.toLowerCase().includes(q) ||
-      p.paymentMode?.toLowerCase().includes(q)
-    );
-  });
 
   const getModeBadgeVariant = (mode) => {
     switch (mode) {
@@ -142,7 +118,7 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
               </Badge>
             </div>
             <p className="text-xs text-slate-500 mt-0.5 font-medium">
-              Real-time fee collection breakdown & transaction audit for{' '}
+              Real-time fee collection breakdown & summary for{' '}
               <span className="font-semibold text-slate-700">{formatDate(selectedDate)}</span>
             </p>
           </div>
@@ -311,146 +287,6 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
                 </div>
               </div>
             )}
-
-            {/* Transactions Section Header & Search */}
-            <div className="space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
-                    Collection Transactions ({filteredPayments.length})
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5 ml-2"
-                  >
-                    {isExpanded ? (
-                      <>
-                        Collapse <ChevronUp className="w-3.5 h-3.5" />
-                      </>
-                    ) : (
-                      <>
-                        Expand <ChevronDown className="w-3.5 h-3.5" />
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {transactionCount > 0 && isExpanded && (
-                  <div className="flex items-center gap-2">
-                    <div className="relative w-full sm:w-60">
-                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        placeholder="Search receipt, student, class..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate('/app/fees/collect')}
-                      className="text-xs shrink-0"
-                    >
-                      + Collect Fee
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Transactions Table */}
-              {isExpanded && (
-                <>
-                  {filteredPayments.length > 0 ? (
-                    <div className="overflow-x-auto rounded-xl border border-slate-200/80 shadow-2xs">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
-                          <tr>
-                            <th className="py-2.5 px-3">Receipt No</th>
-                            <th className="py-2.5 px-3">Student Name</th>
-                            <th className="py-2.5 px-3">Class / Sec</th>
-                            <th className="py-2.5 px-3">Time</th>
-                            <th className="py-2.5 px-3">Mode</th>
-                            <th className="py-2.5 px-3">Received By</th>
-                            <th className="py-2.5 px-3 text-right">Amount</th>
-                            <th className="py-2.5 px-3 text-center">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 bg-white font-medium">
-                          {filteredPayments.map((p) => (
-                            <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                              <td className="py-2.5 px-3 font-mono font-bold text-indigo-600">
-                                #{p.receiptNumber}
-                              </td>
-                              <td className="py-2.5 px-3">
-                                <div className="font-bold text-slate-900">{p.studentName}</div>
-                                <div className="text-[10px] text-slate-400">Adm: {p.admissionNo}</div>
-                              </td>
-                              <td className="py-2.5 px-3 text-slate-600">{p.classSection}</td>
-                              <td className="py-2.5 px-3 text-slate-500 font-mono text-[11px]">
-                                {p.paymentDate ? formatDateTime(p.paymentDate).split(', ')[1] || '-' : '-'}
-                              </td>
-                              <td className="py-2.5 px-3">
-                                <Badge variant={getModeBadgeVariant(p.paymentMode)} className="text-[10px] py-0.5">
-                                  {p.paymentMode?.replace('_', ' ')}
-                                </Badge>
-                              </td>
-                              <td className="py-2.5 px-3 text-slate-600 text-[11px]">
-                                {p.receivedByName}
-                              </td>
-                              <td className="py-2.5 px-3 text-right font-mono font-extrabold text-slate-900">
-                                {formatCurrency(p.receivedAmount)}
-                              </td>
-                              <td className="py-2.5 px-3 text-center">
-                                <button
-                                  type="button"
-                                  onClick={() => navigate(`/app/fees/receipts`)}
-                                  className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                                  title="View Receipt"
-                                >
-                                  <Printer className="w-4 h-4" />
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="py-10 border border-dashed border-slate-200 rounded-xl bg-slate-50/50 text-center space-y-3">
-                      <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-                        <Receipt className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-800">
-                          {searchQuery
-                            ? 'No matching transactions found'
-                            : `No fee collections recorded for ${formatDate(selectedDate)}`}
-                        </h4>
-                        <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                          {searchQuery
-                            ? 'Try searching with a different student name or receipt number.'
-                            : 'Fees collected on this date will appear here in real-time.'}
-                        </p>
-                      </div>
-                      {!searchQuery && (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          icon={ArrowRight}
-                          onClick={() => navigate('/app/fees/collect')}
-                          className="mt-2 text-xs"
-                        >
-                          Collect Fee Now
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
           </>
         )}
       </CardContent>
@@ -459,3 +295,4 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
 };
 
 export default TodayCollectionSection;
+

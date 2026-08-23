@@ -321,7 +321,7 @@ export const SchoolDetailsPage = () => {
           </div>
 
           {isEditingSchool ? (
-            <form onSubmit={handleUpdateSchoolSubmit} className="space-y-4 max-w-2xl">
+            <form onSubmit={handleUpdateSchoolSubmit} autoComplete="off" className="space-y-4 max-w-2xl">
               <Input
                 label="School Name *"
                 value={schoolForm.name}
@@ -530,7 +530,7 @@ export const SchoolDetailsPage = () => {
 
             {/* Inline Create User Form */}
             {isCreatingUser && (
-              <form onSubmit={handleCreateUserSubmit} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+              <form onSubmit={handleCreateUserSubmit} autoComplete="off" className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
                 <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Add Admin / User to {school.name}</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <Input
@@ -759,7 +759,7 @@ export const SchoolDetailsPage = () => {
 
       {/* Reset Password Dialog */}
       {resettingUser && (
-        <form onSubmit={handleResetPasswordSubmit} className="bg-white p-5 rounded-xl border border-slate-300 shadow-lg space-y-4 max-w-md mx-auto">
+        <form onSubmit={handleResetPasswordSubmit} autoComplete="off" className="bg-white p-5 rounded-xl border border-slate-300 shadow-lg space-y-4 max-w-md mx-auto">
           <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
             Reset Password — {resettingUser.name}
           </h3>

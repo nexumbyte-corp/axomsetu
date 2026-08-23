@@ -6,7 +6,7 @@ export const StaffSubNav = () => {
   const tabs = [
     { label: 'Staff List', path: '/app/staff', icon: Users, end: true },
     { label: 'Salary Payments', path: '/app/staff/payments', icon: CreditCard },
-    { label: 'Monthly Salary', path: '/app/payroll', icon: CalendarCheck },
+    { label: 'Salary Preparation', path: '/app/payroll', icon: CalendarCheck },
     { label: 'Advances', path: '/app/staff/advances', icon: HandCoins },
     { label: 'Salary Setup', path: '/app/staff/salary', icon: DollarSign },
     { label: 'History & Slips', path: '/app/staff/history', icon: History },

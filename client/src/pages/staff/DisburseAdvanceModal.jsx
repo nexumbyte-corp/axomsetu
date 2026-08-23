@@ -67,7 +67,7 @@ export const DisburseAdvanceModal = ({ isOpen, onClose, staff, onSuccess }) => {
       title={`Disburse Advance Payment - ${staff.name}`}
       size="md"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
