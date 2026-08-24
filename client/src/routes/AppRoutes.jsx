@@ -77,6 +77,7 @@ import { ReportsPage } from '../pages/reports/ReportsPage.jsx';
 // School Users & Permissions
 import { SchoolUsersPage } from '../pages/school-users/SchoolUsersPage.jsx';
 import { SchoolProfilePage } from '../pages/settings/SchoolProfilePage.jsx';
+import { UserProfilePage } from '../pages/settings/UserProfilePage.jsx';
 
 // Subscription Pages
 import { SubscriptionPage } from '../pages/SubscriptionPage.jsx';
@@ -190,7 +191,7 @@ export const AppRoutes = () => {
         {/* Users & Permissions Routes */}
         <Route path="settings/users" element={<SubscriptionRoute><PermissionRoute permission="USERS_VIEW"><SchoolUsersPage /></PermissionRoute></SubscriptionRoute>} />
         <Route path="settings/profile" element={<SubscriptionRoute><OwnerRoute><SchoolProfilePage /></OwnerRoute></SubscriptionRoute>} />
-        <Route path="profile" element={<Navigate to="/app/settings/profile" replace />} />
+        <Route path="profile" element={<SubscriptionRoute><UserProfilePage /></SubscriptionRoute>} />
       </Route>
 
       {/* Protected Super Admin Portal */}

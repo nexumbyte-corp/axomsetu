@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, LogOut, Menu, ChevronDown, Building, Lock, HelpCircle } from 'lucide-react';
+import { Calendar, LogOut, Menu, ChevronDown, Building, Lock, HelpCircle, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { usePermission } from '../hooks/usePermission.js';
 import { useAcademicYear } from '../hooks/useAcademicYear.js';
 import { useSubscription } from '../hooks/useSubscription.js';
 import { usePageHeader } from '../context/PageHeaderContext.jsx';
 import { SupportModal } from '../components/support/SupportModal.jsx';
+import { ChangePasswordModal } from '../components/auth/ChangePasswordModal.jsx';
 import { Drawer } from '../components/ui/Drawer.jsx';
 import { Dropdown, DropdownItem, DropdownDivider } from '../components/ui/Dropdown.jsx';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.jsx';
@@ -28,6 +29,7 @@ export const SchoolAdminLayout = () => {
 
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState({});
@@ -49,6 +51,7 @@ export const SchoolAdminLayout = () => {
   useEffect(() => {
     setIsMobileNavOpen(false);
     setIsLogoutModalOpen(false);
+    setIsPasswordModalOpen(false);
     setIsSupportOpen(false);
     document.body.style.overflow = '';
 
@@ -431,16 +434,17 @@ const getPageTitle = (locationPath, headerTitle) => {
                   {roleLabel?.toUpperCase() || 'SCHOOL OWNER'}
                 </span>
               </div>
+              <DropdownItem icon={User} onClick={() => navigate('/app/profile')}>
+                My Profile
+              </DropdownItem>
               {isOwner && (
                 <DropdownItem icon={Building} onClick={() => navigate('/app/settings/profile')}>
                   School Profile
                 </DropdownItem>
               )}
-              {isOwner && (
-                <DropdownItem icon={Lock} onClick={() => navigate('/app/settings/profile?tab=security')}>
-                  Change Password
-                </DropdownItem>
-              )}
+              <DropdownItem icon={Lock} onClick={() => setIsPasswordModalOpen(true)}>
+                Change Password
+              </DropdownItem>
               <DropdownDivider />
               <DropdownItem icon={LogOut} danger onClick={() => setIsLogoutModalOpen(true)}>
                 Sign Out
@@ -492,6 +496,12 @@ const getPageTitle = (locationPath, headerTitle) => {
         confirmText="Sign Out"
         loading={isLoggingOut}
         loadingText="Logging out..."
+      />
+
+      {/* Change Password Modal for All Users */}
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
       />
     </div>
   );

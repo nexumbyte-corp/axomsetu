@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { generateNextDocumentNumber } from '../../utils/documentSequence.js';
@@ -350,11 +351,36 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
         }
 
         if (isOverridden) {
+          if (h.feeTypeId) {
+            await tx.studentFeeOverride.upsert({
+              where: {
+                schoolId_studentId_academicYearId_feeTypeId: {
+                  schoolId,
+                  studentId: student.id,
+                  academicYearId: data.academicYearId,
+                  feeTypeId: h.feeTypeId,
+                },
+              },
+              update: {
+                amount: new Prisma.Decimal(finalAmount),
+                isActive: true,
+              },
+              create: {
+                schoolId,
+                studentId: student.id,
+                academicYearId: data.academicYearId,
+                feeTypeId: h.feeTypeId,
+                amount: new Prisma.Decimal(finalAmount),
+                isActive: true,
+              },
+            });
+          }
+
           auditOverrideEvents.push({
             schoolId,
             userId: actorUserId,
             action: 'STUDENT_FEE_OVERRIDE_APPLIED',
-            entityType: 'StudentFeeCharge',
+            entityType: 'StudentFeeOverride',
             entityId: student.id,
             newValues: {
               studentId: student.id,
@@ -365,6 +391,37 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
               discountAmount,
               finalAmount,
               reason: overrideReason,
+            },
+          });
+        }
+      }
+    }
+
+    // Persist any additional raw overrides that were not part of fee structure heads
+    for (const ov of rawOverrides) {
+      if (ov.feeTypeId && ov.finalAmount !== undefined && ov.finalAmount !== null) {
+        const parsedFinal = Number(ov.finalAmount);
+        if (!isNaN(parsedFinal) && parsedFinal >= 0) {
+          await tx.studentFeeOverride.upsert({
+            where: {
+              schoolId_studentId_academicYearId_feeTypeId: {
+                schoolId,
+                studentId: student.id,
+                academicYearId: data.academicYearId,
+                feeTypeId: ov.feeTypeId,
+              },
+            },
+            update: {
+              amount: new Prisma.Decimal(parsedFinal),
+              isActive: true,
+            },
+            create: {
+              schoolId,
+              studentId: student.id,
+              academicYearId: data.academicYearId,
+              feeTypeId: ov.feeTypeId,
+              amount: new Prisma.Decimal(parsedFinal),
+              isActive: true,
             },
           });
         }
