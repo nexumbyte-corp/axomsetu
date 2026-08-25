@@ -11,6 +11,7 @@ export const Input = React.forwardRef(
       className = '',
       labelClassName = '',
       variant = 'light',
+      size = 'md',
       id,
       name,
       icon: Icon,
@@ -35,6 +36,7 @@ export const Input = React.forwardRef(
     };
 
     const isDark = variant === 'dark';
+    const isSm = size === 'sm';
 
     const labelStyles = isDark
       ? `text-slate-300 ${labelClassName}`
@@ -51,15 +53,15 @@ export const Input = React.forwardRef(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${labelStyles}`}>
+          <label htmlFor={inputId} className={`block font-semibold uppercase tracking-wider ${isSm ? 'text-[10px] mb-1 font-bold' : 'text-xs mb-1.5'} ${labelStyles}`}>
             {label}
             {required && <span className="text-rose-500 ml-1">*</span>}
           </label>
         )}
-        <div className="relative rounded-lg shadow-sm">
+        <div className="relative rounded-lg shadow-2xs">
           {Icon && (
-            <div className={`absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>
-              <Icon className="w-4 h-4" />
+            <div className={`absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none ${isDark ? 'text-slate-400' : 'text-slate-400'}`}>
+              <Icon className={isSm ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
             </div>
           )}
           <input
@@ -70,14 +72,16 @@ export const Input = React.forwardRef(
             disabled={disabled}
             autoComplete={computedAutoComplete}
             onWheel={handleWheel}
-            className={`w-full rounded-lg border text-sm transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:cursor-not-allowed ${
-              Icon ? 'pl-9' : 'pl-3.5'
-            } ${endElement ? 'pr-10' : 'pr-3.5'} py-2.5 ${
+            className={`w-full rounded-lg border transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:cursor-not-allowed ${
+              isSm ? 'py-1.5 text-xs' : 'py-2.5 text-sm'
+            } ${
+              Icon ? (isSm ? 'pl-8' : 'pl-9') : (isSm ? 'pl-2.5' : 'pl-3.5')
+            } ${endElement ? (isSm ? 'pr-8' : 'pr-10') : (isSm ? 'pr-2.5' : 'pr-3.5')} ${
               error ? errorInputStyles : defaultInputStyles
             } ${className}`}
             {...props}
           />
-          {endElement && <div className="absolute inset-y-0 right-0 pr-3 flex items-center">{endElement}</div>}
+          {endElement && <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center">{endElement}</div>}
         </div>
         {error && <p className="mt-1 text-xs text-rose-500 font-medium">{error}</p>}
         {helperText && !error && <p className={`mt-1 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{helperText}</p>}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Check, MoveUp, MoveDown, Trash2, Plus, Users, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Save, Check, MoveUp, MoveDown, Trash2, Plus, Users, ShieldAlert, GripVertical } from 'lucide-react';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
@@ -43,6 +43,8 @@ export const PlanFormPage = () => {
   });
 
   const [newFeatureText, setNewFeatureText] = useState('');
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   useEffect(() => {
     if (!isEditing && copyPlan) {
@@ -146,6 +148,39 @@ export const PlanFormPage = () => {
     setFormData((prev) => ({ ...prev, features: newFeatures }));
   };
 
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDrop = (e, targetIndex) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === targetIndex) return;
+
+    setFormData((prev) => {
+      const newFeatures = [...prev.features];
+      const [removed] = newFeatures.splice(draggedIndex, 1);
+      newFeatures.splice(targetIndex, 0, removed);
+      return { ...prev, features: newFeatures };
+    });
+
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -188,7 +223,7 @@ export const PlanFormPage = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-4 max-w-5xl mx-auto">
       {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
 
       <div>
@@ -206,121 +241,87 @@ export const PlanFormPage = () => {
         description="Configure pricing, billing cycle, duration, trial options, and feature entitlement list."
       />
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 shadow-xs p-6 space-y-6">
-        {/* Core Plan Details */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-            Plan Identification
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 shadow-2xs p-4 sm:p-5 space-y-4">
+        {/* Core Plan Details & Billing Cycle */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center justify-between">
+            <span>1. Identification & Billing Cycle</span>
+            <span className="text-[10px] text-slate-400 font-normal">Core plan identity and duration settings</span>
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <Input
-              label="Plan Name *"
-              placeholder="e.g. Standard Monthly"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-            />
-            <Input
-              label="Plan Code *"
-              placeholder="e.g. MONTHLY_STD"
-              value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-              disabled={isEditing}
-              required
-            />
-          </div>
-        </div>
-
-        {/* Billing & Duration */}
-        <div className="space-y-4 pt-2 border-t border-slate-100">
-          <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-            Billing Cycle & Duration
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <Select
-              label="Plan Type *"
-              value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-            >
-              <option value="MONTHLY">MONTHLY</option>
-              <option value="QUARTERLY">QUARTERLY</option>
-              <option value="YEARLY">YEARLY</option>
-              <option value="TRIAL">TRIAL</option>
-            </Select>
-
-            <Input
-              label="Duration Value *"
-              type="number"
-              min="1"
-              value={formData.durationValue}
-              onChange={(e) => setFormData({ ...formData, durationValue: e.target.value })}
-              required
-            />
-
-            <Select
-              label="Duration Unit *"
-              value={formData.durationUnit}
-              onChange={(e) => setFormData({ ...formData, durationUnit: e.target.value })}
-            >
-              <option value="MONTH">MONTH</option>
-              <option value="DAY">DAY</option>
-              <option value="YEAR">YEAR</option>
-            </Select>
-          </div>
-        </div>
-
-        {/* Student Capacity & Limits */}
-        <div className="space-y-4 pt-2 border-t border-slate-100">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Users className="w-4 h-4 text-indigo-600" />
-              <span>Student Capacity & Limits</span>
-            </h3>
-            <span className="text-[11px] text-slate-400">Enforces maximum active students in school</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+            <div className="sm:col-span-1 lg:col-span-2">
               <Input
-                label="Max Active Student Limit"
-                type="number"
-                min="1"
-                placeholder="e.g. 500 (Leave empty for Unlimited)"
-                value={formData.maxStudentLimit}
-                onChange={(e) => setFormData({ ...formData, maxStudentLimit: e.target.value })}
+                size="sm"
+                label="Plan Name *"
+                placeholder="e.g. Standard Monthly"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
               />
-              <p className="text-[10px] text-slate-500 mt-1">
-                Leave blank or set to 0 for <strong>Unlimited Active Students</strong>.
-              </p>
             </div>
-
-            <div className="flex items-center pt-5">
-              <label className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 cursor-pointer bg-slate-50 p-3 rounded-lg border border-slate-200 w-full">
-                <input
-                  type="checkbox"
-                  checked={formData.isEnterprise}
-                  onChange={(e) => setFormData({ ...formData, isEnterprise: e.target.checked })}
-                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+            <div className="sm:col-span-1 lg:col-span-1">
+              <Input
+                size="sm"
+                label="Plan Code *"
+                placeholder="e.g. MONTHLY_STD"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                disabled={isEditing}
+                required
+              />
+            </div>
+            <div>
+              <Select
+                size="sm"
+                label="Plan Type *"
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              >
+                <option value="MONTHLY">MONTHLY</option>
+                <option value="QUARTERLY">QUARTERLY</option>
+                <option value="YEARLY">YEARLY</option>
+                <option value="TRIAL">TRIAL</option>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  size="sm"
+                  label="Duration *"
+                  type="number"
+                  min="1"
+                  value={formData.durationValue}
+                  onChange={(e) => setFormData({ ...formData, durationValue: e.target.value })}
+                  required
                 />
-                <div>
-                  <span className="font-bold text-slate-900 block">Enterprise Custom Plan</span>
-                  <span className="text-[10px] text-slate-500 font-normal">Flag as custom Enterprise tier for high-volume school clients.</span>
-                </div>
-              </label>
+              </div>
+              <div className="flex-1">
+                <Select
+                  size="sm"
+                  label="Unit *"
+                  value={formData.durationUnit}
+                  onChange={(e) => setFormData({ ...formData, durationUnit: e.target.value })}
+                >
+                  <option value="MONTH">MONTH</option>
+                  <option value="DAY">DAY</option>
+                  <option value="YEAR">YEAR</option>
+                </Select>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Pricing & Discounts */}
-        <div className="space-y-4 pt-2 border-t border-slate-100">
-          <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-            Pricing & Discounts
+        {/* Pricing, Discounts & Student Limit */}
+        <div className="space-y-3 pt-1 border-t border-slate-100">
+          <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center justify-between">
+            <span>2. Pricing, Discounts & Capacity</span>
+            <span className="text-[10px] text-indigo-600 font-bold">Calculated Price: {formatCurrency(Math.max(0, Number(formData.basePrice || 0) - Number(formData.discountAmount || 0)))}</span>
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
             <Input
+              size="sm"
               label="Base Price (₹) *"
               type="number"
               min="0"
@@ -338,6 +339,7 @@ export const PlanFormPage = () => {
             />
 
             <Input
+              size="sm"
               label="Discount Amount (₹)"
               type="number"
               min="0"
@@ -354,6 +356,7 @@ export const PlanFormPage = () => {
             />
 
             <Input
+              size="sm"
               label="Discount %"
               type="number"
               min="0"
@@ -369,95 +372,123 @@ export const PlanFormPage = () => {
                 setFormData((prev) => ({ ...prev, discountPercentage: pctVal, discountAmount: newAmt }));
               }}
             />
+
+            <Input
+              size="sm"
+              label="Max Active Student Limit"
+              type="number"
+              min="1"
+              placeholder="Empty = Unlimited"
+              value={formData.maxStudentLimit}
+              onChange={(e) => setFormData({ ...formData, maxStudentLimit: e.target.value })}
+            />
           </div>
 
-          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
-            <span className="font-semibold text-slate-700">Calculated Final Price:</span>
-            <span className="font-extrabold text-indigo-700 text-sm font-mono">
-              {formatCurrency(Math.max(0, Number(formData.basePrice || 0) - Number(formData.discountAmount || 0)))}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-2 rounded-lg border border-slate-200 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-slate-700">Calculated Final Price:</span>
+              <span className="font-extrabold text-indigo-700 text-xs font-mono">
+                {formatCurrency(Math.max(0, Number(formData.basePrice || 0) - Number(formData.discountAmount || 0)))}
+              </span>
+            </div>
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.isEnterprise}
+                onChange={(e) => setFormData({ ...formData, isEnterprise: e.target.checked })}
+                className="rounded border-slate-300 text-purple-600 focus:ring-purple-500 w-3.5 h-3.5"
+              />
+              <span className="text-purple-900 font-bold text-xs">Enterprise Custom Plan Tier</span>
+            </label>
           </div>
         </div>
 
-        {/* Branding & Marketing Details */}
-        <div className="space-y-4 pt-2 border-t border-slate-100">
-          <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-            Marketing & Badges
+        {/* Marketing, Description & Visibility */}
+        <div className="space-y-3 pt-1 border-t border-slate-100">
+          <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-1.5">
+            3. Branding, Visibility & Order
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
             <Input
+              size="sm"
               label="Offer Title"
               placeholder="e.g. Save ₹2,000 yearly"
               value={formData.offerTitle}
               onChange={(e) => setFormData({ ...formData, offerTitle: e.target.value })}
             />
             <Input
+              size="sm"
               label="Badge Tag"
               placeholder="e.g. POPULAR"
               value={formData.badge}
               onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
             />
-          </div>
-
-          <Input
-            label="Offer Description"
-            placeholder="e.g. Special promotional discount for new registrants"
-            value={formData.offerDescription}
-            onChange={(e) => setFormData({ ...formData, offerDescription: e.target.value })}
-          />
-
-          <Input
-            label="Plan Description"
-            placeholder="Short plan summary displayed on billing page..."
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          />
-        </div>
-
-        {/* Display Order & Visibility */}
-        <div className="space-y-4 pt-2 border-t border-slate-100">
-          <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-            Ordering & Visibility
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             <Input
+              size="sm"
+              label="Offer Description"
+              placeholder="Promotional discount note..."
+              value={formData.offerDescription}
+              onChange={(e) => setFormData({ ...formData, offerDescription: e.target.value })}
+            />
+            <Input
+              size="sm"
               label="Display Order Index"
               type="number"
               value={formData.displayOrder}
               onChange={(e) => setFormData({ ...formData, displayOrder: e.target.value })}
             />
+          </div>
 
-            <div className="flex items-center gap-6 pt-5">
-              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs items-end">
+            <div className="sm:col-span-2">
+              <Input
+                size="sm"
+                label="Plan Summary / Description"
+                placeholder="Short plan overview displayed on pricing cards..."
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+            <div className="flex items-center gap-4 py-2 px-3 bg-slate-50 rounded-lg border border-slate-200 justify-around">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.isActive}
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
                 />
-                <span>Active (Publicly Visible)</span>
+                <span>Active</span>
               </label>
 
-              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.isTrial}
                   onChange={(e) => setFormData({ ...formData, isTrial: e.target.checked })}
-                  className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 w-4 h-4"
+                  className="rounded border-slate-300 text-amber-600 focus:ring-amber-500 w-3.5 h-3.5"
                 />
-                <span>Mark as Trial Plan</span>
+                <span>Trial</span>
               </label>
             </div>
           </div>
         </div>
 
-        {/* Features Manager */}
-        <div className="space-y-4 pt-2 border-t border-slate-100">
-          <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-            Included Features
-          </h3>
+        {/* Features Manager (ALL FEATURES DISPLAYED TOGETHER, COMPACT & EFFORTLESS DRAG-AND-DROP) */}
+        <div className="space-y-3 pt-1 border-t border-slate-100">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                4. Included Features ({formData.features.length})
+              </h3>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                Drag to Reorder
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
+              Drag grab handle or click arrows to rearrange feature sequence
+            </span>
+          </div>
 
           <div className="flex gap-2">
             <input
@@ -466,53 +497,76 @@ export const PlanFormPage = () => {
               value={newFeatureText}
               onChange={(e) => setNewFeatureText(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddFeature())}
-              className="flex-1 px-3 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <Button type="button" variant="outline" size="sm" icon={Plus} onClick={handleAddFeature}>
               Add Feature
             </Button>
           </div>
 
-          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-            {formData.features.map((feat, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs text-slate-800"
-              >
-                <span className="flex items-center gap-2 font-medium">
-                  <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>{feat}</span>
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => handleMoveFeature(idx, -1)}
-                    className="p-1 text-slate-400 hover:text-slate-700 transition-colors"
-                  >
-                    <MoveUp className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleMoveFeature(idx, 1)}
-                    className="p-1 text-slate-400 hover:text-slate-700 transition-colors"
-                  >
-                    <MoveDown className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveFeature(idx)}
-                    className="p-1 text-rose-500 hover:text-rose-700 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+          {/* ALL FEATURES DISPLAYED TOGETHER (NO INNER CLAMPED SCROLLBAR, EFFICIENT DRAG AND DROP) */}
+          <div className="space-y-1.5 pt-1">
+            {formData.features.map((feat, idx) => {
+              const isDragging = draggedIndex === idx;
+              const isDragOver = dragOverIndex === idx;
+
+              return (
+                <div
+                  key={idx}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDragOver={(e) => handleDragOver(e, idx)}
+                  onDrop={(e) => handleDrop(e, idx)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex items-center justify-between py-1.5 px-2.5 rounded-md border text-xs text-slate-800 transition-all cursor-grab active:cursor-grabbing select-none ${
+                    isDragging
+                      ? 'opacity-30 bg-indigo-100 border-indigo-400 border-dashed scale-[0.99]'
+                      : isDragOver
+                      ? 'bg-indigo-50 border-indigo-500 ring-2 ring-indigo-400/40 shadow-xs'
+                      : 'bg-slate-50/90 hover:bg-slate-100 border-slate-200'
+                  }`}
+                >
+                  <span className="flex items-center gap-2 font-medium min-w-0">
+                    <GripVertical className="w-4 h-4 text-slate-400 hover:text-indigo-600 shrink-0 cursor-grab active:cursor-grabbing" />
+                    <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate text-xs">{feat}</span>
+                  </span>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleMoveFeature(idx, -1)}
+                      disabled={idx === 0}
+                      className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                      title="Move Up"
+                    >
+                      <MoveUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMoveFeature(idx, 1)}
+                      disabled={idx === formData.features.length - 1}
+                      className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
+                      title="Move Down"
+                    >
+                      <MoveDown className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFeature(idx)}
+                      className="p-1 text-rose-500 hover:text-rose-700 transition-colors"
+                      title="Remove Feature"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {/* Submit Actions */}
-        <div className="pt-6 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-end gap-2.5">
+        <div className="pt-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-end gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => navigate('/admin/plans')} disabled={saving}>
             Cancel
           </Button>
