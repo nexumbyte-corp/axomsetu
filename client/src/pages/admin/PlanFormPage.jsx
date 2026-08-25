@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Check, MoveUp, MoveDown, Trash2, Plus, Users, ShieldAlert, GripVertical } from 'lucide-react';
+import { ArrowLeft, Save, Check, MoveUp, MoveDown, Trash2, Plus, Users, ShieldAlert, GripVertical, Pencil, X } from 'lucide-react';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
@@ -45,6 +45,9 @@ export const PlanFormPage = () => {
   const [newFeatureText, setNewFeatureText] = useState('');
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+
+  const [editingFeatureIndex, setEditingFeatureIndex] = useState(null);
+  const [editingFeatureText, setEditingFeatureText] = useState('');
 
   useEffect(() => {
     if (!isEditing && copyPlan) {
@@ -146,6 +149,27 @@ export const PlanFormPage = () => {
     newFeatures[index] = newFeatures[targetIndex];
     newFeatures[targetIndex] = temp;
     setFormData((prev) => ({ ...prev, features: newFeatures }));
+  };
+
+  const handleStartEditFeature = (index) => {
+    setEditingFeatureIndex(index);
+    setEditingFeatureText(formData.features[index]);
+  };
+
+  const handleSaveEditFeature = (index) => {
+    if (!editingFeatureText.trim()) return;
+    setFormData((prev) => {
+      const updated = [...prev.features];
+      updated[index] = editingFeatureText.trim();
+      return { ...prev, features: updated };
+    });
+    setEditingFeatureIndex(null);
+    setEditingFeatureText('');
+  };
+
+  const handleCancelEditFeature = () => {
+    setEditingFeatureIndex(null);
+    setEditingFeatureText('');
   };
 
   const handleDragStart = (e, index) => {
@@ -504,11 +528,55 @@ export const PlanFormPage = () => {
             </Button>
           </div>
 
-          {/* ALL FEATURES DISPLAYED TOGETHER (NO INNER CLAMPED SCROLLBAR, EFFICIENT DRAG AND DROP) */}
+          {/* ALL FEATURES DISPLAYED TOGETHER (NO INNER CLAMPED SCROLLBAR, EFFICIENT DRAG AND DROP & INLINE EDITING) */}
           <div className="space-y-1.5 pt-1">
             {formData.features.map((feat, idx) => {
+              const isEditingFeature = editingFeatureIndex === idx;
               const isDragging = draggedIndex === idx;
               const isDragOver = dragOverIndex === idx;
+
+              if (isEditingFeature) {
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 py-1 px-2.5 rounded-md border border-indigo-300 bg-indigo-50/70 text-xs shadow-2xs"
+                  >
+                    <Check className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <input
+                      type="text"
+                      value={editingFeatureText}
+                      onChange={(e) => setEditingFeatureText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleSaveEditFeature(idx);
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          handleCancelEditFeature();
+                        }
+                      }}
+                      autoFocus
+                      className="flex-1 px-2.5 py-1 text-xs rounded border border-indigo-400 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium text-slate-900"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleSaveEditFeature(idx)}
+                      className="p-1 rounded text-emerald-600 hover:bg-emerald-100 transition-colors"
+                      title="Save Feature Text (Enter)"
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelEditFeature}
+                      className="p-1 rounded text-slate-500 hover:bg-slate-200 transition-colors"
+                      title="Cancel Editing (Esc)"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                );
+              }
 
               return (
                 <div
@@ -532,6 +600,14 @@ export const PlanFormPage = () => {
                     <span className="truncate text-xs">{feat}</span>
                   </span>
                   <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleStartEditFeature(idx)}
+                      className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
+                      title="Edit Feature Text"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleMoveFeature(idx, -1)}
