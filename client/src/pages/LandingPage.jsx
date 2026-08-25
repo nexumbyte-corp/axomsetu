@@ -693,6 +693,29 @@ export const LandingPage = () => {
                             </span>
                           )}
                         </div>
+
+                        {/* Student Capacity Highlight Badge (Right below Plan Name) */}
+                        <div className="mb-3">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold shadow-2xs border ${
+                              isEnterprise
+                                ? 'bg-purple-50 text-purple-900 border-purple-200/90'
+                                : plan.maxStudentLimit
+                                ? 'bg-indigo-50 text-indigo-800 border-indigo-200/90'
+                                : 'bg-emerald-50 text-emerald-800 border-emerald-200/90'
+                            }`}
+                          >
+                            <Users className={`w-3.5 h-3.5 shrink-0 ${isEnterprise ? 'text-purple-600' : plan.maxStudentLimit ? 'text-indigo-600' : 'text-emerald-600'}`} />
+                            <span>
+                              {isEnterprise
+                                ? (plan.maxStudentLimit ? `Custom Capacity (${plan.maxStudentLimit}+ Students)` : 'Custom Student Capacity')
+                                : plan.maxStudentLimit
+                                ? `Max ${plan.maxStudentLimit} Active Students`
+                                : 'Unlimited Active Students'}
+                            </span>
+                          </span>
+                        </div>
+
                         <p className="text-xs text-slate-500 mb-4 min-h-[32px]">{plan.description}</p>
 
                         <div className="py-3 border-y border-slate-100 my-4">

@@ -303,6 +303,34 @@ export const SubscriptionPage = () => {
 
                   <div>
                     <h4 className="text-xl font-bold text-slate-900">{plan.name}</h4>
+
+                    {/* Student Capacity Highlight Badge (Right below Plan Name) */}
+                    <div className="mt-1.5 mb-2">
+                      {(() => {
+                        const isEnterprise = plan.isEnterprise || plan.type === 'ENTERPRISE' || plan.name?.toLowerCase().includes('enterprise');
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold shadow-2xs border ${
+                              isEnterprise
+                                ? 'bg-purple-50 text-purple-900 border-purple-200'
+                                : plan.maxStudentLimit
+                                ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            }`}
+                          >
+                            <Users className={`w-3.5 h-3.5 shrink-0 ${isEnterprise ? 'text-purple-600' : plan.maxStudentLimit ? 'text-indigo-600' : 'text-emerald-600'}`} />
+                            <span>
+                              {isEnterprise
+                                ? (plan.maxStudentLimit ? `Custom Capacity (${plan.maxStudentLimit}+ Students)` : 'Custom Student Capacity')
+                                : plan.maxStudentLimit
+                                ? `Max ${plan.maxStudentLimit} Active Students`
+                                : 'Unlimited Active Students'}
+                            </span>
+                          </span>
+                        );
+                      })()}
+                    </div>
+
                     <p className="text-xs text-slate-500 mt-1 min-h-[36px]">{plan.description}</p>
 
                     <div className="my-6 p-4 rounded-xl bg-slate-50 border border-slate-100">
@@ -332,11 +360,6 @@ export const SubscriptionPage = () => {
                           <span>{plan.offerTitle}</span>
                         </div>
                       )}
-
-                      <div className="mt-3 text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 p-2 rounded-lg flex items-center gap-1.5 font-mono">
-                        <Users className="w-4 h-4 text-indigo-600 shrink-0" />
-                        <span>{plan.maxStudentLimit ? `Max ${plan.maxStudentLimit} Active Students` : 'Unlimited Active Students'}</span>
-                      </div>
                     </div>
 
                     {/* Features List */}
