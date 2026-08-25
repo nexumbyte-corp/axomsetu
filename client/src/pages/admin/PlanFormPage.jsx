@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Check, MoveUp, MoveDown, Trash2, Plus } from 'lucide-react';
+import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
+import { ArrowLeft, Save, Check, MoveUp, MoveDown, Trash2, Plus, Users, ShieldAlert } from 'lucide-react';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
@@ -12,7 +12,9 @@ import { Spinner } from '../../components/ui/Spinner.jsx';
 export const PlanFormPage = () => {
   const { planId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const isEditing = Boolean(planId);
+  const copyPlan = location.state?.copyPlan;
 
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
@@ -32,6 +34,8 @@ export const PlanFormPage = () => {
     offerTitle: '',
     offerDescription: '',
     badge: '',
+    maxStudentLimit: '',
+    isEnterprise: false,
     isTrial: false,
     isActive: true,
     displayOrder: 1,
@@ -39,6 +43,35 @@ export const PlanFormPage = () => {
   });
 
   const [newFeatureText, setNewFeatureText] = useState('');
+
+  useEffect(() => {
+    if (!isEditing && copyPlan) {
+      setFormData({
+        name: `Copy of ${copyPlan.name}`,
+        code: `${copyPlan.code}_COPY`,
+        type: copyPlan.type || 'MONTHLY',
+        durationValue: copyPlan.durationValue || 1,
+        durationUnit: copyPlan.durationUnit || 'MONTH',
+        basePrice: String(copyPlan.basePrice || ''),
+        discountPercentage: copyPlan.discountPercentage || 0,
+        discountAmount: String(copyPlan.discountAmount || 0),
+        currency: copyPlan.currency || 'INR',
+        description: copyPlan.description || '',
+        offerTitle: copyPlan.offerTitle || '',
+        offerDescription: copyPlan.offerDescription || '',
+        badge: copyPlan.badge || '',
+        maxStudentLimit: copyPlan.maxStudentLimit !== null && copyPlan.maxStudentLimit !== undefined ? String(copyPlan.maxStudentLimit) : '',
+        isEnterprise: Boolean(copyPlan.isEnterprise),
+        isTrial: Boolean(copyPlan.isTrial),
+        isActive: true,
+        displayOrder: (copyPlan.displayOrder || 1) + 1,
+        features: Array.isArray(copyPlan.features)
+          ? copyPlan.features.map((f) => (typeof f === 'string' ? f : f.name))
+          : [],
+      });
+      setToast({ type: 'success', message: `Pre-filled data from copied plan '${copyPlan.name}'. Edit the fields and save to create a new plan variant.` });
+    }
+  }, [isEditing, copyPlan]);
 
   useEffect(() => {
     if (isEditing) {
@@ -63,6 +96,8 @@ export const PlanFormPage = () => {
                 offerTitle: target.offerTitle || '',
                 offerDescription: target.offerDescription || '',
                 badge: target.badge || '',
+                maxStudentLimit: target.maxStudentLimit !== null && target.maxStudentLimit !== undefined ? String(target.maxStudentLimit) : '',
+                isEnterprise: Boolean(target.isEnterprise),
                 isTrial: target.isTrial,
                 isActive: target.isActive,
                 displayOrder: target.displayOrder || 1,
@@ -236,6 +271,48 @@ export const PlanFormPage = () => {
           </div>
         </div>
 
+        {/* Student Capacity & Limits */}
+        <div className="space-y-4 pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Users className="w-4 h-4 text-indigo-600" />
+              <span>Student Capacity & Limits</span>
+            </h3>
+            <span className="text-[11px] text-slate-400">Enforces maximum active students in school</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div>
+              <Input
+                label="Max Active Student Limit"
+                type="number"
+                min="1"
+                placeholder="e.g. 500 (Leave empty for Unlimited)"
+                value={formData.maxStudentLimit}
+                onChange={(e) => setFormData({ ...formData, maxStudentLimit: e.target.value })}
+              />
+              <p className="text-[10px] text-slate-500 mt-1">
+                Leave blank or set to 0 for <strong>Unlimited Active Students</strong>.
+              </p>
+            </div>
+
+            <div className="flex items-center pt-5">
+              <label className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 cursor-pointer bg-slate-50 p-3 rounded-lg border border-slate-200 w-full">
+                <input
+                  type="checkbox"
+                  checked={formData.isEnterprise}
+                  onChange={(e) => setFormData({ ...formData, isEnterprise: e.target.checked })}
+                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                />
+                <div>
+                  <span className="font-bold text-slate-900 block">Enterprise Custom Plan</span>
+                  <span className="text-[10px] text-slate-500 font-normal">Flag as custom Enterprise tier for high-volume school clients.</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
         {/* Pricing & Discounts */}
         <div className="space-y-4 pt-2 border-t border-slate-100">
           <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
@@ -249,7 +326,14 @@ export const PlanFormPage = () => {
               min="0"
               placeholder="4999"
               value={formData.basePrice}
-              onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
+              onChange={(e) => {
+                const val = e.target.value;
+                let newPct = formData.discountPercentage;
+                if (val !== '' && Number(val) > 0 && formData.discountAmount !== '' && Number(formData.discountAmount) >= 0) {
+                  newPct = Math.min(100, Math.max(0, Math.round((Number(formData.discountAmount) / Number(val)) * 100)));
+                }
+                setFormData((prev) => ({ ...prev, basePrice: val, discountPercentage: newPct }));
+              }}
               required
             />
 
@@ -259,7 +343,14 @@ export const PlanFormPage = () => {
               min="0"
               placeholder="500"
               value={formData.discountAmount}
-              onChange={(e) => setFormData({ ...formData, discountAmount: e.target.value })}
+              onChange={(e) => {
+                const amtVal = e.target.value;
+                let newPct = 0;
+                if (formData.basePrice !== '' && Number(formData.basePrice) > 0 && amtVal !== '' && Number(amtVal) >= 0) {
+                  newPct = Math.min(100, Math.max(0, Math.round((Number(amtVal) / Number(formData.basePrice)) * 100)));
+                }
+                setFormData((prev) => ({ ...prev, discountAmount: amtVal, discountPercentage: newPct }));
+              }}
             />
 
             <Input
@@ -269,7 +360,14 @@ export const PlanFormPage = () => {
               max="100"
               placeholder="10"
               value={formData.discountPercentage}
-              onChange={(e) => setFormData({ ...formData, discountPercentage: e.target.value })}
+              onChange={(e) => {
+                const pctVal = e.target.value;
+                let newAmt = formData.discountAmount;
+                if (formData.basePrice !== '' && Number(formData.basePrice) > 0 && pctVal !== '' && Number(pctVal) >= 0) {
+                  newAmt = String(Math.round((Number(formData.basePrice) * Number(pctVal)) / 100));
+                }
+                setFormData((prev) => ({ ...prev, discountPercentage: pctVal, discountAmount: newAmt }));
+              }}
             />
           </div>
 
@@ -414,7 +512,7 @@ export const PlanFormPage = () => {
         </div>
 
         {/* Submit Actions */}
-        <div className="pt-6 border-t border-slate-100 flex justify-end gap-3">
+        <div className="pt-6 border-t border-slate-100 flex flex-col-reverse sm:flex-row justify-end gap-2.5">
           <Button type="button" variant="outline" size="sm" onClick={() => navigate('/admin/plans')} disabled={saving}>
             Cancel
           </Button>

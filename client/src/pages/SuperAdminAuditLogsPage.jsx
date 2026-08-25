@@ -133,9 +133,9 @@ export const SuperAdminAuditLogsPage = () => {
           <Spinner size="lg" label="Loading audit trail records..." />
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-          <Table minWidth="min-w-[800px]">
-            <TableHeader>
+        <>
+          <Table minWidth="min-w-[900px]">
+          <TableHeader>
               <TableRow>
                 <TableHead>Timestamp</TableHead>
                 <TableHead>User</TableHead>
@@ -206,7 +206,7 @@ export const SuperAdminAuditLogsPage = () => {
             total={pagination.total}
             onPageChange={(pg) => setPagination((prev) => ({ ...prev, page: pg }))}
           />
-        </div>
+        </>
       )}
 
       {/* Read-Only Payload Inspector Modal */}

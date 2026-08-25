@@ -72,16 +72,16 @@ export const SuperAdminRevenueReportPage = () => {
       />
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col sm:flex-row items-center gap-4 shadow-xs">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="w-40">
+      <div className="bg-white rounded-xl border border-slate-200 p-4 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 sm:gap-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full lg:w-auto">
+          <div className="w-full sm:w-40">
             <DatePicker
               label="Start Date"
               value={startDate}
               onChange={(val) => setStartDate(val)}
             />
           </div>
-          <div className="w-40">
+          <div className="w-full sm:w-40">
             <DatePicker
               label="End Date"
               value={endDate}
@@ -103,7 +103,7 @@ export const SuperAdminRevenueReportPage = () => {
             <option value="CARD">Card</option>
           </Select>
         </div>
-        <div className="flex items-center gap-2 self-end">
+        <div className="flex items-center gap-2 justify-end pt-1 lg:pt-0">
           <Button variant="primary" size="sm" icon={Filter} onClick={fetchReport}>
             Apply Filters
           </Button>
@@ -193,7 +193,7 @@ export const SuperAdminRevenueReportPage = () => {
             <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
               Recent Successful Subscription Transactions
             </h3>
-            <Table>
+            <Table minWidth="min-w-[700px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>

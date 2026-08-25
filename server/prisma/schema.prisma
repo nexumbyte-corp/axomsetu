@@ -1219,6 +1219,7 @@ enum PlanType {
   MONTHLY
   QUARTERLY
   YEARLY
+  ENTERPRISE
 }
 
 enum DurationUnit {
@@ -1270,6 +1271,8 @@ model SubscriptionPlan {
   offerTitle         String?      @map("offer_title")
   offerDescription   String?      @map("offer_description")
   badge              String?
+  maxStudentLimit    Int?         @map("max_students")
+  isEnterprise       Boolean      @default(false) @map("is_enterprise")
   isTrial            Boolean      @default(false) @map("is_trial")
   isActive           Boolean      @default(true) @map("is_active")
   displayOrder       Int          @default(0) @map("display_order")
@@ -1283,15 +1286,17 @@ model SubscriptionPlan {
 }
 
 model SchoolSubscription {
-  id                 String                    @id @default(uuid()) @db.Uuid
-  schoolId           String                    @map("school_id") @db.Uuid
-  planId             String?                   @map("plan_id") @db.Uuid
-  planNameSnapshot   String                    @map("plan_name_snapshot")
-  durationSnapshot   String                    @map("duration_snapshot")
-  basePriceSnapshot  Decimal                   @map("base_price_snapshot") @db.Decimal(12, 2)
-  discountSnapshot   Decimal                   @default(0) @map("discount_snapshot") @db.Decimal(12, 2)
-  finalPriceSnapshot Decimal                   @map("final_price_snapshot") @db.Decimal(12, 2)
-  status             SubscriptionStatus        @default(ACTIVE)
+  id                      String                      @id @default(uuid()) @db.Uuid
+  schoolId                String                      @map("school_id") @db.Uuid
+  planId                  String?                     @map("plan_id") @db.Uuid
+  planNameSnapshot        String                      @map("plan_name_snapshot")
+  durationSnapshot        String                      @map("duration_snapshot")
+  basePriceSnapshot       Decimal                     @map("base_price_snapshot") @db.Decimal(12, 2)
+  discountSnapshot        Decimal                     @default(0) @map("discount_snapshot") @db.Decimal(12, 2)
+  finalPriceSnapshot      Decimal                     @map("final_price_snapshot") @db.Decimal(12, 2)
+  maxStudentLimitSnapshot Int?                        @map("max_students_snapshot")
+  isEnterpriseSnapshot    Boolean                     @default(false) @map("is_enterprise")
+  status                  SubscriptionStatus          @default(ACTIVE)
   startDate          DateTime                  @map("start_date") @db.Timestamptz
   endDate            DateTime?                 @map("end_date") @db.Timestamptz
   nextBillingDate    DateTime?                 @map("next_billing_date") @db.Timestamptz

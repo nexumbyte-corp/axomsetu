@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, AlertTriangle, ArrowRight, RefreshCw, Zap, Check, AlertCircle } from 'lucide-react';
+import { Calendar, AlertTriangle, ArrowRight, RefreshCw, Zap, Check, AlertCircle, Users } from 'lucide-react';
 import { subscriptionService } from '../services/subscriptionService.js';
 import { useSubscription } from '../hooks/useSubscription.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
@@ -243,10 +243,16 @@ export const SubscriptionPage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mt-6 pt-6 border-t border-slate-800/80 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-4 mt-6 pt-6 border-t border-slate-800/80 text-xs">
             <div>
               <span className="text-slate-400 block">Billing Cycle</span>
               <span className="font-semibold text-slate-200">{sub?.duration || '-'}</span>
+            </div>
+            <div>
+              <span className="text-slate-400 block">Student Capacity</span>
+              <span className="font-bold text-indigo-300 font-mono">
+                {currentSubData?.activeStudentCount ?? 0} / {sub?.maxStudentLimit ? `${sub.maxStudentLimit} Active` : 'Unlimited'}
+              </span>
             </div>
             <div>
               <span className="text-slate-400 block">Base Price</span>
@@ -326,6 +332,11 @@ export const SubscriptionPage = () => {
                           <span>{plan.offerTitle}</span>
                         </div>
                       )}
+
+                      <div className="mt-3 text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 p-2 rounded-lg flex items-center gap-1.5 font-mono">
+                        <Users className="w-4 h-4 text-indigo-600 shrink-0" />
+                        <span>{plan.maxStudentLimit ? `Max ${plan.maxStudentLimit} Active Students` : 'Unlimited Active Students'}</span>
+                      </div>
                     </div>
 
                     {/* Features List */}

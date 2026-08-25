@@ -9,6 +9,14 @@ export const listPlans = asyncHandler(async (req, res) => {
   });
 });
 
+export const getSubscriptionById = asyncHandler(async (req, res) => {
+  const sub = await adminSubscriptionService.getSubscriptionById(req.params.id);
+  res.status(200).json({
+    success: true,
+    data: sub,
+  });
+});
+
 export const createPlan = asyncHandler(async (req, res) => {
   const plan = await adminSubscriptionService.createPlan(req.body, req.user.id);
   res.status(201).json({
@@ -117,6 +125,15 @@ export const expireSubscription = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Subscription manually expired successfully',
+    data: subscription,
+  });
+});
+
+export const updateSubscriptionDetails = asyncHandler(async (req, res) => {
+  const subscription = await adminSubscriptionService.updateSubscriptionDetails(req.params.id, req.body, req.user.id);
+  res.status(200).json({
+    success: true,
+    message: 'Subscription capacity & details updated successfully',
     data: subscription,
   });
 });

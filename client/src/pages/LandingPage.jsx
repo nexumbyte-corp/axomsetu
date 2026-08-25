@@ -664,12 +664,15 @@ export const LandingPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                 {filteredPlans.map((plan) => {
                   const isTrial = plan.isTrial;
-                  const hasDiscount = plan.discountPercentage > 0 || plan.discountAmount > 0;
+                  const isEnterprise = plan.isEnterprise || plan.type === 'ENTERPRISE' || plan.name?.toLowerCase().includes('enterprise');
+                  const hasDiscount = !isEnterprise && (plan.discountPercentage > 0 || plan.discountAmount > 0);
 
                   return (
                     <div
                       key={plan.id}
-                      className="bg-white rounded-xl p-6 border border-slate-200 shadow-xs flex flex-col justify-between hover:border-indigo-300 transition-colors"
+                      className={`bg-white rounded-xl p-6 border shadow-xs flex flex-col justify-between transition-all ${
+                        isEnterprise ? 'border-purple-300 ring-1 ring-purple-100' : 'border-slate-200 hover:border-indigo-300'
+                      }`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2">
@@ -679,7 +682,12 @@ export const LandingPage = () => {
                               Trial
                             </span>
                           )}
-                          {plan.badge && !isTrial && (
+                          {isEnterprise && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                              Enterprise
+                            </span>
+                          )}
+                          {plan.badge && !isTrial && !isEnterprise && (
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
                               {plan.badge}
                             </span>
@@ -689,13 +697,22 @@ export const LandingPage = () => {
 
                         <div className="py-3 border-y border-slate-100 my-4">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-2xl font-bold text-slate-900">
-                              {isTrial ? 'Free' : formatCurrency(plan.finalPrice)}
+                            <span className={`text-2xl font-bold ${isEnterprise ? 'text-purple-900 font-extrabold' : 'text-slate-900'}`}>
+                              {isTrial
+                                ? 'Free'
+                                : isEnterprise || plan.finalPrice === 0
+                                  ? 'Custom Price'
+                                  : formatCurrency(plan.finalPrice)}
                             </span>
-                            {!isTrial && (
+                            {!isTrial && !isEnterprise && plan.finalPrice > 0 && (
                               <span className="text-xs text-slate-500">
                                 / {plan.durationValue} {plan.durationUnit.toLowerCase()}
                                 {plan.durationValue > 1 ? 's' : ''}
+                              </span>
+                            )}
+                            {isEnterprise && (
+                              <span className="text-[11px] font-medium text-purple-700 block mt-0.5">
+                                Tailored to school requirements
                               </span>
                             )}
                           </div>
@@ -729,12 +746,14 @@ export const LandingPage = () => {
                         </div>
                       </div>
 
-                      <Link to={isTrial ? '/register' : `/register?plan=${plan.code}`}>
+                      <Link to={isTrial ? '/register' : isEnterprise ? '/contact' : `/register?plan=${plan.code}`}>
                         <Button
                           variant="primary"
-                          className="w-full justify-center py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-xs"
+                          className={`w-full justify-center py-2 text-xs font-semibold rounded-lg shadow-xs ${
+                            isEnterprise ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                          }`}
                         >
-                          {isTrial ? 'Start Free Trial' : 'Get Started'}
+                          {isTrial ? 'Start Free Trial' : isEnterprise ? 'Contact Us for Pricing' : 'Get Started'}
                         </Button>
                       </Link>
                     </div>

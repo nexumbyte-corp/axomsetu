@@ -164,10 +164,10 @@ export const SuperAdminSettingsPage = () => {
       />
 
       {/* Settings Navigation Tabs */}
-      <div className="border-b border-slate-200 flex gap-6 text-xs font-bold">
+      <div className="border-b border-slate-200 flex items-center gap-4 sm:gap-6 text-xs font-bold tab-scroll-container overflow-x-auto whitespace-nowrap scrollbar-none pb-0.5">
         <button
           onClick={() => setActiveSection('general')}
-          className={`pb-3 transition-colors ${
+          className={`pb-3 shrink-0 transition-colors ${
             activeSection === 'general'
               ? 'border-b-2 border-indigo-600 text-indigo-700 font-extrabold'
               : 'text-slate-500 hover:text-slate-900'
@@ -177,7 +177,7 @@ export const SuperAdminSettingsPage = () => {
         </button>
         <button
           onClick={() => setActiveSection('contact')}
-          className={`pb-3 transition-colors ${
+          className={`pb-3 shrink-0 transition-colors ${
             activeSection === 'contact'
               ? 'border-b-2 border-indigo-600 text-indigo-700 font-extrabold'
               : 'text-slate-500 hover:text-slate-900'
@@ -187,7 +187,7 @@ export const SuperAdminSettingsPage = () => {
         </button>
         <button
           onClick={() => setActiveSection('system')}
-          className={`pb-3 transition-colors ${
+          className={`pb-3 shrink-0 transition-colors ${
             activeSection === 'system'
               ? 'border-b-2 border-indigo-600 text-indigo-700 font-extrabold'
               : 'text-slate-500 hover:text-slate-900'

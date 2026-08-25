@@ -96,9 +96,9 @@ export const SuperAdminPaymentsPage = () => {
       {loading ? (
         <TableSkeleton rows={6} cols={7} />
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-          <Table>
-            <TableHeader>
+        <>
+          <Table minWidth="min-w-[850px]">
+          <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>School</TableHead>
@@ -166,7 +166,7 @@ export const SuperAdminPaymentsPage = () => {
             total={pagination.total}
             onPageChange={(pg) => fetchPayments(pg)}
           />
-        </div>
+        </>
       )}
     </div>
   );

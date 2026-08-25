@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
+import { getISTDayBounds } from '../../utils/dateUtils.js';
 
 export const fundService = {
   /**
@@ -204,8 +205,8 @@ export const fundService = {
 
     if (startDate || endDate) {
       where.transactionDate = {
-        ...(startDate && { gte: new Date(startDate) }),
-        ...(endDate && { lte: new Date(`${endDate}T23:59:59.999Z`) }),
+        ...(startDate && { gte: getISTDayBounds(startDate).startOfDay }),
+        ...(endDate && { lte: getISTDayBounds(endDate).endOfDay }),
       };
     }
 

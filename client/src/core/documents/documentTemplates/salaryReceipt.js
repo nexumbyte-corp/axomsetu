@@ -96,7 +96,7 @@ export const buildSalaryReceiptTemplate = (data, _settings = {}) => {
         [
           {
             fillColor: '#f8fafc',
-            borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
+            borderColor: ['#475569', '#475569', '#475569', '#475569'],
             margin: [8, 8, 8, 8],
             stack: [
               { text: 'STAFF DETAILS', fontSize: 9, bold: true, color: '#475569', margin: [0, 0, 0, 4] },
@@ -110,7 +110,7 @@ export const buildSalaryReceiptTemplate = (data, _settings = {}) => {
           },
           {
             fillColor: '#f8fafc',
-            borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
+            borderColor: ['#475569', '#475569', '#475569', '#475569'],
             margin: [8, 8, 8, 8],
             stack: [
               { text: 'SALARY DISBURSEMENT INFO', fontSize: 9, bold: true, color: '#475569', margin: [0, 0, 0, 4] },
@@ -122,6 +122,12 @@ export const buildSalaryReceiptTemplate = (data, _settings = {}) => {
           },
         ],
       ],
+    },
+    layout: {
+      hLineWidth: () => 1,
+      vLineWidth: () => 1,
+      hLineColor: () => '#475569',
+      vLineColor: () => '#475569',
     },
     margin: [0, 0, 0, 15],
   });

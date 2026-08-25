@@ -20,6 +20,13 @@ export const buildReceiptTemplate = (data = {}, options = {}) => {
     options,
   });
 
+  const boxTableLayout = {
+    hLineWidth: () => 1,
+    vLineWidth: () => 1,
+    hLineColor: () => '#475569',
+    vLineColor: () => '#475569',
+  };
+
   // 2. Student & Transaction Details Grid (Box)
   const detailsGrid = {
     margin: [0, 0, 0, 8],
@@ -33,7 +40,7 @@ export const buildReceiptTemplate = (data = {}, options = {}) => {
             [
               {
                 fillColor: '#f8fafc',
-                borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
+                borderColor: ['#475569', '#475569', '#475569', '#475569'],
                 margin: [6, 4, 6, 4],
                 stack: [
                   { text: 'STUDENT PARTICULARS', style: 'boxHeader' },
@@ -46,6 +53,7 @@ export const buildReceiptTemplate = (data = {}, options = {}) => {
             ],
           ],
         },
+        layout: boxTableLayout,
       },
       {
         width: '50%',
@@ -56,7 +64,7 @@ export const buildReceiptTemplate = (data = {}, options = {}) => {
             [
               {
                 fillColor: '#f8fafc',
-                borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
+                borderColor: ['#475569', '#475569', '#475569', '#475569'],
                 margin: [6, 4, 6, 4],
                 stack: [
                   { text: 'TRANSACTION DETAILS', style: 'boxHeader' },
@@ -69,6 +77,7 @@ export const buildReceiptTemplate = (data = {}, options = {}) => {
             ],
           ],
         },
+        layout: boxTableLayout,
       },
     ],
   };
@@ -98,7 +107,7 @@ export const buildReceiptTemplate = (data = {}, options = {}) => {
         [
           {
             fillColor: '#f8fafc',
-            borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
+            borderColor: ['#475569', '#475569', '#475569', '#475569'],
             margin: [6, 4, 6, 4],
             stack: [
               { text: 'AMOUNT IN WORDS', style: 'amountWordsLabel' },
@@ -108,7 +117,7 @@ export const buildReceiptTemplate = (data = {}, options = {}) => {
           },
           {
             fillColor: '#f8fafc',
-            borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
+            borderColor: ['#475569', '#475569', '#475569', '#475569'],
             margin: [8, 4, 8, 4],
             alignment: 'right',
             stack: [
@@ -119,6 +128,7 @@ export const buildReceiptTemplate = (data = {}, options = {}) => {
         ],
       ],
     },
+    layout: boxTableLayout,
   };
 
   // 5. Signatures Block

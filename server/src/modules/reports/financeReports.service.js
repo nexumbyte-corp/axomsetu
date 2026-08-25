@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
+import { getISTDayBounds } from '../../utils/dateUtils.js';
 
 const SOURCE_TYPE_LABELS = {
   FEE_COLLECTION: 'Fee Collection',
@@ -27,8 +28,8 @@ export const financeReportsService = {
 
     if (startDate || endDate) {
       whereClause.transactionDate = {
-        ...(startDate && { gte: new Date(startDate) }),
-        ...(endDate && { lte: new Date(endDate) }),
+        ...(startDate && { gte: getISTDayBounds(startDate).startOfDay }),
+        ...(endDate && { lte: getISTDayBounds(endDate).endOfDay }),
       };
     }
 

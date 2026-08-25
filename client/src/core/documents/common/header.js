@@ -54,7 +54,7 @@ export const createPDFHeader = ({
   if (showLogo && logoCandidate) {
     stack.push({
       image: logoCandidate,
-      fit: [50, 50],
+      fit: [75, 75],
       alignment: 'center',
       margin: [0, 2, 0, 4],
     });
@@ -63,11 +63,11 @@ export const createPDFHeader = ({
   // School Name
   stack.push({
     text: (school.name || 'SCHOOL NAME').toUpperCase(),
-    fontSize: 14,
+    fontSize: 18,
     bold: true,
     alignment: 'center',
     color: '#0f172a',
-    margin: [0, 0, 0, 2],
+    margin: [0, 0, 0, 3],
   });
 
   // Address
@@ -159,8 +159,8 @@ export const createPDFHeader = ({
         y1: 0,
         x2: 535,
         y2: 0,
-        lineWidth: 1,
-        lineColor: status === 'VOID' || status === 'CANCELLED' ? '#fca5a5' : '#cbd5e1',
+        lineWidth: 1.5,
+        lineColor: status === 'VOID' || status === 'CANCELLED' ? '#ef4444' : '#475569',
       },
     ],
     margin: [0, 4, 0, 8],

@@ -24,6 +24,8 @@ export const getCurrentSubscription = async (schoolId) => {
             offerTitle: true,
             offerDescription: true,
             features: true,
+            maxStudentLimit: true,
+            isEnterprise: true,
           },
         },
       },
@@ -53,6 +55,11 @@ export const getCurrentSubscription = async (schoolId) => {
       }
     }
 
+    // Also fetch current active students count for the school
+    const activeStudentCount = await prisma.student.count({
+      where: { schoolId, status: 'ACTIVE' },
+    });
+
     return {
       school: null,
       subscription: {
@@ -64,6 +71,8 @@ export const getCurrentSubscription = async (schoolId) => {
         basePrice: Number(latestSubscription.basePriceSnapshot),
         discount: Number(latestSubscription.discountSnapshot),
         finalPrice: Number(latestSubscription.finalPriceSnapshot),
+        maxStudentLimit: latestSubscription.maxStudentLimitSnapshot,
+        isEnterprise: latestSubscription.isEnterpriseSnapshot,
         status,
         startDate: latestSubscription.startDate,
         endDate: latestSubscription.endDate,
@@ -75,6 +84,7 @@ export const getCurrentSubscription = async (schoolId) => {
         createdAt: latestSubscription.createdAt,
         planDetails: latestSubscription.plan,
       },
+      activeStudentCount,
       status,
       remainingDays,
     };
@@ -112,6 +122,8 @@ export const getActivePaidPlans = async () => {
       offerTitle: p.offerTitle,
       offerDescription: p.offerDescription,
       badge: p.badge,
+      maxStudentLimit: p.maxStudentLimit,
+      isEnterprise: p.isEnterprise,
       displayOrder: p.displayOrder,
     }));
   }, 300);
@@ -143,6 +155,8 @@ export const getPublicLandingPlans = async () => {
     offerTitle: p.offerTitle,
     offerDescription: p.offerDescription,
     badge: p.badge,
+    maxStudentLimit: p.maxStudentLimit,
+    isEnterprise: p.isEnterprise,
     isTrial: p.isTrial,
   }));
 };

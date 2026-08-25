@@ -35,19 +35,19 @@ export const FEE_MONTHS_LIST = [
   'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
 ];
 
+import { getISTMonthBounds } from './dateUtils.js';
+
 /**
- * Returns the start date and end date for a given FeeMonth and Year.
- * Example: getMonthDateRange('AUGUST', 2026) -> { start: 2026-08-01, end: 2026-08-31T23:59:59.999Z }
+ * Returns the start date and end date for a given FeeMonth and Year in IST.
+ * Example: getMonthDateRange('AUGUST', 2026) -> { start: 2026-08-01T00:00:00.000+05:30, end: 2026-08-31T23:59:59.999+05:30 }
  */
 const getMonthDateRange = (month, year) => {
-  const monthIdx = FEE_MONTH_INDEX_MAP[month?.toUpperCase()] ?? 0;
+  const monthIdx = (FEE_MONTH_INDEX_MAP[month?.toUpperCase()] ?? 0) + 1; // 1-indexed
   const yr = Number(year) || new Date().getFullYear();
 
-  const start = new Date(Date.UTC(yr, monthIdx, 1, 0, 0, 0));
-  // Last day of the month
-  const end = new Date(Date.UTC(yr, monthIdx + 1, 0, 23, 59, 59, 999));
+  const { startOfMonth, endOfMonth } = getISTMonthBounds(yr, monthIdx);
 
-  return { start, end };
+  return { start: startOfMonth, end: endOfMonth };
 };
 
 /**

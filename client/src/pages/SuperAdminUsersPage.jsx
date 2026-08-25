@@ -255,8 +255,8 @@ export const SuperAdminUsersPage = () => {
         ) : users.length === 0 ? (
           <EmptyState title="No Users Found" description="Try adjusting search or role filter." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="table-responsive-wrapper overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[750px]">
               <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
                 <tr>
                   <th className="p-3.5">User Name & Email</th>

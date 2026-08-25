@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, RefreshCw, Plus, Calendar, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Search, RefreshCw, Plus, Calendar, AlertTriangle, Edit2, Printer } from 'lucide-react';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { adminService } from '../../services/adminService.js';
 import { calculateSubscriptionEndDate, formatDateInput } from '../../utils/subscriptionUtils.js';
@@ -17,6 +18,7 @@ import { Pagination } from '../../components/ui/Pagination.jsx';
 import { TableSkeleton } from '../../components/ui/Skeleton.jsx';
 
 export const SuperAdminSubscriptionsPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('requests'); // 'requests' | 'running'
   const [requests, setRequests] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
@@ -40,13 +42,26 @@ export const SuperAdminSubscriptionsPage = () => {
   const [expiringSub, setExpiringSub] = useState(null);
   const [expirationReason, setExpirationReason] = useState('');
 
+  // Edit Subscription & Capacity State
+  const [editingSub, setEditingSub] = useState(null);
+  const [editSubForm, setEditSubForm] = useState({
+    maxStudentLimit: '',
+    finalPrice: '',
+    endDate: '',
+    status: 'ACTIVE',
+    remarks: '',
+  });
+
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [manualForm, setManualForm] = useState({
     schoolId: '',
     planId: '',
+    durationMonths: '12',
     startDate: '',
     endDate: '',
     amount: '',
+    maxStudentLimit: '',
+    isEnterprise: false,
     paymentMethod: 'CASH',
     referenceNumber: '',
     remarks: '',
@@ -111,9 +126,12 @@ export const SuperAdminSubscriptionsPage = () => {
     setManualForm({
       schoolId: '',
       planId: '',
+      durationMonths: '12',
       startDate: new Date().toISOString().split('T')[0],
       endDate: '',
       amount: '',
+      maxStudentLimit: '',
+      isEnterprise: false,
       paymentMethod: 'CASH',
       referenceNumber: '',
       remarks: '',
@@ -189,17 +207,36 @@ export const SuperAdminSubscriptionsPage = () => {
 
   const handleExpireSubmit = async (e) => {
     e.preventDefault();
+    if (!expiringSub) return;
     setSubmittingAction(true);
     try {
       const res = await subscriptionService.adminExpireSubscription(expiringSub.id, expirationReason.trim() || null);
       if (res.success) {
-        setToast({ type: 'success', message: `Subscription for ${expiringSub.schoolName} has been expired.` });
+        setToast({ type: 'success', message: 'Subscription manually expired successfully.' });
         setExpiringSub(null);
         setExpirationReason('');
         fetchData();
       }
     } catch (err) {
-      setToast({ type: 'danger', message: err.message || 'Failed to expire subscription.' });
+      setToast({ type: 'danger', message: err.message || 'Failed to expire subscription' });
+    } finally {
+      setSubmittingAction(false);
+    }
+  };
+
+  const handleEditSubSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingSub) return;
+    setSubmittingAction(true);
+    try {
+      const res = await subscriptionService.adminUpdateSubscriptionDetails(editingSub.id, editSubForm);
+      if (res.success) {
+        setToast({ type: 'success', message: 'Subscription capacity & details updated successfully.' });
+        setEditingSub(null);
+        fetchData();
+      }
+    } catch (err) {
+      setToast({ type: 'danger', message: err.message || 'Failed to update subscription' });
     } finally {
       setSubmittingAction(false);
     }
@@ -218,7 +255,11 @@ export const SuperAdminSubscriptionsPage = () => {
       if (res.success) {
         setToast({ type: 'success', message: 'Manual subscription assigned successfully.' });
         setIsManualModalOpen(false);
-        fetchData();
+        if (res.data?.id) {
+          navigate(`/admin/subscriptions/${res.data.id}/invoice`);
+        } else {
+          fetchData();
+        }
       }
     } catch (err) {
       setToast({ type: 'danger', message: err.message || 'Failed to assign manual subscription.' });
@@ -245,14 +286,14 @@ export const SuperAdminSubscriptionsPage = () => {
       />
 
       {/* Tabs Header */}
-      <div className="flex border-b border-slate-200 gap-6">
+      <div className="flex items-center border-b border-slate-200 gap-4 sm:gap-6 tab-scroll-container overflow-x-auto whitespace-nowrap scrollbar-none pb-0.5">
         <button
           onClick={() => {
             setActiveTab('requests');
             setStatusFilter('');
             setPagination((p) => ({ ...p, page: 1 }));
           }}
-          className={`pb-3 text-xs font-bold transition-colors border-b-2 ${activeTab === 'requests'
+          className={`pb-3 text-xs font-bold transition-colors shrink-0 border-b-2 ${activeTab === 'requests'
               ? 'border-indigo-600 text-indigo-700 font-extrabold'
               : 'border-transparent text-slate-500 hover:text-slate-900'
             }`}
@@ -265,7 +306,7 @@ export const SuperAdminSubscriptionsPage = () => {
             setStatusFilter('');
             setPagination((p) => ({ ...p, page: 1 }));
           }}
-          className={`pb-3 text-xs font-bold transition-colors border-b-2 ${activeTab === 'running'
+          className={`pb-3 text-xs font-bold transition-colors shrink-0 border-b-2 ${activeTab === 'running'
               ? 'border-indigo-600 text-indigo-700 font-extrabold'
               : 'border-transparent text-slate-500 hover:text-slate-900'
             }`}
@@ -313,8 +354,8 @@ export const SuperAdminSubscriptionsPage = () => {
       {loading ? (
         <TableSkeleton rows={6} cols={7} />
       ) : activeTab === 'requests' ? (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-          <Table>
+        <>
+          <Table minWidth="min-w-[800px]">
             <TableHeader>
               <TableRow>
                 <TableHead>School</TableHead>
@@ -398,15 +439,17 @@ export const SuperAdminSubscriptionsPage = () => {
             total={pagination.total}
             onPageChange={(pg) => setPagination((prev) => ({ ...prev, page: pg }))}
           />
-        </div>
+        </>
       ) : (
         /* Running Subscriptions View */
-        <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-          <Table>
-            <TableHeader>
+        <>
+          <Table minWidth="min-w-[1050px]">
+          <TableHeader>
               <TableRow>
                 <TableHead>School</TableHead>
                 <TableHead>Plan</TableHead>
+                <TableHead>Duration</TableHead>
+                <TableHead>Student Limit</TableHead>
                 <TableHead>Start Date</TableHead>
                 <TableHead>Expiry Date</TableHead>
                 <TableHead>Status</TableHead>
@@ -417,7 +460,7 @@ export const SuperAdminSubscriptionsPage = () => {
             <TableBody>
               {subscriptions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-slate-500">
+                  <TableCell colSpan={9} className="text-center py-12 text-slate-500">
                     No active running subscriptions found.
                   </TableCell>
                 </TableRow>
@@ -430,8 +473,28 @@ export const SuperAdminSubscriptionsPage = () => {
                     </TableCell>
 
                     <TableCell className="font-semibold text-slate-800 text-xs">
-                      {s.planName}
-                      <span className="text-[10px] text-slate-500 block">{s.duration}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span>{s.planName}</span>
+                        {s.isEnterprise && (
+                          <span className="px-1.5 py-0.5 text-[9px] font-extrabold bg-purple-100 text-purple-800 rounded border border-purple-200">
+                            ENTERPRISE
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="text-xs text-slate-600 font-medium">
+                      {s.duration}
+                    </TableCell>
+
+                    <TableCell className="text-xs font-mono">
+                      {s.maxStudentLimit ? (
+                        <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 text-[11px]">
+                          {s.maxStudentLimit} Active Students
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 font-medium">Unlimited</span>
+                      )}
                     </TableCell>
 
                     <TableCell className="text-xs font-mono text-slate-500">
@@ -462,6 +525,33 @@ export const SuperAdminSubscriptionsPage = () => {
 
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={Printer}
+                          onClick={() => navigate(`/admin/subscriptions/${s.id}/invoice`)}
+                          title="View & Print Business Invoice"
+                        >
+                          View Invoice
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={Edit2}
+                          onClick={() => {
+                            setEditingSub(s);
+                            setEditSubForm({
+                              maxStudentLimit: s.maxStudentLimit !== null && s.maxStudentLimit !== undefined ? String(s.maxStudentLimit) : '',
+                              finalPrice: s.finalPrice !== null && s.finalPrice !== undefined ? String(s.finalPrice) : '',
+                              endDate: s.endDate ? new Date(s.endDate).toISOString().split('T')[0] : '',
+                              status: s.status || 'ACTIVE',
+                              remarks: s.remarks || '',
+                            });
+                          }}
+                          title="Edit Student Capacity & Subscription"
+                        >
+                          Edit
+                        </Button>
                         {s.status === 'ACTIVE' && (
                           <Button
                             variant="outline"
@@ -502,7 +592,7 @@ export const SuperAdminSubscriptionsPage = () => {
             total={pagination.total}
             onPageChange={(pg) => setPagination((prev) => ({ ...prev, page: pg }))}
           />
-        </div>
+        </>
       )}
 
       {/* Reject Payment Request Modal */}
@@ -607,8 +697,13 @@ export const SuperAdminSubscriptionsPage = () => {
 
       {/* Assign Subscription Modal */}
       {isManualModalOpen && (
-        <Modal isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} title="Assign Subscription">
+        <Modal isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} title="Assign Subscription / Enterprise Plan">
           <form onSubmit={handleManualSubmit} autoComplete="off" className="space-y-4">
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+              <span className="font-bold text-slate-900 block">Super Admin Direct Assignment</span>
+              <span className="text-slate-500">Assign standard plans or custom Enterprise plans with custom duration, price, and student capacity limits.</span>
+            </div>
+
             <Select
               label="Select School *"
               value={manualForm.schoolId}
@@ -623,50 +718,81 @@ export const SuperAdminSubscriptionsPage = () => {
               ))}
             </Select>
 
-            <Select
-              label="Subscription Plan"
-              value={manualForm.planId}
-              onChange={(e) => {
-                const sel = plans.find((p) => p.id === e.target.value);
-                const computedEnd = sel
-                  ? formatDateInput(calculateSubscriptionEndDate(manualForm.startDate || new Date(), sel.durationUnit, sel.durationValue))
-                  : manualForm.endDate;
-                setManualForm({
-                  ...manualForm,
-                  planId: e.target.value,
-                  amount: sel ? String(sel.finalPrice) : manualForm.amount,
-                  endDate: computedEnd,
-                });
-              }}
-            >
-              <option value="">-- Select Plan --</option>
-              {plans.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({formatCurrency(p.finalPrice)})
-                </option>
-              ))}
-            </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <Select
+                label="Subscription Plan"
+                value={manualForm.planId}
+                onChange={(e) => {
+                  const sel = plans.find((p) => p.id === e.target.value);
+                  let autoMonths = manualForm.durationMonths;
+                  if (sel && !sel.isEnterprise && sel.type !== 'ENTERPRISE') {
+                    if (sel.durationUnit === 'YEAR') {
+                      autoMonths = String((sel.durationValue || 1) * 12);
+                    } else if (sel.durationUnit === 'MONTH') {
+                      autoMonths = String(sel.durationValue || 1);
+                    } else if (sel.type === 'MONTHLY') autoMonths = '1';
+                    else if (sel.type === 'QUARTERLY') autoMonths = '3';
+                    else if (sel.type === 'HALFYEARLY') autoMonths = '6';
+                    else if (sel.type === 'YEARLY') autoMonths = '12';
+                  }
+                  setManualForm((prev) => ({
+                    ...prev,
+                    planId: e.target.value,
+                    durationMonths: autoMonths,
+                    amount: sel ? String(sel.finalPrice) : prev.amount,
+                    maxStudentLimit: sel && sel.maxStudentLimit ? String(sel.maxStudentLimit) : prev.maxStudentLimit,
+                    isEnterprise: sel ? Boolean(sel.isEnterprise) : prev.isEnterprise,
+                  }));
+                }}
+              >
+                <option value="">-- Custom / Enterprise Plan --</option>
+                {plans.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({formatCurrency(p.finalPrice)})
+                  </option>
+                ))}
+              </Select>
+
+              <Select
+                label="Duration (Months) *"
+                value={manualForm.durationMonths}
+                onChange={(e) => setManualForm({ ...manualForm, durationMonths: e.target.value })}
+              >
+                <option value="1">1 Month</option>
+                <option value="3">3 Months</option>
+                <option value="6">6 Months</option>
+                <option value="12">12 Months (1 Year)</option>
+                <option value="24">24 Months (2 Years)</option>
+                <option value="36">36 Months (3 Years)</option>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Final Price (₹) *"
+                type="number"
+                min="0"
+                placeholder="e.g. 25000"
+                value={manualForm.amount}
+                onChange={(e) => setManualForm({ ...manualForm, amount: e.target.value })}
+                required
+              />
+
+              <Input
+                label="Max Active Student Limit"
+                type="number"
+                min="1"
+                placeholder="e.g. 1000 (Empty = Unlimited)"
+                value={manualForm.maxStudentLimit}
+                onChange={(e) => setManualForm({ ...manualForm, maxStudentLimit: e.target.value })}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <DatePicker
                 label="Start Date"
                 value={manualForm.startDate}
                 onChange={(val) => setManualForm({ ...manualForm, startDate: val })}
-              />
-              <DatePicker
-                label="End Date"
-                value={manualForm.endDate}
-                onChange={(val) => setManualForm({ ...manualForm, endDate: val })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                label="Amount (₹) *"
-                type="number"
-                value={manualForm.amount}
-                onChange={(e) => setManualForm({ ...manualForm, amount: e.target.value })}
-                required
               />
               <Select
                 label="Payment Method"
@@ -679,9 +805,22 @@ export const SuperAdminSubscriptionsPage = () => {
               </Select>
             </div>
 
+            <label className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 cursor-pointer bg-purple-50/60 p-3 rounded-lg border border-purple-200">
+              <input
+                type="checkbox"
+                checked={manualForm.isEnterprise}
+                onChange={(e) => setManualForm({ ...manualForm, isEnterprise: e.target.checked })}
+                className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
+              />
+              <div>
+                <span className="font-bold text-purple-950 block">Enterprise Custom Plan</span>
+                <span className="text-[10px] text-purple-700 font-normal">Flag this subscription as an Enterprise custom tier for this school.</span>
+              </div>
+            </label>
+
             <Input
-              label="Remarks / Notes"
-              placeholder="Administrative notes..."
+              label="Remarks / Enterprise Notes"
+              placeholder="e.g. Special Enterprise agreement contract details..."
               value={manualForm.remarks}
               onChange={(e) => setManualForm({ ...manualForm, remarks: e.target.value })}
             />
@@ -697,6 +836,72 @@ export const SuperAdminSubscriptionsPage = () => {
           </form>
         </Modal>
       )}
+      {/* Edit Subscription Capacity Modal */}
+      {editingSub && (
+        <Modal isOpen={Boolean(editingSub)} onClose={() => setEditingSub(null)} title={`Edit Subscription & Capacity — ${editingSub.schoolName}`}>
+          <form onSubmit={handleEditSubSubmit} autoComplete="off" className="space-y-4">
+            <div className="bg-indigo-50/70 p-3 rounded-xl border border-indigo-100 text-xs text-indigo-900">
+              <span className="font-bold block">Super Admin Direct Capacity Override</span>
+              <span className="text-indigo-700">Update maximum student capacity, price, status, or expiry date for {editingSub.schoolName}.</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Max Active Student Limit"
+                type="number"
+                min="1"
+                placeholder="e.g. 500 (Empty = Unlimited)"
+                value={editSubForm.maxStudentLimit}
+                onChange={(e) => setEditSubForm({ ...editSubForm, maxStudentLimit: e.target.value })}
+              />
+
+              <Input
+                label="Subscription Price (₹)"
+                type="number"
+                min="0"
+                placeholder="e.g. 15000"
+                value={editSubForm.finalPrice}
+                onChange={(e) => setEditSubForm({ ...editSubForm, finalPrice: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <DatePicker
+                label="Expiry Date"
+                value={editSubForm.endDate}
+                onChange={(val) => setEditSubForm({ ...editSubForm, endDate: val })}
+              />
+
+              <Select
+                label="Subscription Status"
+                value={editSubForm.status}
+                onChange={(e) => setEditSubForm({ ...editSubForm, status: e.target.value })}
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="SUSPENDED">SUSPENDED</option>
+                <option value="EXPIRED">EXPIRED</option>
+              </Select>
+            </div>
+
+            <Input
+              label="Remarks / Capacity Adjustment Notes"
+              placeholder="e.g. Adjusted capacity per admin request..."
+              value={editSubForm.remarks}
+              onChange={(e) => setEditSubForm({ ...editSubForm, remarks: e.target.value })}
+            />
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <Button type="button" variant="outline" onClick={() => setEditingSub(null)} disabled={submittingAction}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" loading={submittingAction}>
+                Save Capacity & Details
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {/* Expire Subscription Modal */}
     </div>
   );
 };

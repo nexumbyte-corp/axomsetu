@@ -17,7 +17,9 @@ router.delete('/plans/:id', adminSubscriptionController.deletePlan);
 
 // Subscriptions & Payments Management
 router.get('/', adminSubscriptionController.listSubscriptions);
+router.get('/:id', adminSubscriptionController.getSubscriptionById);
 router.post('/manual', adminSubscriptionController.createManualSubscription);
+router.put('/:id', adminSubscriptionController.updateSubscriptionDetails);
 router.patch('/:id/status', adminSubscriptionController.updateSubscriptionStatus);
 router.post('/:id/expire', adminSubscriptionController.expireSubscription);
 router.post('/:id/extend', adminSubscriptionController.extendSubscription);

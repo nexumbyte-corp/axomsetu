@@ -867,8 +867,8 @@ export const paymentService = {
 
     if (startDate || endDate) {
       whereClause.paymentDate = {
-        ...(startDate && { gte: new Date(startDate) }),
-        ...(endDate && { lte: new Date(`${endDate}T23:59:59.999Z`) }),
+        ...(startDate && { gte: getISTDayBounds(startDate).startOfDay }),
+        ...(endDate && { lte: getISTDayBounds(endDate).endOfDay }),
       };
     }
 

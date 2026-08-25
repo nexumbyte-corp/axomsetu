@@ -43,6 +43,13 @@ export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
 
   const content = [...headerContent];
 
+  const boxTableLayout = {
+    hLineWidth: () => 1,
+    vLineWidth: () => 1,
+    hLineColor: () => '#475569',
+    vLineColor: () => '#475569',
+  };
+
   // Expense Particulars Box Grid
   content.push({
     table: {
@@ -51,7 +58,7 @@ export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
         [
           {
             fillColor: '#f8fafc',
-            borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
+            borderColor: ['#475569', '#475569', '#475569', '#475569'],
             margin: [8, 8, 8, 8],
             stack: [
               { text: 'EXPENSE METADATA', fontSize: 9, bold: true, color: '#475569', margin: [0, 0, 0, 4] },
@@ -62,7 +69,7 @@ export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
           },
           {
             fillColor: '#f8fafc',
-            borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
+            borderColor: ['#475569', '#475569', '#475569', '#475569'],
             margin: [8, 8, 8, 8],
             stack: [
               { text: 'PAYMENT DISBURSEMENT INFO', fontSize: 9, bold: true, color: '#475569', margin: [0, 0, 0, 4] },
@@ -74,6 +81,7 @@ export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
         ],
       ],
     },
+    layout: boxTableLayout,
     margin: [0, 0, 0, 12],
   });
 
@@ -99,6 +107,7 @@ export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
         ],
       ],
     },
+    layout: boxTableLayout,
     margin: [0, 0, 0, 12],
   });
 
@@ -110,7 +119,7 @@ export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
         [
           {
             fillColor: '#f8fafc',
-            borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
+            borderColor: ['#475569', '#475569', '#475569', '#475569'],
             margin: [8, 6, 8, 6],
             stack: [
               { text: 'AMOUNT IN WORDS', fontSize: 9, bold: true, color: '#64748b' },
@@ -119,7 +128,7 @@ export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
           },
           {
             fillColor: '#f8fafc',
-            borderColor: ['#cbd5e1', '#cbd5e1', '#cbd5e1', '#cbd5e1'],
+            borderColor: ['#475569', '#475569', '#475569', '#475569'],
             margin: [8, 6, 8, 6],
             alignment: 'right',
             stack: [
@@ -130,6 +139,7 @@ export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
         ],
       ],
     },
+    layout: boxTableLayout,
     margin: [0, 0, 0, 20],
   });
 

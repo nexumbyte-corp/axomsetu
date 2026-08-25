@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute.jsx';
+import { GuestRoute } from './GuestRoute.jsx';
 import { RoleRoute } from './RoleRoute.jsx';
 import { PermissionRoute } from './PermissionRoute.jsx';
 import { OwnerRoute } from './OwnerRoute.jsx';
@@ -59,6 +60,7 @@ import { SuperAdminRevenueReportPage } from '../pages/admin/reports/SuperAdminRe
 import { SuperAdminGrowthReportPage } from '../pages/admin/reports/SuperAdminGrowthReportPage.jsx';
 import { SuperAdminAuditLogsPage } from '../pages/SuperAdminAuditLogsPage.jsx';
 import { SuperAdminSettingsPage } from '../pages/admin/SuperAdminSettingsPage.jsx';
+import { SubscriptionInvoicePage } from '../pages/admin/SubscriptionInvoicePage.jsx';
 
 // Fee Module Pages
 import { FeeManagementLayout } from '../pages/fees/FeeManagementLayout.jsx';
@@ -99,7 +101,14 @@ export const AppRoutes = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/login"
+        element={
+          <GuestRoute>
+            <LoginPage />
+          </GuestRoute>
+        }
+      />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/contact" element={<ContactPage />} />
 
@@ -211,6 +220,7 @@ export const AppRoutes = () => {
         <Route path="plans/new" element={<PlanFormPage />} />
         <Route path="plans/:planId/edit" element={<PlanFormPage />} />
         <Route path="subscriptions" element={<SuperAdminSubscriptionsPage />} />
+        <Route path="subscriptions/:subscriptionId/invoice" element={<SubscriptionInvoicePage />} />
         <Route path="schools" element={<SuperAdminSchoolsPage />} />
         <Route path="schools/:schoolId" element={<SchoolDetailsPage />} />
         <Route path="users" element={<SuperAdminUsersPage />} />

@@ -83,9 +83,14 @@ export const SuperAdminGrowthReportPage = () => {
                 const barWidth = Math.round((item.newSchools / maxNew) * 100);
 
                 return (
-                  <div key={item.month} className="flex items-center gap-4 text-xs">
-                    <span className="w-24 font-bold text-slate-700 shrink-0">{item.month}</span>
-                    <div className="flex-1 bg-slate-100 h-6 rounded-lg overflow-hidden relative flex items-center">
+                  <div key={item.month} className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-4 text-xs p-2 sm:p-0 rounded-lg bg-slate-50 sm:bg-transparent border border-slate-100 sm:border-none">
+                    <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto sm:shrink-0">
+                      <span className="w-auto sm:w-24 font-bold text-slate-800 text-[11px] sm:text-xs">{item.month}</span>
+                      <span className="sm:hidden font-mono text-slate-500 text-[10px]">
+                        Total: <strong>{item.totalSchools}</strong>
+                      </span>
+                    </div>
+                    <div className="flex-1 bg-slate-100 h-6 rounded-lg overflow-hidden relative flex items-center w-full">
                       <div
                         className="bg-indigo-600 h-full rounded-lg transition-all duration-500"
                         style={{ width: `${Math.max(barWidth, 2)}%` }}
@@ -94,7 +99,7 @@ export const SuperAdminGrowthReportPage = () => {
                         +{item.newSchools} new school{item.newSchools === 1 ? '' : 's'}
                       </span>
                     </div>
-                    <span className="w-28 text-right font-mono text-slate-500 text-[11px] shrink-0">
+                    <span className="hidden sm:block w-28 text-right font-mono text-slate-500 text-[11px] shrink-0">
                       Total: <strong>{item.totalSchools}</strong>
                     </span>
                   </div>

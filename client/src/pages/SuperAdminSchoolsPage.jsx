@@ -216,9 +216,9 @@ export const SuperAdminSchoolsPage = () => {
       {loading ? (
         <TableSkeleton rows={8} cols={8} />
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-          <Table>
-            <TableHeader>
+        <>
+          <Table minWidth="min-w-[900px]">
+          <TableHeader>
               <TableRow>
                 <TableHead>School Name</TableHead>
                 <TableHead>Code / ID</TableHead>
@@ -366,7 +366,7 @@ export const SuperAdminSchoolsPage = () => {
             total={pagination.total}
             onPageChange={(p) => fetchSchools(p)}
           />
-        </div>
+        </>
       )}
 
       {/* Create School Modal */}

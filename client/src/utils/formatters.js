@@ -176,6 +176,51 @@ export const formatDateTime = (date, fallback = '—', includeSeconds = false) =
 };
 
 /**
+ * Format time only into IST timezone representation (e.g. 12:00 AM, 11:59 PM).
+ * @param {Date|string|number} date 
+ * @param {string} fallback 
+ * @param {boolean} includeSeconds 
+ * @returns {string}
+ */
+export const formatTimeOnly = (date, fallback = '—', includeSeconds = false) => {
+  if (!date) return fallback;
+  const d = parseDateSafe(date);
+  if (!d) return fallback;
+
+  try {
+    const formatter = new Intl.DateTimeFormat('en-IN', {
+      timeZone: TIMEZONE,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: includeSeconds ? '2-digit' : undefined,
+      hour12: true,
+    });
+    const parts = formatter.formatToParts(d);
+    const map = {};
+    parts.forEach((p) => { map[p.type] = p.value; });
+
+    const hour = map.hour || '12';
+    const minute = map.minute || '00';
+    const second = map.second;
+    const dayPeriod = (map.dayPeriod || '').toUpperCase();
+
+    return includeSeconds
+      ? `${hour}:${minute}:${second} ${dayPeriod}`.trim()
+      : `${hour}:${minute} ${dayPeriod}`.trim();
+  } catch {
+    const hoursRaw = d.getHours();
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    const ampm = hoursRaw >= 12 ? 'PM' : 'AM';
+    const hours12 = hoursRaw % 12 || 12;
+    const hours = String(hours12).padStart(2, '0');
+    return includeSeconds
+      ? `${hours}:${minutes}:${seconds} ${ampm}`
+      : `${hours}:${minutes} ${ampm}`;
+  }
+};
+
+/**
  * Format a date value into machine-readable YYYY-MM-DD for internal state or API payloads in IST timezone.
  * @param {Date|string} date 
  * @returns {string}
@@ -268,6 +313,7 @@ export default {
   formatNumber,
   formatDate,
   formatDateTime,
+  formatTimeOnly,
   formatDateForInput,
   parseDateSafe,
   BASE_ACADEMIC_MONTHS,

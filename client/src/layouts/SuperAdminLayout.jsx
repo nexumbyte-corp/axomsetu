@@ -111,7 +111,7 @@ export const SuperAdminLayout = () => {
             to={item.path}
             onClick={onItemClick}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3.5 py-2.5 text-xs font-semibold rounded-lg transition-colors ${isActive
+              `flex items-center gap-3 px-3.5 py-3 sm:py-2.5 text-xs font-semibold rounded-lg transition-colors min-h-[44px] sm:min-h-0 ${isActive
                 ? 'bg-indigo-50 text-indigo-700 font-bold shadow-2xs'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`
@@ -152,7 +152,7 @@ export const SuperAdminLayout = () => {
                 <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <h1 className="text-xs sm:text-sm font-extrabold text-white leading-tight truncate max-w-[120px] sm:max-w-none">
+                <h1 className="text-xs sm:text-sm font-extrabold text-white leading-tight truncate max-w-[140px] xs:max-w-[180px] sm:max-w-none">
                   {BRAND_CONFIG.productName}
                 </h1>
                 <span className="text-[9px] sm:text-[10px] text-indigo-400 font-medium tracking-wide hidden sm:block">
@@ -201,7 +201,7 @@ export const SuperAdminLayout = () => {
                   <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
                     {adminName.charAt(0)}
                   </div>
-                  <div className="text-left hidden md:block">
+                  <div className="text-left hidden sm:block">
                     <p className="text-xs font-semibold text-white leading-tight">{adminName}</p>
                     <p className="text-[10px] text-slate-400 leading-tight">Platform Admin</p>
                   </div>
@@ -251,7 +251,7 @@ export const SuperAdminLayout = () => {
         </Drawer>
 
         {/* Main Content Area */}
-        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full min-w-0 overflow-x-hidden">
           <Outlet />
         </main>
       </div>

@@ -13,6 +13,23 @@ export const listPlans = async () => {
 };
 
 /**
+ * Super Admin: Get subscription details by ID.
+ */
+export const getSubscriptionById = async (id) => {
+  const sub = await prisma.schoolSubscription.findUnique({
+    where: { id },
+    include: {
+      school: true,
+      plan: true,
+    },
+  });
+  if (!sub) {
+    throw ApiError.notFound('Subscription record not found');
+  }
+  return sub;
+};
+
+/**
  * Super Admin: Create a subscription plan.
  */
 export const createPlan = async (data, actorUserId) => {
@@ -31,6 +48,8 @@ export const createPlan = async (data, actorUserId) => {
     offerTitle,
     offerDescription,
     badge,
+    maxStudentLimit = null,
+    isEnterprise = false,
     isTrial = false,
     isActive = true,
     displayOrder = 0,
@@ -50,6 +69,9 @@ export const createPlan = async (data, actorUserId) => {
   const numBase = Number(basePrice);
   const numDiscAmount = Number(discountAmount);
   const calculatedFinal = Math.max(0, numBase - numDiscAmount);
+  const parsedStudentLimit = maxStudentLimit !== undefined && maxStudentLimit !== null && maxStudentLimit !== '' && Number(maxStudentLimit) > 0
+    ? parseInt(maxStudentLimit, 10)
+    : null;
 
   const plan = await prisma.subscriptionPlan.create({
     data: {
@@ -68,6 +90,8 @@ export const createPlan = async (data, actorUserId) => {
       offerTitle: offerTitle?.trim() || null,
       offerDescription: offerDescription?.trim() || null,
       badge: badge?.trim() || null,
+      maxStudentLimit: parsedStudentLimit,
+      isEnterprise: Boolean(isEnterprise) || type === 'ENTERPRISE',
       isTrial,
       isActive,
       displayOrder: Number(displayOrder),
@@ -111,6 +135,15 @@ export const updatePlan = async (planId, data, actorUserId) => {
   if (data.badge !== undefined) updateData.badge = data.badge?.trim() || null;
   if (data.isActive !== undefined) updateData.isActive = Boolean(data.isActive);
   if (data.displayOrder !== undefined) updateData.displayOrder = Number(data.displayOrder);
+
+  if (data.maxStudentLimit !== undefined) {
+    updateData.maxStudentLimit = data.maxStudentLimit !== null && data.maxStudentLimit !== '' && Number(data.maxStudentLimit) > 0
+      ? parseInt(data.maxStudentLimit, 10)
+      : null;
+  }
+  if (data.isEnterprise !== undefined) {
+    updateData.isEnterprise = Boolean(data.isEnterprise);
+  }
 
   let numBase = data.basePrice !== undefined ? Number(data.basePrice) : Number(existing.basePrice);
   let numDiscAmount = data.discountAmount !== undefined ? Number(data.discountAmount) : Number(existing.discountAmount);
@@ -244,8 +277,57 @@ export const listPendingPayments = async ({ page = 1, limit = 20, status, search
 };
 
 /**
+ * Calculates additional credit days when upgrading/switching an active subscription.
+ * Note: If current plan is a TRIAL (or free plan with 0 price), ALL remaining trial days are directly added to the new plan!
+ */
+export const calculateProRataDaysCredit = (activeSub, newFinalPrice, newBaseDurationDays) => {
+  if (!activeSub || !activeSub.endDate || !activeSub.startDate) {
+    return 0;
+  }
+
+  const now = new Date();
+  const subEndDate = new Date(activeSub.endDate);
+
+  if (subEndDate <= now) {
+    return 0;
+  }
+
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const remainingDays = Math.max(0, Math.ceil((subEndDate.getTime() - now.getTime()) / msPerDay));
+  if (remainingDays <= 0) return 0;
+
+  const oldPrice = Number(activeSub.finalPriceSnapshot || 0);
+  const isTrial = Boolean(activeSub.plan?.isTrial) ||
+                  activeSub.planNameSnapshot?.toLowerCase().includes('trial') ||
+                  (activeSub.isEnterpriseSnapshot === false && oldPrice === 0);
+
+  // If active subscription is a TRIAL (or free plan), directly add ALL remaining trial days!
+  if (isTrial || oldPrice === 0) {
+    return remainingDays;
+  }
+
+  // Otherwise, perform pro-rata monetary conversion for paid plans
+  const subStartDate = new Date(activeSub.startDate);
+  const totalOldDays = Math.max(1, Math.ceil((subEndDate.getTime() - subStartDate.getTime()) / msPerDay));
+  const oldDailyRate = oldPrice / totalOldDays;
+  const unusedCredit = remainingDays * oldDailyRate;
+
+  const newPrice = Number(newFinalPrice || 0);
+  const newDays = Math.max(1, Number(newBaseDurationDays || 30));
+
+  if (newPrice <= 0 || newDays <= 0 || unusedCredit <= 0) {
+    return remainingDays;
+  }
+
+  const newDailyRate = newPrice / newDays;
+  const extraCreditDays = Math.round(unusedCredit / newDailyRate);
+
+  return Math.max(0, extraCreditDays);
+};
+
+/**
  * Super Admin: Approve pending payment request.
- * Transactional: Marks payment PAID and creates/activates subscription with snapshots.
+ * Transactional: Marks payment PAID and creates/activates subscription with snapshots and pro-rata credit.
  */
 export const approvePayment = async (paymentId, adminId) => {
   const payment = await prisma.subscriptionPayment.findUnique({
@@ -272,22 +354,42 @@ export const approvePayment = async (paymentId, adminId) => {
         status: 'ACTIVE',
         endDate: { not: null, gt: new Date() },
       },
+      include: { plan: true },
       orderBy: { endDate: 'desc' },
     });
 
     const now = new Date();
-    let startDate = now;
-
-    // Renewal starts after current subscription ends
-    if (currentSub && currentSub.endDate && new Date(currentSub.endDate) > now) {
-      startDate = new Date(currentSub.endDate);
-    }
+    const startDate = now;
 
     const durationVal = payment.plan.durationValue;
     const durationUnit = payment.plan.durationUnit;
-    const endDate = calculateSubscriptionEndDate(startDate, durationUnit, durationVal);
+    let endDate = calculateSubscriptionEndDate(startDate, durationUnit, durationVal);
 
-    const durationSnapshotStr = `${durationVal} ${durationUnit.toLowerCase()}${durationVal > 1 ? 's' : ''}`;
+    let extraDaysFromRollOver = 0;
+    if (currentSub) {
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const baseDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / msPerDay));
+      extraDaysFromRollOver = calculateProRataDaysCredit(currentSub, payment.amount, baseDays);
+
+      if (extraDaysFromRollOver > 0) {
+        endDate.setDate(endDate.getDate() + extraDaysFromRollOver);
+      }
+
+      // Mark previous subscription as EXPIRED (replaced)
+      await tx.schoolSubscription.update({
+        where: { id: currentSub.id },
+        data: {
+          status: 'EXPIRED',
+          remarks: currentSub.remarks
+            ? `${currentSub.remarks} | Replaced by new plan with +${extraDaysFromRollOver} pro-rata credit days`
+            : `Replaced by new plan with +${extraDaysFromRollOver} pro-rata credit days`,
+        },
+      });
+    }
+
+    const durationSnapshotStr = extraDaysFromRollOver > 0
+      ? `${durationVal} ${durationUnit.toLowerCase()}${durationVal > 1 ? 's' : ''} (+${extraDaysFromRollOver} credit days)`
+      : `${durationVal} ${durationUnit.toLowerCase()}${durationVal > 1 ? 's' : ''}`;
 
     // Create Subscription
     const newSub = await tx.schoolSubscription.create({
@@ -299,6 +401,8 @@ export const approvePayment = async (paymentId, adminId) => {
         basePriceSnapshot: payment.plan.basePrice,
         discountSnapshot: payment.plan.discountAmount,
         finalPriceSnapshot: payment.amount,
+        maxStudentLimitSnapshot: payment.plan.maxStudentLimit,
+        isEnterpriseSnapshot: payment.plan.isEnterprise,
         status: 'ACTIVE',
         startDate,
         endDate,
@@ -323,7 +427,7 @@ export const approvePayment = async (paymentId, adminId) => {
       data: {
         schoolId: payment.schoolId,
         userId: adminId,
-        action: currentSub ? 'SUBSCRIPTION_RENEWED' : 'SUBSCRIPTION_PAYMENT_APPROVED',
+        action: currentSub ? 'SUBSCRIPTION_UPGRADED_PRO_RATA' : 'SUBSCRIPTION_PAYMENT_APPROVED',
         entityType: 'SchoolSubscription',
         entityId: newSub.id,
         newValues: {
@@ -332,6 +436,7 @@ export const approvePayment = async (paymentId, adminId) => {
           amount: Number(payment.amount),
           startDate,
           endDate,
+          extraDaysFromRollOver,
         },
       },
     });
@@ -444,7 +549,10 @@ export const createManualSubscription = async (schoolId, data, adminId) => {
     planId,
     startDate,
     endDate,
+    durationMonths,
     amount = 0,
+    maxStudentLimit,
+    isEnterprise = false,
     paymentMethod = 'CASH',
     referenceNumber,
     remarks,
@@ -455,9 +563,12 @@ export const createManualSubscription = async (schoolId, data, adminId) => {
   const school = await prisma.school.findUnique({ where: { id: schoolId } });
   if (!school) throw ApiError.notFound('School not found');
 
-  let planName = 'Custom Plan';
+  let planName = isEnterprise ? 'Enterprise Plan' : 'Custom Plan';
   let basePrice = Number(amount);
   let discount = 0;
+  let defaultLimit = maxStudentLimit !== undefined && maxStudentLimit !== null && maxStudentLimit !== ''
+    ? (Number(maxStudentLimit) > 0 ? parseInt(maxStudentLimit, 10) : null)
+    : null;
 
   let targetPlan = null;
   if (planId) {
@@ -466,6 +577,9 @@ export const createManualSubscription = async (schoolId, data, adminId) => {
       planName = targetPlan.name;
       basePrice = Number(targetPlan.basePrice);
       discount = Number(targetPlan.discountAmount);
+      if (defaultLimit === null && targetPlan.maxStudentLimit) {
+        defaultLimit = targetPlan.maxStudentLimit;
+      }
     }
   }
 
@@ -473,23 +587,66 @@ export const createManualSubscription = async (schoolId, data, adminId) => {
   let end = null;
   if (endDate) {
     end = new Date(endDate);
+  } else if (durationMonths && Number(durationMonths) > 0) {
+    end = new Date(start);
+    end.setMonth(end.getMonth() + parseInt(durationMonths, 10));
   } else if (targetPlan) {
     end = calculateSubscriptionEndDate(start, targetPlan.durationUnit, targetPlan.durationValue);
   } else {
     end = calculateSubscriptionEndDate(start, 'MONTH', 1);
   }
   const finalPrice = isComplimentary ? 0 : Number(amount);
+  const durationText = durationMonths ? `${durationMonths} month(s)` : 'Custom Duration';
 
   return await prisma.$transaction(async (tx) => {
+    // Check if school currently has an active subscription to calculate pro-rata credit days
+    const currentSub = await tx.schoolSubscription.findFirst({
+      where: {
+        schoolId,
+        status: 'ACTIVE',
+        endDate: { not: null, gt: new Date() },
+      },
+      include: { plan: true },
+      orderBy: { endDate: 'desc' },
+    });
+
+    let extraDaysFromRollOver = 0;
+    if (currentSub && end && start) {
+      const msPerDay = 1000 * 60 * 60 * 24;
+      const baseDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / msPerDay));
+      extraDaysFromRollOver = calculateProRataDaysCredit(currentSub, finalPrice, baseDays);
+
+      if (extraDaysFromRollOver > 0) {
+        end.setDate(end.getDate() + extraDaysFromRollOver);
+      }
+
+      // Expire previous active subscription as requested
+      await tx.schoolSubscription.update({
+        where: { id: currentSub.id },
+        data: {
+          status: 'EXPIRED',
+          remarks: currentSub.remarks
+            ? `${currentSub.remarks} | Replaced by new subscription with +${extraDaysFromRollOver} pro-rata credit days`
+            : `Replaced by new subscription with +${extraDaysFromRollOver} pro-rata credit days`,
+        },
+      });
+    }
+
+    const durationText = extraDaysFromRollOver > 0
+      ? `${durationMonths ? `${durationMonths} month(s)` : 'Custom'} (+${extraDaysFromRollOver} credit days)`
+      : (durationMonths ? `${durationMonths} month(s)` : 'Custom Duration');
+
     const sub = await tx.schoolSubscription.create({
       data: {
         schoolId,
         planId: planId || null,
         planNameSnapshot: isComplimentary ? `${planName} (Complimentary)` : planName,
-        durationSnapshot: 'Custom Duration',
+        durationSnapshot: durationText,
         basePriceSnapshot: basePrice,
         discountSnapshot: isComplimentary ? basePrice : discount,
         finalPriceSnapshot: finalPrice,
+        maxStudentLimitSnapshot: defaultLimit,
+        isEnterpriseSnapshot: Boolean(isEnterprise) || (targetPlan?.type === 'ENTERPRISE'),
         status: 'ACTIVE',
         startDate: start,
         endDate: end,
@@ -503,7 +660,7 @@ export const createManualSubscription = async (schoolId, data, adminId) => {
       data: {
         schoolId,
         subscriptionId: sub.id,
-        planId: planId || (await tx.subscriptionPlan.findFirst({ where: { isTrial: false } })).id,
+        planId: planId || (await tx.subscriptionPlan.findFirst({ where: { isTrial: false } }))?.id || null,
         amount: finalPrice,
         currency: 'INR',
         paymentMethod: isComplimentary ? 'OTHER' : paymentMethod,
@@ -529,6 +686,7 @@ export const createManualSubscription = async (schoolId, data, adminId) => {
           amount: finalPrice,
           startDate: start,
           endDate: end,
+          extraDaysFromRollOver,
           isComplimentary,
         },
       },
@@ -536,6 +694,61 @@ export const createManualSubscription = async (schoolId, data, adminId) => {
 
     return sub;
   });
+};
+
+/**
+ * Super Admin: Update subscription details (Student Capacity Limit, Expiry Date, Status, Price).
+ */
+export const updateSubscriptionDetails = async (subscriptionId, data, adminId) => {
+  const existing = await prisma.schoolSubscription.findUnique({
+    where: { id: subscriptionId },
+  });
+  if (!existing) throw ApiError.notFound('Subscription not found');
+
+  const { maxStudentLimit, finalPrice, endDate, status, remarks } = data;
+
+  const updateData = {};
+  if (maxStudentLimit !== undefined) {
+    updateData.maxStudentLimitSnapshot = (maxStudentLimit === '' || maxStudentLimit === null || Number(maxStudentLimit) <= 0)
+      ? null
+      : parseInt(maxStudentLimit, 10);
+  }
+  if (finalPrice !== undefined && finalPrice !== '') {
+    updateData.finalPriceSnapshot = Number(finalPrice);
+  }
+  if (endDate !== undefined && endDate !== '') {
+    updateData.endDate = new Date(endDate);
+  }
+  if (status) {
+    updateData.status = status;
+  }
+  if (remarks !== undefined) {
+    updateData.remarks = remarks;
+  }
+
+  const updated = await prisma.schoolSubscription.update({
+    where: { id: subscriptionId },
+    data: updateData,
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      schoolId: existing.schoolId,
+      userId: adminId,
+      action: 'SUBSCRIPTION_UPDATED',
+      entityType: 'SchoolSubscription',
+      entityId: subscriptionId,
+      oldValues: {
+        maxStudentLimit: existing.maxStudentLimitSnapshot,
+        status: existing.status,
+        endDate: existing.endDate,
+        finalPrice: Number(existing.finalPriceSnapshot),
+      },
+      newValues: updateData,
+    },
+  });
+
+  return updated;
 };
 
 /**
@@ -582,6 +795,8 @@ export const listAllSubscriptions = async ({ page = 1, limit = 20, status, searc
       basePrice: Number(s.basePriceSnapshot),
       discount: Number(s.discountSnapshot),
       finalPrice: Number(s.finalPriceSnapshot),
+      maxStudentLimit: s.maxStudentLimitSnapshot,
+      isEnterprise: s.isEnterpriseSnapshot,
       status: s.status,
       startDate: s.startDate,
       endDate: s.endDate,

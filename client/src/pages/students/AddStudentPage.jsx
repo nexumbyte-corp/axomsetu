@@ -62,6 +62,9 @@ export const AddStudentPage = () => {
   const minAdmissionDate = selectedYear?.startDate
     ? new Date(selectedYear.startDate).toISOString().split('T')[0]
     : '';
+  const maxAdmissionDate = selectedYear?.endDate
+    ? new Date(selectedYear.endDate).toISOString().split('T')[0]
+    : '';
 
   // Form State
   const [studentInfo, setStudentInfo] = useState({
@@ -326,6 +329,8 @@ export const AddStudentPage = () => {
       newErrors.admissionDate = 'Admission date is required';
     } else if (minAdmissionDate && studentInfo.admissionDate < minAdmissionDate) {
       newErrors.admissionDate = `Back date before ${minAdmissionDate} is not allowed for ${selectedYear?.name || 'this Academic Year'}`;
+    } else if (maxAdmissionDate && studentInfo.admissionDate > maxAdmissionDate) {
+      newErrors.admissionDate = `Date after ${maxAdmissionDate} is not allowed for ${selectedYear?.name || 'this Academic Year'}`;
     }
 
     // Phone validation: mandatory 10 digits
@@ -790,14 +795,14 @@ export const AddStudentPage = () => {
                         if (errors.admissionDate) setErrors({ ...errors, admissionDate: null });
                       }}
                       minDate={minAdmissionDate}
-                      maxDate={todayDateStr}
+                      maxDate={maxAdmissionDate}
                       disabled={submitting || isLocked}
                       error={errors.admissionDate}
                       clearable={false}
                     />
                     {minAdmissionDate && (
                       <p className="text-[10px] text-slate-500 mt-1">
-                        Min back-date: <span className="font-semibold text-slate-700">{minAdmissionDate}</span> ({selectedYear?.name})
+                        Min date: <span className="font-semibold text-slate-700">{minAdmissionDate}</span> ({selectedYear?.name})
                       </p>
                     )}
                   </div>

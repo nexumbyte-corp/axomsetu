@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Edit2, Trash2, RefreshCw, Copy, Users } from 'lucide-react';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
@@ -84,8 +84,8 @@ export const SuperAdminPlansPage = () => {
       {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
 
       <ModulePageHeader
-        title="Plans"
-        description="Manage platform subscription tiers, billing cycles, pricing, and active visibility."
+        title="Subscription Plans"
+        description="Manage platform subscription tiers, student limits, pricing, and duplicate plans to create new variants."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => navigate('/admin/plans/new')}>
             Create Plan
@@ -112,16 +112,16 @@ export const SuperAdminPlansPage = () => {
       {loading ? (
         <TableSkeleton rows={5} cols={8} />
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-          <Table>
-            <TableHeader>
+        <>
+          <Table minWidth="min-w-[850px]">
+          <TableHeader>
               <TableRow>
                 <TableHead>Plan Name</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Billing Cycle</TableHead>
+                <TableHead>Student Limit</TableHead>
                 <TableHead>Trial Period</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Created Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -138,6 +138,11 @@ export const SuperAdminPlansPage = () => {
                     <TableCell className="font-bold text-slate-900">
                       <div className="flex items-center gap-2">
                         <span>{p.name}</span>
+                        {p.isEnterprise && (
+                          <span className="px-2 py-0.5 rounded text-[9px] font-extrabold bg-purple-100 text-purple-800 border border-purple-200">
+                            ENTERPRISE
+                          </span>
+                        )}
                         {p.isTrial && (
                           <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800">
                             TRIAL
@@ -161,6 +166,19 @@ export const SuperAdminPlansPage = () => {
                     </TableCell>
 
                     <TableCell className="text-xs">
+                      {p.maxStudentLimit ? (
+                        <span className="inline-flex items-center gap-1 font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100 font-mono">
+                          <Users className="w-3 h-3 text-indigo-600" />
+                          {p.maxStudentLimit} Active Students
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-mono text-[11px]">
+                          Unlimited
+                        </span>
+                      )}
+                    </TableCell>
+
+                    <TableCell className="text-xs">
                       {p.isTrial ? (
                         <span className="text-amber-700 font-bold">Yes ({p.durationValue} {p.durationUnit.toLowerCase()})</span>
                       ) : (
@@ -172,18 +190,23 @@ export const SuperAdminPlansPage = () => {
                       <Badge variant={p.isActive ? 'success' : 'neutral'}>{p.isActive ? 'ACTIVE' : 'INACTIVE'}</Badge>
                     </TableCell>
 
-                    <TableCell className="text-xs font-mono text-slate-500">
-                      {formatDate(p.createdAt)}
-                    </TableCell>
-
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          icon={Copy}
+                          onClick={() => navigate('/admin/plans/new', { state: { copyPlan: p } })}
+                          title="Copy Plan to Create New Variant with Student Limit"
+                        >
+                          Copy
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           icon={Edit2}
                           onClick={() => navigate(`/admin/plans/${p.id}/edit`)}
-                          title="Edit Plan (Dedicated Page)"
+                          title="Edit Plan"
                         />
                         <Button
                           variant={p.isActive ? 'outline' : 'primary'}
@@ -207,7 +230,7 @@ export const SuperAdminPlansPage = () => {
               )}
             </TableBody>
           </Table>
-        </div>
+        </>
       )}
 
       {/* Delete Confirmation Step Modal */}

@@ -75,11 +75,19 @@ export const subscriptionService = {
     return await api.get('/admin/subscriptions', { params });
   },
 
+  async adminGetSubscriptionById(id) {
+    return await api.get(`/admin/subscriptions/${id}`);
+  },
+
   async adminUpdateSubscriptionStatus(id, status, reason = null) {
     return await api.patch(`/admin/subscriptions/${id}/status`, { status, reason });
   },
 
   async adminExpireSubscription(id, reason = null) {
     return await api.post(`/admin/subscriptions/${id}/expire`, { reason });
+  },
+
+  async adminUpdateSubscriptionDetails(id, data) {
+    return await api.put(`/admin/subscriptions/${id}`, data);
   },
 };

@@ -37,13 +37,19 @@ export const AuthProvider = ({ children }) => {
     const handleSessionRevoked = (e) => {
       setUser(null);
       const msg = e.detail?.message || 'Your session has ended because your account was signed in from another device.';
-      toast.error(msg);
+      sessionStorage.setItem('auth_error_message', msg);
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     };
 
     const handleSessionExpired = (e) => {
       setUser(null);
       const msg = e.detail?.message || 'Your session has expired. Please log in again.';
-      toast.error(msg);
+      sessionStorage.setItem('auth_error_message', msg);
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     };
 
     window.addEventListener('auth:unauthorized', handleUnauthorized);

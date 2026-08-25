@@ -140,6 +140,24 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
   }
 
   return await prisma.$transaction(async (tx) => {
+    // 0. Active Subscription Student Limit Check
+    const activeSub = await tx.schoolSubscription.findFirst({
+      where: { schoolId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (activeSub && activeSub.maxStudentLimitSnapshot !== null && activeSub.maxStudentLimitSnapshot > 0) {
+      const activeCount = await tx.student.count({
+        where: { schoolId, status: 'ACTIVE' },
+      });
+
+      if (activeCount >= activeSub.maxStudentLimitSnapshot) {
+        throw ApiError.forbidden(
+          `Student limit reached. Your subscription plan '${activeSub.planNameSnapshot}' allows a maximum of ${activeSub.maxStudentLimitSnapshot} active students. Current active students: ${activeCount}. Please upgrade your subscription plan.`
+        );
+      }
+    }
+
     // 1. Validate configuration
     const { academicYear } = await validateEnrollmentConfiguration({
       schoolId,

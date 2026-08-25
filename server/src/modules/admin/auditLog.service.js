@@ -1,4 +1,5 @@
 import { prisma } from '../../config/prisma.js';
+import { getISTDayBounds } from '../../utils/dateUtils.js';
 
 export const adminAuditLogService = {
   /**
@@ -24,8 +25,8 @@ export const adminAuditLogService = {
 
     if (startDate || endDate) {
       where.createdAt = {};
-      if (startDate) where.createdAt.gte = new Date(startDate);
-      if (endDate) where.createdAt.lte = new Date(endDate);
+      if (startDate) where.createdAt.gte = getISTDayBounds(startDate).startOfDay;
+      if (endDate) where.createdAt.lte = getISTDayBounds(endDate).endOfDay;
     }
 
     if (search) {

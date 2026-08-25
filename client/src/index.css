@@ -162,6 +162,27 @@
   .print\:shadow-none {
     box-shadow: none !important;
   }
+
+  /* Printable Modal Reset */
+  .fixed, [role="dialog"] {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+  }
+
+  #printable-subscription-invoice {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
 }
 
 

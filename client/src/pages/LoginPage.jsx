@@ -1,18 +1,20 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { Button } from '../components/ui/Button.jsx';
 import { Input } from '../components/ui/Input.jsx';
 import { Alert } from '../components/ui/Alert.jsx';
 import { useToast } from '../components/ui/Toast.jsx';
+import { Spinner } from '../components/ui/Spinner.jsx';
 import { BRAND_CONFIG } from '../config/brandConfig.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
 
 export const LoginPage = () => {
   useDocumentTitle('Login');
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const location = useLocation();
+  const { login, isAuthenticated, isInitializing, user } = useAuth();
   const { showToast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -21,7 +23,36 @@ export const LoginPage = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState(() => {
+    if (location.state?.message) return location.state.message;
+    const storedMsg = sessionStorage.getItem('auth_error_message');
+    if (storedMsg) {
+      sessionStorage.removeItem('auth_error_message');
+      return storedMsg;
+    }
+    return '';
+  });
+
+  useEffect(() => {
+    const storedMsg = sessionStorage.getItem('auth_error_message');
+    if (storedMsg) {
+      sessionStorage.removeItem('auth_error_message');
+      setErrorMsg(storedMsg);
+    }
+  }, []);
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <Spinner size="lg" label="Initializing session..." />
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    const mainSystemPath = user?.role === 'SUPER_ADMIN' ? '/admin/subscriptions' : '/app';
+    return <Navigate to={mainSystemPath} replace />;
+  }
 
   const handleChange = (e) => {
     setFormData((prev) => ({

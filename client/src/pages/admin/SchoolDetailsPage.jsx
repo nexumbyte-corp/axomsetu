@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Building2, Plus, ArrowLeft, Key, Edit2, AlertTriangle } from 'lucide-react';
+import { Building2, Plus, ArrowLeft, Key, Edit2, AlertTriangle, Printer } from 'lucide-react';
 import { adminService } from '../../services/adminService.js';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { Spinner } from '../../components/ui/Spinner.jsx';
@@ -8,6 +8,7 @@ import { Toast } from '../../components/ui/Toast.jsx';
 import { formatDate } from '../../utils/formatters.js';
 import { Input } from '../../components/ui/Input.jsx';
 import { Select } from '../../components/ui/Select.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../../components/ui/Table.jsx';
@@ -58,6 +59,31 @@ export const SchoolDetailsPage = () => {
   const [isExpireModalOpen, setIsExpireModalOpen] = useState(false);
   const [expireReason, setExpireReason] = useState('');
   const [submittingExpire, setSubmittingExpire] = useState(false);
+
+  // Assign Subscription Modal State
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [assignPlans, setAssignPlans] = useState([]);
+  const [assignForm, setAssignForm] = useState({
+    planId: '',
+    durationMonths: '12',
+    startDate: new Date().toISOString().split('T')[0],
+    amount: '',
+    maxStudentLimit: '',
+    isEnterprise: false,
+    remarks: '',
+  });
+  const [submittingAssign, setSubmittingAssign] = useState(false);
+
+  // Edit Subscription & Capacity State
+  const [isEditSubModalOpen, setIsEditSubModalOpen] = useState(false);
+  const [editSubForm, setEditSubForm] = useState({
+    maxStudentLimit: '',
+    finalPrice: '',
+    endDate: '',
+    status: 'ACTIVE',
+    remarks: '',
+  });
+  const [submittingEditSub, setSubmittingEditSub] = useState(false);
 
   const fetchSchoolDetails = useCallback(async () => {
     setLoading(true);
@@ -187,6 +213,79 @@ export const SchoolDetailsPage = () => {
     }
   };
 
+  const handleOpenAssignModal = async () => {
+    try {
+      const res = await subscriptionService.adminListPlans();
+      if (res.success) setAssignPlans(res.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+    setAssignForm({
+      planId: '',
+      durationMonths: '12',
+      startDate: new Date().toISOString().split('T')[0],
+      amount: '',
+      maxStudentLimit: '',
+      isEnterprise: false,
+      remarks: '',
+    });
+    setIsAssignModalOpen(true);
+  };
+
+  const handleAssignSubscriptionSubmit = async (e) => {
+    e.preventDefault();
+    setSubmittingAssign(true);
+    try {
+      const res = await subscriptionService.adminCreateManualSubscription({
+        schoolId,
+        ...assignForm,
+      });
+      if (res.success) {
+        setToast({ type: 'success', message: 'Subscription assigned successfully to school.' });
+        setIsAssignModalOpen(false);
+        fetchSchoolDetails();
+      }
+    } catch (err) {
+      setToast({ type: 'danger', message: err.message || 'Failed to assign subscription' });
+    } finally {
+      setSubmittingAssign(false);
+    }
+  };
+
+  const handleOpenEditSubModal = () => {
+    if (!subscription) return;
+    setEditSubForm({
+      maxStudentLimit: subscription.maxStudentLimitSnapshot !== null && subscription.maxStudentLimitSnapshot !== undefined
+        ? String(subscription.maxStudentLimitSnapshot)
+        : '',
+      finalPrice: subscription.finalPriceSnapshot !== null && subscription.finalPriceSnapshot !== undefined
+        ? String(subscription.finalPriceSnapshot)
+        : '',
+      endDate: subscription.endDate ? new Date(subscription.endDate).toISOString().split('T')[0] : '',
+      status: subscription.status || 'ACTIVE',
+      remarks: subscription.remarks || '',
+    });
+    setIsEditSubModalOpen(true);
+  };
+
+  const handleEditSubSubmit = async (e) => {
+    e.preventDefault();
+    if (!subscription?.id) return;
+    setSubmittingEditSub(true);
+    try {
+      const res = await subscriptionService.adminUpdateSubscriptionDetails(subscription.id, editSubForm);
+      if (res.success) {
+        setToast({ type: 'success', message: 'Subscription capacity & details updated successfully.' });
+        setIsEditSubModalOpen(false);
+        fetchSchoolDetails();
+      }
+    } catch (err) {
+      setToast({ type: 'danger', message: err.message || 'Failed to update subscription details' });
+    } finally {
+      setSubmittingEditSub(false);
+    }
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -261,10 +360,10 @@ export const SchoolDetailsPage = () => {
       </div>
 
       {/* Module Navigation Tabs */}
-      <div className="border-b border-slate-200 flex gap-6 text-xs font-bold">
+      <div className="border-b border-slate-200 flex items-center gap-2 sm:gap-6 text-xs font-bold tab-scroll-container overflow-x-auto whitespace-nowrap scrollbar-none pb-0.5">
         <button
           onClick={() => setActiveTab('info')}
-          className={`pb-3 transition-colors ${
+          className={`pb-3 shrink-0 transition-colors ${
             activeTab === 'info'
               ? 'border-b-2 border-indigo-600 text-indigo-700 font-extrabold'
               : 'text-slate-500 hover:text-slate-900'
@@ -274,7 +373,7 @@ export const SchoolDetailsPage = () => {
         </button>
         <button
           onClick={() => setActiveTab('subscription')}
-          className={`pb-3 transition-colors ${
+          className={`pb-3 shrink-0 transition-colors ${
             activeTab === 'subscription'
               ? 'border-b-2 border-indigo-600 text-indigo-700 font-extrabold'
               : 'text-slate-500 hover:text-slate-900'
@@ -284,7 +383,7 @@ export const SchoolDetailsPage = () => {
         </button>
         <button
           onClick={() => setActiveTab('users')}
-          className={`pb-3 transition-colors ${
+          className={`pb-3 shrink-0 transition-colors ${
             activeTab === 'users'
               ? 'border-b-2 border-indigo-600 text-indigo-700 font-extrabold'
               : 'text-slate-500 hover:text-slate-900'
@@ -294,7 +393,7 @@ export const SchoolDetailsPage = () => {
         </button>
         <button
           onClick={() => setActiveTab('legal')}
-          className={`pb-3 transition-colors ${
+          className={`pb-3 shrink-0 transition-colors ${
             activeTab === 'legal'
               ? 'border-b-2 border-indigo-600 text-indigo-700 font-extrabold'
               : 'text-slate-500 hover:text-slate-900'
@@ -407,30 +506,79 @@ export const SchoolDetailsPage = () => {
       {activeTab === 'subscription' && (
         <div className="space-y-6">
           <div className="bg-white rounded-xl border border-slate-200 shadow-2xs p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-3 gap-3">
               <h3 className="text-sm font-bold text-slate-900">Active Subscription Status</h3>
-              {subscription?.status === 'ACTIVE' && (
+              <div className="flex flex-wrap items-center gap-2">
+                {subscription && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={Printer}
+                      onClick={() => _navigate(`/admin/subscriptions/${subscription.id}/invoice`)}
+                      title="View & Print Official B2B Business Invoice"
+                    >
+                      View Invoice
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={Edit2}
+                      onClick={handleOpenEditSubModal}
+                    >
+                      Edit Capacity & Details
+                    </Button>
+                  </>
+                )}
                 <Button
-                  variant="outline"
+                  variant="primary"
                   size="sm"
-                  icon={AlertTriangle}
-                  className="text-rose-600 hover:bg-rose-50 border-rose-200"
-                  onClick={() => {
-                    setExpireReason('');
-                    setIsExpireModalOpen(true);
-                  }}
+                  icon={Plus}
+                  onClick={handleOpenAssignModal}
                 >
-                  Expire Subscription
+                  Assign Subscription / Enterprise
                 </Button>
-              )}
+                {subscription?.status === 'ACTIVE' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={AlertTriangle}
+                    className="text-rose-600 hover:bg-rose-50 border-rose-200"
+                    onClick={() => {
+                      setExpireReason('');
+                      setIsExpireModalOpen(true);
+                    }}
+                  >
+                    Expire Subscription
+                  </Button>
+                )}
+              </div>
             </div>
 
             {subscription ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
                 <div className="p-3.5 bg-indigo-50/50 rounded-lg border border-indigo-100">
                   <span className="text-indigo-700 font-bold block uppercase text-[10px]">Current Plan</span>
-                  <span className="text-lg font-extrabold text-slate-900 mt-1 block">
-                    {subscription.plan?.name || subscription.planNameSnapshot}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-lg font-extrabold text-slate-900 block">
+                      {subscription.planNameSnapshot || subscription.plan?.name}
+                    </span>
+                    {(subscription.isEnterpriseSnapshot || subscription.plan?.isEnterprise) && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-purple-100 text-purple-800 border border-purple-200">
+                        ENTERPRISE
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
+                  <span className="text-slate-400 font-semibold block text-[10px] uppercase">Student Capacity Limit</span>
+                  <span className="text-lg font-bold text-slate-900 font-mono mt-1 block">
+                    {subscription.maxStudentLimitSnapshot ? (
+                      <span className="text-indigo-700 font-extrabold">{subscription.maxStudentLimitSnapshot} Active Students</span>
+                    ) : (
+                      'Unlimited Students'
+                    )}
                   </span>
                 </div>
 
@@ -446,7 +594,7 @@ export const SchoolDetailsPage = () => {
                 <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
                   <span className="text-slate-400 font-semibold block text-[10px] uppercase">Subscription Amount</span>
                   <span className="text-lg font-bold text-emerald-600 font-mono mt-1 block">
-                    {formatCurrency(subscription.finalPriceSnapshot || subscription.plan?.price)}
+                    {formatCurrency(subscription.finalPriceSnapshot ?? subscription.plan?.finalPrice ?? 0)}
                   </span>
                 </div>
 
@@ -464,10 +612,10 @@ export const SchoolDetailsPage = () => {
                   </span>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 sm:col-span-2">
                   <span className="text-slate-400 font-semibold block text-[10px] uppercase">Days Remaining</span>
                   <span className={`text-lg font-bold font-mono mt-1 block ${daysRemaining !== null && daysRemaining <= 7 ? 'text-rose-600' : 'text-slate-900'}`}>
-                    {daysRemaining !== null ? `${daysRemaining} days` : '0 days'}
+                    {daysRemaining !== null ? `${daysRemaining} days remaining` : '0 days'}
                   </span>
                 </div>
               </div>
@@ -487,18 +635,28 @@ export const SchoolDetailsPage = () => {
                     <th className="pb-2">Start Date</th>
                     <th className="pb-2">End Date</th>
                     <th className="pb-2">Status</th>
+                    <th className="pb-2 text-right">Invoice</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {subscriptionsHistory.map((sub) => (
                     <tr key={sub.id} className="hover:bg-slate-50/50">
-                      <td className="py-2.5 font-bold text-slate-900">{sub.plan?.name || sub.planNameSnapshot}</td>
+                      <td className="py-2.5 font-bold text-slate-900">{sub.planNameSnapshot || sub.plan?.name}</td>
                       <td className="py-2.5 font-mono text-slate-600">{formatDate(sub.startDate)}</td>
                       <td className="py-2.5 font-mono text-slate-600">
                         {formatDate(sub.endDate, 'N/A (Expired)')}
                       </td>
                       <td className="py-2.5">
                         <Badge variant={sub.status === 'ACTIVE' ? 'success' : sub.status === 'SUSPENDED' ? 'warning' : 'danger'}>{sub.status}</Badge>
+                      </td>
+                      <td className="py-2.5 text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon={Printer}
+                          onClick={() => _navigate(`/admin/subscriptions/${sub.id}/invoice`)}
+                          title="View & Print Subscription Invoice"
+                        />
                       </td>
                     </tr>
                   ))}
@@ -810,6 +968,188 @@ export const SchoolDetailsPage = () => {
               </Button>
               <Button type="submit" variant="primary" size="sm" className="bg-rose-600 hover:bg-rose-700 text-white" loading={submittingExpire}>
                 Confirm Expire Subscription
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Assign Enterprise / Subscription Modal */}
+      {isAssignModalOpen && (
+        <Modal isOpen={isAssignModalOpen} onClose={() => setIsAssignModalOpen(false)} title={`Assign Subscription — ${school.name}`}>
+          <form onSubmit={handleAssignSubscriptionSubmit} autoComplete="off" className="space-y-4">
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+              <span className="font-bold text-slate-900 block">Super Admin Direct Subscription Grant</span>
+              <span className="text-slate-500">Assign a standard subscription or custom Enterprise plan directly to {school.name}.</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Select
+                label="Subscription Plan"
+                value={assignForm.planId}
+                onChange={(e) => {
+                  const sel = assignPlans.find((p) => p.id === e.target.value);
+                  let autoMonths = assignForm.durationMonths;
+                  if (sel && !sel.isEnterprise && sel.type !== 'ENTERPRISE') {
+                    if (sel.durationUnit === 'YEAR') {
+                      autoMonths = String((sel.durationValue || 1) * 12);
+                    } else if (sel.durationUnit === 'MONTH') {
+                      autoMonths = String(sel.durationValue || 1);
+                    } else if (sel.type === 'MONTHLY') autoMonths = '1';
+                    else if (sel.type === 'QUARTERLY') autoMonths = '3';
+                    else if (sel.type === 'HALFYEARLY') autoMonths = '6';
+                    else if (sel.type === 'YEARLY') autoMonths = '12';
+                  }
+                  setAssignForm((prev) => ({
+                    ...prev,
+                    planId: e.target.value,
+                    durationMonths: autoMonths,
+                    amount: sel ? String(sel.finalPrice) : prev.amount,
+                    maxStudentLimit: sel && sel.maxStudentLimit ? String(sel.maxStudentLimit) : prev.maxStudentLimit,
+                    isEnterprise: sel ? Boolean(sel.isEnterprise) : prev.isEnterprise,
+                  }));
+                }}
+              >
+                <option value="">-- Custom / Enterprise Plan --</option>
+                {assignPlans.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({formatCurrency(p.finalPrice)})
+                  </option>
+                ))}
+              </Select>
+
+              <Select
+                label="Duration (Months) *"
+                value={assignForm.durationMonths}
+                onChange={(e) => setAssignForm({ ...assignForm, durationMonths: e.target.value })}
+              >
+                <option value="1">1 Month</option>
+                <option value="3">3 Months</option>
+                <option value="6">6 Months</option>
+                <option value="12">12 Months (1 Year)</option>
+                <option value="24">24 Months (2 Years)</option>
+                <option value="36">36 Months (3 Years)</option>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input
+                label="Final Price (₹) *"
+                type="number"
+                min="0"
+                placeholder="e.g. 25000"
+                value={assignForm.amount}
+                onChange={(e) => setAssignForm({ ...assignForm, amount: e.target.value })}
+                required
+              />
+
+              <Input
+                label="Max Active Student Limit"
+                type="number"
+                min="1"
+                placeholder="e.g. 1000 (Empty = Unlimited)"
+                value={assignForm.maxStudentLimit}
+                onChange={(e) => setAssignForm({ ...assignForm, maxStudentLimit: e.target.value })}
+              />
+            </div>
+
+            <DatePicker
+              label="Start Date"
+              value={assignForm.startDate}
+              onChange={(val) => setAssignForm({ ...assignForm, startDate: val })}
+            />
+
+            <label className="flex items-center gap-2.5 text-xs font-semibold text-slate-700 cursor-pointer bg-purple-50/60 p-3 rounded-lg border border-purple-200">
+              <input
+                type="checkbox"
+                checked={assignForm.isEnterprise}
+                onChange={(e) => setAssignForm({ ...assignForm, isEnterprise: e.target.checked })}
+                className="rounded border-purple-300 text-purple-600 focus:ring-purple-500 w-4 h-4"
+              />
+              <div>
+                <span className="font-bold text-purple-950 block">Enterprise Custom Plan</span>
+                <span className="text-[10px] text-purple-700 font-normal">Flag this subscription as an Enterprise custom tier.</span>
+              </div>
+            </label>
+
+            <Input
+              label="Remarks / Contract Notes"
+              placeholder="e.g. Contract ref #1042 / Special Enterprise discount"
+              value={assignForm.remarks}
+              onChange={(e) => setAssignForm({ ...assignForm, remarks: e.target.value })}
+            />
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <Button type="button" variant="outline" onClick={() => setIsAssignModalOpen(false)} disabled={submittingAssign}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" loading={submittingAssign}>
+                Assign Subscription
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {/* Edit Subscription Capacity & Details Modal */}
+      {isEditSubModalOpen && subscription && (
+        <Modal isOpen={isEditSubModalOpen} onClose={() => setIsEditSubModalOpen(false)} title={`Edit Subscription & Capacity — ${school.name}`}>
+          <form onSubmit={handleEditSubSubmit} autoComplete="off" className="space-y-4">
+            <div className="bg-indigo-50/70 p-3 rounded-xl border border-indigo-100 text-xs text-indigo-900">
+              <span className="font-bold block">Super Admin Direct Capacity Override</span>
+              <span className="text-indigo-700">Update the maximum active student limit, total price, status, or expiry date for this school subscription.</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input
+                label="Max Active Student Capacity Limit"
+                type="number"
+                min="1"
+                placeholder="e.g. 500 (Empty = Unlimited)"
+                value={editSubForm.maxStudentLimit}
+                onChange={(e) => setEditSubForm({ ...editSubForm, maxStudentLimit: e.target.value })}
+              />
+
+              <Input
+                label="Subscription Price (₹)"
+                type="number"
+                min="0"
+                placeholder="e.g. 15000"
+                value={editSubForm.finalPrice}
+                onChange={(e) => setEditSubForm({ ...editSubForm, finalPrice: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <DatePicker
+                label="Expiry Date"
+                value={editSubForm.endDate}
+                onChange={(val) => setEditSubForm({ ...editSubForm, endDate: val })}
+              />
+
+              <Select
+                label="Subscription Status"
+                value={editSubForm.status}
+                onChange={(e) => setEditSubForm({ ...editSubForm, status: e.target.value })}
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="SUSPENDED">SUSPENDED</option>
+                <option value="EXPIRED">EXPIRED</option>
+              </Select>
+            </div>
+
+            <Input
+              label="Remarks / Capacity Adjustment Notes"
+              placeholder="e.g. Upgraded student limit upon admin request..."
+              value={editSubForm.remarks}
+              onChange={(e) => setEditSubForm({ ...editSubForm, remarks: e.target.value })}
+            />
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <Button type="button" variant="outline" onClick={() => setIsEditSubModalOpen(false)} disabled={submittingEditSub}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" loading={submittingEditSub}>
+                Save Subscription Capacity
               </Button>
             </div>
           </form>
