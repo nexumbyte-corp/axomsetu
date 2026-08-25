@@ -252,11 +252,10 @@ export const SuperAdminSubscriptionsPage = () => {
             setStatusFilter('');
             setPagination((p) => ({ ...p, page: 1 }));
           }}
-          className={`pb-3 text-xs font-bold transition-colors border-b-2 ${
-            activeTab === 'requests'
+          className={`pb-3 text-xs font-bold transition-colors border-b-2 ${activeTab === 'requests'
               ? 'border-indigo-600 text-indigo-700 font-extrabold'
               : 'border-transparent text-slate-500 hover:text-slate-900'
-          }`}
+            }`}
         >
           Subscription Requests
         </button>
@@ -266,11 +265,10 @@ export const SuperAdminSubscriptionsPage = () => {
             setStatusFilter('');
             setPagination((p) => ({ ...p, page: 1 }));
           }}
-          className={`pb-3 text-xs font-bold transition-colors border-b-2 ${
-            activeTab === 'running'
+          className={`pb-3 text-xs font-bold transition-colors border-b-2 ${activeTab === 'running'
               ? 'border-indigo-600 text-indigo-700 font-extrabold'
               : 'border-transparent text-slate-500 hover:text-slate-900'
-          }`}
+            }`}
         >
           Running Subscriptions
         </button>
@@ -450,8 +448,8 @@ export const SuperAdminSubscriptionsPage = () => {
                           s.status === 'ACTIVE'
                             ? 'success'
                             : s.status === 'SUSPENDED'
-                            ? 'warning'
-                            : 'danger'
+                              ? 'warning'
+                              : 'danger'
                         }
                       >
                         {s.status}

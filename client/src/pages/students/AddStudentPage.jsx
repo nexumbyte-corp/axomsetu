@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, UserPlus, ShieldAlert, Camera, Upload, CheckCircle2, Trash2, Phone } from 'lucide-react';
+import { ArrowLeft, UserPlus, ShieldAlert, Camera, Upload, CheckCircle2, Trash2, Phone, X } from 'lucide-react';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { studentService } from '../../services/student.service.js';
@@ -15,6 +15,7 @@ import { Alert } from '../../components/ui/Alert.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { EnrollmentFields } from '../../components/students/EnrollmentFields.jsx';
 import { PassportPhotoCropModal } from '../../components/students/PassportPhotoCropModal.jsx';
+import { CameraCaptureModal } from '../../components/students/CameraCaptureModal.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { usePageHeader } from '../../context/PageHeaderContext.jsx';
 
@@ -43,6 +44,10 @@ export const AddStudentPage = () => {
   const { selectedYear, selectedYearId } = useAcademicYear();
   const { user } = useAuth();
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+
+  const [cameraModalOpen, setCameraModalOpen] = useState(false);
+  const [photoOptionsOpen, setPhotoOptionsOpen] = useState(false);
 
   const canOverride = user?.role === 'SCHOOL_ADMIN';
 
@@ -467,6 +472,81 @@ export const AddStudentPage = () => {
         className="hidden"
       />
 
+      {/* Direct Mobile Camera Input */}
+      <input
+        type="file"
+        ref={cameraInputRef}
+        onChange={handlePhotoSelect}
+        accept="image/jpeg,image/png,image/jpg,image/webp"
+        capture="environment"
+        className="hidden"
+      />
+
+      {/* Camera Capture Modal */}
+      <CameraCaptureModal
+        isOpen={cameraModalOpen}
+        onClose={() => setCameraModalOpen(false)}
+        onCapture={(file) => {
+          setSelectedPhotoFile(file);
+          setCropModalOpen(true);
+        }}
+        onFallbackNative={() => cameraInputRef.current?.click()}
+      />
+
+      {/* Photo Option Selection Modal */}
+      {photoOptionsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-xs overflow-hidden p-4 space-y-3 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Select Upload Method</h4>
+              <button
+                type="button"
+                onClick={() => setPhotoOptionsOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPhotoOptionsOpen(false);
+                  fileInputRef.current?.click();
+                }}
+                className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/70 border border-slate-200 hover:border-indigo-200 transition-all text-left group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Upload className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900">Upload from Device</div>
+                  <div className="text-[10px] text-slate-500">Select photo from gallery or files</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPhotoOptionsOpen(false);
+                  setCameraModalOpen(true);
+                }}
+                className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-200 transition-all text-left group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Camera className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900">Take Photo with Camera</div>
+                  <div className="text-[10px] text-slate-500">Capture photo using front/back camera</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Passport Photo Crop Modal */}
       <PassportPhotoCropModal
         isOpen={cropModalOpen}
@@ -479,7 +559,7 @@ export const AddStudentPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* LEFT SIDE: Student Profile & Enrollment Form (7 Cols) */}
           <div className="lg:col-span-7 space-y-5">
-            
+
             {/* Section 1: Photo & Master Info Card */}
             <Card className="border-slate-200 shadow-2xs overflow-hidden">
               <CardHeader
@@ -487,16 +567,15 @@ export const AddStudentPage = () => {
                 subtitle="Mandatory photo, contact details & identity info"
               />
               <CardContent className="space-y-4 pt-3">
-                
+
                 {/* ── PHOTO UPLOADER BOX ── */}
                 <div
-                  className={`p-4 rounded-xl border transition-all ${
-                    errors.photoUrl
+                  className={`p-4 rounded-xl border transition-all ${errors.photoUrl
                       ? 'bg-red-50/60 border-red-300'
                       : studentInfo.photoUrl
-                      ? 'bg-emerald-50/30 border-emerald-200'
-                      : 'bg-slate-50 border-slate-200'
-                  }`}
+                        ? 'bg-emerald-50/30 border-emerald-200'
+                        : 'bg-slate-50 border-slate-200'
+                    }`}
                 >
                   <div className="flex flex-col sm:flex-row items-center gap-4">
                     {/* Photo Frame Container (Passport 3.5:4.5 aspect preview) */}
@@ -539,11 +618,11 @@ export const AddStudentPage = () => {
                         <button
                           type="button"
                           disabled={submitting || isLocked}
-                          onClick={() => fileInputRef.current?.click()}
-                          className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs disabled:opacity-50"
+                          onClick={() => setPhotoOptionsOpen(true)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs disabled:opacity-50"
                         >
                           <Upload className="w-3.5 h-3.5" />
-                          <span>{studentInfo.photoUrl ? 'Change Photo' : 'Select Photo & Crop'}</span>
+                          <span>Upload</span>
                         </button>
 
                         {studentInfo.photoUrl && (
@@ -551,7 +630,7 @@ export const AddStudentPage = () => {
                             type="button"
                             disabled={submitting || isLocked}
                             onClick={handleRemovePhoto}
-                            className="flex items-center gap-1 px-2 py-1 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                             <span>Remove</span>
@@ -617,11 +696,10 @@ export const AddStudentPage = () => {
                           setStudentInfo({ ...studentInfo, phone: val });
                           if (errors.phone) setErrors({ ...errors, phone: null });
                         }}
-                        className={`w-full pl-8 pr-3 py-1.5 border rounded-lg text-xs font-mono font-medium outline-none focus:ring-2 transition-colors ${
-                          errors.phone
+                        className={`w-full pl-8 pr-3 py-1.5 border rounded-lg text-xs font-mono font-medium outline-none focus:ring-2 transition-colors ${errors.phone
                             ? 'border-red-400 bg-red-50/50 text-red-900 focus:ring-red-300'
                             : 'border-slate-200 bg-white text-slate-900 focus:ring-indigo-300'
-                        }`}
+                          }`}
                       />
                     </div>
                     {errors.phone ? (
@@ -643,11 +721,10 @@ export const AddStudentPage = () => {
                           type="button"
                           disabled={submitting || isLocked}
                           onClick={() => setStudentInfo({ ...studentInfo, gender: g })}
-                          className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-all ${
-                            studentInfo.gender === g
+                          className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-all ${studentInfo.gender === g
                               ? 'bg-indigo-600 border-indigo-600 text-white shadow-2xs'
                               : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                          }`}
+                            }`}
                         >
                           {g === 'MALE' ? 'Male' : g === 'FEMALE' ? 'Female' : 'Other'}
                         </button>
@@ -836,13 +913,12 @@ export const AddStudentPage = () => {
                         return (
                           <div
                             key={headKey || idx}
-                            className={`p-2.5 rounded-xl border transition-all ${
-                              ov.error
+                            className={`p-2.5 rounded-xl border transition-all ${ov.error
                                 ? 'bg-red-50/50 border-red-200'
                                 : ov.isOverridden
-                                ? 'bg-amber-50/40 border-amber-200 shadow-2xs'
-                                : 'bg-white border-slate-200'
-                            }`}
+                                  ? 'bg-amber-50/40 border-amber-200 shadow-2xs'
+                                  : 'bg-white border-slate-200'
+                              }`}
                           >
                             <div className="flex items-start justify-between gap-2 mb-1.5">
                               <div>
@@ -879,13 +955,12 @@ export const AddStudentPage = () => {
                                   disabled={submitting || isLocked || loadingFeeStructure || !canOverride}
                                   value={ov.rawValue}
                                   onChange={(e) => handleOverrideAmountChange(headKey, e.target.value)}
-                                  className={`w-full px-2 py-1 text-xs font-mono font-bold rounded-md border focus:ring-2 outline-none ${
-                                    ov.error
+                                  className={`w-full px-2 py-1 text-xs font-mono font-bold rounded-md border focus:ring-2 outline-none ${ov.error
                                       ? 'border-red-400 bg-red-50 text-red-900'
                                       : ov.isOverridden
-                                      ? 'border-amber-400 bg-amber-50 text-slate-900'
-                                      : 'border-slate-200 bg-slate-50 text-slate-900'
-                                  }`}
+                                        ? 'border-amber-400 bg-amber-50 text-slate-900'
+                                        : 'border-slate-200 bg-slate-50 text-slate-900'
+                                    }`}
                                 />
                               </div>
 

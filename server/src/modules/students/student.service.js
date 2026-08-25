@@ -618,11 +618,11 @@ export const listStudents = async (schoolId, query) => {
       createdAt: e.student.createdAt,
       hostel: activeHostel
         ? {
-            enrolled: true,
-            hostelName: activeHostel.hostel.name,
-            roomNumber: activeHostel.room.roomNumber,
-            bedNumber: activeHostel.bed.bedNumber,
-          }
+          enrolled: true,
+          hostelName: activeHostel.hostel.name,
+          roomNumber: activeHostel.room.roomNumber,
+          bedNumber: activeHostel.bed.bedNumber,
+        }
         : { enrolled: false },
       enrollment: {
         id: e.id,
@@ -816,17 +816,17 @@ export const getStudentById = async (schoolId, studentId, targetAcademicYearId =
     status: student.status,
     hostel: activeHostel
       ? {
-          enrolled: true,
-          status: 'ACTIVE',
-          hostelId: activeHostel.hostelId,
-          hostelName: activeHostel.hostel.name,
-          hostelType: activeHostel.hostel.type,
-          roomNumber: activeHostel.room.roomNumber,
-          bedNumber: activeHostel.bed.bedNumber,
-          startDate: activeHostel.startDate,
-        }
+        enrolled: true,
+        status: 'ACTIVE',
+        hostelId: activeHostel.hostelId,
+        hostelName: activeHostel.hostel.name,
+        hostelType: activeHostel.hostel.type,
+        roomNumber: activeHostel.room.roomNumber,
+        bedNumber: activeHostel.bed.bedNumber,
+        startDate: activeHostel.startDate,
+      }
       : exitedHostel
-      ? {
+        ? {
           enrolled: false,
           status: 'EXITED',
           hostelId: exitedHostel.hostelId,
@@ -838,21 +838,21 @@ export const getStudentById = async (schoolId, studentId, targetAcademicYearId =
           endDate: exitedHostel.endDate,
           exitReason: exitedHostel.exitReason,
         }
-      : { enrolled: false, status: 'NONE' },
+        : { enrolled: false, status: 'NONE' },
     createdAt: student.createdAt,
     updatedAt: student.updatedAt,
 
     academic: selectedEnrollment
       ? {
-          id: selectedEnrollment.id,
-          academicYear: selectedEnrollment.academicYear,
-          class: selectedEnrollment.class,
-          section: selectedEnrollment.section,
-          medium: selectedEnrollment.medium,
-          stream: selectedEnrollment.stream,
-          rollNumber: selectedEnrollment.rollNo,
-          status: selectedEnrollment.status,
-        }
+        id: selectedEnrollment.id,
+        academicYear: selectedEnrollment.academicYear,
+        class: selectedEnrollment.class,
+        section: selectedEnrollment.section,
+        medium: selectedEnrollment.medium,
+        stream: selectedEnrollment.stream,
+        rollNumber: selectedEnrollment.rollNo,
+        status: selectedEnrollment.status,
+      }
       : null,
 
     currentFeeStructure,

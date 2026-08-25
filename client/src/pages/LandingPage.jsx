@@ -389,8 +389,8 @@ export const LandingPage = () => {
                   <button
                     onClick={() => setActivePreviewTab('DASHBOARD')}
                     className={`px-3 py-1 rounded-md font-semibold transition-colors ${activePreviewTab === 'DASHBOARD'
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
                       }`}
                   >
                     Dashboard Preview
@@ -398,8 +398,8 @@ export const LandingPage = () => {
                   <button
                     onClick={() => setActivePreviewTab('FEES')}
                     className={`px-3 py-1 rounded-md font-semibold transition-colors ${activePreviewTab === 'FEES'
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
                       }`}
                   >
                     Fee Management
@@ -407,8 +407,8 @@ export const LandingPage = () => {
                   <button
                     onClick={() => setActivePreviewTab('PAYROLL')}
                     className={`px-3 py-1 rounded-md font-semibold transition-colors ${activePreviewTab === 'PAYROLL'
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
                       }`}
                   >
                     Staff & Payroll

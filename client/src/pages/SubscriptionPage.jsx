@@ -198,15 +198,15 @@ export const SubscriptionPage = () => {
                     hasActiveSubscription
                       ? 'success'
                       : isSuspended
-                      ? 'warning'
-                      : 'danger'
+                        ? 'warning'
+                        : 'danger'
                   }
                 >
                   {hasActiveSubscription
                     ? 'ACTIVE'
                     : isSuspended
-                    ? 'SUSPENDED'
-                    : 'INACTIVE'}
+                      ? 'SUSPENDED'
+                      : 'INACTIVE'}
                 </Badge>
               </div>
 
@@ -231,13 +231,12 @@ export const SubscriptionPage = () => {
               </div>
               <div className="w-full bg-slate-700 h-2 rounded-full mt-3 overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-500 ${
-                    remainingDays > 30
+                  className={`h-full transition-all duration-500 ${remainingDays > 30
                       ? 'bg-emerald-500'
                       : remainingDays > 10
-                      ? 'bg-amber-500'
-                      : 'bg-rose-500'
-                  }`}
+                        ? 'bg-amber-500'
+                        : 'bg-rose-500'
+                    }`}
                   style={{ width: `${Math.min(100, (remainingDays / 60) * 100)}%` }}
                 />
               </div>
@@ -522,11 +521,10 @@ export const SubscriptionPage = () => {
                     setPaymentMethod('UPI');
                     if (modalError) setModalError('');
                   }}
-                  className={`p-3 rounded-xl border text-center transition-all ${
-                    paymentMethod === 'UPI'
+                  className={`p-3 rounded-xl border text-center transition-all ${paymentMethod === 'UPI'
                       ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 font-bold shadow-xs'
                       : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                  }`}
+                    }`}
                 >
                   <span className="text-xs block font-bold">UPI</span>
                   <span className="text-[10px] text-slate-500">Google Pay, PhonePe</span>
@@ -538,11 +536,10 @@ export const SubscriptionPage = () => {
                     setPaymentMethod('CASH');
                     if (modalError) setModalError('');
                   }}
-                  className={`p-3 rounded-xl border text-center transition-all ${
-                    paymentMethod === 'CASH'
+                  className={`p-3 rounded-xl border text-center transition-all ${paymentMethod === 'CASH'
                       ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 font-bold shadow-xs'
                       : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                  }`}
+                    }`}
                 >
                   <span className="text-xs block font-bold">Cash</span>
                   <span className="text-[10px] text-slate-500">Manual Verification</span>
@@ -596,11 +593,10 @@ export const SubscriptionPage = () => {
             />
 
             {/* No Refund Policy Notice & Mandatory Confirmation */}
-            <div className={`rounded-xl p-3.5 space-y-2 border transition-all ${
-              !noRefundAccepted && modalError
+            <div className={`rounded-xl p-3.5 space-y-2 border transition-all ${!noRefundAccepted && modalError
                 ? 'bg-rose-100/70 border-rose-400 ring-2 ring-rose-300'
                 : 'bg-rose-50/80 border-rose-200'
-            }`}>
+              }`}>
               <div className="flex items-center gap-2 text-xs font-bold text-rose-900">
                 <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
                 <span>Subscription Refund Policy Notice</span>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, User, Upload, CheckCircle2, Trash2, Phone, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Save, User, Upload, CheckCircle2, Trash2, Phone, ShieldCheck, Camera, X } from 'lucide-react';
 import { studentService } from '../../services/student.service.js';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input } from '../../components/ui/Input.jsx';
@@ -12,6 +12,7 @@ import { Skeleton } from '../../components/ui/Skeleton.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { PassportPhotoCropModal } from '../../components/students/PassportPhotoCropModal.jsx';
+import { CameraCaptureModal } from '../../components/students/CameraCaptureModal.jsx';
 import { StudentAvatar } from '../../components/students/StudentAvatar.jsx';
 import { StudentStatusBadge } from '../../components/students/StudentStatusBadge.jsx';
 
@@ -28,6 +29,9 @@ export const EditStudentProfilePage = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const [cameraModalOpen, setCameraModalOpen] = useState(false);
+  const [photoOptionsOpen, setPhotoOptionsOpen] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -184,8 +188,6 @@ export const EditStudentProfilePage = () => {
     setSubmitting(true);
     try {
       const payload = {
-        admissionNo: formData.admissionNo.trim() || undefined,
-        admissionDate: formData.admissionDate || null,
         name: formData.name.trim(),
         guardianName: formData.guardianName.trim(),
         phone: trimmedPhone,
@@ -251,6 +253,81 @@ export const EditStudentProfilePage = () => {
         accept="image/jpeg,image/png,image/jpg,image/webp"
         className="hidden"
       />
+
+      {/* Direct Mobile Camera Input */}
+      <input
+        type="file"
+        ref={cameraInputRef}
+        onChange={handlePhotoSelect}
+        accept="image/jpeg,image/png,image/jpg,image/webp"
+        capture="environment"
+        className="hidden"
+      />
+
+      {/* Camera Capture Modal */}
+      <CameraCaptureModal
+        isOpen={cameraModalOpen}
+        onClose={() => setCameraModalOpen(false)}
+        onCapture={(file) => {
+          setSelectedPhotoFile(file);
+          setCropModalOpen(true);
+        }}
+        onFallbackNative={() => cameraInputRef.current?.click()}
+      />
+
+      {/* Photo Option Selection Modal */}
+      {photoOptionsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-xs overflow-hidden p-4 space-y-3 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Select Upload Method</h4>
+              <button
+                type="button"
+                onClick={() => setPhotoOptionsOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPhotoOptionsOpen(false);
+                  fileInputRef.current?.click();
+                }}
+                className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/70 border border-slate-200 hover:border-indigo-200 transition-all text-left group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Upload className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900">Upload from Device</div>
+                  <div className="text-[10px] text-slate-500">Select photo from gallery or files</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPhotoOptionsOpen(false);
+                  setCameraModalOpen(true);
+                }}
+                className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-200 transition-all text-left group"
+              >
+                <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <Camera className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900">Take Photo with Camera</div>
+                  <div className="text-[10px] text-slate-500">Capture photo using front/back camera</div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Passport Photo Crop Modal */}
       <PassportPhotoCropModal
@@ -318,11 +395,11 @@ export const EditStudentProfilePage = () => {
                         <button
                           type="button"
                           disabled={submitting}
-                          onClick={() => fileInputRef.current?.click()}
+                          onClick={() => setPhotoOptionsOpen(true)}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs disabled:opacity-50"
                         >
                           <Upload className="w-3.5 h-3.5" />
-                          <span>{formData.photoUrl ? 'Replace Photo' : 'Upload & Crop Photo'}</span>
+                          <span>Upload</span>
                         </button>
 
                         {formData.photoUrl && (
@@ -463,29 +540,27 @@ export const EditStudentProfilePage = () => {
                     )}
                   </div>
 
-                  {/* Admission Number */}
+                  {/* Admission Number (Locked) */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Admission Number
+                    <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                      <span>Admission Number</span>
+                      <span className="text-[10px] font-semibold text-slate-400">Read-only</span>
                     </label>
                     <Input
-                      placeholder="Admission number"
-                      disabled={submitting}
-                      value={formData.admissionNo}
-                      onChange={(e) => setFormData({ ...formData, admissionNo: e.target.value })}
-                      error={errors.admissionNo}
-                      className="text-xs"
+                      disabled={true}
+                      readOnly
+                      value={formData.admissionNo || 'N/A'}
+                      className="text-xs bg-slate-100/80 text-slate-500 cursor-not-allowed font-mono font-medium border-slate-200"
                     />
                   </div>
 
-                  {/* Admission Date */}
+                  {/* Admission Date (Locked) */}
                   <div>
                     <DatePicker
                       label="Admission Date"
-                      disabled={submitting}
+                      disabled={true}
                       value={formData.admissionDate}
-                      onChange={(val) => setFormData({ ...formData, admissionDate: val || '' })}
-                      error={errors.admissionDate}
+                      onChange={() => {}}
                     />
                   </div>
                 </div>
