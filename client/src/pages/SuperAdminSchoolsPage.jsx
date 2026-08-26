@@ -36,6 +36,8 @@ export const SuperAdminSchoolsPage = () => {
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const [createErrors, setCreateErrors] = useState({});
+
   const [createForm, setCreateForm] = useState({
     name: '',
     code: '',
@@ -46,6 +48,62 @@ export const SuperAdminSchoolsPage = () => {
     adminEmail: '',
     adminPassword: '',
   });
+
+  const validateCreateSchool = () => {
+    const errors = {};
+    const phoneRegex = /^[0-9+\-\s()]{7,15}$/;
+
+    if (!createForm.name.trim()) {
+      errors.name = 'School name is required.';
+    } else if (createForm.name.trim().length < 2) {
+      errors.name = 'School name must be at least 2 characters.';
+    } else if (createForm.name.trim().length > 100) {
+      errors.name = 'School name must not exceed 100 characters.';
+    }
+
+    if (createForm.phone?.trim()) {
+      if (!phoneRegex.test(createForm.phone.trim())) {
+        errors.phone = 'Phone number must be 7 to 15 digits (optional +, -, spaces or parentheses).';
+      }
+    }
+
+    if (!createForm.email.trim()) {
+      errors.email = 'Primary contact email is required.';
+    } else if (!/\S+@\S+\.\S+/.test(createForm.email)) {
+      errors.email = 'Enter a valid email address.';
+    } else if (createForm.email.trim().length > 100) {
+      errors.email = 'Email must not exceed 100 characters.';
+    }
+
+    if (createForm.address?.trim()) {
+      if (createForm.address.trim().length < 3) {
+        errors.address = 'Address must be at least 3 characters.';
+      } else if (createForm.address.trim().length > 300) {
+        errors.address = 'Address must not exceed 300 characters.';
+      }
+    }
+
+    const owner = (createForm.adminName || createForm.ownerName || '').trim();
+    if (!owner) {
+      errors.adminName = 'School owner name is required.';
+    } else if (owner.length < 2) {
+      errors.adminName = 'School owner name must be at least 2 characters.';
+    } else if (owner.length > 100) {
+      errors.adminName = 'School owner name must not exceed 100 characters.';
+    }
+
+    const pass = createForm.adminPassword || createForm.password || '';
+    if (!pass) {
+      errors.adminPassword = 'Initial owner password is required.';
+    } else if (pass.length < 8) {
+      errors.adminPassword = 'Password must be at least 8 characters long.';
+    } else if (pass.length > 100) {
+      errors.adminPassword = 'Password must not exceed 100 characters.';
+    }
+
+    setCreateErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const fetchSchools = useCallback(
     async (page = pagination.page) => {
@@ -116,16 +174,42 @@ export const SuperAdminSchoolsPage = () => {
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
+    if (!validateCreateSchool()) return;
+
     setSubmitting(true);
     try {
       await adminService.createSchool({
         ...createForm,
+        ownerName: createForm.adminName || createForm.ownerName,
+        password: createForm.adminPassword || createForm.password,
         termsAccepted: true,
       });
       setToast({ type: 'success', message: `School ${createForm.name} registered successfully!` });
       setIsCreateModalOpen(false);
+      setCreateForm({
+        name: '',
+        code: '',
+        email: '',
+        phone: '',
+        address: '',
+        adminName: '',
+        adminEmail: '',
+        adminPassword: '',
+      });
+      setCreateErrors({});
       fetchSchools(1);
     } catch (err) {
+      const rawErrors = err.errors || err.response?.data?.errors;
+      if (rawErrors && Array.isArray(rawErrors)) {
+        const mapped = {};
+        rawErrors.forEach((eItem) => {
+          const key = eItem.field || (eItem.path && eItem.path[0]);
+          if (key === 'ownerName') mapped.adminName = eItem.message;
+          else if (key === 'password') mapped.adminPassword = eItem.message;
+          else if (key) mapped[key] = eItem.message;
+        });
+        setCreateErrors(mapped);
+      }
       setToast({ type: 'danger', message: err.message || 'Failed to register school' });
     } finally {
       setSubmitting(false);
@@ -370,13 +454,27 @@ export const SuperAdminSchoolsPage = () => {
       )}
 
       {/* Create School Modal */}
-      <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Register School Tenant">
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setCreateErrors({});
+        }}
+        title="Register School Tenant"
+      >
         <form onSubmit={handleCreateSubmit} autoComplete="off" className="space-y-4">
           <Input
             label="School Name *"
             required
+            minLength={2}
+            maxLength={100}
+            placeholder="Enter school name (2-100 characters)"
             value={createForm.name}
-            onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+            onChange={(e) => {
+              setCreateForm({ ...createForm, name: e.target.value });
+              if (createErrors.name) setCreateErrors({ ...createErrors, name: null });
+            }}
+            error={createErrors.name}
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -384,33 +482,81 @@ export const SuperAdminSchoolsPage = () => {
               label="Primary Contact Email *"
               type="email"
               required
+              maxLength={100}
+              placeholder="Enter contact email address"
               value={createForm.email}
-              onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+              onChange={(e) => {
+                setCreateForm({ ...createForm, email: e.target.value });
+                if (createErrors.email) setCreateErrors({ ...createErrors, email: null });
+              }}
+              error={createErrors.email}
             />
             <Input
               label="Phone Number"
+              minLength={7}
+              maxLength={15}
+              placeholder="e.g. +91 9876543210"
               value={createForm.phone}
-              onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+              onChange={(e) => {
+                setCreateForm({ ...createForm, phone: e.target.value });
+                if (createErrors.phone) setCreateErrors({ ...createErrors, phone: null });
+              }}
+              error={createErrors.phone}
             />
           </div>
 
           <Input
+            label="School Address"
+            minLength={3}
+            maxLength={300}
+            placeholder="Enter school address (3-300 characters)"
+            value={createForm.address}
+            onChange={(e) => {
+              setCreateForm({ ...createForm, address: e.target.value });
+              if (createErrors.address) setCreateErrors({ ...createErrors, address: null });
+            }}
+            error={createErrors.address}
+          />
+
+          <Input
             label="School Owner Name *"
             required
+            minLength={2}
+            maxLength={100}
+            placeholder="Enter school owner full name (2-100 characters)"
             value={createForm.adminName}
-            onChange={(e) => setCreateForm({ ...createForm, adminName: e.target.value, ownerName: e.target.value })}
+            onChange={(e) => {
+              setCreateForm({ ...createForm, adminName: e.target.value, ownerName: e.target.value });
+              if (createErrors.adminName) setCreateErrors({ ...createErrors, adminName: null });
+            }}
+            error={createErrors.adminName}
           />
 
           <Input
             label="Initial Owner Password *"
             type="password"
             required
+            minLength={8}
+            maxLength={100}
+            placeholder="At least 8 characters"
             value={createForm.adminPassword}
-            onChange={(e) => setCreateForm({ ...createForm, adminPassword: e.target.value, password: e.target.value })}
+            onChange={(e) => {
+              setCreateForm({ ...createForm, adminPassword: e.target.value, password: e.target.value });
+              if (createErrors.adminPassword) setCreateErrors({ ...createErrors, adminPassword: null });
+            }}
+            error={createErrors.adminPassword}
           />
 
           <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <Button variant="outline" size="sm" onClick={() => setIsCreateModalOpen(false)} disabled={submitting}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                setCreateErrors({});
+              }}
+              disabled={submitting}
+            >
               Cancel
             </Button>
             <Button type="submit" variant="primary" size="sm" loading={submitting} loadingText="Registering...">

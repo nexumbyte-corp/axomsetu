@@ -49,15 +49,57 @@ export const RegisterPage = () => {
 
   const validateForm = () => {
     const errors = {};
-    if (!formData.schoolName.trim()) errors.schoolName = 'School name is required.';
-    if (!formData.email.trim()) errors.email = 'School email address is required.';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = 'Enter a valid email address.';
+    const phoneRegex = /^[0-9+\-\s()]{7,15}$/;
 
-    if (!formData.ownerName.trim()) errors.ownerName = 'Administrator full name is required.';
-    if (!formData.password) errors.password = 'Password is required.';
-    else if (formData.password.length < 8) errors.password = 'Password must be at least 8 characters.';
+    if (!formData.schoolName.trim()) {
+      errors.schoolName = 'School name is required.';
+    } else if (formData.schoolName.trim().length < 2) {
+      errors.schoolName = 'School name must be at least 2 characters.';
+    } else if (formData.schoolName.trim().length > 100) {
+      errors.schoolName = 'School name must not exceed 100 characters.';
+    }
 
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.phone.trim()) {
+      if (!phoneRegex.test(formData.phone.trim())) {
+        errors.phone = 'Phone number must be 7 to 15 digits (optional +, -, spaces or parentheses).';
+      }
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = 'School email address is required.';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = 'Enter a valid email address.';
+    } else if (formData.email.trim().length > 100) {
+      errors.email = 'Email must not exceed 100 characters.';
+    }
+
+    if (formData.address.trim()) {
+      if (formData.address.trim().length < 3) {
+        errors.address = 'Address must be at least 3 characters.';
+      } else if (formData.address.trim().length > 300) {
+        errors.address = 'Address must not exceed 300 characters.';
+      }
+    }
+
+    if (!formData.ownerName.trim()) {
+      errors.ownerName = 'Administrator full name is required.';
+    } else if (formData.ownerName.trim().length < 2) {
+      errors.ownerName = 'Administrator full name must be at least 2 characters.';
+    } else if (formData.ownerName.trim().length > 100) {
+      errors.ownerName = 'Administrator full name must not exceed 100 characters.';
+    }
+
+    if (!formData.password) {
+      errors.password = 'Password is required.';
+    } else if (formData.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters.';
+    } else if (formData.password.length > 100) {
+      errors.password = 'Password must not exceed 100 characters.';
+    }
+
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = 'Confirm password is required.';
+    } else if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = 'Passwords do not match.';
     }
 
@@ -83,11 +125,13 @@ export const RegisterPage = () => {
         navigate('/login', { replace: true });
       }
     } catch (err) {
-      if (err.errors && Array.isArray(err.errors)) {
+      const rawErrors = err.errors || err.response?.data?.errors;
+      if (rawErrors && Array.isArray(rawErrors)) {
         const mapped = {};
-        err.errors.forEach((eItem) => {
-          if (eItem.path && eItem.path[0]) {
-            mapped[eItem.path[0]] = eItem.message;
+        rawErrors.forEach((eItem) => {
+          const key = eItem.field || (eItem.path && eItem.path[0]);
+          if (key) {
+            mapped[key] = eItem.message;
           }
         });
         setFieldErrors(mapped);
@@ -188,8 +232,10 @@ export const RegisterPage = () => {
                     variant="light"
                     label="School Name"
                     name="schoolName"
-                    placeholder="Enter school name"
+                    placeholder="Enter school name (2-100 characters)"
                     required
+                    minLength={2}
+                    maxLength={100}
                     icon={Building2}
                     value={formData.schoolName}
                     onChange={handleChange}
@@ -203,7 +249,9 @@ export const RegisterPage = () => {
                     variant="light"
                     label="School Phone"
                     name="phone"
-                    placeholder="Enter school phone number"
+                    placeholder="e.g. +91 9876543210"
+                    minLength={7}
+                    maxLength={15}
                     icon={Phone}
                     value={formData.phone}
                     onChange={handleChange}
@@ -220,6 +268,7 @@ export const RegisterPage = () => {
                     name="email"
                     placeholder="Enter school email address"
                     required
+                    maxLength={100}
                     icon={Mail}
                     value={formData.email}
                     onChange={handleChange}
@@ -233,7 +282,9 @@ export const RegisterPage = () => {
                     variant="light"
                     label="School Address"
                     name="address"
-                    placeholder="Enter school address"
+                    placeholder="Enter full school address (3-300 characters)"
+                    minLength={3}
+                    maxLength={300}
                     icon={MapPin}
                     value={formData.address}
                     onChange={handleChange}
@@ -256,8 +307,10 @@ export const RegisterPage = () => {
                   variant="light"
                   label="Full Name"
                   name="ownerName"
-                  placeholder="Enter full name"
+                  placeholder="Enter administrator full name (2-100 characters)"
                   required
+                  minLength={2}
+                  maxLength={100}
                   icon={User}
                   value={formData.ownerName}
                   onChange={handleChange}
@@ -281,8 +334,10 @@ export const RegisterPage = () => {
                     label="Password"
                     type={showPassword ? 'text' : 'password'}
                     name="password"
-                    placeholder="Create a strong password"
+                    placeholder="At least 8 characters"
                     required
+                    minLength={8}
+                    maxLength={100}
                     icon={Lock}
                     value={formData.password}
                     onChange={handleChange}
@@ -299,6 +354,8 @@ export const RegisterPage = () => {
                     name="confirmPassword"
                     placeholder="Re-enter password"
                     required
+                    minLength={8}
+                    maxLength={100}
                     icon={Lock}
                     value={formData.confirmPassword}
                     onChange={handleChange}

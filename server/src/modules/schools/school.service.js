@@ -43,7 +43,9 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null, 
     phone,
     email,
     ownerName,
+    adminName,
     password,
+    adminPassword,
     termsAccepted,
     acceptedTermsVersion = CURRENT_TERMS_VERSION,
     privacyPolicyVersion = CURRENT_PRIVACY_POLICY_VERSION,
@@ -55,8 +57,10 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null, 
   }
 
   const targetSchoolName = (schoolName || name || '').trim();
+  const targetOwnerName = (ownerName || adminName || '').trim();
+  const targetPassword = password || adminPassword;
   const normalizedEmail = email.toLowerCase().trim();
-  const trimmedOwnerName = ownerName.trim();
+  const trimmedOwnerName = targetOwnerName;
 
   // Duplicate checks before starting transaction
   const existingUser = await prisma.user.findUnique({
@@ -79,7 +83,7 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null, 
     const code = await generateUniqueSchoolCode(tx);
 
     // 2. Hash owner password
-    const passwordHash = await hashPassword(password);
+    const passwordHash = await hashPassword(targetPassword);
 
     // 3. Create School
     const school = await tx.school.create({
