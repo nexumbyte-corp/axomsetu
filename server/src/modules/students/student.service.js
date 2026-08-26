@@ -564,9 +564,7 @@ export const listStudents = async (schoolId, query) => {
       skip,
       take: limit,
       orderBy: [
-        { student: { name: 'asc' } },
-        { class: { order: 'asc' } },
-        { rollNo: 'asc' },
+        { createdAt: 'desc' },
       ],
       include: {
         student: {
