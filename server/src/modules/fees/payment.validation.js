@@ -20,8 +20,8 @@ const FEE_MONTHS = [
 const chargeSelectionSchema = z
   .object({
     chargeId: z.string().uuid('Invalid charge ID'),
-    amount: z.number().positive('Allocated amount must be greater than zero').optional(),
-    allocatedAmount: z.number().positive('Allocated amount must be greater than zero').optional(),
+    amount: z.number().positive('Allocated amount must be greater than zero').max(10000000, 'Amount must not exceed 10,000,000').optional(),
+    allocatedAmount: z.number().positive('Allocated amount must be greater than zero').max(10000000, 'Amount must not exceed 10,000,000').optional(),
   })
   .refine((data) => data.amount !== undefined || data.allocatedAmount !== undefined, {
     message: 'Either amount or allocatedAmount must be provided for each charge',
@@ -34,12 +34,12 @@ export const createPaymentSchema = z
       errorMap: () => ({ message: 'Invalid payment mode selected' }),
     }),
     paymentDate: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
-    remarks: z.string().max(500, 'Remarks cannot exceed 500 characters').optional().nullable(),
+    remarks: z.string().trim().max(300, 'Remarks cannot exceed 300 characters').optional().nullable(),
     referenceNumber: z.string().trim().max(100, 'Reference number cannot exceed 100 characters').optional().nullable(),
     referenceNo: z.string().trim().max(100, 'Reference number cannot exceed 100 characters').optional().nullable(),
-    receivedAmount: z.number().positive('Received amount must be greater than zero').optional(),
-    charges: z.array(chargeSelectionSchema).optional(),
-    allocations: z.array(chargeSelectionSchema).optional(),
+    receivedAmount: z.number().positive('Received amount must be greater than zero').max(10000000, 'Received amount must not exceed 10,000,000').optional(),
+    charges: z.array(chargeSelectionSchema).max(100, 'Cannot include more than 100 charges in a single payment').optional(),
+    allocations: z.array(chargeSelectionSchema).max(100, 'Cannot include more than 100 allocations in a single payment').optional(),
   })
   .refine(
     (data) => (data.charges && data.charges.length > 0) || (data.allocations && data.allocations.length > 0),
@@ -67,7 +67,7 @@ export const paymentParamsSchema = z.object({
 });
 
 export const voidPaymentSchema = z.object({
-  reason: z.string().trim().min(3, 'A reason for voiding this receipt is required (minimum 3 characters)').max(500, 'Reason cannot exceed 500 characters'),
+  reason: z.string().trim().min(3, 'A reason for voiding this receipt is required (minimum 3 characters)').max(300, 'Reason cannot exceed 300 characters'),
 });
 
 export const ledgerQuerySchema = z.object({
@@ -75,7 +75,7 @@ export const ledgerQuerySchema = z.object({
 });
 
 export const queryPaymentSchema = z.object({
-  search: z.string().optional(),
+  search: z.string().trim().max(100, 'Search query must not exceed 100 characters').optional(),
   studentId: z.string().uuid('Invalid student ID').optional(),
   academicYearId: z.string().uuid('Invalid academic year ID').optional(),
   month: z.enum(FEE_MONTHS).optional(),
@@ -90,14 +90,30 @@ export const queryPaymentSchema = z.object({
   collectedById: z.string().uuid('Invalid collectedById').optional(),
   sortBy: z.enum(['paymentDate', 'receiptNumber', 'receivedAmount', 'createdAt', 'studentName']).optional(),
   sortOrder: z.enum(['asc', 'desc']).optional(),
-  page: z.string().optional(),
-  limit: z.string().optional(),
+  page: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 1))
+    .refine((val) => !isNaN(val) && val > 0 && val <= 10000, 'Page must be between 1 and 10000'),
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 20))
+    .refine((val) => !isNaN(val) && val > 0 && val <= 100, 'Limit must be between 1 and 100'),
 });
 
 export const receiptSearchSchema = z.object({
-  q: z.string().optional(),
-  receiptNumber: z.string().optional(),
+  q: z.string().trim().max(100, 'Search query must not exceed 100 characters').optional(),
+  receiptNumber: z.string().trim().max(50, 'Receipt number must not exceed 50 characters').optional(),
   academicYearId: z.string().uuid('Invalid academic year ID').optional(),
-  page: z.string().optional(),
-  limit: z.string().optional(),
+  page: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 1))
+    .refine((val) => !isNaN(val) && val > 0 && val <= 10000, 'Page must be between 1 and 10000'),
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 20))
+    .refine((val) => !isNaN(val) && val > 0 && val <= 100, 'Limit must be between 1 and 100'),
 });

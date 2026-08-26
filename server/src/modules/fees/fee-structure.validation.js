@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const feeHeadSchema = z.object({
   feeTypeId: z.string().uuid('Invalid fee type ID'),
-  amount: z.number().min(0, 'Amount cannot be negative'),
+  amount: z.number().min(0, 'Amount cannot be negative').max(10000000, 'Amount must not exceed 10,000,000'),
   isActive: z.boolean().default(true),
 });
 
@@ -23,7 +23,7 @@ export const createFeeStructureSchema = z
     mediumId: z.string().uuid('Invalid medium ID'),
     streamId: z.string().uuid('Invalid stream ID').optional().nullable(),
     isActive: z.boolean().default(true),
-    heads: z.array(feeHeadSchema).min(1, 'At least one fee head is required'),
+    heads: z.array(feeHeadSchema).min(1, 'At least one fee head is required').max(50, 'Cannot exceed 50 fee heads per structure'),
   })
   .refine((data) => validateUniqueFeeTypes(data.heads), {
     message: 'Duplicate fee items cannot be added within the same fee structure',
@@ -36,7 +36,7 @@ export const updateFeeStructureSchema = z
     mediumId: z.string().uuid('Invalid medium ID').optional(),
     streamId: z.string().uuid('Invalid stream ID').optional().nullable(),
     isActive: z.boolean().optional(),
-    heads: z.array(feeHeadSchema).optional(),
+    heads: z.array(feeHeadSchema).max(50, 'Cannot exceed 50 fee heads per structure').optional(),
   })
   .refine((data) => validateUniqueFeeTypes(data.heads), {
     message: 'Duplicate fee items cannot be added within the same fee structure',
@@ -61,12 +61,13 @@ export const bulkCreateFeeStructureSchema = z.object({
           mediumId: z.string().uuid('Invalid medium ID'),
           streamId: z.string().uuid('Invalid stream ID').optional().nullable(),
           isActive: z.boolean().default(true),
-          heads: z.array(feeHeadSchema).min(1, 'At least one fee head is required'),
+          heads: z.array(feeHeadSchema).min(1, 'At least one fee head is required').max(50, 'Cannot exceed 50 fee heads per structure'),
         })
         .refine((data) => validateUniqueFeeTypes(data.heads), {
           message: 'Duplicate fee items cannot be added within the same fee structure',
           path: ['heads'],
         })
     )
-    .min(1, 'At least one fee structure is required'),
+    .min(1, 'At least one fee structure is required')
+    .max(100, 'Cannot bulk create more than 100 fee structures at once'),
 });

@@ -118,8 +118,8 @@ export const EnrollmentFields = ({
               !values.classId
                 ? 'Select a class first'
                 : !hasStream
-                ? 'Class does not require a stream'
-                : 'Required for this class'
+                  ? 'Class does not require a stream'
+                  : 'Required for this class'
             }
           >
             <option value="">

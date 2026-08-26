@@ -302,33 +302,30 @@ export const HostelSetupPage = () => {
         <div className="flex space-x-1.5 bg-slate-100 p-1 rounded-lg">
           <button
             onClick={() => setActiveTab('hostels')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
-              activeTab === 'hostels'
+            className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${activeTab === 'hostels'
                 ? 'bg-white text-indigo-600 shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             <Building className="w-3.5 h-3.5 inline mr-1" />
             Hostels ({hostels.length})
           </button>
           <button
             onClick={() => setActiveTab('rooms')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
-              activeTab === 'rooms'
+            className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${activeTab === 'rooms'
                 ? 'bg-white text-indigo-600 shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             <DoorOpen className="w-3.5 h-3.5 inline mr-1" />
             Rooms Setup
           </button>
           <button
             onClick={() => setActiveTab('beds')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
-              activeTab === 'beds'
+            className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${activeTab === 'beds'
                 ? 'bg-white text-indigo-600 shadow-2xs'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             <Bed className="w-3.5 h-3.5 inline mr-1" />
             Beds Management
@@ -548,15 +545,14 @@ export const HostelSetupPage = () => {
                 return (
                   <div
                     key={b.id}
-                    className={`p-3 rounded-xl border text-center transition-all ${
-                      isAvailable
+                    className={`p-3 rounded-xl border text-center transition-all ${isAvailable
                         ? 'border-emerald-200 bg-emerald-50/40'
                         : isOccupied
-                        ? 'border-indigo-200 bg-indigo-50/40'
-                        : isMaintenance
-                        ? 'border-amber-200 bg-amber-50/40'
-                        : 'border-slate-200 bg-slate-100'
-                    }`}
+                          ? 'border-indigo-200 bg-indigo-50/40'
+                          : isMaintenance
+                            ? 'border-amber-200 bg-amber-50/40'
+                            : 'border-slate-200 bg-slate-100'
+                      }`}
                   >
                     <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
                       <span className="truncate font-semibold">R-{b.room?.roomNumber}</span>
@@ -565,9 +561,8 @@ export const HostelSetupPage = () => {
                       {isMaintenance && <Badge variant="amber" className="text-[9px] py-0 px-1.5">Maint.</Badge>}
                     </div>
 
-                    <Bed className={`w-6 h-6 mx-auto my-1 ${
-                      isAvailable ? 'text-emerald-600' : isOccupied ? 'text-indigo-600' : 'text-slate-400'
-                    }`} />
+                    <Bed className={`w-6 h-6 mx-auto my-1 ${isAvailable ? 'text-emerald-600' : isOccupied ? 'text-indigo-600' : 'text-slate-400'
+                      }`} />
 
                     <div className="font-bold text-slate-900 text-xs">{b.bedNumber}</div>
 

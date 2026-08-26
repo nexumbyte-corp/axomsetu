@@ -576,10 +576,10 @@ export const AddStudentPage = () => {
                 {/* ── PHOTO UPLOADER BOX ── */}
                 <div
                   className={`p-4 rounded-xl border transition-all ${errors.photoUrl
-                      ? 'bg-red-50/60 border-red-300'
-                      : studentInfo.photoUrl
-                        ? 'bg-emerald-50/30 border-emerald-200'
-                        : 'bg-slate-50 border-slate-200'
+                    ? 'bg-red-50/60 border-red-300'
+                    : studentInfo.photoUrl
+                      ? 'bg-emerald-50/30 border-emerald-200'
+                      : 'bg-slate-50 border-slate-200'
                     }`}
                 >
                   <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -702,8 +702,8 @@ export const AddStudentPage = () => {
                           if (errors.phone) setErrors({ ...errors, phone: null });
                         }}
                         className={`w-full pl-8 pr-3 py-1.5 border rounded-lg text-xs font-mono font-medium outline-none focus:ring-2 transition-colors ${errors.phone
-                            ? 'border-red-400 bg-red-50/50 text-red-900 focus:ring-red-300'
-                            : 'border-slate-200 bg-white text-slate-900 focus:ring-indigo-300'
+                          ? 'border-red-400 bg-red-50/50 text-red-900 focus:ring-red-300'
+                          : 'border-slate-200 bg-white text-slate-900 focus:ring-indigo-300'
                           }`}
                       />
                     </div>
@@ -727,8 +727,8 @@ export const AddStudentPage = () => {
                           disabled={submitting || isLocked}
                           onClick={() => setStudentInfo({ ...studentInfo, gender: g })}
                           className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-all ${studentInfo.gender === g
-                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-2xs'
-                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-2xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                             }`}
                         >
                           {g === 'MALE' ? 'Male' : g === 'FEMALE' ? 'Female' : 'Other'}
@@ -919,10 +919,10 @@ export const AddStudentPage = () => {
                           <div
                             key={headKey || idx}
                             className={`p-2.5 rounded-xl border transition-all ${ov.error
-                                ? 'bg-red-50/50 border-red-200'
-                                : ov.isOverridden
-                                  ? 'bg-amber-50/40 border-amber-200 shadow-2xs'
-                                  : 'bg-white border-slate-200'
+                              ? 'bg-red-50/50 border-red-200'
+                              : ov.isOverridden
+                                ? 'bg-amber-50/40 border-amber-200 shadow-2xs'
+                                : 'bg-white border-slate-200'
                               }`}
                           >
                             <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -961,10 +961,10 @@ export const AddStudentPage = () => {
                                   value={ov.rawValue}
                                   onChange={(e) => handleOverrideAmountChange(headKey, e.target.value)}
                                   className={`w-full px-2 py-1 text-xs font-mono font-bold rounded-md border focus:ring-2 outline-none ${ov.error
-                                      ? 'border-red-400 bg-red-50 text-red-900'
-                                      : ov.isOverridden
-                                        ? 'border-amber-400 bg-amber-50 text-slate-900'
-                                        : 'border-slate-200 bg-slate-50 text-slate-900'
+                                    ? 'border-red-400 bg-red-50 text-red-900'
+                                    : ov.isOverridden
+                                      ? 'border-amber-400 bg-amber-50 text-slate-900'
+                                      : 'border-slate-200 bg-slate-50 text-slate-900'
                                     }`}
                                 />
                               </div>

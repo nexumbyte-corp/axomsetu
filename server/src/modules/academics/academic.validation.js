@@ -5,8 +5,8 @@ import { z } from 'zod';
 // ==========================================
 export const createClassSchema = {
   body: z.object({
-    name: z.string().min(1, 'Class name is required').trim(),
-    order: z.number().int().min(1, 'Sort order must be a positive integer').optional(),
+    name: z.string().trim().min(1, 'Class name is required').max(50, 'Class name must not exceed 50 characters'),
+    order: z.number().int().min(1, 'Sort order must be a positive integer').max(1000, 'Sort order must not exceed 1000').optional(),
     hasStream: z.boolean().optional(),
     isActive: z.boolean().optional(),
   }),
@@ -14,8 +14,8 @@ export const createClassSchema = {
 
 export const updateClassSchema = {
   body: z.object({
-    name: z.string().min(1, 'Class name cannot be empty').trim().optional(),
-    order: z.number().int().min(1, 'Sort order must be a positive integer').optional(),
+    name: z.string().trim().min(1, 'Class name cannot be empty').max(50, 'Class name must not exceed 50 characters').optional(),
+    order: z.number().int().min(1, 'Sort order must be a positive integer').max(1000, 'Sort order must not exceed 1000').optional(),
     hasStream: z.boolean().optional(),
     isActive: z.boolean().optional(),
   }),
@@ -32,14 +32,14 @@ export const classIdParamSchema = {
 // ==========================================
 export const createMediumSchema = {
   body: z.object({
-    name: z.string().min(1, 'Medium name is required').trim(),
+    name: z.string().trim().min(1, 'Medium name is required').max(50, 'Medium name must not exceed 50 characters'),
     isActive: z.boolean().optional(),
   }),
 };
 
 export const updateMediumSchema = {
   body: z.object({
-    name: z.string().min(1, 'Medium name cannot be empty').trim().optional(),
+    name: z.string().trim().min(1, 'Medium name cannot be empty').max(50, 'Medium name must not exceed 50 characters').optional(),
     isActive: z.boolean().optional(),
   }),
 };
@@ -55,14 +55,14 @@ export const mediumIdParamSchema = {
 // ==========================================
 export const createSectionSchema = {
   body: z.object({
-    name: z.string().min(1, 'Section name is required').trim(),
+    name: z.string().trim().min(1, 'Section name is required').max(50, 'Section name must not exceed 50 characters'),
     isActive: z.boolean().optional(),
   }),
 };
 
 export const updateSectionSchema = {
   body: z.object({
-    name: z.string().min(1, 'Section name cannot be empty').trim().optional(),
+    name: z.string().trim().min(1, 'Section name cannot be empty').max(50, 'Section name must not exceed 50 characters').optional(),
     isActive: z.boolean().optional(),
   }),
 };
@@ -78,14 +78,14 @@ export const sectionIdParamSchema = {
 // ==========================================
 export const createStreamSchema = {
   body: z.object({
-    name: z.string().min(1, 'Stream name is required').trim(),
+    name: z.string().trim().min(1, 'Stream name is required').max(50, 'Stream name must not exceed 50 characters'),
     isActive: z.boolean().optional(),
   }),
 };
 
 export const updateStreamSchema = {
   body: z.object({
-    name: z.string().min(1, 'Stream name cannot be empty').trim().optional(),
+    name: z.string().trim().min(1, 'Stream name cannot be empty').max(50, 'Stream name must not exceed 50 characters').optional(),
     isActive: z.boolean().optional(),
   }),
 };

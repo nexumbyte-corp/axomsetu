@@ -26,11 +26,11 @@ const GROUP_ICONS = {
 function BuildingIcon(props) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="16" height="20" x="4" y="2" rx="2" ry="2"/>
-      <path d="M9 22v-4h6v4"/>
-      <path d="M8 6h.01"/><path d="M16 6h.01"/>
-      <path d="M8 10h.01"/><path d="M16 10h.01"/>
-      <path d="M8 14h.01"/><path d="M16 14h.01"/>
+      <rect width="16" height="20" x="4" y="2" rx="2" ry="2" />
+      <path d="M9 22v-4h6v4" />
+      <path d="M8 6h.01" /><path d="M16 6h.01" />
+      <path d="M8 10h.01" /><path d="M16 10h.01" />
+      <path d="M8 14h.01" /><path d="M16 14h.01" />
     </svg>
   );
 }
@@ -53,9 +53,8 @@ const RoleBadge = ({ role }) => {
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 const StatusBadge = ({ isActive }) => (
-  <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-    isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'bg-rose-50 text-rose-700 border border-rose-200/80'
-  }`}>
+  <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-0.5 rounded-full ${isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'bg-rose-50 text-rose-700 border border-rose-200/80'
+    }`}>
     <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
     {isActive ? 'Active Access' : 'Inactive'}
   </span>
@@ -63,9 +62,8 @@ const StatusBadge = ({ isActive }) => (
 
 // ── Spinner ────────────────────────────────────────────────────────────────────
 const Spinner = ({ size = 'sm' }) => (
-  <div className={`animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600 ${
-    size === 'sm' ? 'w-4 h-4' : 'w-6 h-6'
-  }`} />
+  <div className={`animate-spin rounded-full border-2 border-slate-200 border-t-indigo-600 ${size === 'sm' ? 'w-4 h-4' : 'w-6 h-6'
+    }`} />
 );
 
 // ── Add User Inline Panel ─────────────────────────────────────────────────────
@@ -451,11 +449,10 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
                     <button
                       type="button"
                       onClick={() => toggleModuleAll(group)}
-                      className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-colors border ${
-                        isAllModuleSelected
+                      className={`text-[10px] font-bold px-2 py-1 rounded-lg transition-colors border ${isAllModuleSelected
                           ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
                           : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
-                      }`}
+                        }`}
                     >
                       {isAllModuleSelected ? 'Deselect All' : 'Select All'}
                     </button>
@@ -472,11 +469,10 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
                       <div
                         key={perm.key}
                         onClick={() => togglePermission(perm.key, isRestricted)}
-                        className={`p-3 flex items-start gap-3 transition-colors ${
-                          isRestricted
+                        className={`p-3 flex items-start gap-3 transition-colors ${isRestricted
                             ? 'bg-amber-50/20 cursor-not-allowed'
                             : 'cursor-pointer hover:bg-slate-50/80'
-                        }`}
+                          }`}
                       >
                         {/* Custom Toggle Switch */}
                         {isRestricted ? (
@@ -484,12 +480,10 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
                             <Lock className="w-2.5 h-2.5" />
                           </div>
                         ) : (
-                          <div className={`w-8 h-4.5 rounded-full p-0.5 transition-colors shrink-0 mt-0.5 ${
-                            isChecked ? 'bg-indigo-600' : 'bg-slate-200'
-                          }`}>
-                            <div className={`w-3.5 h-3.5 rounded-full bg-white shadow-2xs transition-transform ${
-                              isChecked ? 'translate-x-3.5' : 'translate-x-0'
-                            }`} />
+                          <div className={`w-8 h-4.5 rounded-full p-0.5 transition-colors shrink-0 mt-0.5 ${isChecked ? 'bg-indigo-600' : 'bg-slate-200'
+                            }`}>
+                            <div className={`w-3.5 h-3.5 rounded-full bg-white shadow-2xs transition-transform ${isChecked ? 'translate-x-3.5' : 'translate-x-0'
+                              }`} />
                           </div>
                         )}
 
@@ -679,11 +673,10 @@ export const SchoolUsersPage = () => {
             <button
               key={tab.key}
               onClick={() => setRoleFilter(tab.key)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-                roleFilter === tab.key
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${roleFilter === tab.key
                   ? 'bg-white text-indigo-600 shadow-xs font-bold'
                   : 'text-slate-600 hover:text-slate-900'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -731,11 +724,10 @@ export const SchoolUsersPage = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   {/* User Profile Summary */}
                   <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 border ${
-                      u.schoolRole === 'OWNER' ? 'bg-amber-100 text-amber-800 border-amber-200' :
-                      u.schoolRole === 'SCHOOL_ADMIN' ? 'bg-indigo-100 text-indigo-800 border-indigo-200' :
-                      'bg-slate-100 text-slate-700 border-slate-200'
-                    }`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 border ${u.schoolRole === 'OWNER' ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                        u.schoolRole === 'SCHOOL_ADMIN' ? 'bg-indigo-100 text-indigo-800 border-indigo-200' :
+                          'bg-slate-100 text-slate-700 border-slate-200'
+                      }`}>
                       {u.name?.charAt(0)?.toUpperCase()}
                     </div>
                     <div className="min-w-0">
@@ -759,11 +751,10 @@ export const SchoolUsersPage = () => {
                         onClick={() => handleToggleStatus(u)}
                         disabled={!!statusLoading[u.id]}
                         title={u.isActive ? 'Deactivate access' : 'Activate access'}
-                        className={`p-2 rounded-xl transition-colors text-xs border ${
-                          u.isActive
+                        className={`p-2 rounded-xl transition-colors text-xs border ${u.isActive
                             ? 'text-rose-600 border-rose-200 bg-rose-50/50 hover:bg-rose-100/80'
                             : 'text-emerald-700 border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/80'
-                        } disabled:opacity-40`}
+                          } disabled:opacity-40`}
                       >
                         {statusLoading[u.id] ? <Spinner /> : u.isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                       </button>
