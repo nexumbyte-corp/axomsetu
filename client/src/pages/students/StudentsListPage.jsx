@@ -25,6 +25,20 @@ import { IndividualPromotionModal } from '../../components/students/IndividualPr
 import { EditEnrollmentModal } from '../../components/students/EditEnrollmentModal.jsx';
 import { PhotoPreviewModal } from '../../components/students/PhotoPreviewModal.jsx';
 
+const STUDENT_FILTERS_STORAGE_KEY = 'student_list_filters';
+
+const loadSavedStudentFilters = () => {
+  try {
+    const saved = localStorage.getItem(STUDENT_FILTERS_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (err) {
+    console.error('Failed loading saved student list filters:', err);
+  }
+  return null;
+};
+
 export const StudentsListPage = () => {
   const navigate = useNavigate();
   const { selectedYear, selectedYearId, academicYears } = useAcademicYear();
@@ -42,17 +56,20 @@ export const StudentsListPage = () => {
   const [mediums, setMediums] = useState([]);
   const [streams, setStreams] = useState([]);
 
+  // Load continuous filters saved in localStorage
+  const savedFilterState = useMemo(() => loadSavedStudentFilters(), []);
+
   // Search & Filter States
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [filters, setFilters] = useState({
-    classId: '',
-    sectionId: '',
-    mediumId: '',
-    streamId: '',
-    status: '',
-  });
-  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState(() => savedFilterState?.searchTerm || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(() => savedFilterState?.searchTerm || '');
+  const [filters, setFilters] = useState(() => ({
+    classId: savedFilterState?.filters?.classId || '',
+    sectionId: savedFilterState?.filters?.sectionId || '',
+    mediumId: savedFilterState?.filters?.mediumId || '',
+    streamId: savedFilterState?.filters?.streamId || '',
+    status: savedFilterState?.filters?.status || '',
+  }));
+  const [page, setPage] = useState(() => savedFilterState?.page || 1);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   // Modal States
@@ -125,10 +142,25 @@ export const StudentsListPage = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
-      setPage(1); // Reset page on search change
     }, 350);
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  // 2.1 Continuously save filters, search term, and page state to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STUDENT_FILTERS_STORAGE_KEY,
+        JSON.stringify({
+          filters,
+          searchTerm,
+          page,
+        })
+      );
+    } catch (err) {
+      console.error('Failed saving student list filters:', err);
+    }
+  }, [filters, searchTerm, page]);
 
   // 3. Fetch Students from Backend when filters / academic year / page changes
   const fetchStudents = useCallback(async () => {
@@ -172,10 +204,16 @@ export const StudentsListPage = () => {
   };
 
   const handleResetFilters = () => {
-    setFilters({ classId: '', sectionId: '', mediumId: '', streamId: '', status: '' });
+    const emptyFilters = { classId: '', sectionId: '', mediumId: '', streamId: '', status: '' };
+    setFilters(emptyFilters);
     setSearchTerm('');
     setDebouncedSearch('');
     setPage(1);
+    try {
+      localStorage.removeItem(STUDENT_FILTERS_STORAGE_KEY);
+    } catch (err) {
+      console.error('Failed clearing student list filters:', err);
+    }
   };
 
   const activeFilterCount = useMemo(() => {
@@ -286,7 +324,10 @@ export const StudentsListPage = () => {
           <Input
             placeholder="Search by name, admission no., guardian or phone..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(1);
+            }}
             icon={Search}
           />
         </div>
