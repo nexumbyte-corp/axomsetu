@@ -196,23 +196,25 @@ export const CollectFeesPage = () => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="h-full flex flex-col min-h-0 overflow-hidden space-y-2">
       {/* Main Cashier Workspace */}
       {!selectedStudent ? (
         <StudentPickerTable onSelectStudent={handleSelectStudent} />
       ) : (
-        <div className="space-y-3">
+        <div className="h-full flex flex-col min-h-0 overflow-hidden space-y-2">
           {/* Student Profile Summary Header */}
-          <StudentSummaryCard
-            student={selectedStudent}
-            outstandingSummary={outstandingSummary}
-            onClearStudent={handleClearStudent}
-          />
+          <div className="shrink-0">
+            <StudentSummaryCard
+              student={selectedStudent}
+              outstandingSummary={outstandingSummary}
+              onClearStudent={handleClearStudent}
+            />
+          </div>
 
           {/* Charges & Payment Form Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-start">
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-2.5 min-h-0 overflow-hidden">
             {/* Left 2 Columns: Outstanding Charges Business Table */}
-            <div className="lg:col-span-2 space-y-3">
+            <div className="lg:col-span-2 flex flex-col h-full min-h-0 overflow-hidden">
               <OutstandingChargesTable
                 charges={charges}
                 selectedChargeIds={selectedChargeIds}
@@ -226,8 +228,8 @@ export const CollectFeesPage = () => {
               />
             </div>
 
-            {/* Right 1 Column: Sticky Summary & Payment Form */}
-            <div className="space-y-3 sticky top-16">
+            {/* Right 1 Column: Summary & Payment Form Panel */}
+            <div className="lg:col-span-1 flex flex-col gap-2 overflow-y-auto max-h-full pr-0.5">
               <PaymentSummaryCard
                 selectedCount={selectedChargeIds.length}
                 selectedTotalBalance={selectedTotalBalance}

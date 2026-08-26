@@ -442,15 +442,15 @@ export const GenerateFeesPage = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="h-full flex flex-col min-h-0 overflow-hidden space-y-2 max-w-5xl mx-auto">
       {/* Wizard Progress Steps Indicator */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+      <div className="shrink-0 bg-white px-3.5 py-2.5 rounded-xl border border-slate-200 shadow-2xs">
         <div className="flex items-center justify-between">
           {[
             { step: 1, label: '1. Select Target' },
             { step: 2, label: '2. Review Fee Sheet' },
             { step: 3, label: '3. Preview Summary' },
-            { step: 4, label: '4. Done' },
+            { step: 4, label: '4. Complete' },
           ].map((item, idx) => {
             const isActive = currentStep === item.step;
             const isDone = currentStep > item.step;
@@ -458,23 +458,23 @@ export const GenerateFeesPage = () => {
               <React.Fragment key={item.step}>
                 <div className="flex items-center gap-2">
                   <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${isDone
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${isDone
                       ? 'bg-emerald-600 text-white'
                       : isActive
-                        ? 'bg-indigo-600 text-white'
+                        ? 'bg-indigo-600 text-white shadow-xs ring-2 ring-indigo-500/20'
                         : 'bg-slate-100 text-slate-400'
                       }`}
                   >
-                    {isDone ? <Check className="w-4 h-4" /> : item.step}
+                    {isDone ? <Check className="w-3.5 h-3.5" /> : item.step}
                   </div>
                   <span
-                    className={`text-xs font-semibold hidden sm:inline-block ${isActive ? 'text-slate-900 font-bold' : isDone ? 'text-emerald-700' : 'text-slate-400'
+                    className={`text-xs font-semibold hidden sm:inline-block ${isActive ? 'text-indigo-900 font-extrabold' : isDone ? 'text-emerald-700' : 'text-slate-400'
                       }`}
                   >
                     {item.label}
                   </span>
                 </div>
-                {idx < 3 && <div className={`flex-1 h-0.5 mx-2 ${currentStep > item.step ? 'bg-emerald-500' : 'bg-slate-100'}`} />}
+                {idx < 3 && <div className={`flex-1 h-0.5 mx-2 ${currentStep > item.step ? 'bg-emerald-500' : 'bg-slate-200'}`} />}
               </React.Fragment>
             );
           })}
@@ -483,26 +483,26 @@ export const GenerateFeesPage = () => {
 
       {/* Locked Year Warning Alert */}
       {selectedYear?.isLocked && (
-        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center gap-3">
-          <Lock className="w-5 h-5 text-amber-600 shrink-0" />
-          <div className="text-xs">
-            <span className="font-bold">Academic Year is Locked ({selectedYear.name})</span>. Fee generation is disabled. Historical records remain view-only.
+        <div className="shrink-0 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center gap-2.5 text-xs">
+          <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+          <div>
+            <span className="font-bold">Academic Year Locked ({selectedYear.name})</span>. Fee generation disabled.
           </div>
         </div>
       )}
 
       {/* STEP 1: SELECT GENERATION TARGET */}
       {currentStep === 1 && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-6">
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Step 1 — Select Fee Generation Target</h2>
+            <h2 className="text-sm font-extrabold text-slate-900">Step 1 — Select Fee Generation Target</h2>
             <p className="text-xs text-slate-500">Choose the billing month and generation scope for fee charges.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">Academic Year</label>
-              <div className="px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800">
+              <div className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-bold text-slate-800">
                 {selectedYear?.name || 'Current Academic Year'}
               </div>
             </div>
@@ -516,9 +516,9 @@ export const GenerateFeesPage = () => {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 block">Generation Mode</label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {[
                 { id: 'ENTIRE_SCHOOL', title: 'Entire School', desc: 'All classes & enrolled students', icon: Building2 },
                 { id: 'BY_CLASS', title: 'By Class', desc: 'Specific class & medium', icon: Users },
@@ -531,19 +531,19 @@ export const GenerateFeesPage = () => {
                     key={mode.id}
                     type="button"
                     onClick={() => setGenerationMode(mode.id)}
-                    className={`p-4 rounded-xl border text-left transition-all ${isSelected
+                    className={`p-3 rounded-xl border text-left transition-all ${isSelected
                       ? 'border-indigo-600 bg-indigo-50/60 shadow-xs ring-2 ring-indigo-500/20'
                       : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                        <IconComp className="w-4 h-4" />
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                        <IconComp className="w-3.5 h-3.5" />
                       </div>
-                      <input type="radio" checked={isSelected} readOnly className="h-4 w-4 text-indigo-600" />
+                      <input type="radio" checked={isSelected} readOnly className="h-3.5 w-3.5 text-indigo-600" />
                     </div>
                     <h4 className="text-xs font-bold text-slate-900">{mode.title}</h4>
-                    <p className="text-[11px] text-slate-500">{mode.desc}</p>
+                    <p className="text-[10px] text-slate-500">{mode.desc}</p>
                   </button>
                 );
               })}
@@ -552,8 +552,8 @@ export const GenerateFeesPage = () => {
 
           {/* Dynamic Mode Inputs */}
           {generationMode === 'BY_CLASS' && (
-            <div className="space-y-4">
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="space-y-3">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                 <Select
                   label="Select Class"
                   value={selectedClassId}
@@ -565,81 +565,81 @@ export const GenerateFeesPage = () => {
 
               {/* Confirmation & Preview Card of Auto-Detected Mediums, Sections & Streams */}
               {selectedClassObj && (
-                <div className="p-5 bg-gradient-to-r from-indigo-50/90 via-purple-50/50 to-slate-50 rounded-2xl border border-indigo-200/80 shadow-xs space-y-3.5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100/80 pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-extrabold text-sm shadow-xs">
+                <div className="p-3.5 bg-gradient-to-r from-indigo-50/90 via-purple-50/50 to-slate-50 rounded-xl border border-indigo-200/80 shadow-xs space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100/80 pb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-extrabold text-xs shadow-xs shrink-0">
                         ✓
                       </div>
                       <div>
                         <h4 className="text-xs font-extrabold text-slate-900 tracking-tight">
-                          Target Class Confirmation: <span className="text-indigo-700 font-black text-sm">{selectedClassObj.name}</span>
+                          Target Class: <span className="text-indigo-700 font-black">{selectedClassObj.name}</span>
                         </h4>
-                        <p className="text-[11px] text-slate-500">
-                          Fee generation will automatically include all active mediums, sections, and enrolled students below.
+                        <p className="text-[10px] text-slate-500">
+                          Auto-includes active mediums, sections, and enrolled students below.
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Badge variant="indigo" size="md">
+                      <Badge variant="indigo" size="sm" className="text-[10px] font-bold">
                         {classDetectionInfo.loading ? 'Detecting...' : `${classDetectionInfo.studentCount} Students Enrolled`}
                       </Badge>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     {/* Auto-detected Mediums */}
-                    <div className="p-3 bg-white/90 rounded-xl border border-indigo-100/80 text-xs shadow-2xs">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1.5">
-                        Auto-Included Mediums ({classDetectionInfo.mediums.length})
+                    <div className="p-2.5 bg-white/90 rounded-lg border border-indigo-100/80 text-xs shadow-2xs">
+                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">
+                        Mediums ({classDetectionInfo.mediums.length})
                       </span>
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1">
                         {classDetectionInfo.mediums.length > 0 ? (
                           classDetectionInfo.mediums.map((m) => (
-                            <Badge key={m.id || m.name} variant="success" size="sm">
+                            <Badge key={m.id || m.name} variant="success" size="sm" className="text-[9px] py-0 px-1">
                               {m.name}
                             </Badge>
                           ))
                         ) : (
-                          <span className="text-[11px] text-slate-400 italic">All School Mediums</span>
+                          <span className="text-[10px] text-slate-400 italic">All School Mediums</span>
                         )}
                       </div>
                     </div>
 
                     {/* Auto-detected Sections */}
-                    <div className="p-3 bg-white/90 rounded-xl border border-indigo-100/80 text-xs shadow-2xs">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1.5">
-                        Active Sections ({classDetectionInfo.sections.length})
+                    <div className="p-2.5 bg-white/90 rounded-lg border border-indigo-100/80 text-xs shadow-2xs">
+                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">
+                        Sections ({classDetectionInfo.sections.length})
                       </span>
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap gap-1">
                         {classDetectionInfo.sections.length > 0 ? (
                           classDetectionInfo.sections.map((sec) => (
-                            <Badge key={sec.id || sec.name} variant="info" size="sm">
-                              Section {sec.name}
+                            <Badge key={sec.id || sec.name} variant="info" size="sm" className="text-[9px] py-0 px-1">
+                              Sec {sec.name}
                             </Badge>
                           ))
                         ) : (
-                          <span className="text-[11px] text-slate-400 italic">All Sections</span>
+                          <span className="text-[10px] text-slate-400 italic">All Sections</span>
                         )}
                       </div>
                     </div>
 
                     {/* Auto-detected Streams if class has streams */}
                     {selectedClassObj.hasStream && (
-                      <div className="p-3 bg-white/90 rounded-xl border border-indigo-100/80 text-xs shadow-2xs">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1.5">
-                          Auto-Included Streams ({classDetectionInfo.streams.length})
+                      <div className="p-2.5 bg-white/90 rounded-lg border border-indigo-100/80 text-xs shadow-2xs">
+                        <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">
+                          Streams ({classDetectionInfo.streams.length})
                         </span>
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1">
                           {classDetectionInfo.streams.length > 0 ? (
                             classDetectionInfo.streams.map((st) => (
-                              <Badge key={st.id || st.name} variant="neutral" size="sm">
+                              <Badge key={st.id || st.name} variant="neutral" size="sm" className="text-[9px] py-0 px-1">
                                 {st.name}
                               </Badge>
                             ))
                           ) : (
-                            <span className="text-[11px] text-slate-400 italic">All Streams</span>
+                            <span className="text-[10px] text-slate-400 italic">All Streams</span>
                           )}
                         </div>
                       </div>
@@ -651,7 +651,7 @@ export const GenerateFeesPage = () => {
           )}
 
           {generationMode === 'BY_STUDENT' && (
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
               <SearchableStudentSelect
                 students={studentsList}
                 selectedStudentId={selectedStudentId}
@@ -660,8 +660,8 @@ export const GenerateFeesPage = () => {
             </div>
           )}
 
-          <div className="flex justify-end pt-4 border-t border-slate-100">
-            <Button onClick={handleGoToStep2} icon={ArrowRight} disabled={selectedYear?.isLocked}>
+          <div className="flex justify-end pt-3 border-t border-slate-100">
+            <Button onClick={handleGoToStep2} icon={ArrowRight} disabled={selectedYear?.isLocked} size="sm">
               Next: Review Fee Sheet
             </Button>
           </div>
@@ -670,11 +670,11 @@ export const GenerateFeesPage = () => {
 
       {/* STEP 2: REVIEW FEE SHEET */}
       {currentStep === 2 && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden space-y-0">
-          <div className="p-5 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white rounded-xl border border-slate-200 shadow-2xs">
+          <div className="shrink-0 p-3.5 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h3 className="text-base font-bold text-slate-900">Step 2 — Review & Edit Monthly Fee Sheet</h3>
-              <p className="text-xs text-slate-500">Uncheck heads to skip or edit amounts temporarily for this month.</p>
+              <h3 className="text-sm font-bold text-slate-900">Step 2 — Review & Edit Fee Sheet</h3>
+              <p className="text-[11px] text-slate-500">Uncheck heads to skip or edit amounts temporarily for this month.</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -710,240 +710,242 @@ export const GenerateFeesPage = () => {
               </button>
               <span className="text-slate-300 text-xs mr-2">|</span>
               <Button type="button" variant="outline" size="xs" icon={PlusCircle} onClick={() => setIsTempModalOpen(true)}>
-                + Add Temporary Fee
+                + Add Temp Fee
               </Button>
             </div>
           </div>
 
           {generationMode === 'ENTIRE_SCHOOL' && (
-            <div className="p-4 bg-indigo-50/70 border-b border-indigo-100 flex items-center gap-3 text-xs text-indigo-900">
-              <Building2 className="w-5 h-5 text-indigo-600 shrink-0" />
+            <div className="shrink-0 p-3 bg-indigo-50/70 border-b border-indigo-100 flex items-center gap-2.5 text-xs text-indigo-900">
+              <Building2 className="w-4 h-4 text-indigo-600 shrink-0" />
               <div>
-                <span className="font-bold">Entire School Automatic Fee Generation:</span> Each class will automatically generate charges using its configured Fee Template (Class I, VII, XI, etc.). You can click <strong>"+ Add Temporary Fee"</strong> to add a single-run fee (e.g. Annual Function Fee ₹300) for all students across the school.
+                <span className="font-bold">Entire School Automatic Fee Generation:</span> Each class will generate charges using its Fee Template. Click <strong>"+ Add Temp Fee"</strong> to add a custom fee head for all students.
               </div>
             </div>
           )}
 
           {generationMode === 'BY_STUDENT' && selectedStudentInfo && (
-            <div className="p-4 bg-indigo-50/70 border-b border-indigo-100 flex items-center gap-3 text-xs text-indigo-900">
-              <UserCheck className="w-5 h-5 text-indigo-600 shrink-0" />
+            <div className="shrink-0 p-3 bg-indigo-50/70 border-b border-indigo-100 flex items-center gap-2 text-xs text-indigo-900">
+              <UserCheck className="w-4 h-4 text-indigo-600 shrink-0" />
               <div>
                 <span className="font-bold">Target Student:</span> {selectedStudentInfo.name} <span className="font-mono font-semibold text-slate-700">({selectedStudentInfo.admissionNo})</span> — Class {selectedStudentInfo.className} ({selectedStudentInfo.mediumName} Medium{selectedStudentInfo.streamName ? ` - ${selectedStudentInfo.streamName}` : ''})
               </div>
             </div>
           )}
 
-          {sheetLoading ? (
-            <div className="p-6 space-y-3">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : generationMode === 'BY_CLASS' && mediumStructures.length > 0 ? (
-            <div className="p-5 space-y-6">
-              <div className="p-3.5 bg-indigo-50/80 rounded-xl border border-indigo-200 text-xs text-indigo-900 flex items-center justify-between">
-                <div className="flex items-center gap-2 font-bold">
-                  <Users className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <span>Review Fee Structures for Auto-Selected Mediums ({mediumStructures.length})</span>
-                </div>
-                <span className="text-[11px] text-slate-500 font-normal">
-                  Each medium's fee structure is reviewed separately. Uncheck heads or edit amounts per medium.
-                </span>
+          <div className="flex-1 overflow-auto min-h-0">
+            {sheetLoading ? (
+              <div className="p-4 space-y-2">
+                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-9 w-full" />
               </div>
-
-              {mediumStructures.map((ms, medIdx) => {
-                const mediumTotal = ms.heads.reduce((sum, h) => (h.enabled ? sum + (parseFloat(h.amount) || 0) : sum), 0);
-                return (
-                  <div key={ms.mediumId || medIdx} className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-                    <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <Badge variant="indigo" size="md">
-                          {ms.mediumName}
-                        </Badge>
-                        {ms.streamName && <Badge variant="neutral" size="sm">{ms.streamName}</Badge>}
-                        <span className="text-xs font-bold text-slate-800">Fee Structure Breakdown</span>
-                      </div>
-                      <div className="text-xs font-bold text-slate-900">
-                        Medium Fee Total: <span className="font-mono font-extrabold text-indigo-700 text-sm">₹{mediumTotal.toLocaleString('en-IN')}</span> / student
-                      </div>
-                    </div>
-
-                    {ms.heads.length === 0 ? (
-                      <div className="p-4 text-xs text-slate-400 italic text-center">
-                        No fee heads configured in template for {ms.mediumName}.
-                      </div>
-                    ) : (
-                      <div className="table-responsive-wrapper">
-                        <table className="w-full text-left text-xs min-w-[500px]">
-                          <thead className="bg-slate-50/60 border-b border-slate-100 text-slate-400 font-bold uppercase text-[10px]">
-                            <tr>
-                              <th className="px-4 py-2.5 w-12 text-center">Generate</th>
-                              <th className="px-4 py-2.5">Fee Head</th>
-                              <th className="px-4 py-2.5 text-right w-44">Amount (Editable)</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {ms.heads.map((head, headIdx) => (
-                              <tr key={headIdx} className={!head.enabled ? 'bg-slate-50/60 opacity-40' : 'hover:bg-slate-50/50'}>
-                                <td className="px-4 py-2.5 text-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={head.enabled}
-                                    onChange={() => handleToggleMediumHead(medIdx, headIdx)}
-                                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
-                                  />
-                                </td>
-                                <td className="px-4 py-2.5 font-bold text-slate-900">
-                                  {head.title}
-                                </td>
-                                <td className="px-4 py-2.5 text-right">
-                                  <div className="relative w-36 ml-auto">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₹</span>
-                                    <input
-                                      type="number"
-                                      autoComplete="off"
-                                      min="0"
-                                      step="0.01"
-                                      disabled={!head.enabled}
-                                      value={head.amount}
-                                      onChange={(e) => handleMediumHeadAmountChange(medIdx, headIdx, e.target.value)}
-                                      className="w-full pl-7 pr-3 py-1.5 text-xs text-right font-mono font-bold rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500/20"
-                                    />
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+            ) : generationMode === 'BY_CLASS' && mediumStructures.length > 0 ? (
+              <div className="p-4 space-y-4">
+                <div className="p-3 bg-indigo-50/80 rounded-xl border border-indigo-200 text-xs text-indigo-900 flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-bold">
+                    <Users className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <span>Fee Structures for Auto-Selected Mediums ({mediumStructures.length})</span>
                   </div>
-                );
-              })}
-
-              {/* Temporary Fee Heads section */}
-              {sheetHeads.filter((h) => h.isTemporary).length > 0 && (
-                <div className="bg-white rounded-xl border border-amber-200 shadow-2xs overflow-hidden">
-                  <div className="px-4 py-2.5 bg-amber-50 border-b border-amber-200 flex items-center justify-between text-xs font-bold text-amber-900">
-                    <span>⚡ Single-Run Temporary Fee Heads (Applies to All Students in Class)</span>
-                    <Button type="button" variant="outline" size="xs" icon={PlusCircle} onClick={() => setIsTempModalOpen(true)}>
-                      + Add Temporary Fee
-                    </Button>
-                  </div>
-                  <div className="p-3 space-y-2">
-                    {sheetHeads.filter((h) => h.isTemporary).map((head, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50/50 border border-amber-100 text-xs">
-                        <span className="font-bold text-slate-800">{head.title}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-indigo-700">₹{Number(head.amount).toLocaleString('en-IN')}</span>
-                          <button
-                            onClick={() => handleRemoveTemporaryHead(sheetHeads.findIndex((sh) => sh === head))}
-                            className="text-slate-400 hover:text-rose-600 p-1"
-                          >
-                            <Trash className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <span className="text-[10px] text-slate-500 font-normal hidden sm:inline-block">
+                    Review or edit fee heads per medium.
+                  </span>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
-                  <tr>
-                    <th className="px-4 py-3 w-12 text-center">Generate</th>
-                    <th className="px-4 py-3">Fee Head</th>
-                    <th className="px-4 py-3">Type</th>
-                    <th className="px-4 py-3 w-48 text-right">Amount (Editable)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {sheetHeads.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-8 text-center text-xs text-slate-500">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="font-bold text-slate-700">Automated Class Fee Templates Active</span>
-                          <span className="text-[11px] text-slate-400">
-                            Each class will generate charges using its defined Fee Template. Click "+ Add Temporary Fee" above if you wish to add a custom fee head for all students.
-                          </span>
+
+                {mediumStructures.map((ms, medIdx) => {
+                  const mediumTotal = ms.heads.reduce((sum, h) => (h.enabled ? sum + (parseFloat(h.amount) || 0) : sum), 0);
+                  return (
+                    <div key={ms.mediumId || medIdx} className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
+                      <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="indigo" size="sm" className="font-bold text-[10px]">
+                            {ms.mediumName}
+                          </Badge>
+                          {ms.streamName && <Badge variant="neutral" size="sm" className="text-[10px]">{ms.streamName}</Badge>}
+                          <span className="text-xs font-bold text-slate-800">Fee Breakdown</span>
                         </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    sheetHeads.map((head, idx) => (
-                      <tr key={idx} className={!head.enabled ? 'bg-slate-50/70 opacity-40' : 'hover:bg-slate-50/50'}>
-                        <td className="px-4 py-3 text-center">
-                          <input
-                            type="checkbox"
-                            checked={head.enabled}
-                            onChange={() => handleToggleHeadEnabled(idx)}
-                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
-                          />
-                        </td>
-                        <td className="px-4 py-3 font-bold text-slate-900">
+                        <div className="text-xs font-bold text-slate-900">
+                          Total: <span className="font-mono font-extrabold text-indigo-700">₹{mediumTotal.toLocaleString('en-IN')}</span> / student
+                        </div>
+                      </div>
+
+                      {ms.heads.length === 0 ? (
+                        <div className="p-3 text-xs text-slate-400 italic text-center">
+                          No fee heads configured in template for {ms.mediumName}.
+                        </div>
+                      ) : (
+                        <div className="table-responsive-wrapper">
+                          <table className="w-full text-left text-xs min-w-[450px]">
+                            <thead className="bg-slate-50/80 border-b border-slate-100 text-slate-400 font-bold uppercase text-[9px] sticky top-0 z-10 backdrop-blur-xs">
+                              <tr>
+                                <th className="px-3 py-2 w-10 text-center">Gen</th>
+                                <th className="px-3 py-2">Fee Head</th>
+                                <th className="px-3 py-2 text-right w-36">Amount (Editable)</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {ms.heads.map((head, headIdx) => (
+                                <tr key={headIdx} className={!head.enabled ? 'bg-slate-50/60 opacity-40' : 'hover:bg-slate-50/50'}>
+                                  <td className="px-3 py-1.5 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={head.enabled}
+                                      onChange={() => handleToggleMediumHead(medIdx, headIdx)}
+                                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5 cursor-pointer"
+                                    />
+                                  </td>
+                                  <td className="px-3 py-1.5 font-bold text-slate-900">
+                                    {head.title}
+                                  </td>
+                                  <td className="px-3 py-1.5 text-right">
+                                    <div className="relative w-32 ml-auto">
+                                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₹</span>
+                                      <input
+                                        type="number"
+                                        autoComplete="off"
+                                        min="0"
+                                        step="0.01"
+                                        disabled={!head.enabled}
+                                        value={head.amount}
+                                        onChange={(e) => handleMediumHeadAmountChange(medIdx, headIdx, e.target.value)}
+                                        className="w-full pl-6 pr-2 py-1 text-xs text-right font-mono font-bold rounded-md border border-slate-200 focus:ring-2 focus:ring-indigo-500/20"
+                                      />
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Temporary Fee Heads section */}
+                {sheetHeads.filter((h) => h.isTemporary).length > 0 && (
+                  <div className="bg-white rounded-xl border border-amber-200 shadow-2xs overflow-hidden">
+                    <div className="px-3 py-2 bg-amber-50 border-b border-amber-200 flex items-center justify-between text-xs font-bold text-amber-900">
+                      <span>⚡ Single-Run Temporary Fee Heads</span>
+                      <Button type="button" variant="outline" size="xs" icon={PlusCircle} onClick={() => setIsTempModalOpen(true)}>
+                        + Add Temp Fee
+                      </Button>
+                    </div>
+                    <div className="p-2 space-y-1.5">
+                      {sheetHeads.filter((h) => h.isTemporary).map((head, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-amber-50/50 border border-amber-100 text-xs">
+                          <span className="font-bold text-slate-800">{head.title}</span>
                           <div className="flex items-center gap-2">
-                            <span>{head.title}</span>
-                            {head.isTemporary && <Badge variant="neutral" size="sm">Temporary Fee</Badge>}
+                            <span className="font-mono font-bold text-indigo-700">₹{Number(head.amount).toLocaleString('en-IN')}</span>
+                            <button
+                              onClick={() => handleRemoveTemporaryHead(sheetHeads.findIndex((sh) => sh === head))}
+                              className="text-slate-400 hover:text-rose-600 p-1"
+                            >
+                              <Trash className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                        </td>
-                        <td className="px-4 py-3 text-slate-500">
-                          {head.isTemporary ? 'Single-run Custom' : 'Master Template'}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <div className="relative w-36">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₹</span>
-                              <input
-                                type="number"
-                                autoComplete="off"
-                                min="0"
-                                step="0.01"
-                                disabled={!head.enabled}
-                                value={head.amount}
-                                onChange={(e) => handleHeadAmountChange(idx, e.target.value)}
-                                className="w-full pl-7 pr-3 py-1.5 text-xs text-right font-mono font-bold rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500/20"
-                              />
-                            </div>
-                            {head.isTemporary && (
-                              <button
-                                onClick={() => handleRemoveTemporaryHead(idx)}
-                                className="text-slate-400 hover:text-rose-600 p-1"
-                              >
-                                <Trash className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="table-responsive-wrapper">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[9px] sticky top-0 z-10 backdrop-blur-xs">
+                    <tr>
+                      <th className="px-3 py-2 w-10 text-center">Gen</th>
+                      <th className="px-3 py-2">Fee Head</th>
+                      <th className="px-3 py-2">Type</th>
+                      <th className="px-3 py-2 w-40 text-right">Amount (Editable)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {sheetHeads.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-8 text-center text-xs text-slate-500">
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="font-bold text-slate-700">Automated Class Fee Templates Active</span>
+                            <span className="text-[10px] text-slate-400">
+                              Each class will generate charges using its defined Fee Template. Click "+ Add Temp Fee" above if you wish to add a custom fee head.
+                            </span>
                           </div>
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
+                    ) : (
+                      sheetHeads.map((head, idx) => (
+                        <tr key={idx} className={!head.enabled ? 'bg-slate-50/70 opacity-40' : 'hover:bg-slate-50/50'}>
+                          <td className="px-3 py-1.5 text-center">
+                            <input
+                              type="checkbox"
+                              checked={head.enabled}
+                              onChange={() => handleToggleHeadEnabled(idx)}
+                              className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5 cursor-pointer"
+                            />
+                          </td>
+                          <td className="px-3 py-1.5 font-bold text-slate-900">
+                            <div className="flex items-center gap-2">
+                              <span>{head.title}</span>
+                              {head.isTemporary && <Badge variant="neutral" size="sm" className="text-[9px]">Temp Fee</Badge>}
+                            </div>
+                          </td>
+                          <td className="px-3 py-1.5 text-slate-500 text-[11px]">
+                            {head.isTemporary ? 'Single-run Custom' : 'Master Template'}
+                          </td>
+                          <td className="px-3 py-1.5 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <div className="relative w-32">
+                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₹</span>
+                                <input
+                                  type="number"
+                                  autoComplete="off"
+                                  min="0"
+                                  step="0.01"
+                                  disabled={!head.enabled}
+                                  value={head.amount}
+                                  onChange={(e) => handleHeadAmountChange(idx, e.target.value)}
+                                  className="w-full pl-6 pr-2 py-1 text-xs text-right font-mono font-bold rounded-md border border-slate-200 focus:ring-2 focus:ring-indigo-500/20"
+                                />
+                              </div>
+                              {head.isTemporary && (
+                                <button
+                                  onClick={() => handleRemoveTemporaryHead(idx)}
+                                  className="text-slate-400 hover:text-rose-600 p-1"
+                                >
+                                  <Trash className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
-          <div className="p-4 bg-indigo-50/60 border-t border-indigo-100 flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="shrink-0 p-3 bg-indigo-50/60 border-t border-indigo-100 flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <Button variant="outline" size="sm" icon={ArrowLeft} onClick={() => setCurrentStep(1)}>
                 Back
               </Button>
               {generationMode === 'ENTIRE_SCHOOL' ? (
                 <span className="text-xs font-bold text-indigo-900">
-                  Scope: <span className="font-semibold text-indigo-700">All Classes (Automated Fee Templates)</span>
+                  Scope: <span className="font-semibold text-indigo-700">All Classes</span>
                   {sheetHeads.length > 0 && (
-                    <span> + <span className="font-mono font-extrabold text-indigo-700">₹{calculateSheetTotal().toLocaleString('en-IN')}</span> Temporary Fee</span>
+                    <span> + <span className="font-mono font-extrabold text-indigo-700">₹{calculateSheetTotal().toLocaleString('en-IN')}</span> Temp Fee</span>
                   )}
                 </span>
               ) : generationMode === 'BY_CLASS' && mediumStructures.length > 0 ? (
-                <div className="flex items-center gap-2 text-xs font-bold text-indigo-900">
-                  <span>Fee Totals by Medium:</span>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-900">
+                  <span className="hidden sm:inline-block">Totals:</span>
                   {mediumStructures.map((ms, idx) => {
                     const total = ms.heads.reduce((sum, h) => (h.enabled ? sum + (parseFloat(h.amount) || 0) : sum), 0);
                     return (
-                      <span key={idx} className="bg-white px-2 py-0.5 rounded border border-indigo-200 font-mono text-[11px] font-extrabold text-indigo-700">
+                      <span key={idx} className="bg-white px-2 py-0.5 rounded border border-indigo-200 font-mono text-[10px] font-extrabold text-indigo-700">
                         {ms.mediumName}: ₹{total.toLocaleString('en-IN')}
                       </span>
                     );
@@ -951,13 +953,13 @@ export const GenerateFeesPage = () => {
                 </div>
               ) : (
                 <span className="text-xs font-bold text-indigo-900">
-                  Batch Fee Per Student: <span className="font-mono font-extrabold text-indigo-700">₹{calculateSheetTotal().toLocaleString('en-IN')}</span>
+                  Batch Fee: <span className="font-mono font-extrabold text-indigo-700">₹{calculateSheetTotal().toLocaleString('en-IN')}</span>
                 </span>
               )}
             </div>
 
-            <Button onClick={handleGoToStep3Preview} loading={previewLoading} loadingText="Calculating Preview..." icon={ArrowRight}>
-              Next: Preview Summary
+            <Button onClick={handleGoToStep3Preview} loading={previewLoading} loadingText="Calculating..." icon={ArrowRight} size="sm">
+              Next: Preview
             </Button>
           </div>
         </div>
@@ -965,60 +967,60 @@ export const GenerateFeesPage = () => {
 
       {/* STEP 3: PREVIEW SUMMARY PAGE */}
       {currentStep === 3 && previewData && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-6">
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-2xs space-y-4">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Step 3 — Professional Generation Preview</h2>
+            <h2 className="text-sm font-extrabold text-slate-900">Step 3 — Generation Preview</h2>
             <p className="text-xs text-slate-500">Review estimated totals before creating official monthly charges.</p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Selected Students</span>
-              <p className="text-xs font-bold text-slate-900 mt-1">{previewData.totalStudents}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 block">Target Students</span>
+              <p className="text-xs font-bold text-slate-900 mt-0.5">{previewData.totalStudents}</p>
             </div>
 
-            <div className="p-3.5 bg-indigo-50 rounded-xl border border-indigo-100">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500 block">Estimated Charges</span>
-              <p className="text-sm font-extrabold text-indigo-700 font-mono mt-1">{previewData.generatedCount}</p>
+            <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-500 block">Est. Charges</span>
+              <p className="text-sm font-extrabold text-indigo-700 font-mono mt-0.5">{previewData.generatedCount}</p>
             </div>
 
-            <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-100">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block">Estimated Amount</span>
-              <p className="text-sm font-extrabold text-emerald-700 font-mono mt-1">₹{previewData.totalEstimatedAmount.toLocaleString('en-IN')}</p>
+            <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100 col-span-2 sm:col-span-1">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 block">Est. Amount</span>
+              <p className="text-sm font-extrabold text-emerald-700 font-mono mt-0.5">₹{previewData.totalEstimatedAmount.toLocaleString('en-IN')}</p>
             </div>
           </div>
 
           {/* Skipped & Duplicate Charges Breakdown Badges */}
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5 text-xs">
             <div className="flex items-center justify-between font-bold text-slate-800">
-              <span>Duplicate & Eligibility Safeguards:</span>
-              <div className="flex items-center gap-2">
+              <span>Safeguards Breakdown:</span>
+              <div className="flex items-center gap-1.5">
                 {previewData.alreadyExistsCount > 0 && (
-                  <Badge variant="info" size="sm">
-                    {previewData.alreadyExistsCount} Already Exist (Will Skip)
+                  <Badge variant="info" size="sm" className="text-[9px]">
+                    {previewData.alreadyExistsCount} Already Exist
                   </Badge>
                 )}
-                <Badge variant={previewData.skippedCount > 0 ? 'neutral' : 'success'} size="sm">
+                <Badge variant={previewData.skippedCount > 0 ? 'neutral' : 'success'} size="sm" className="text-[9px]">
                   {previewData.skippedCount > 0 ? `${previewData.skippedCount} Skipped` : 'Clean Batch'}
                 </Badge>
               </div>
             </div>
 
             {previewData.skippedBreakdown && (
-              <div className="flex flex-wrap gap-2 pt-1">
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {(previewData.skippedBreakdown.alreadyExists > 0 || previewData.alreadyExistsCount > 0) && (
-                  <Badge variant="info" size="sm">
-                    {previewData.alreadyExistsCount || previewData.skippedBreakdown.alreadyExists} Already Generated (Skipped)
+                  <Badge variant="info" size="sm" className="text-[9px]">
+                    {previewData.alreadyExistsCount || previewData.skippedBreakdown.alreadyExists} Generated (Skipped)
                   </Badge>
                 )}
                 {previewData.skippedBreakdown.notActive > 0 && (
-                  <Badge variant="danger" size="sm">
+                  <Badge variant="danger" size="sm" className="text-[9px]">
                     {previewData.skippedBreakdown.notActive} Inactive Student
                   </Badge>
                 )}
                 {previewData.skippedBreakdown.noFeeStructure > 0 && (
-                  <Badge variant="warning" size="sm">
-                    {previewData.skippedBreakdown.noFeeStructure} No Fee Structure Configured
+                  <Badge variant="warning" size="sm" className="text-[9px]">
+                    {previewData.skippedBreakdown.noFeeStructure} No Fee Structure
                   </Badge>
                 )}
               </div>
@@ -1026,7 +1028,7 @@ export const GenerateFeesPage = () => {
           </div>
 
           {previewData.generatedCount === 0 && (
-            <div className="p-4 bg-sky-50 rounded-xl border border-sky-200 text-sky-900 text-xs flex items-center gap-2 font-semibold">
+            <div className="p-3 bg-sky-50 rounded-xl border border-sky-200 text-sky-900 text-xs flex items-center gap-2 font-semibold">
               <CheckCircle2 className="w-4 h-4 text-sky-600 shrink-0" />
               <span>All charges for {previewData.month} have already been generated for these students.</span>
             </div>
@@ -1034,7 +1036,7 @@ export const GenerateFeesPage = () => {
 
           {/* Missing Structure Alert */}
           {previewData.noStructureClasses?.length > 0 && (
-            <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs space-y-1">
+            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs space-y-1">
               <div className="flex items-center gap-2 font-bold">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>Missing Fee Templates ({previewData.noStructureClasses.length}):</span>
@@ -1047,8 +1049,8 @@ export const GenerateFeesPage = () => {
             </div>
           )}
 
-          <div className="flex justify-between pt-4 border-t border-slate-100">
-            <Button variant="outline" icon={ArrowLeft} onClick={() => setCurrentStep(2)}>
+          <div className="flex justify-between pt-3 border-t border-slate-100">
+            <Button variant="outline" size="sm" icon={ArrowLeft} onClick={() => setCurrentStep(2)}>
               Back
             </Button>
 
@@ -1058,6 +1060,7 @@ export const GenerateFeesPage = () => {
               loadingText="Generating..."
               disabled={previewData.generatedCount === 0}
               icon={CheckCircle2}
+              size="sm"
             >
               {previewData.generatedCount === 0 ? 'All Charges Created' : 'Generate'}
             </Button>
@@ -1067,49 +1070,49 @@ export const GenerateFeesPage = () => {
 
       {/* STEP 4: SUCCESS SCREEN */}
       {currentStep === 4 && resultData && (
-        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-2xs space-y-6 text-center max-w-lg mx-auto">
-          <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
-            <CheckCircle2 className="w-8 h-8" />
+        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-2xs space-y-4 text-center max-w-lg mx-auto w-full">
+          <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
+            <CheckCircle2 className="w-7 h-7" />
           </div>
 
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Fee Generation Completed</h2>
-            <p className="text-xs text-slate-500 mt-1">Official charges created for {resultData.month}.</p>
+            <h2 className="text-lg font-extrabold text-slate-900">Fee Generation Completed</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Official charges created for {resultData.month}.</p>
           </div>
 
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3 text-left text-xs font-mono">
-            <div className="grid grid-cols-3 gap-3">
+          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5 text-left text-xs font-mono">
+            <div className="grid grid-cols-3 gap-2">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 block uppercase">Created</span>
-                <span className="text-indigo-600 font-extrabold text-sm">{resultData.generatedCount}</span>
+                <span className="text-[9px] font-bold text-slate-400 block uppercase">Created</span>
+                <span className="text-indigo-600 font-extrabold text-xs">{resultData.generatedCount}</span>
               </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 block uppercase">Already Exists</span>
-                <span className="text-sky-600 font-extrabold text-sm">{resultData.alreadyExistsCount || 0}</span>
+                <span className="text-[9px] font-bold text-slate-400 block uppercase">Exists</span>
+                <span className="text-sky-600 font-extrabold text-xs">{resultData.alreadyExistsCount || 0}</span>
               </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 block uppercase">Skipped</span>
-                <span className="text-slate-600 font-bold text-sm">{resultData.skippedCount}</span>
+                <span className="text-[9px] font-bold text-slate-400 block uppercase">Skipped</span>
+                <span className="text-slate-600 font-bold text-xs">{resultData.skippedCount}</span>
               </div>
             </div>
 
             {resultData.skippedBreakdown && (
               <div className="pt-2 border-t border-slate-200 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase block font-sans">Skipped Reasons Breakdown</span>
-                <div className="flex flex-wrap gap-1.5 pt-1 font-sans">
+                <span className="text-[9px] font-bold text-slate-400 uppercase block font-sans">Skipped Reasons</span>
+                <div className="flex flex-wrap gap-1 pt-0.5 font-sans">
                   {(resultData.alreadyExistsCount > 0 || resultData.skippedBreakdown.alreadyExists > 0) && (
-                    <Badge variant="info" size="sm">
-                      {resultData.alreadyExistsCount || resultData.skippedBreakdown.alreadyExists} Already Generated (Skipped)
+                    <Badge variant="info" size="sm" className="text-[9px]">
+                      {resultData.alreadyExistsCount || resultData.skippedBreakdown.alreadyExists} Already Generated
                     </Badge>
                   )}
                   {resultData.skippedBreakdown.notActive > 0 && (
-                    <Badge variant="danger" size="sm">
+                    <Badge variant="danger" size="sm" className="text-[9px]">
                       {resultData.skippedBreakdown.notActive} Inactive Student
                     </Badge>
                   )}
                   {resultData.skippedBreakdown.noFeeStructure > 0 && (
-                    <Badge variant="warning" size="sm">
-                      {resultData.skippedBreakdown.noFeeStructure} No Fee Structure Configured
+                    <Badge variant="warning" size="sm" className="text-[9px]">
+                      {resultData.skippedBreakdown.noFeeStructure} No Fee Structure
                     </Badge>
                   )}
                 </div>
@@ -1117,16 +1120,16 @@ export const GenerateFeesPage = () => {
             )}
 
             <div className="pt-2 border-t border-slate-200">
-              <span className="text-[10px] font-bold text-slate-400 block uppercase">Total Amount Generated</span>
-              <span className="text-emerald-600 font-extrabold text-base">₹{Number(resultData.totalAmount).toLocaleString('en-IN')}</span>
+              <span className="text-[9px] font-bold text-slate-400 block uppercase">Total Amount Generated</span>
+              <span className="text-emerald-600 font-extrabold text-sm">₹{Number(resultData.totalAmount).toLocaleString('en-IN')}</span>
             </div>
           </div>
 
-          <div className="flex justify-center gap-3 pt-2">
-            <Button onClick={() => navigate('/app/fees/generated')}>
+          <div className="flex justify-center gap-2.5 pt-1">
+            <Button size="sm" onClick={() => navigate('/app/fees/generated')}>
               View Generated Charges
             </Button>
-            <Button variant="outline" onClick={() => setCurrentStep(1)}>
+            <Button size="sm" variant="outline" onClick={() => setCurrentStep(1)}>
               Done
             </Button>
           </div>

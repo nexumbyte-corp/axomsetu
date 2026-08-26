@@ -541,20 +541,35 @@ export const listStudents = async (schoolId, query) => {
   if (query.status) {
     studentWhere.status = query.status;
   }
+  if (Object.keys(studentWhere).length > 0) {
+    whereClause.student = studentWhere;
+  }
 
   if (query.search && query.search.trim().length > 0) {
     const searchStr = query.search.trim();
-    studentWhere.OR = [
-      { name: { contains: searchStr, mode: 'insensitive' } },
-      { admissionNo: { contains: searchStr, mode: 'insensitive' } },
-      { fatherName: { contains: searchStr, mode: 'insensitive' } },
-      { guardianName: { contains: searchStr, mode: 'insensitive' } },
-      { phone: { contains: searchStr, mode: 'insensitive' } },
-    ];
-  }
+    const isNum = !isNaN(parseInt(searchStr, 10));
+    const rollNum = isNum ? parseInt(searchStr, 10) : null;
 
-  if (Object.keys(studentWhere).length > 0) {
-    whereClause.student = studentWhere;
+    const searchConditions = [
+      {
+        student: {
+          OR: [
+            { name: { contains: searchStr, mode: 'insensitive' } },
+            { admissionNo: { contains: searchStr, mode: 'insensitive' } },
+            { guardianName: { contains: searchStr, mode: 'insensitive' } },
+            { phone: { contains: searchStr, mode: 'insensitive' } },
+          ],
+        },
+      },
+      { class: { name: { contains: searchStr, mode: 'insensitive' } } },
+      { section: { name: { contains: searchStr, mode: 'insensitive' } } },
+    ];
+
+    if (rollNum !== null) {
+      searchConditions.push({ rollNo: rollNum });
+    }
+
+    whereClause.OR = searchConditions;
   }
 
   const [total, enrollments] = await Promise.all([
@@ -566,13 +581,32 @@ export const listStudents = async (schoolId, query) => {
       orderBy: [
         { createdAt: 'desc' },
       ],
-      include: {
+      select: {
+        id: true,
+        rollNo: true,
+        status: true,
+        academicYear: { select: { id: true, name: true, isCurrent: true, isLocked: true } },
+        class: { select: { id: true, name: true, code: true, hasStream: true } },
+        section: { select: { id: true, name: true } },
+        medium: { select: { id: true, name: true } },
+        stream: { select: { id: true, name: true } },
         student: {
-          include: {
+          select: {
+            id: true,
+            admissionNo: true,
+            name: true,
+            guardianName: true,
+            phone: true,
+            gender: true,
+            caste: true,
+            address: true,
+            photoUrl: true,
+            status: true,
+            createdAt: true,
             activeHostelEnrollments: {
               where: { status: 'ACTIVE' },
               take: 1,
-              include: {
+              select: {
                 hostel: { select: { id: true, name: true } },
                 room: { select: { id: true, roomNumber: true } },
                 bed: { select: { id: true, bedNumber: true } },
@@ -580,11 +614,6 @@ export const listStudents = async (schoolId, query) => {
             },
           },
         },
-        academicYear: { select: { id: true, name: true, isCurrent: true, isLocked: true } },
-        class: { select: { id: true, name: true, code: true, hasStream: true } },
-        section: { select: { id: true, name: true } },
-        medium: { select: { id: true, name: true } },
-        stream: { select: { id: true, name: true } },
       },
     }),
   ]);

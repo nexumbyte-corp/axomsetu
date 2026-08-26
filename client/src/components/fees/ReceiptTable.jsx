@@ -111,19 +111,19 @@ export const ReceiptTable = ({ payments = [], isLoading = false, onSelectReceipt
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="h-full flex flex-col min-h-0 overflow-hidden bg-white rounded-xl border border-slate-200 shadow-2xs">
+      <div className="flex-1 overflow-auto min-h-0">
         <table className="w-full text-left text-xs border-collapse">
-          <thead className="bg-slate-50 text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+          <thead className="bg-slate-100/90 backdrop-blur-xs text-slate-600 font-bold uppercase text-[9px] tracking-wider border-b border-slate-200 sticky top-0 z-10">
             <tr>
-              <th className="py-2.5 px-3 w-8"></th>
-              <th className="py-2.5 px-3">Receipt / Ref #</th>
-              <th className="py-2.5 px-3">Student & Class</th>
-              <th className="py-2.5 px-3">Payment Date</th>
-              <th className="py-2.5 px-3 text-center">Mode</th>
-              <th className="py-2.5 px-3 text-right">Amount</th>
-              <th className="py-2.5 px-3 text-center">Status</th>
-              <th className="py-2.5 px-3 text-right">Actions</th>
+              <th className="py-2 px-2 w-7 text-center"></th>
+              <th className="py-2 px-2.5">Receipt / Ref</th>
+              <th className="py-2 px-2.5">Student & Class</th>
+              <th className="py-2 px-2.5">Date / Cashier</th>
+              <th className="py-2 px-2.5 text-center">Mode</th>
+              <th className="py-2 px-2.5 text-right">Amount</th>
+              <th className="py-2 px-2.5 text-center">Status</th>
+              <th className="py-2 px-2.5 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
@@ -157,12 +157,12 @@ export const ReceiptTable = ({ payments = [], isLoading = false, onSelectReceipt
                     }`}
                   >
                     {/* Expand Row Toggle */}
-                    <td className="py-2.5 px-2 text-center">
+                    <td className="py-1.5 px-1.5 text-center">
                       {allocations.length > 0 && (
                         <button
                           type="button"
                           onClick={(e) => toggleRowExpanded(p.id, e)}
-                          className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-200/50 transition-colors"
+                          className="p-0.5 rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-200/50 transition-colors"
                           title={isExpanded ? 'Collapse breakdown' : 'View fee breakdown'}
                         >
                           {isExpanded ? (
@@ -175,27 +175,27 @@ export const ReceiptTable = ({ payments = [], isLoading = false, onSelectReceipt
                     </td>
 
                     {/* Receipt & Ref # */}
-                    <td className="py-2.5 px-3 font-mono">
+                    <td className="py-1.5 px-2.5 font-mono whitespace-nowrap">
                       <span className="font-extrabold text-indigo-700 text-xs block">
                         #{p.receiptNumber}
                       </span>
                       {p.referenceNumber && (
-                        <span className="text-[10px] text-slate-500 block truncate max-w-[130px]" title={`Ref: ${p.referenceNumber}`}>
+                        <span className="text-[9px] text-slate-500 block truncate max-w-[120px]" title={`Ref: ${p.referenceNumber}`}>
                           Ref: {p.referenceNumber}
                         </span>
                       )}
                     </td>
 
-                    {/* Student & Class Details (Clean layout without photo) */}
-                    <td className="py-2.5 px-3 max-w-[220px]">
-                      <div className="font-bold text-slate-900 truncate">
+                    {/* Student & Class Details */}
+                    <td className="py-1.5 px-2.5 max-w-[200px]">
+                      <div className="font-bold text-slate-900 truncate text-xs">
                         {studentName}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-mono">
+                      <div className="flex items-center gap-1.5 text-[9px] text-slate-500 font-mono">
                         <span>Adm: {p.admissionNo || p.student?.admissionNo || '-'}</span>
                       </div>
                       {(className || sectionName || streamName || mediumName) && (
-                        <div className="text-[10px] text-slate-600 font-medium truncate mt-0.5">
+                        <div className="text-[9px] text-slate-600 font-medium truncate mt-0.5">
                           {className && <span className="font-bold">{className}</span>}
                           {sectionName && <span> ({sectionName})</span>}
                           {streamName && <span className="text-indigo-600 font-semibold ml-1">· {streamName}</span>}
@@ -205,39 +205,39 @@ export const ReceiptTable = ({ payments = [], isLoading = false, onSelectReceipt
                     </td>
 
                     {/* Payment Date & Cashier */}
-                    <td className="py-2.5 px-3 whitespace-nowrap">
+                    <td className="py-1.5 px-2.5 whitespace-nowrap">
                       <div className="font-mono text-xs text-slate-800 font-medium">
                         {formatDate(p.paymentDate || p.createdAt)}
                       </div>
-                      <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
+                      <div className="text-[9px] text-slate-500 flex items-center gap-1 mt-0.5">
                         <User className="w-3 h-3 text-slate-400" />
                         <span>{receiverName}</span>
                       </div>
                     </td>
 
                     {/* Payment Mode */}
-                    <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                      <Badge variant={getModeBadgeVariant(p.paymentMode)} size="sm" className="text-[10px] py-0.5">
+                    <td className="py-1.5 px-2.5 text-center whitespace-nowrap">
+                      <Badge variant={getModeBadgeVariant(p.paymentMode)} size="sm" className="text-[9px] py-0 px-1.5">
                         {p.paymentMode?.replace('_', ' ')}
                       </Badge>
                     </td>
 
                     {/* Amount */}
-                    <td className="py-2.5 px-3 text-right font-mono font-extrabold text-xs whitespace-nowrap">
+                    <td className="py-1.5 px-2.5 text-right font-mono font-extrabold text-xs whitespace-nowrap">
                       <span className={isVoid ? 'line-through text-rose-400' : 'text-slate-900'}>
                         {formatCurrency(p.receivedAmount || p.amount)}
                       </span>
                     </td>
 
                     {/* Status */}
-                    <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                      <Badge variant={isVoid ? 'danger' : 'success'} size="sm" className="text-[10px]">
+                    <td className="py-1.5 px-2.5 text-center whitespace-nowrap">
+                      <Badge variant={isVoid ? 'danger' : 'success'} size="sm" className="text-[9px] py-0 px-1.5">
                         {p.status}
                       </Badge>
                     </td>
 
                     {/* Quick Actions */}
-                    <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                    <td className="py-1.5 px-2.5 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
                         {/* Print Receipt */}
                         <button

@@ -19,11 +19,11 @@ export const FeeManagementLayout = () => {
   }, [setHeaderInfo]);
 
   const tabs = [
-    { label: 'Collect Fees ⭐', path: '/app/fees/collect', icon: DollarSign, permission: 'FEES_COLLECT' },
-    { label: 'Generate Fees', path: '/app/fees/generate', icon: CalendarCheck, permission: 'FEES_GENERATE' },
-    { label: 'Fee Templates', path: '/app/fees/templates', icon: FileSpreadsheet, permission: 'FEES_MANAGE_STRUCTURE' },
-    { label: 'Generated History', path: '/app/fees/generated', icon: History, permission: 'FEES_VIEW' },
-    { label: 'Receipts & Search', path: '/app/fees/receipts', icon: Receipt, permission: 'FEES_VIEW' },
+    { label: 'Collect', path: '/app/fees/collect', icon: DollarSign, permission: 'FEES_COLLECT' },
+    { label: 'Generate', path: '/app/fees/generate', icon: CalendarCheck, permission: 'FEES_GENERATE' },
+    { label: 'Templates', path: '/app/fees/templates', icon: FileSpreadsheet, permission: 'FEES_MANAGE_STRUCTURE' },
+    { label: 'History', path: '/app/fees/generated', icon: History, permission: 'FEES_VIEW' },
+    { label: 'Receipts', path: '/app/fees/receipts', icon: Receipt, permission: 'FEES_VIEW' },
     { label: 'Settings', path: '/app/fees/settings/types', icon: Settings, permission: 'FEES_MANAGE_STRUCTURE' },
   ].filter((t) => !t.permission || can(t.permission));
 
@@ -34,11 +34,9 @@ export const FeeManagementLayout = () => {
   }
 
   return (
-    <div className="space-y-4">
-
-
+    <div className="h-[calc(100vh-5rem)] sm:h-[calc(100vh-5.5rem)] flex flex-col overflow-hidden space-y-2">
       {/* Sub Navigation Tabs */}
-      <div className="border-b border-slate-200">
+      <div className="border-b border-slate-200 shrink-0">
         <nav className="flex space-x-1 overflow-x-auto pb-px scrollbar-none">
           {tabs.map((tab) => {
             const IconComp = tab.icon;
@@ -50,7 +48,7 @@ export const FeeManagementLayout = () => {
                 key={tab.path}
                 to={tab.path}
                 className={
-                  `flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-t-lg transition-colors border-b-2 whitespace-nowrap ${isActive
+                  `flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-t-lg transition-colors border-b-2 whitespace-nowrap ${isActive
                     ? 'border-indigo-600 text-indigo-600 bg-indigo-50/60 font-bold'
                     : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
                   }`
@@ -65,7 +63,7 @@ export const FeeManagementLayout = () => {
       </div>
 
       {/* Child Tab Content */}
-      <div>
+      <div className="flex-1 min-h-0 overflow-hidden">
         <Outlet />
       </div>
     </div>

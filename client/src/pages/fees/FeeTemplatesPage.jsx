@@ -460,9 +460,9 @@ export const FeeTemplatesPage = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="h-full flex flex-col min-h-0 overflow-hidden space-y-2 max-w-7xl mx-auto">
       {/* Search & Actions Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+      <div className="shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -471,35 +471,34 @@ export const FeeTemplatesPage = () => {
             placeholder="Search by class, medium, or stream..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+            className="w-full pl-9 pr-4 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
           />
         </div>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           <Button
             variant="outline"
             onClick={handleOpenBulkCopyModal}
             icon={Copy}
             size="sm"
-            className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+            className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-xs"
           >
-            Copy Templates from Previous Year
+            Copy from Prev Year
           </Button>
 
-          <Button onClick={handleOpenAddDrawer} icon={Plus} size="sm">
-            Create Fee Template
+          <Button onClick={handleOpenAddDrawer} icon={Plus} size="sm" className="text-xs">
+            Create Template
           </Button>
         </div>
       </div>
 
       {/* Fee Templates Business Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white rounded-xl border border-slate-200 shadow-2xs">
         {loading ? (
-          <div className="p-6 space-y-4">
+          <div className="p-4 space-y-2">
+            <Skeleton className="h-9 w-full" />
             <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-10 w-full" />
           </div>
         ) : filteredTemplates.length === 0 ? (
           <EmptyState
@@ -510,65 +509,65 @@ export const FeeTemplatesPage = () => {
             onAction={handleOpenAddDrawer}
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+          <div className="flex-1 overflow-auto min-h-0">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="bg-slate-100/90 backdrop-blur-xs text-slate-500 font-bold uppercase tracking-wider text-[9px] sticky top-0 z-10 border-b border-slate-200">
                 <tr>
-                  <th className="px-4 py-3">Class</th>
-                  <th className="px-4 py-3">Medium</th>
-                  <th className="px-4 py-3">Stream</th>
-                  <th className="px-4 py-3">Fee Heads</th>
-                  <th className="px-4 py-3 text-right">Total Monthly Amount</th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                  <th className="px-4 py-3 text-right">Action</th>
+                  <th className="px-3 py-2">Class</th>
+                  <th className="px-3 py-2">Medium</th>
+                  <th className="px-3 py-2">Stream</th>
+                  <th className="px-3 py-2">Fee Heads</th>
+                  <th className="px-3 py-2 text-right">Total Monthly Amount</th>
+                  <th className="px-3 py-2 text-center">Status</th>
+                  <th className="px-3 py-2 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
                 {filteredTemplates.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-4 py-3.5 font-bold text-slate-900">{item.class?.name}</td>
-                    <td className="px-4 py-3.5 text-slate-600 font-semibold">{item.medium?.name}</td>
-                    <td className="px-4 py-3.5 text-slate-500">{item.stream?.name || '—'}</td>
-                    <td className="px-4 py-3.5 text-slate-700 font-semibold">
+                    <td className="px-3 py-2 font-bold text-slate-900">{item.class?.name}</td>
+                    <td className="px-3 py-2 text-slate-600 font-semibold">{item.medium?.name}</td>
+                    <td className="px-3 py-2 text-slate-500">{item.stream?.name || '—'}</td>
+                    <td className="px-3 py-2 text-slate-700 font-semibold">
                       {item.heads?.length || 0} heads
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono font-bold text-indigo-700 text-xs">
+                    <td className="px-3 py-2 text-right font-mono font-extrabold text-indigo-700 text-xs">
                       ₹{item.totalAmount.toLocaleString('en-IN')}
                     </td>
-                    <td className="px-4 py-3.5 text-center">
+                    <td className="px-3 py-2 text-center">
                       <button
                         onClick={() => handleToggleStatus(item)}
                         className="inline-flex items-center gap-1 focus:outline-none"
                         title="Click to toggle status"
                       >
                         {item.isActive ? (
-                          <Badge variant="success" size="sm">Active</Badge>
+                          <Badge variant="success" size="sm" className="text-[9px]">Active</Badge>
                         ) : (
-                          <Badge variant="neutral" size="sm">Inactive</Badge>
+                          <Badge variant="neutral" size="sm" className="text-[9px]">Inactive</Badge>
                         )}
                       </button>
                     </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-3 py-2 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleOpenEditDrawer(item)}
-                          className="px-2.5 py-1 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors inline-flex items-center gap-1"
+                          className="px-2 py-0.5 text-[10px] font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-md transition-colors inline-flex items-center gap-1"
                         >
-                          <Edit2 className="w-3.5 h-3.5" /> Edit
+                          <Edit2 className="w-3 h-3" /> Edit
                         </button>
                         <button
                           onClick={() => handleCopyTemplate(item)}
-                          className="px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-md transition-colors inline-flex items-center gap-1"
+                          className="px-2 py-0.5 text-[10px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-md transition-colors inline-flex items-center gap-1"
                           title="Copy fee template structure to another class"
                         >
-                          <Copy className="w-3.5 h-3.5" /> Copy
+                          <Copy className="w-3 h-3" /> Copy
                         </button>
                         <button
                           onClick={() => setDeletingTemplate(item)}
                           className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
                           title="Delete Template"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     </td>

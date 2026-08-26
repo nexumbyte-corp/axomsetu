@@ -60,36 +60,49 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // 3. Fetch Students List with Aggregated Pending Fees
-  const fetchStudents = useCallback(async () => {
-    if (!selectedYearId) return;
-    setLoading(true);
-    try {
-      const res = await studentService.getStudents({
-        academicYearId: selectedYearId,
-        page,
-        limit: 15,
-        search: debouncedSearch || undefined,
-        classId: selectedClassId || undefined,
-        sectionId: selectedSectionId || undefined,
-      });
-
-      const list = res.data || [];
-      setStudents(list);
-      if (res.pagination) {
-        setPagination(res.pagination);
-      }
-    } catch (err) {
-      console.error('Failed to fetch students for fee collection picker', err);
-      setStudents([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedYearId, page, debouncedSearch, selectedClassId, selectedSectionId]);
-
+  // 3. Fetch Students List with Aggregated Pending Fees & In-Flight Cancellation
   useEffect(() => {
-    fetchStudents();
-  }, [fetchStudents]);
+    if (!selectedYearId) return;
+
+    const controller = new AbortController();
+    setLoading(true);
+
+    const loadStudents = async () => {
+      try {
+        const res = await studentService.getStudents({
+          academicYearId: selectedYearId,
+          page,
+          limit: 15,
+          search: debouncedSearch || undefined,
+          classId: debouncedSearch ? undefined : (selectedClassId || undefined),
+          sectionId: debouncedSearch ? undefined : (selectedSectionId || undefined),
+        }, { signal: controller.signal });
+
+        if (!controller.signal.aborted) {
+          const list = res.data || [];
+          setStudents(list);
+          if (res.pagination) {
+            setPagination(res.pagination);
+          }
+        }
+      } catch (err) {
+        if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
+          console.error('Failed to fetch students for fee collection picker', err);
+          setStudents([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadStudents();
+
+    return () => {
+      controller.abort();
+    };
+  }, [selectedYearId, page, debouncedSearch, selectedClassId, selectedSectionId]);
 
   const handleResetFilters = () => {
     setSearchTerm('');
@@ -100,30 +113,30 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden p-4 space-y-4">
+    <div className="h-full flex flex-col bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden p-2.5 sm:p-3 space-y-2">
       {/* Header Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-            <Users className="w-4 h-4" />
+      <div className="shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+            <Users className="w-3.5 h-3.5" />
           </div>
           <div>
-            <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-              Select Student to Collect Fee
+            <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+              Select Student
               {selectedYear && (
-                <Badge variant="indigo" size="sm">
+                <Badge variant="indigo" size="sm" className="text-[10px] py-0 px-1.5">
                   {selectedYear.name}
                 </Badge>
               )}
             </h3>
-            <p className="text-xs text-slate-500">
-              Showing <span className="font-bold text-slate-700">{pagination.total}</span> students loaded with real-time pending dues
+            <p className="text-[11px] text-slate-500">
+              <span className="font-bold text-slate-700">{pagination.total}</span> students
             </p>
           </div>
         </div>
 
         {/* Filters & Search Toolbar */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5">
           {/* Class Select Filter */}
           <select
             value={selectedClassId}
@@ -131,7 +144,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
               setSelectedClassId(e.target.value);
               setPage(1);
             }}
-            className="py-2 px-3 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-700 min-w-[130px]"
+            className="py-1 px-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold text-slate-700 min-w-[110px]"
           >
             <option value="">All Classes</option>
             {classes.map((cls) => (
@@ -148,9 +161,9 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
               setSelectedSectionId(e.target.value);
               setPage(1);
             }}
-            className="py-2 px-3 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-700 min-w-[120px]"
+            className="py-1 px-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold text-slate-700 min-w-[95px]"
           >
-            <option value="">All Sections</option>
+            <option value="">All Sec</option>
             {sections.map((sec) => (
               <option key={sec.id} value={sec.id}>
                 Sec {sec.name}
@@ -159,17 +172,18 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
           </select>
 
           {/* Search Input */}
-          <div className="relative flex-1 min-w-[200px] sm:w-64">
+          <div className="relative flex-1 min-w-[170px] sm:w-56">
             <Input
-              placeholder="Search by name, adm no, father name or phone..."
+              placeholder="Search name, adm, father, phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               icon={Search}
+              className="py-1 text-xs"
             />
           </div>
 
           {(searchTerm || selectedClassId || selectedSectionId) && (
-            <Button variant="ghost" size="sm" onClick={handleResetFilters} className="text-xs">
+            <Button variant="ghost" size="sm" onClick={handleResetFilters} className="text-xs py-1 px-2 h-7">
               Clear
             </Button>
           )}
@@ -178,40 +192,42 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
 
       {/* Main Table / Skeletons / EmptyState */}
       {loading ? (
-        <div className="space-y-3 py-2">
-          <Skeleton height="45px" width="100%" />
-          <Skeleton height="45px" width="100%" />
-          <Skeleton height="45px" width="100%" />
-          <Skeleton height="45px" width="100%" />
-          <Skeleton height="45px" width="100%" />
+        <div className="flex-1 space-y-2 py-2 overflow-hidden">
+          <Skeleton height="36px" width="100%" />
+          <Skeleton height="36px" width="100%" />
+          <Skeleton height="36px" width="100%" />
+          <Skeleton height="36px" width="100%" />
+          <Skeleton height="36px" width="100%" />
         </div>
       ) : students.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="No students found"
-          description={
-            searchTerm || selectedClassId || selectedSectionId
-              ? 'No students match your search criteria. Try adjusting filters.'
-              : `No active students enrolled for academic year ${selectedYear?.name || ''}.`
-          }
-          actionText={searchTerm || selectedClassId || selectedSectionId ? 'Clear Filters' : null}
-          onAction={handleResetFilters}
-        />
+        <div className="flex-1 flex items-center justify-center">
+          <EmptyState
+            icon={Users}
+            title="No students found"
+            description={
+              searchTerm || selectedClassId || selectedSectionId
+                ? 'No students match search filters.'
+                : `No active students found for ${selectedYear?.name || ''}.`
+            }
+            actionText={searchTerm || selectedClassId || selectedSectionId ? 'Clear Filters' : null}
+            onAction={handleResetFilters}
+          />
+        </div>
       ) : (
-        <>
-          {/* Desktop Table View (>= 768px) matching Student Tab */}
-          <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden space-y-2">
+          {/* Desktop Table View (>= 768px) */}
+          <div className="hidden md:block flex-1 overflow-auto min-h-0 rounded-lg border border-slate-200">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-10 bg-slate-100/90 backdrop-blur-xs">
                 <TableRow>
-                  <TableHead>Student Identity</TableHead>
-                  <TableHead>Father / Guardian</TableHead>
-                  <TableHead>Class, Stream & Medium</TableHead>
-                  <TableHead>Hostel Status</TableHead>
-                  <TableHead>Roll No.</TableHead>
-                  <TableHead>Pending Dues</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Student</TableHead>
+                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Father / Ph</TableHead>
+                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Class</TableHead>
+                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Hostel</TableHead>
+                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Roll</TableHead>
+                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Dues</TableHead>
+                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Status</TableHead>
+                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700 text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -228,55 +244,55 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
                   return (
                     <TableRow
                       key={item.id}
-                      className="cursor-pointer hover:bg-indigo-50/40 transition-colors"
+                      className="cursor-pointer hover:bg-indigo-50/40 transition-colors border-b border-slate-100"
                       onClick={() => onSelectStudent(item)}
                     >
                       {/* Identity Cell */}
-                      <TableCell>
-                        <div className="flex items-center gap-3">
+                      <TableCell className="py-1.5 px-3">
+                        <div className="flex items-center gap-2">
                           <StudentAvatar
                             name={item.name}
                             photoUrl={item.photoUrl}
-                            size="md"
+                            size="sm"
                           />
                           <div>
-                            <span className="font-bold text-slate-900 text-sm hover:text-indigo-600 transition-colors">
+                            <span className="font-bold text-slate-900 text-xs hover:text-indigo-600 transition-colors block leading-snug">
                               {item.name}
                             </span>
-                            <div className="text-xs text-slate-500 font-mono">Adm: {item.admissionNo}</div>
+                            <span className="text-[10px] text-slate-500 font-mono">Adm: {item.admissionNo}</span>
                           </div>
                         </div>
                       </TableCell>
 
                       {/* Father / Guardian */}
-                      <TableCell>
-                        <div className="text-xs font-bold text-slate-900">{fatherName}</div>
-                        {item.phone && <div className="text-[11px] text-slate-500 font-mono">Ph: {item.phone}</div>}
+                      <TableCell className="py-1.5 px-3">
+                        <div className="text-xs font-semibold text-slate-900 truncate max-w-[130px]">{fatherName}</div>
+                        {item.phone && <div className="text-[10px] text-slate-500 font-mono">Ph: {item.phone}</div>}
                       </TableCell>
 
                       {/* Class, Stream & Medium */}
-                      <TableCell>
-                        <div className="flex flex-wrap items-center gap-1.5">
+                      <TableCell className="py-1.5 px-3">
+                        <div className="flex flex-wrap items-center gap-1">
                           <span className="font-bold text-slate-800 text-xs">{className}</span>
-                          {sectionName && <span className="text-[11px] text-slate-500">({sectionName})</span>}
+                          {sectionName && <span className="text-[10px] text-slate-500">({sectionName})</span>}
                           {streamName && (
-                            <Badge variant="indigo" size="sm">
+                            <Badge variant="indigo" size="sm" className="text-[9px] py-0 px-1">
                               {streamName}
                             </Badge>
                           )}
-                          <span className="text-[11px] text-slate-400 font-normal">| {mediumName}</span>
+                          <span className="text-[10px] text-slate-400 font-normal">| {mediumName}</span>
                         </div>
                       </TableCell>
 
                       {/* Hostel Status */}
-                      <TableCell>
+                      <TableCell className="py-1.5 px-3">
                         {hostelInfo?.enrolled ? (
                           <div title={`${hostelInfo.hostelName} (Room ${hostelInfo.roomNumber}, Bed ${hostelInfo.bedNumber})`}>
-                            <Badge variant="purple" size="sm" className="font-semibold">
-                              Hostel Resident
+                            <Badge variant="purple" size="sm" className="font-semibold text-[9px] py-0 px-1">
+                              Resident
                             </Badge>
-                            <div className="text-[10px] text-purple-700 font-medium mt-0.5">
-                              {hostelInfo.hostelName} (R-{hostelInfo.roomNumber})
+                            <div className="text-[9px] text-purple-700 font-medium mt-0.5">
+                              {hostelInfo.hostelName}
                             </div>
                           </div>
                         ) : (
@@ -285,43 +301,42 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
                       </TableCell>
 
                       {/* Roll Number */}
-                      <TableCell>
+                      <TableCell className="py-1.5 px-3">
                         <span className="font-mono text-xs text-slate-700 font-medium">
                           {e.rollNumber ?? '—'}
                         </span>
                       </TableCell>
 
                       {/* Aggregated Pending Fee Column */}
-                      <TableCell>
+                      <TableCell className="py-1.5 px-3">
                         {pendingFee > 0 ? (
-                          <div className="space-y-0.5">
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-rose-50 text-rose-700 border border-rose-200/80 shadow-2xs font-mono">
-                              <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                              ₹{pendingFee.toLocaleString('en-IN')} Pending
-                            </span>
-                          </div>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-extrabold bg-rose-50 text-rose-700 border border-rose-200/80 font-mono">
+                            <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+                            ₹{pendingFee.toLocaleString('en-IN')}
+                          </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-mono">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-mono">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
                             ₹0 (Clear)
                           </span>
                         )}
                       </TableCell>
 
                       {/* Status Badge */}
-                      <TableCell>
+                      <TableCell className="py-1.5 px-3">
                         <StudentStatusBadge status={item.status} />
                       </TableCell>
 
                       {/* Action Button */}
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <TableCell className="py-1.5 px-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="primary"
                           size="sm"
                           onClick={() => onSelectStudent(item)}
                           icon={CreditCard}
+                          className="py-1 px-2 text-xs"
                         >
-                          Collect Fee
+                          Collect
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -332,7 +347,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
           </div>
 
           {/* Mobile Cards View (< 768px) */}
-          <div className="md:hidden space-y-3">
+          <div className="md:hidden flex-1 overflow-y-auto min-h-0 space-y-2 pr-0.5">
             {students.map((item) => {
               const e = item.enrollment || {};
               const fatherName = item.fatherName || item.guardianName || '—';
@@ -341,66 +356,66 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
               return (
                 <div
                   key={item.id}
-                  className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3 cursor-pointer hover:border-indigo-300 transition-colors"
+                  className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs space-y-2 cursor-pointer hover:border-indigo-300 transition-colors"
                   onClick={() => onSelectStudent(item)}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
                       <StudentAvatar
                         name={item.name}
                         photoUrl={item.photoUrl}
-                        size="md"
+                        size="sm"
                       />
                       <div>
-                        <span className="font-bold text-slate-900 text-sm">
+                        <span className="font-bold text-slate-900 text-xs block">
                           {item.name}
                         </span>
-                        <p className="text-xs text-slate-500 font-mono">Adm: {item.admissionNo}</p>
+                        <p className="text-[10px] text-slate-500 font-mono">Adm: {item.admissionNo}</p>
                       </div>
                     </div>
                     <StudentStatusBadge status={item.status} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  <div className="grid grid-cols-2 gap-1.5 text-xs bg-slate-50 p-2 rounded-lg border border-slate-100">
                     <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Class & Stream</span>
-                      <span className="font-semibold text-slate-800">
+                      <span className="text-slate-400 block text-[9px] uppercase font-bold">Class</span>
+                      <span className="font-semibold text-slate-800 text-[11px]">
                         Class {e.class?.name || '—'} {e.section ? `(${e.section.name})` : ''}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Father / Phone</span>
-                      <span className="font-semibold text-slate-800 truncate block">
+                      <span className="text-slate-400 block text-[9px] uppercase font-bold">Father</span>
+                      <span className="font-semibold text-slate-800 truncate block text-[11px]">
                         {fatherName}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Pending Dues</span>
+                      <span className="text-slate-400 block text-[9px] uppercase font-bold">Dues</span>
                       {pendingFee > 0 ? (
-                        <span className="font-extrabold text-rose-600 font-mono">
+                        <span className="font-extrabold text-rose-600 font-mono text-[11px]">
                           ₹{pendingFee.toLocaleString('en-IN')}
                         </span>
                       ) : (
-                        <span className="font-bold text-emerald-600">Clear (₹0)</span>
+                        <span className="font-bold text-emerald-600 text-[11px]">Clear (₹0)</span>
                       )}
                     </div>
                     <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-bold">Hostel</span>
-                      <span className="font-medium text-slate-700">
+                      <span className="text-slate-400 block text-[9px] uppercase font-bold">Hostel</span>
+                      <span className="font-medium text-slate-700 text-[11px]">
                         {item.hostel?.enrolled ? item.hostel.hostelName : 'Day Scholar'}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end pt-1" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end pt-0.5" onClick={(e) => e.stopPropagation()}>
                     <Button
                       variant="primary"
                       size="sm"
                       onClick={() => onSelectStudent(item)}
                       icon={CreditCard}
-                      className="w-full sm:w-auto"
+                      className="w-full py-1 text-xs"
                     >
-                      Collect Fee
+                      Collect
                     </Button>
                   </div>
                 </div>
@@ -408,17 +423,16 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
             })}
           </div>
 
-          {/* Pagination Controls */}
-          <div className="pt-2 flex justify-end">
+          {/* Pagination Controls Footer */}
+          <div className="shrink-0 pt-1 border-t border-slate-100">
             <Pagination
-              currentPage={page}
-              totalPages={pagination.totalPages}
+              page={page}
+              limit={pagination.limit}
+              total={pagination.total}
               onPageChange={(p) => setPage(p)}
-              totalItems={pagination.total}
-              itemsPerPage={pagination.limit}
             />
           </div>
-        </>
+        </div>
       )}
     </div>
   );

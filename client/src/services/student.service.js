@@ -2,11 +2,11 @@ import { api } from './api.js';
 
 export const studentService = {
   // 1. Get Students List with Search, Filters, and Pagination
-  getStudents: async (params = {}) => {
-    return await api.get('/students', { params });
+  getStudents: async (params = {}, options = {}) => {
+    return await api.get('/students', { params, ...options });
   },
-  listStudents: async (params = {}) => {
-    return await api.get('/students', { params });
+  listStudents: async (params = {}, options = {}) => {
+    return await api.get('/students', { params, ...options });
   },
 
   // 2. Get Student Details by ID (Master + Enrollment History + Fee Structure)

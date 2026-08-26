@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, X } from 'lucide-react';
+import { FileText, ArrowLeft } from 'lucide-react';
 import { Badge } from '../ui/Badge.jsx';
 
 export const StudentSummaryCard = ({ student, outstandingSummary, onClearStudent }) => {
@@ -30,42 +30,53 @@ export const StudentSummaryCard = ({ student, outstandingSummary, onClearStudent
   const totalOutstanding = Number(outstandingSummary?.totalOutstanding ?? outstandingSummary?.outstanding ?? 0);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-2xs space-y-2">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+    <div className="bg-white rounded-xl border border-slate-200 p-2 sm:p-2.5 shadow-2xs space-y-1.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+        <div className="flex items-center gap-2">
+          {onClearStudent && (
+            <button
+              type="button"
+              onClick={onClearStudent}
+              className="p-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 hover:text-indigo-600 transition-colors shadow-2xs shrink-0"
+              title="Back to Student List"
+              aria-label="Back to Student List"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+          )}
+          <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
             {student.name ? student.name.charAt(0) : 'S'}
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-slate-900">{student.name}</h2>
-              <Badge variant={student.status === 'ACTIVE' ? 'success' : 'neutral'} size="sm">
+            <div className="flex items-center gap-1.5">
+              <h2 className="text-xs sm:text-sm font-bold text-slate-900">{student.name}</h2>
+              <Badge variant={student.status === 'ACTIVE' ? 'success' : 'neutral'} size="sm" className="text-[9px] py-0 px-1">
                 {student.status || 'ACTIVE'}
               </Badge>
             </div>
-            <p className="text-[11px] text-slate-500 font-mono">
+            <p className="text-[10px] text-slate-500 font-mono">
               Adm: <span className="font-semibold text-slate-800">{student.admissionNo}</span>
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          <div className="text-right bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg">
-            <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Total Charges</span>
+        <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
+          <div className="text-right bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-lg">
+            <span className="text-[8px] uppercase font-bold text-slate-400 block tracking-wider">Charges</span>
             <span className="text-xs font-bold font-mono text-slate-900">
               ₹{totalCharges.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
 
-          <div className="text-right bg-emerald-50/60 border border-emerald-100 px-2.5 py-1 rounded-lg">
-            <span className="text-[9px] uppercase font-bold text-emerald-600 block tracking-wider">Total Paid</span>
+          <div className="text-right bg-emerald-50/60 border border-emerald-100 px-2 py-0.5 rounded-lg">
+            <span className="text-[8px] uppercase font-bold text-emerald-600 block tracking-wider">Paid</span>
             <span className="text-xs font-bold font-mono text-emerald-700">
               ₹{totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
 
-          <div className="text-right bg-rose-50/60 border border-rose-100 px-2.5 py-1 rounded-lg">
-            <span className="text-[9px] uppercase font-bold text-rose-500 block tracking-wider">Total Dues</span>
+          <div className="text-right bg-rose-50/60 border border-rose-100 px-2 py-0.5 rounded-lg">
+            <span className="text-[8px] uppercase font-bold text-rose-500 block tracking-wider">Dues</span>
             <span className={`text-xs font-extrabold font-mono ${totalOutstanding > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
               ₹{totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
@@ -74,45 +85,34 @@ export const StudentSummaryCard = ({ student, outstandingSummary, onClearStudent
           <button
             type="button"
             onClick={() => navigate(`/app/students/${student.id}/ledger`)}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 transition-colors shadow-2xs shrink-0"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 transition-colors shadow-2xs shrink-0"
           >
-            <FileText className="w-3.5 h-3.5" />
+            <FileText className="w-3 h-3" />
             <span>Ledger</span>
           </button>
-
-          {onClearStudent && (
-            <button
-              type="button"
-              onClick={onClearStudent}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-2xs shrink-0"
-            >
-              <X className="w-3.5 h-3.5 text-slate-500" />
-              <span>Change</span>
-            </button>
-          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] border-t border-slate-100 pt-2">
-        <div className="bg-slate-50/70 p-1.5 px-2 rounded-lg border border-slate-100 flex items-center justify-between">
-          <span className="font-bold text-slate-400 uppercase text-[9px]">Class & Stream:</span>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[10px] border-t border-slate-100 pt-1.5">
+        <div className="bg-slate-50/70 p-1 px-2 rounded-lg border border-slate-100 flex items-center justify-between">
+          <span className="font-bold text-slate-400 uppercase text-[8px]">Class:</span>
           <span className="font-bold text-slate-900 truncate">
             {className} {sectionName} {streamName ? `(${streamName})` : ''}
           </span>
         </div>
 
-        <div className="bg-slate-50/70 p-1.5 px-2 rounded-lg border border-slate-100 flex items-center justify-between">
-          <span className="font-bold text-slate-400 uppercase text-[9px]">Medium:</span>
+        <div className="bg-slate-50/70 p-1 px-2 rounded-lg border border-slate-100 flex items-center justify-between">
+          <span className="font-bold text-slate-400 uppercase text-[8px]">Medium:</span>
           <span className="font-semibold text-slate-800">{mediumName}</span>
         </div>
 
-        <div className="bg-slate-50/70 p-1.5 px-2 rounded-lg border border-slate-100 flex items-center justify-between">
-          <span className="font-bold text-slate-400 uppercase text-[9px]">Father / Guardian:</span>
-          <span className="font-semibold text-slate-800 truncate max-w-[110px]">{fatherName}</span>
+        <div className="bg-slate-50/70 p-1 px-2 rounded-lg border border-slate-100 flex items-center justify-between">
+          <span className="font-bold text-slate-400 uppercase text-[8px]">Father:</span>
+          <span className="font-semibold text-slate-800 truncate max-w-[100px]">{fatherName}</span>
         </div>
 
-        <div className="bg-slate-50/70 p-1.5 px-2 rounded-lg border border-slate-100 flex items-center justify-between">
-          <span className="font-bold text-slate-400 uppercase text-[9px]">Phone:</span>
+        <div className="bg-slate-50/70 p-1 px-2 rounded-lg border border-slate-100 flex items-center justify-between">
+          <span className="font-bold text-slate-400 uppercase text-[8px]">Phone:</span>
           <span className="font-semibold text-slate-800 font-mono">{student.phone || 'N/A'}</span>
         </div>
       </div>
