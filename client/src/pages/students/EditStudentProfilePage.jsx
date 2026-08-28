@@ -15,6 +15,7 @@ import { PassportPhotoCropModal } from '../../components/students/PassportPhotoC
 import { CameraCaptureModal } from '../../components/students/CameraCaptureModal.jsx';
 import { StudentAvatar } from '../../components/students/StudentAvatar.jsx';
 import { StudentStatusBadge } from '../../components/students/StudentStatusBadge.jsx';
+import { getFormErrors } from '../../utils/errorUtils.js';
 
 const CASTE_OPTIONS = [
   { value: 'UR', label: 'UR / General' },
@@ -202,7 +203,10 @@ export const EditStudentProfilePage = () => {
       navigate(`/app/students/${studentId}`);
     } catch (err) {
       toast.error(err.message || 'Failed updating student profile');
-      if (err.errors) setErrors(err.errors);
+      const backendErrors = getFormErrors(err);
+      if (Object.keys(backendErrors).length > 0) {
+        setErrors((prev) => ({ ...prev, ...backendErrors }));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -426,7 +430,7 @@ export const EditStudentProfilePage = () => {
                       Student Full Name <span className="text-red-500">*</span>
                     </label>
                     <Input
-                      placeholder="Enter full name"
+                      placeholder="Full Name"
                       disabled={submitting}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -441,7 +445,7 @@ export const EditStudentProfilePage = () => {
                       Father / Guardian Name <span className="text-red-500">*</span>
                     </label>
                     <Input
-                      placeholder="Enter guardian name"
+                      placeholder="Guardian Name"
                       disabled={submitting}
                       value={formData.guardianName}
                       onChange={(e) => setFormData({ ...formData, guardianName: e.target.value })}
@@ -461,7 +465,7 @@ export const EditStudentProfilePage = () => {
                         type="tel"
                         autoComplete="off"
                         maxLength={10}
-                        placeholder="10-digit mobile number"
+                        placeholder="Phone Number"
                         disabled={submitting}
                         value={formData.phone}
                         onChange={(e) => {
@@ -532,7 +536,7 @@ export const EditStudentProfilePage = () => {
                       <input
                         type="text"
                         autoComplete="off"
-                        placeholder="Specify Caste / Category"
+                        placeholder="Caste / Category"
                         value={formData.customCaste}
                         onChange={(e) => setFormData({ ...formData, customCaste: e.target.value })}
                         className="w-full mt-1.5 px-2.5 py-1 border border-slate-200 rounded-lg text-xs font-medium"
@@ -571,7 +575,7 @@ export const EditStudentProfilePage = () => {
                     Residential Address
                   </label>
                   <Textarea
-                    placeholder="Residential address (Optional)"
+                    placeholder="Address (Optional)"
                     disabled={submitting}
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}

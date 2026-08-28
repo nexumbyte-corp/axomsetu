@@ -708,9 +708,9 @@ export const LandingPage = () => {
                             <Users className={`w-3.5 h-3.5 shrink-0 ${isEnterprise ? 'text-purple-600' : plan.maxStudentLimit ? 'text-indigo-600' : 'text-emerald-600'}`} />
                             <span>
                               {isEnterprise
-                                ? (plan.maxStudentLimit ? `Custom Capacity (${plan.maxStudentLimit}+ Students)` : 'Custom Student Capacity')
+                                ? (plan.maxStudentLimit ? `${plan.maxStudentLimit}+ Active Students` : '701+ Active Students')
                                 : plan.maxStudentLimit
-                                ? `Max ${plan.maxStudentLimit} Active Students`
+                                ? `Upto ${plan.maxStudentLimit} Active Students`
                                 : 'Unlimited Active Students'}
                             </span>
                           </span>

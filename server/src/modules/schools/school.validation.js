@@ -267,3 +267,21 @@ export const addSchoolAdminSchema = {
     systemRole: z.enum(['SUPER_ADMIN', 'SCHOOL_ADMIN']).optional(),
   }),
 };
+
+export const hardDeleteSchoolSchema = {
+  params: z.object({
+    schoolId: z.string().uuid('Invalid school ID format'),
+  }),
+  body: z.object({
+    confirmSchoolName: z.string().min(1, 'School name confirmation is required'),
+    confirmSchoolCode: z.string().min(1, 'School code confirmation is required'),
+    confirmPhrase: z
+      .string()
+      .refine((val) => val === 'PERMANENTLY DELETE', {
+        message: 'Confirmation phrase must be PERMANENTLY DELETE',
+      }),
+    captchaToken: z.string().min(1, 'CAPTCHA verification token is required'),
+    captchaAnswer: z.string().min(1, 'CAPTCHA answer is required'),
+  }),
+};
+

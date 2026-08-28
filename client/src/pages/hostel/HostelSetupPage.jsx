@@ -628,7 +628,7 @@ export const HostelSetupPage = () => {
         <form onSubmit={handleSubmitHostel} autoComplete="off" className="space-y-3">
           <Input
             label="Hostel Name *"
-            placeholder="Enter Hostel Name (e.g. Boys Hostel Alpha)"
+            placeholder="Hostel Name"
             value={hostelForm.name}
             onChange={(e) => setHostelForm({ ...hostelForm, name: e.target.value })}
             required
@@ -636,7 +636,7 @@ export const HostelSetupPage = () => {
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Hostel Code"
-              placeholder="Enter Hostel Code (e.g. BHA-01)"
+              placeholder="Hostel Code"
               value={hostelForm.code}
               onChange={(e) => setHostelForm({ ...hostelForm, code: e.target.value })}
             />
@@ -652,7 +652,7 @@ export const HostelSetupPage = () => {
           </div>
           <Input
             label="Address"
-            placeholder="Enter Hostel Address"
+            placeholder="Hostel Address"
             value={hostelForm.address}
             onChange={(e) => setHostelForm({ ...hostelForm, address: e.target.value })}
           />
@@ -690,14 +690,14 @@ export const HostelSetupPage = () => {
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Room Number *"
-              placeholder="Enter Room Number (e.g. 101)"
+              placeholder="Room Number"
               value={roomForm.roomNumber}
               onChange={(e) => setRoomForm({ ...roomForm, roomNumber: e.target.value })}
               required
             />
             <Input
               label="Floor"
-              placeholder="Enter Floor (e.g. 1st Floor)"
+              placeholder="Floor"
               value={roomForm.floor}
               onChange={(e) => setRoomForm({ ...roomForm, floor: e.target.value })}
             />
@@ -708,7 +708,7 @@ export const HostelSetupPage = () => {
               type="number"
               min="1"
               max="20"
-              placeholder="Enter capacity"
+              placeholder="Capacity"
               value={roomForm.capacity}
               onChange={(e) => setRoomForm({ ...roomForm, capacity: parseInt(e.target.value, 10) || 1 })}
               required
@@ -764,7 +764,7 @@ export const HostelSetupPage = () => {
           </Select>
           <Input
             label="Bed Number *"
-            placeholder="Enter Bed Number (e.g. Bed 05)"
+            placeholder="Bed Number"
             value={bedForm.bedNumber}
             onChange={(e) => setBedForm({ ...bedForm, bedNumber: e.target.value })}
             required

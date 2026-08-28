@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, Plus, CheckCircle2, ShieldAlert, XCircle, Eye, ExternalLink, Power, MoreVertical, UserCheck, CreditCard } from 'lucide-react';
+import { Search, Plus, CheckCircle2, ShieldAlert, XCircle, Eye, ExternalLink, Power, MoreVertical, UserCheck, CreditCard, Trash2 } from 'lucide-react';
 import { adminService } from '../services/adminService.js';
 import { subscriptionService } from '../services/subscriptionService.js';
 import { storage } from '../utils/storage.js';
@@ -16,6 +16,7 @@ import { TableSkeleton } from '../components/ui/Skeleton.jsx';
 import { Toast } from '../components/ui/Toast.jsx';
 import { ModulePageHeader } from '../components/ui/ModulePageHeader.jsx';
 import { Dropdown, DropdownItem } from '../components/ui/Dropdown.jsx';
+import { HardDeleteSchoolModal } from '../components/admin/HardDeleteSchoolModal.jsx';
 
 export const SuperAdminSchoolsPage = () => {
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ export const SuperAdminSchoolsPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSuspendModalOpen, setIsSuspendModalOpen] = useState(false);
   const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
+  const [isHardDeleteModalOpen, setIsHardDeleteModalOpen] = useState(false);
   const [selectedSchool, setSelectedSchool] = useState(null);
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -435,6 +437,17 @@ export const SuperAdminSchoolsPage = () => {
                               Activate Access
                             </DropdownItem>
                           )}
+
+                          <DropdownItem
+                            icon={Trash2}
+                            danger
+                            onClick={() => {
+                              setSelectedSchool(sch);
+                              setIsHardDeleteModalOpen(true);
+                            }}
+                          >
+                            Hard Delete School (Permanent)
+                          </DropdownItem>
                         </Dropdown>
                       </TableCell>
                     </TableRow>
@@ -468,7 +481,7 @@ export const SuperAdminSchoolsPage = () => {
             required
             minLength={2}
             maxLength={100}
-            placeholder="Enter school name (2-100 characters)"
+            placeholder="School Name"
             value={createForm.name}
             onChange={(e) => {
               setCreateForm({ ...createForm, name: e.target.value });
@@ -483,7 +496,7 @@ export const SuperAdminSchoolsPage = () => {
               type="email"
               required
               maxLength={100}
-              placeholder="Enter contact email address"
+              placeholder="Email Address"
               value={createForm.email}
               onChange={(e) => {
                 setCreateForm({ ...createForm, email: e.target.value });
@@ -495,7 +508,7 @@ export const SuperAdminSchoolsPage = () => {
               label="Phone Number"
               minLength={7}
               maxLength={15}
-              placeholder="e.g. +91 9876543210"
+              placeholder="Phone Number"
               value={createForm.phone}
               onChange={(e) => {
                 setCreateForm({ ...createForm, phone: e.target.value });
@@ -509,7 +522,7 @@ export const SuperAdminSchoolsPage = () => {
             label="School Address"
             minLength={3}
             maxLength={300}
-            placeholder="Enter school address (3-300 characters)"
+            placeholder="School Address"
             value={createForm.address}
             onChange={(e) => {
               setCreateForm({ ...createForm, address: e.target.value });
@@ -523,7 +536,7 @@ export const SuperAdminSchoolsPage = () => {
             required
             minLength={2}
             maxLength={100}
-            placeholder="Enter school owner full name (2-100 characters)"
+            placeholder="Owner Full Name"
             value={createForm.adminName}
             onChange={(e) => {
               setCreateForm({ ...createForm, adminName: e.target.value, ownerName: e.target.value });
@@ -538,7 +551,7 @@ export const SuperAdminSchoolsPage = () => {
             required
             minLength={8}
             maxLength={100}
-            placeholder="At least 8 characters"
+            placeholder="Password"
             value={createForm.adminPassword}
             onChange={(e) => {
               setCreateForm({ ...createForm, adminPassword: e.target.value, password: e.target.value });
@@ -624,6 +637,17 @@ export const SuperAdminSchoolsPage = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Permanent Hard Delete School Modal */}
+      <HardDeleteSchoolModal
+        isOpen={isHardDeleteModalOpen}
+        onClose={() => setIsHardDeleteModalOpen(false)}
+        school={selectedSchool}
+        onSuccess={(msg) => {
+          setToast({ type: 'success', message: msg });
+          fetchSchools(1);
+        }}
+      />
     </div>
   );
 };

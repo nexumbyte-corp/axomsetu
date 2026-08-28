@@ -1,3 +1,4 @@
+import jwt from 'jsonwebtoken';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { hashPassword } from '../../utils/password.js';
@@ -1129,5 +1130,170 @@ export const deleteTenantSchoolLogo = async (schoolId, actorUserId) => {
 
   return { message: 'School logo deleted successfully', school: updatedSchool };
 };
+
+/**
+ * Super Admin: Generate dynamic CAPTCHA challenge for school hard deletion.
+ */
+export const generateHardDeleteCaptcha = async (schoolId) => {
+  const school = await prisma.school.findUnique({ where: { id: schoolId } });
+  if (!school) {
+    throw ApiError.notFound('School not found');
+  }
+
+  // Generate random math expression (e.g. 35 + 24)
+  const num1 = Math.floor(Math.random() * 80) + 10;
+  const num2 = Math.floor(Math.random() * 80) + 10;
+  const mathAnswer = String(num1 + num2);
+  const mathQuestion = `${num1} + ${num2}`;
+
+  // Generate random security code (e.g. 6 chars)
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let securityCode = '';
+  for (let i = 0; i < 6; i++) {
+    securityCode += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  const secret = process.env.JWT_SECRET || 'hard_delete_captcha_secret';
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
+
+  const captchaToken = jwt.sign(
+    {
+      schoolId,
+      mathAnswer,
+      securityCode,
+      exp: Math.floor(expiresAt / 1000),
+    },
+    secret
+  );
+
+  return {
+    captchaToken,
+    schoolId: school.id,
+    schoolName: school.name,
+    schoolCode: school.code,
+    mathQuestion,
+    securityCode,
+    expiresAt: new Date(expiresAt).toISOString(),
+  };
+};
+
+/**
+ * Super Admin: Execute Permanent Hard Delete for a school tenant.
+ */
+export const hardDeleteSchool = async (schoolId, payload, actorUserId) => {
+  const { confirmSchoolName, confirmSchoolCode, confirmPhrase, captchaToken, captchaAnswer } = payload;
+
+  // 1. Verify school exists
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId },
+    include: {
+      admins: { select: { userId: true } },
+      students: { select: { photoUrl: true } },
+    },
+  });
+
+  if (!school) {
+    throw ApiError.notFound('School not found');
+  }
+
+  // 2. Validate exact string matches
+  if (confirmSchoolName.trim() !== school.name) {
+    throw ApiError.badRequest('Confirmation school name does not match the target school name.');
+  }
+
+  if (confirmSchoolCode.trim() !== school.code) {
+    throw ApiError.badRequest('Confirmation school code does not match the target school code.');
+  }
+
+  if (confirmPhrase.trim() !== 'PERMANENTLY DELETE') {
+    throw ApiError.badRequest('Confirmation phrase must be PERMANENTLY DELETE.');
+  }
+
+  // 3. Verify CAPTCHA token
+  const secret = process.env.JWT_SECRET || 'hard_delete_captcha_secret';
+  let decodedToken;
+  try {
+    decodedToken = jwt.verify(captchaToken, secret);
+  } catch (err) {
+    throw ApiError.badRequest('CAPTCHA verification code has expired or is invalid. Please request a new CAPTCHA.');
+  }
+
+  if (decodedToken.schoolId !== schoolId) {
+    throw ApiError.badRequest('CAPTCHA verification token does not match target school.');
+  }
+
+  const normalizedAnswer = captchaAnswer.trim().toUpperCase();
+  const validMath = normalizedAnswer === decodedToken.mathAnswer.toUpperCase();
+  const validCode = normalizedAnswer === decodedToken.securityCode.toUpperCase();
+
+  if (!validMath && !validCode) {
+    throw ApiError.badRequest('Incorrect CAPTCHA answer. Please solve the challenge correctly.');
+  }
+
+  // 4. Collect linked user IDs to purge orphan user accounts later
+  const schoolUserIds = school.admins.map((a) => a.userId);
+
+  // 5. Delete Cloudinary images if present
+  if (school.logoUrl) {
+    await deleteCloudinaryImage(school.logoUrl).catch(() => {});
+  }
+  for (const student of school.students) {
+    if (student.photoUrl) {
+      await deleteCloudinaryImage(student.photoUrl).catch(() => {});
+    }
+  }
+
+  // 6. Perform permanent deletion in a single atomic transaction
+  await prisma.$transaction(async (tx) => {
+    // Delete non-cascading relations that use SetNull by default
+    await tx.userSession.deleteMany({ where: { schoolId } });
+    await tx.termsAcceptance.deleteMany({ where: { schoolId } });
+    await tx.auditLog.deleteMany({ where: { schoolId } });
+
+    // Hard delete the School record (cascading deletes all child records)
+    await tx.school.delete({ where: { id: schoolId } });
+
+    // Clean up orphaned User accounts (users associated with this school who have no remaining admin memberships and are not SUPER_ADMIN)
+    if (schoolUserIds.length > 0) {
+      for (const userId of schoolUserIds) {
+        const user = await tx.user.findUnique({
+          where: { id: userId },
+          include: { _count: { select: { schoolAdmins: true } } },
+        });
+
+        if (user && user.role !== 'SUPER_ADMIN' && user._count.schoolAdmins === 0) {
+          await tx.user.delete({ where: { id: userId } }).catch(() => {});
+        }
+      }
+    }
+
+    // Record system audit log for the HARD_DELETE action
+    await tx.auditLog.create({
+      data: {
+        userId: actorUserId,
+        action: 'HARD_DELETE_SCHOOL',
+        entityType: 'School',
+        entityId: schoolId,
+        oldValues: {
+          schoolId: school.id,
+          name: school.name,
+          code: school.code,
+          email: school.email,
+        },
+        newValues: {
+          deletedAt: new Date(),
+          deletedBy: actorUserId,
+          reason: 'Hard deleted permanently by Super Admin',
+        },
+      },
+    });
+  });
+
+  return {
+    success: true,
+    message: `School "${school.name}" (${school.code}) and all related data have been permanently deleted.`,
+  };
+};
+
 
 

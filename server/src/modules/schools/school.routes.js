@@ -9,6 +9,7 @@ import {
   schoolIdParamSchema,
   listSchoolsQuerySchema,
   addSchoolAdminSchema,
+  hardDeleteSchoolSchema,
 } from './school.validation.js';
 
 const router = Router();
@@ -27,8 +28,15 @@ router.route('/:schoolId')
 router.route('/:schoolId/status')
   .patch(validate(schoolIdParamSchema), schoolController.changeSchoolStatus);
 
+router.route('/:schoolId/delete-captcha')
+  .get(validate(schoolIdParamSchema), schoolController.getHardDeleteCaptcha);
+
+router.route('/:schoolId/hard-delete')
+  .delete(validate(hardDeleteSchoolSchema), schoolController.hardDeleteSchool);
+
 router.route('/:schoolId/admins')
   .post(validate(addSchoolAdminSchema), schoolController.addSchoolAdmin);
+
 
 router.route('/:schoolId/admins/:adminId')
   .delete(schoolController.removeSchoolAdmin);

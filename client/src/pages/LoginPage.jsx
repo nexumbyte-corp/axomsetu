@@ -145,7 +145,7 @@ export const LoginPage = () => {
                 label="Email Address"
                 type="email"
                 name="email"
-                placeholder="Enter email address"
+                placeholder="Email Address"
                 required
                 autoComplete="off"
                 icon={Mail}
@@ -164,7 +164,7 @@ export const LoginPage = () => {
                 label="Password"
                 type={showPassword ? 'text' : 'password'}
                 name="password"
-                placeholder="Enter password"
+                placeholder="Password"
                 required
                 autoComplete="new-password"
                 icon={Lock}

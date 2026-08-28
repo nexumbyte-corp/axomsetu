@@ -82,6 +82,21 @@ function extractError(error) {
     customError.status = error.response.status;
     customError.code = data.code || null;
     customError.errors = data.errors || null;
+    customError.response = error.response;
+
+    const fieldErrors = {};
+    if (Array.isArray(data.errors)) {
+      data.errors.forEach((errItem) => {
+        if (!errItem) return;
+        const key =
+          errItem.field ||
+          (Array.isArray(errItem.path) ? errItem.path.join('.') : errItem.path);
+        if (key && errItem.message) {
+          fieldErrors[key] = errItem.message;
+        }
+      });
+    }
+    customError.fieldErrors = fieldErrors;
     return customError;
   }
   return new Error(error.message || 'Network error. Please check your connection.');

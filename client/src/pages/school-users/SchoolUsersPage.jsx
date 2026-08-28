@@ -9,6 +9,8 @@ import { usePermission } from '../../hooks/usePermission.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { PERMISSION_PRESETS } from '../../config/permissions.js';
 
+import { getFormErrors } from '../../utils/errorUtils.js';
+
 // ── Icon Mapper for Permission Groups ──────────────────────────────────────────
 const GROUP_ICONS = {
   dashboard: BarChart3,
@@ -73,10 +75,12 @@ const AddUserPanel = ({ isOpen, onClose, onSuccess }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
     setLoading(true);
     try {
       await schoolUserService.createUser(form);
@@ -85,6 +89,7 @@ const AddUserPanel = ({ isOpen, onClose, onSuccess }) => {
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to create user account');
+      setFieldErrors(getFormErrors(err));
     } finally {
       setLoading(false);
     }
@@ -123,47 +128,62 @@ const AddUserPanel = ({ isOpen, onClose, onSuccess }) => {
             <input
               type="text" required autoComplete="off" value={form.name}
               onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-              placeholder="Enter user full name"
-              className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
+              placeholder="Full Name"
+              className={`w-full px-3.5 py-2 text-sm rounded-xl border focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50 ${
+                fieldErrors.name ? 'border-rose-300 text-rose-900 placeholder-rose-300' : 'border-slate-200'
+              }`}
             />
+            {fieldErrors.name && <p className="mt-1 text-xs text-rose-500 font-medium">{fieldErrors.name}</p>}
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">Email Address *</label>
             <input
               type="email" required autoComplete="off" value={form.email}
               onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
-              placeholder="Enter email address"
-              className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
+              placeholder="Email Address"
+              className={`w-full px-3.5 py-2 text-sm rounded-xl border focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50 ${
+                fieldErrors.email ? 'border-rose-300 text-rose-900 placeholder-rose-300' : 'border-slate-200'
+              }`}
             />
+            {fieldErrors.email && <p className="mt-1 text-xs text-rose-500 font-medium">{fieldErrors.email}</p>}
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">Phone Number</label>
             <input
               type="tel" autoComplete="off" value={form.phone}
               onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))}
-              placeholder="Enter 10-digit phone number"
-              className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
+              placeholder="Phone Number"
+              className={`w-full px-3.5 py-2 text-sm rounded-xl border focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50 ${
+                fieldErrors.phone ? 'border-rose-300 text-rose-900 placeholder-rose-300' : 'border-slate-200'
+              }`}
             />
+            {fieldErrors.phone && <p className="mt-1 text-xs text-rose-500 font-medium">{fieldErrors.phone}</p>}
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">Role Type *</label>
             <select
               value={form.schoolRole} autoComplete="off"
               onChange={(e) => setForm(f => ({ ...f, schoolRole: e.target.value }))}
-              className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              className={`w-full px-3.5 py-2 text-sm rounded-xl border focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white ${
+                fieldErrors.schoolRole ? 'border-rose-300 text-rose-900' : 'border-slate-200'
+              }`}
             >
               <option value="STAFF">Staff / User (Custom Permissions)</option>
               <option value="SCHOOL_ADMIN">School Admin (Full Access)</option>
             </select>
+            {fieldErrors.schoolRole && <p className="mt-1 text-xs text-rose-500 font-medium">{fieldErrors.schoolRole}</p>}
           </div>
           <div className="sm:col-span-2">
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">Initial Password *</label>
             <input
               type="password" required minLength={6} autoComplete="new-password" value={form.password}
               onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))}
-              placeholder="Minimum 6 characters"
-              className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
+              placeholder="Password"
+              className={`w-full px-3.5 py-2 text-sm rounded-xl border focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50 ${
+                fieldErrors.password ? 'border-rose-300 text-rose-900 placeholder-rose-300' : 'border-slate-200'
+              }`}
             />
+            {fieldErrors.password && <p className="mt-1 text-xs text-rose-500 font-medium">{fieldErrors.password}</p>}
           </div>
         </div>
 

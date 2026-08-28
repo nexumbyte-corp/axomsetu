@@ -348,7 +348,7 @@ export const SuperAdminUsersPage = () => {
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">Full Name *</label>
               <Input
-                placeholder="Enter user full name"
+                placeholder="Full Name"
                 value={createForm.name}
                 onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                 required
@@ -360,7 +360,7 @@ export const SuperAdminUsersPage = () => {
                 <label className="text-xs font-bold text-slate-700 block mb-1">Email Address *</label>
                 <Input
                   type="email"
-                  placeholder="Enter email address"
+                  placeholder="Email Address"
                   value={createForm.email}
                   onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
                   required
@@ -370,7 +370,7 @@ export const SuperAdminUsersPage = () => {
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">Phone Number</label>
                 <Input
-                  placeholder="Enter 10-digit phone number"
+                  placeholder="Phone Number"
                   value={createForm.phone}
                   onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
                 />
@@ -381,7 +381,7 @@ export const SuperAdminUsersPage = () => {
               <label className="text-xs font-bold text-slate-700 block mb-1">Initial Password *</label>
               <Input
                 type="password"
-                placeholder="Min 8 characters with numbers & symbols"
+                placeholder="Password"
                 value={createForm.password}
                 onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
                 required
@@ -496,7 +496,7 @@ export const SuperAdminUsersPage = () => {
               <label className="text-xs font-bold text-slate-700 block mb-1">New Password *</label>
               <Input
                 type="password"
-                placeholder="Enter new password"
+                placeholder="New Password"
                 value={passwordForm.newPassword}
                 onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                 required
@@ -507,7 +507,7 @@ export const SuperAdminUsersPage = () => {
               <label className="text-xs font-bold text-slate-700 block mb-1">Confirm New Password *</label>
               <Input
                 type="password"
-                placeholder="Re-type new password"
+                placeholder="Confirm Password"
                 value={passwordForm.confirmPassword}
                 onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
                 required

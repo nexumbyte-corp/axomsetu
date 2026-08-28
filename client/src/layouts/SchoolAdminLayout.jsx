@@ -307,6 +307,15 @@ const getPageTitle = (locationPath, headerTitle) => {
 
   const activePageTitle = getPageTitle(location.pathname, headerInfo?.title);
 
+  // Dynamically update document title on route/header changes
+  useEffect(() => {
+    if (activePageTitle) {
+      document.title = `${BRAND_CONFIG.productName} | ${activePageTitle}`;
+    } else {
+      document.title = `${BRAND_CONFIG.productName} — ${BRAND_CONFIG.productTagline}`;
+    }
+  }, [activePageTitle, location.pathname, headerInfo?.title]);
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-2xs h-16 flex items-center px-2.5 sm:px-6">

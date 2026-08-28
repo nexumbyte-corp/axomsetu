@@ -14,6 +14,38 @@ import { Toast } from '../components/ui/Toast.jsx';
 import { BRAND_CONFIG } from '../config/brandConfig.js';
 import { BrandLogo } from '../components/common/BrandLogo.jsx';
 
+const SUPER_ADMIN_ROUTE_TITLE_MAP = {
+  '/admin/dashboard': 'Dashboard',
+  '/admin/schools': 'Schools',
+  '/admin/plans': 'Subscription Plans',
+  '/admin/plans/new': 'Create Subscription Plan',
+  '/admin/subscriptions': 'Subscriptions',
+  '/admin/users': 'Users Directory',
+  '/admin/payments': 'Payment History',
+  '/admin/reports/revenue': 'Revenue Report',
+  '/admin/reports/growth': 'Growth Report',
+  '/admin/audit-logs': 'Audit Logs',
+  '/admin/platform': 'Platform Settings',
+  '/admin/settings': 'Platform Settings',
+};
+
+const getSuperAdminPageTitle = (locationPath, headerTitle) => {
+  if (headerTitle) return headerTitle;
+  if (SUPER_ADMIN_ROUTE_TITLE_MAP[locationPath]) return SUPER_ADMIN_ROUTE_TITLE_MAP[locationPath];
+
+  if (locationPath.startsWith('/admin/schools/')) return 'School Details';
+  if (locationPath.startsWith('/admin/plans/')) return 'Edit Subscription Plan';
+  if (locationPath.startsWith('/admin/subscriptions/')) return 'Subscription Invoice';
+
+  const sortedKeys = Object.keys(SUPER_ADMIN_ROUTE_TITLE_MAP).sort((a, b) => b.length - a.length);
+  for (const key of sortedKeys) {
+    if (key !== '/admin' && locationPath.startsWith(key)) {
+      return SUPER_ADMIN_ROUTE_TITLE_MAP[key];
+    }
+  }
+  return 'Platform Administration';
+};
+
 export const SuperAdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +65,17 @@ export const SuperAdminLayout = () => {
     newPassword: '',
     confirmPassword: '',
   });
+
+  const activePageTitle = getSuperAdminPageTitle(location.pathname, headerInfo?.title);
+
+  // Dynamically update document title on route/header changes
+  useEffect(() => {
+    if (activePageTitle) {
+      document.title = `${BRAND_CONFIG.productName} | ${activePageTitle}`;
+    } else {
+      document.title = `${BRAND_CONFIG.productName} — ${BRAND_CONFIG.productTagline}`;
+    }
+  }, [activePageTitle, location.pathname, headerInfo?.title]);
 
   // Automatically close drawers, modals, and reset body overflow when navigating routes
   useEffect(() => {

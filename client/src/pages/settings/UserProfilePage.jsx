@@ -56,7 +56,7 @@ export const UserProfilePage = () => {
       if (refreshProfile) await refreshProfile();
       if (showToast) showToast('Profile details updated successfully', 'success');
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Failed to update profile';
+      const msg = err?.message || err?.response?.data?.message || 'Failed to update profile';
       if (showToast) showToast(msg, 'error');
     } finally {
       setAccountSaving(false);
@@ -179,6 +179,7 @@ export const UserProfilePage = () => {
                   type="text"
                   value={accountData.name}
                   onChange={(e) => setAccountData({ ...accountData, name: e.target.value })}
+                  placeholder="Full Name"
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                   required
                 />
@@ -201,7 +202,7 @@ export const UserProfilePage = () => {
                   type="text"
                   value={accountData.phone}
                   onChange={(e) => setAccountData({ ...accountData, phone: e.target.value })}
-                  placeholder="e.g. 9876543210"
+                  placeholder="Phone Number"
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                 />
               </div>

@@ -177,5 +177,26 @@ export const deleteTenantSchoolLogo = asyncHandler(async (req, res) => {
   });
 });
 
+export const getHardDeleteCaptcha = asyncHandler(async (req, res) => {
+  const result = await schoolService.generateHardDeleteCaptcha(req.params.schoolId);
+
+  res.status(200).json({
+    success: true,
+    message: 'Hard delete CAPTCHA generated successfully',
+    data: result,
+  });
+});
+
+export const hardDeleteSchool = asyncHandler(async (req, res) => {
+  const result = await schoolService.hardDeleteSchool(req.params.schoolId, req.body, req.user?.id);
+
+  res.status(200).json({
+    success: true,
+    message: result.message,
+    data: result,
+  });
+});
+
+
 
 

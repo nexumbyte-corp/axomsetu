@@ -232,7 +232,7 @@ export const RegisterPage = () => {
                     variant="light"
                     label="School Name"
                     name="schoolName"
-                    placeholder="Enter school name (2-100 characters)"
+                    placeholder="School Name"
                     required
                     minLength={2}
                     maxLength={100}
@@ -249,7 +249,7 @@ export const RegisterPage = () => {
                     variant="light"
                     label="School Phone"
                     name="phone"
-                    placeholder="e.g. +91 9876543210"
+                    placeholder="Phone Number"
                     minLength={7}
                     maxLength={15}
                     icon={Phone}
@@ -266,7 +266,7 @@ export const RegisterPage = () => {
                     label="School Email"
                     type="email"
                     name="email"
-                    placeholder="Enter school email address"
+                    placeholder="Email Address"
                     required
                     maxLength={100}
                     icon={Mail}
@@ -282,7 +282,7 @@ export const RegisterPage = () => {
                     variant="light"
                     label="School Address"
                     name="address"
-                    placeholder="Enter full school address (3-300 characters)"
+                    placeholder="School Address"
                     minLength={3}
                     maxLength={300}
                     icon={MapPin}
@@ -307,7 +307,7 @@ export const RegisterPage = () => {
                   variant="light"
                   label="Full Name"
                   name="ownerName"
-                  placeholder="Enter administrator full name (2-100 characters)"
+                  placeholder="Full Name"
                   required
                   minLength={2}
                   maxLength={100}
@@ -334,7 +334,7 @@ export const RegisterPage = () => {
                     label="Password"
                     type={showPassword ? 'text' : 'password'}
                     name="password"
-                    placeholder="At least 8 characters"
+                    placeholder="Password"
                     required
                     minLength={8}
                     maxLength={100}
@@ -352,7 +352,7 @@ export const RegisterPage = () => {
                     label="Confirm Password"
                     type={showPassword ? 'text' : 'password'}
                     name="confirmPassword"
-                    placeholder="Re-enter password"
+                    placeholder="Confirm Password"
                     required
                     minLength={8}
                     maxLength={100}

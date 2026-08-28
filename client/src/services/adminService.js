@@ -27,6 +27,15 @@ export const adminService = {
     return await api.patch(`/admin/schools/${schoolId}/status`, { status, reason });
   },
 
+  async getHardDeleteCaptcha(schoolId) {
+    return await api.get(`/admin/schools/${schoolId}/delete-captcha`);
+  },
+
+  async hardDeleteSchool(schoolId, data) {
+    return await api.delete(`/admin/schools/${schoolId}/hard-delete`, { data });
+  },
+
+
   async addSchoolAdmin(schoolId, data) {
     return await api.post(`/admin/schools/${schoolId}/admins`, data);
   },

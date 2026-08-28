@@ -7,6 +7,7 @@ import { Select } from '../../components/ui/Select.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { staffService } from '../../services/staff.service.js';
+import { getFormErrors } from '../../utils/errorUtils.js';
 
 const ROLE_OPTIONS = [
   { value: 'TEACHER', label: 'Teacher' },
@@ -202,7 +203,11 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
       if (onSuccess) onSuccess(response.data);
       onClose();
     } catch (err) {
-      setSubmitError(err.response?.data?.message || err.message || 'Failed to save staff record');
+      setSubmitError(err.message || 'Failed to save staff record');
+      const backendErrors = getFormErrors(err);
+      if (Object.keys(backendErrors).length > 0) {
+        setErrors((prev) => ({ ...prev, ...backendErrors }));
+      }
     } finally {
       setLoading(false);
     }
@@ -259,7 +264,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 value={formData.name}
                 onChange={handleChange}
                 onBlur={() => validateField('name', formData.name)}
-                placeholder="E.g. Rajesh Sharma"
+                placeholder="Full Name"
                 error={errors.name}
                 className="text-xs"
               />
@@ -284,7 +289,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 value={formData.department}
                 onChange={handleChange}
                 onBlur={() => validateField('department', formData.department)}
-                placeholder="E.g. Mathematics / Science / Admin"
+                placeholder="Department"
                 error={errors.department}
                 className="text-xs"
               />
@@ -297,7 +302,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 value={formData.designation}
                 onChange={handleChange}
                 onBlur={() => validateField('designation', formData.designation)}
-                placeholder="E.g. Senior Teacher / Accountant"
+                placeholder="Designation"
                 error={errors.designation}
                 className="text-xs"
               />
@@ -334,7 +339,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 value={formData.phone}
                 onChange={handleChange}
                 onBlur={() => validateField('phone', formData.phone)}
-                placeholder="10-digit mobile number"
+                placeholder="Phone Number"
                 error={errors.phone}
                 className="text-xs"
               />
@@ -348,7 +353,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 value={formData.email}
                 onChange={handleChange}
                 onBlur={() => validateField('email', formData.email)}
-                placeholder="staff@school.com"
+                placeholder="Email Address"
                 error={errors.email}
                 className="text-xs"
               />
@@ -377,7 +382,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 value={formData.baseSalary}
                 onChange={handleChange}
                 onBlur={() => validateField('baseSalary', formData.baseSalary)}
-                placeholder="Monthly base salary"
+                placeholder="Base Salary"
                 error={errors.baseSalary}
                 className="text-xs font-mono font-semibold"
               />
@@ -389,7 +394,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 name="bankName"
                 value={formData.bankName}
                 onChange={handleChange}
-                placeholder="E.g. SBI / HDFC Bank"
+                placeholder="Bank Name"
                 className="text-xs"
               />
             </div>
@@ -401,7 +406,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 value={formData.bankAccountNo}
                 onChange={handleChange}
                 onBlur={() => validateField('bankAccountNo', formData.bankAccountNo)}
-                placeholder="9-18 digits account number"
+                placeholder="Account Number"
                 error={errors.bankAccountNo}
                 className="text-xs font-mono"
               />
@@ -414,7 +419,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 value={formData.ifscCode}
                 onChange={handleChange}
                 onBlur={() => validateField('ifscCode', formData.ifscCode)}
-                placeholder="11 chars (e.g. SBIN0001234)"
+                placeholder="IFSC Code"
                 error={errors.ifscCode}
                 className="text-xs font-mono uppercase"
               />

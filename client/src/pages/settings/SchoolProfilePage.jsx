@@ -632,7 +632,7 @@ export const SchoolProfilePage = () => {
                     type="text"
                     value={schoolData.name}
                     onChange={(e) => setSchoolData({ ...schoolData, name: e.target.value })}
-                    placeholder="Enter school name"
+                    placeholder="School Name"
                     className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     required
                   />
@@ -651,7 +651,7 @@ export const SchoolProfilePage = () => {
                       type="email"
                       value={schoolData.email}
                       onChange={(e) => setSchoolData({ ...schoolData, email: e.target.value })}
-                      placeholder="Enter school email address"
+                      placeholder="Email Address"
                       className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       required
                     />
@@ -666,7 +666,7 @@ export const SchoolProfilePage = () => {
                       type="text"
                       value={schoolData.phone}
                       onChange={(e) => setSchoolData({ ...schoolData, phone: e.target.value })}
-                      placeholder="Enter school phone number"
+                      placeholder="Phone Number"
                       className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />
                   </div>
@@ -683,7 +683,7 @@ export const SchoolProfilePage = () => {
                     autoComplete="off"
                     value={schoolData.address}
                     onChange={(e) => setSchoolData({ ...schoolData, address: e.target.value })}
-                    placeholder="Enter campus address"
+                    placeholder="School Address"
                     className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
@@ -696,7 +696,7 @@ export const SchoolProfilePage = () => {
                     type="text"
                     value={schoolData.district}
                     onChange={(e) => setSchoolData({ ...schoolData, district: e.target.value })}
-                    placeholder="Enter district"
+                    placeholder="District"
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
@@ -707,7 +707,7 @@ export const SchoolProfilePage = () => {
                     type="text"
                     value={schoolData.state}
                     onChange={(e) => setSchoolData({ ...schoolData, state: e.target.value })}
-                    placeholder="Enter state"
+                    placeholder="State"
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
@@ -718,7 +718,7 @@ export const SchoolProfilePage = () => {
                     type="text"
                     value={schoolData.pincode}
                     onChange={(e) => setSchoolData({ ...schoolData, pincode: e.target.value })}
-                    placeholder="Enter PIN code"
+                    placeholder="PIN Code"
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
@@ -732,7 +732,7 @@ export const SchoolProfilePage = () => {
                     type="text"
                     value={schoolData.udiseCode}
                     onChange={(e) => setSchoolData({ ...schoolData, udiseCode: e.target.value })}
-                    placeholder="Enter UDISE code"
+                    placeholder="UDISE Code"
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
@@ -743,7 +743,7 @@ export const SchoolProfilePage = () => {
                     type="text"
                     value={schoolData.affiliationNo}
                     onChange={(e) => setSchoolData({ ...schoolData, affiliationNo: e.target.value })}
-                    placeholder="Enter affiliation number"
+                    placeholder="Affiliation Number"
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
@@ -757,7 +757,7 @@ export const SchoolProfilePage = () => {
                     type="text"
                     value={schoolData.website}
                     onChange={(e) => setSchoolData({ ...schoolData, website: e.target.value })}
-                    placeholder="Enter school website URL"
+                    placeholder="Website URL"
                     className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
@@ -852,7 +852,7 @@ export const SchoolProfilePage = () => {
                   type="text"
                   value={accountData.name}
                   onChange={(e) => setAccountData({ ...accountData, name: e.target.value })}
-                  placeholder="Enter your full name"
+                  placeholder="Full Name"
                   className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   required
                 />
@@ -884,7 +884,7 @@ export const SchoolProfilePage = () => {
                   type="text"
                   value={accountData.phone}
                   onChange={(e) => setAccountData({ ...accountData, phone: e.target.value })}
-                  placeholder="Enter 10-digit phone number"
+                  placeholder="Phone Number"
                   className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
@@ -948,7 +948,7 @@ export const SchoolProfilePage = () => {
                   autoComplete="new-password"
                   value={passwordData.currentPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                  placeholder="Enter current password"
+                  placeholder="Current Password"
                   className={`w-full pl-9 pr-10 py-2 border rounded-lg text-xs font-medium focus:ring-2 focus:ring-indigo-500 ${
                     passwordErrors.currentPassword ? 'border-red-300 bg-red-50/30' : 'border-slate-200'
                   }`}

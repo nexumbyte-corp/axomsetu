@@ -18,6 +18,7 @@ import { PassportPhotoCropModal } from '../../components/students/PassportPhotoC
 import { CameraCaptureModal } from '../../components/students/CameraCaptureModal.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { usePageHeader } from '../../context/PageHeaderContext.jsx';
+import { getFormErrors } from '../../utils/errorUtils.js';
 
 const MONTH_NAMES = [
   'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
@@ -413,7 +414,10 @@ export const AddStudentPage = () => {
       navigate('/app/students');
     } catch (err) {
       toast.error(err?.message || 'Failed adding student');
-      if (err?.errors) setErrors(err.errors);
+      const backendErrors = getFormErrors(err);
+      if (Object.keys(backendErrors).length > 0) {
+        setErrors((prev) => ({ ...prev, ...backendErrors }));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -658,7 +662,7 @@ export const AddStudentPage = () => {
                       Student Full Name <span className="text-red-500">*</span>
                     </label>
                     <Input
-                      placeholder="Enter full name"
+                      placeholder="Full Name"
                       disabled={submitting || isLocked}
                       value={studentInfo.name}
                       onChange={(e) => setStudentInfo({ ...studentInfo, name: e.target.value })}
@@ -673,7 +677,7 @@ export const AddStudentPage = () => {
                       Father / Guardian Name <span className="text-red-500">*</span>
                     </label>
                     <Input
-                      placeholder="Enter guardian name"
+                      placeholder="Guardian Name"
                       disabled={submitting || isLocked}
                       value={studentInfo.guardianName}
                       onChange={(e) => setStudentInfo({ ...studentInfo, guardianName: e.target.value })}
@@ -693,7 +697,7 @@ export const AddStudentPage = () => {
                         type="tel"
                         autoComplete="off"
                         maxLength={10}
-                        placeholder="10-digit mobile number"
+                        placeholder="Phone Number"
                         disabled={submitting || isLocked}
                         value={studentInfo.phone}
                         onChange={(e) => {
@@ -762,7 +766,7 @@ export const AddStudentPage = () => {
                       <input
                         type="text"
                         autoComplete="off"
-                        placeholder="Specify Caste / Category"
+                        placeholder="Caste / Category"
                         value={studentInfo.customCaste}
                         onChange={(e) => setStudentInfo({ ...studentInfo, customCaste: e.target.value })}
                         className="w-full mt-1.5 px-2.5 py-1 border border-slate-200 rounded-lg text-xs font-medium"
@@ -776,7 +780,7 @@ export const AddStudentPage = () => {
                       Admission Number
                     </label>
                     <Input
-                      placeholder="Auto-generated automatically"
+                      placeholder="Admission Number"
                       disabled={true}
                       value={studentInfo.admissionNo || 'Auto-generated'}
                       readOnly
@@ -814,7 +818,7 @@ export const AddStudentPage = () => {
                     Residential Address
                   </label>
                   <Textarea
-                    placeholder="Enter full address (Optional)"
+                    placeholder="Address (Optional)"
                     disabled={submitting || isLocked}
                     value={studentInfo.address}
                     onChange={(e) => setStudentInfo({ ...studentInfo, address: e.target.value })}

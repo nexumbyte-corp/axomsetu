@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Building2, Plus, ArrowLeft, Key, Edit2, AlertTriangle, Printer } from 'lucide-react';
+import { Building2, Plus, ArrowLeft, Key, Edit2, AlertTriangle, Printer, Trash2 } from 'lucide-react';
 import { adminService } from '../../services/adminService.js';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { Spinner } from '../../components/ui/Spinner.jsx';
@@ -12,8 +12,8 @@ import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../../components/ui/Table.jsx';
-
 import { Modal } from '../../components/ui/Modal.jsx';
+import { HardDeleteSchoolModal } from '../../components/admin/HardDeleteSchoolModal.jsx';
 
 export const SchoolDetailsPage = () => {
   const { schoolId } = useParams();
@@ -23,6 +23,7 @@ export const SchoolDetailsPage = () => {
 
   const [data, setData] = useState(null);
   const [schoolUsers, setSchoolUsers] = useState([]);
+  const [isHardDeleteModalOpen, setIsHardDeleteModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [toast, setToast] = useState(null);
@@ -356,6 +357,17 @@ export const SchoolDetailsPage = () => {
               <span>Phone: {school.phone || '-'}</span>
             </p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="danger"
+            size="sm"
+            icon={Trash2}
+            onClick={() => setIsHardDeleteModalOpen(true)}
+          >
+            Hard Delete School
+          </Button>
         </div>
       </div>
 
@@ -1155,6 +1167,16 @@ export const SchoolDetailsPage = () => {
           </form>
         </Modal>
       )}
+
+      {/* Permanent Hard Delete School Modal */}
+      <HardDeleteSchoolModal
+        isOpen={isHardDeleteModalOpen}
+        onClose={() => setIsHardDeleteModalOpen(false)}
+        school={school}
+        onSuccess={() => {
+          _navigate('/admin/schools');
+        }}
+      />
     </div>
   );
 };
