@@ -717,23 +717,16 @@ export const StudentDetailsPage = () => {
               action={
                 pendingFees.length > 0 ? (
                   <DocumentActions
-                    templateId="feeReport"
+                    templateId="duesAdvice"
                     data={{
-                      reportMeta: { title: `Fee Dues Slip - ${student.name}` },
-                      data: pendingFees.map((f) => ({
-                        ...f,
-                        studentName: student.name,
-                        admissionNo: student.admissionNo,
-                        className: currentAcademic?.class?.name || '',
-                        dueAmount: f.balance,
-                        paidAmount: f.paidAmount || 0,
-                      })),
-                      summary: {
-                        totalDues: pendingFees.reduce((sum, f) => sum + Number(f.balance || 0), 0),
-                      },
+                      student,
+                      currentAcademic,
+                      pendingFees,
+                      schoolHeader: schoolInfo,
+                      academicYear: selectedYear,
                     }}
                     filename={`Dues_Slip_${student.admissionNo || 'Student'}.pdf`}
-                    title={`Pending Dues Slip - ${student.name}`}
+                    title={`Pending Dues Statement - ${student.name}`}
                   />
                 ) : null
               }

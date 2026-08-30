@@ -18,25 +18,15 @@ export const ReceiptCard = ({ receipt, schoolHeader, copyLabel = 'Original Copy'
     receipt.student?.enrollments?.[0] ||
     receipt.student?.enrollment;
 
-  const rawClassName = activeEnrollment?.class?.name || '';
-  const className = rawClassName
-    ? rawClassName.startsWith('Class')
-      ? rawClassName
-      : `Class ${rawClassName}`
-    : 'N/A';
-  const sectionName = activeEnrollment?.section?.name ? `(${activeEnrollment.section.name})` : '';
-  const streamName = activeEnrollment?.stream?.name ? `— ${activeEnrollment.stream.name}` : '';
-  const mediumName = activeEnrollment?.medium?.name ? `[${activeEnrollment.medium.name} Medium]` : '';
-  const rollNoDisplay = activeEnrollment?.rollNo ? ` | Roll No: ${activeEnrollment.rollNo}` : '';
-
-  const fullClassDisplay = [
-    className !== 'N/A' ? `${className} ${sectionName}`.trim() : 'N/A',
-    streamName,
-    mediumName,
-    rollNoDisplay,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const rawClassName = activeEnrollment?.class?.name || receipt.student?.class?.name || '';
+  const cleanClassName = rawClassName.replace(/^Class\s+/i, '').trim();
+  const classNameDisplay = cleanClassName ? cleanClassName : (rawClassName || 'N/A');
+  const sectionName = activeEnrollment?.section?.name || receipt.student?.section?.name || '';
+  const sectionDisplay = sectionName ? ` (${sectionName})` : '';
+  const streamName = activeEnrollment?.stream?.name || receipt.student?.stream?.name || '';
+  const mediumName = activeEnrollment?.medium?.name || receipt.student?.medium?.name || '';
+  const rollNoDisplay = (activeEnrollment?.rollNo ?? activeEnrollment?.rollNumber ?? receipt.student?.rollNo ?? receipt.student?.rollNumber) || null;
+  const guardianName = receipt.student?.guardianName || receipt.student?.guardian_name || receipt.student?.fatherName || receipt.student?.guardian || 'N/A';
 
   const academicYearName =
     receipt.academicYear?.name ||
@@ -83,14 +73,27 @@ export const ReceiptCard = ({ receipt, schoolHeader, copyLabel = 'Original Copy'
             Student Particulars
           </h4>
           <div className="space-y-0.5 text-slate-700">
-            <p className="font-bold text-slate-900 text-xs">{receipt.student?.name}</p>
             <p className="font-mono text-[11px]">
-              Admission No: <span className="font-bold text-slate-900">{receipt.student?.admissionNo}</span>
+              Admission No: <span className="font-bold text-slate-900">{receipt.student?.admissionNo || 'N/A'}</span>
+            </p>
+            <p className="font-bold text-slate-900 text-xs">{receipt.student?.name}</p>
+            <p className="text-[11px]">
+              Guardian Name: <span className="font-semibold text-slate-900">{guardianName}</span>
             </p>
             <p className="font-medium text-[11px]">
-              Class: <span className="font-bold text-slate-900">{fullClassDisplay}</span>
+              Class: <span className="font-bold text-slate-900">{classNameDisplay}{sectionDisplay}</span>
+              {mediumName && (
+                <span className="ml-3">
+                  Medium: <span className="font-bold text-slate-900">{mediumName}</span>
+                </span>
+              )}
+              {rollNoDisplay && <span className="text-slate-500 font-mono text-[10px] ml-2">| Roll No: {rollNoDisplay}</span>}
             </p>
-            {receipt.student?.guardianName && <p className="text-[11px]">Guardian: {receipt.student.guardianName}</p>}
+            {streamName && (
+              <p className="font-medium text-[11px]">
+                Stream: <span className="font-bold text-slate-900">{streamName}</span>
+              </p>
+            )}
           </div>
         </div>
 
@@ -229,13 +232,13 @@ export const ReceiptCard = ({ receipt, schoolHeader, copyLabel = 'Original Copy'
       </div>
 
       {/* Official Signatory & Seal Section */}
-      <div className="pt-8 grid grid-cols-2 gap-8 text-xs font-semibold text-slate-700 border-t border-slate-200">
-        <div className="text-center space-y-8">
+      <div className="pt-16 mt-6 grid grid-cols-2 gap-8 text-xs font-semibold text-slate-700 border-t border-slate-200">
+        <div className="text-center space-y-10">
           <div className="border-b border-dashed border-slate-400 w-3/4 mx-auto" />
           <span>Cashier / Received By</span>
         </div>
 
-        <div className="text-center space-y-8">
+        <div className="text-center space-y-10">
           <div className="border-b border-dashed border-slate-400 w-3/4 mx-auto" />
           <span>Authorized Signatory & Stamp</span>
         </div>

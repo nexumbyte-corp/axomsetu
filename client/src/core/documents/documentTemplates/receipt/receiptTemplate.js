@@ -44,11 +44,29 @@ export const buildReceiptTemplate = (data = {}, options = {}) => {
                 margin: [6, 4, 6, 4],
                 stack: [
                   { text: 'STUDENT PARTICULARS', style: 'boxHeader' },
-                  { text: data.student.name, style: 'value' },
                   { text: `Admission No: ${data.student.admissionNo}`, style: 'valueMono' },
-                  { text: `Class: ${data.student.classSection}`, style: 'value' },
-                  { text: `Guardian: ${data.student.guardianName}`, style: 'label' },
-                ],
+                  { text: data.student.name, style: 'value' },
+                  { text: `Guardian Name: ${data.student.guardianName || 'N/A'}`, style: 'label' },
+                  {
+                    text: [
+                      { text: 'Class: ', style: 'label' },
+                      { text: data.student.classDisplay || 'N/A', style: 'value' },
+                      data.student.mediumName ? { text: '  Medium: ', style: 'label' } : null,
+                      data.student.mediumName ? { text: data.student.mediumName, style: 'value' } : null,
+                      data.student.rollNo ? { text: `  | Roll No: ${data.student.rollNo}`, style: 'label' } : null,
+                    ].filter(Boolean),
+                    margin: [0, 1, 0, 0],
+                  },
+                  data.student.streamName
+                    ? {
+                        text: [
+                          { text: 'Stream: ', style: 'label' },
+                          { text: data.student.streamName, style: 'value' },
+                        ],
+                        margin: [0, 1, 0, 0],
+                      }
+                    : null,
+                ].filter(Boolean),
               },
             ],
           ],

@@ -189,7 +189,7 @@ export const SchoolProfilePage = () => {
         setSchoolData((prev) => ({ ...prev, logoUrl: newUrl }));
         addToast({
           type: 'success',
-          message: `Logo compressed (${sizeKb} KB) and uploaded to Cloudinary!`,
+          message: `Logo compressed (${sizeKb} KB) and uploaded successfully!`,
         });
         await fetchSchoolProfile();
         if (refreshProfile) refreshProfile();
@@ -199,7 +199,7 @@ export const SchoolProfilePage = () => {
     } catch (err) {
       addToast({
         type: 'error',
-        message: err.message || err.response?.data?.message || 'Failed to upload logo to Cloudinary',
+        message: err.message || err.response?.data?.message || 'Failed to upload logo',
       });
     } finally {
       setLogoUploading(false);
@@ -216,7 +216,7 @@ export const SchoolProfilePage = () => {
       const res = await schoolService.deleteTenantLogo();
       if (res && res.success) {
         setSchoolData((prev) => ({ ...prev, logoUrl: '' }));
-        addToast({ type: 'success', message: 'Logo deleted from Cloudinary successfully!' });
+        addToast({ type: 'success', message: 'Logo deleted successfully!' });
         await fetchSchoolProfile();
         if (refreshProfile) refreshProfile();
       } else {
@@ -225,7 +225,7 @@ export const SchoolProfilePage = () => {
     } catch (err) {
       addToast({
         type: 'error',
-        message: err.message || err.response?.data?.message || 'Failed to delete logo from Cloudinary',
+        message: err.message || err.response?.data?.message || 'Failed to delete logo',
       });
     } finally {
       setLogoDeleting(false);
@@ -575,7 +575,7 @@ export const SchoolProfilePage = () => {
                         {logoUploading ? (
                           <>
                             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                            <span>Uploading to Cloudinary...</span>
+                            <span>Uploading logo...</span>
                           </>
                         ) : (
                           <>
@@ -613,7 +613,7 @@ export const SchoolProfilePage = () => {
                         type="text"
                         value={schoolData.logoUrl}
                         readOnly
-                        placeholder="Cloudinary image URL will appear here after upload..."
+                        placeholder="Image URL will appear here after upload..."
                         className="w-full pl-9 pr-3 py-1.5 border border-slate-200 bg-slate-100 text-slate-600 rounded-lg text-xs font-mono font-medium truncate cursor-default"
                       />
                     </div>

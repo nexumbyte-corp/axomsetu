@@ -248,7 +248,7 @@ export const buildFeeReportTemplate = (data = {}, _settings = {}) => {
     content.push({
       table: {
         headerRows: 1,
-        widths: ['16%', '11%', '22%', '11%', '13%', '11%', '10%', '6%'],
+        widths: ['15%', '11%', '20%', '11%', '12%', '11%', '12%', '8%'],
         body: tableRows,
       },
       margin: [0, 0, 0, 15],

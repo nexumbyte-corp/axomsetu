@@ -15,25 +15,17 @@ export const buildReceiptData = (rawBackendData = {}) => {
     payment.student?.enrollments?.[0] ||
     payment.student?.enrollment;
 
-  const rawClassName = activeEnrollment?.class?.name || '';
-  const className = rawClassName
-    ? rawClassName.startsWith('Class')
-      ? rawClassName
-      : `Class ${rawClassName}`
-    : 'N/A';
-  const sectionName = activeEnrollment?.section?.name ? `(${activeEnrollment.section.name})` : '';
-  const streamName = activeEnrollment?.stream?.name ? `— ${activeEnrollment.stream.name}` : '';
-  const mediumName = activeEnrollment?.medium?.name ? `[${activeEnrollment.medium.name} Medium]` : '';
-  const rollNoDisplay = activeEnrollment?.rollNo ? ` | Roll No: ${activeEnrollment.rollNo}` : '';
+  const rawClassName = activeEnrollment?.class?.name || payment.student?.class?.name || '';
+  const cleanClassName = rawClassName.replace(/^Class\s+/i, '').trim();
+  const classNameDisplay = cleanClassName ? cleanClassName : (rawClassName || 'N/A');
+  const sectionName = activeEnrollment?.section?.name || payment.student?.section?.name || '';
+  const sectionDisplay = sectionName ? ` (${sectionName})` : '';
+  const classDisplay = `${classNameDisplay}${sectionDisplay}`;
 
-  const fullClassDisplay = [
-    className !== 'N/A' ? `${className} ${sectionName}`.trim() : 'N/A',
-    streamName,
-    mediumName,
-    rollNoDisplay,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const streamName = activeEnrollment?.stream?.name || payment.student?.stream?.name || '';
+  const mediumName = activeEnrollment?.medium?.name || payment.student?.medium?.name || '';
+  const rollNo = activeEnrollment?.rollNo ?? activeEnrollment?.rollNumber ?? payment.student?.rollNo ?? payment.student?.rollNumber ?? null;
+  const guardianName = payment.student?.guardianName || payment.student?.guardian_name || payment.student?.fatherName || payment.student?.guardian || 'N/A';
 
   const receivedAmount = Number(payment.receivedAmount || 0);
 
@@ -96,8 +88,11 @@ export const buildReceiptData = (rawBackendData = {}) => {
     student: {
       name: payment.student?.name || 'N/A',
       admissionNo: payment.student?.admissionNo || 'N/A',
-      classSection: fullClassDisplay,
-      guardianName: payment.student?.guardianName || 'N/A',
+      classDisplay,
+      mediumName,
+      streamName,
+      rollNo,
+      guardianName,
       phone: payment.student?.phone || 'N/A',
     },
 

@@ -392,7 +392,7 @@ export const EditStudentProfilePage = () => {
                       </div>
 
                       <p className="text-[11px] text-slate-500">
-                        Replacing photo will automatically crop new photo and delete the previous asset from Cloudinary.
+                        Replacing photo will automatically crop new photo and update media asset.
                       </p>
 
                       <div className="flex items-center justify-center sm:justify-start gap-2 pt-1 flex-wrap">
@@ -666,7 +666,7 @@ export const EditStudentProfilePage = () => {
                     <span>Master Profile Integrity</span>
                   </div>
                   <p className="text-[11px] text-slate-500 leading-relaxed">
-                    Updating student master information affects official reports, attendance registers, fee receipts, and Cloudinary media assets.
+                    Updating student master information affects official reports, attendance registers, fee receipts, and media assets.
                   </p>
                 </div>
               </CardContent>

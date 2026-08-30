@@ -79,14 +79,17 @@ export const PassportPhotoCropModal = ({ isOpen, onClose, file, onCropSuccess })
     if (!imageRef.current || !containerRef.current) return;
 
     const canvas = document.createElement('canvas');
-    // Output high-resolution passport size canvas (350px x 450px)
-    const outputWidth = 350;
-    const outputHeight = 450;
+    // High-definition passport canvas (700px x 900px)
+    const outputWidth = 700;
+    const outputHeight = 900;
     canvas.width = outputWidth;
     canvas.height = outputHeight;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     const img = imageRef.current;
     const scale = zoom;
@@ -108,7 +111,7 @@ export const PassportPhotoCropModal = ({ isOpen, onClose, file, onCropSuccess })
 
     ctx.drawImage(img, drawX, drawY, drawW, drawH);
 
-    // Convert Canvas to Blob
+    // Convert Canvas to Blob with high quality JPEG
     canvas.toBlob(
       async (blob) => {
         if (!blob) {
@@ -124,20 +127,19 @@ export const PassportPhotoCropModal = ({ isOpen, onClose, file, onCropSuccess })
 
           const res = await studentService.uploadPhoto(formData);
           if (res.data && res.data.photoUrl) {
-            toast.success(`Photo cropped & uploaded to Cloudinary (${res.data.sizeKb || '<20'} KB)!`);
             onCropSuccess(res.data.photoUrl, res.data.sizeKb);
             onClose();
           } else {
             toast.error(res.message || 'Failed to upload photo');
           }
         } catch (err) {
-          toast.error(err.message || 'Failed uploading cropped photo to Cloudinary');
+          toast.error(err.message || 'Failed uploading cropped photo');
         } finally {
           setUploading(false);
         }
       },
       'image/jpeg',
-      0.9
+      0.95
     );
   };
 

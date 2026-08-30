@@ -170,7 +170,7 @@ export const updateSchoolSchema = {
       .toLowerCase()
       .trim()
       .optional(),
-    logoUrl: z.string().max(500, 'Logo URL must not exceed 500 characters').optional().or(z.literal('')).or(z.null()),
+    logoUrl: z.string().max(150000, 'Logo URL is too large').optional().or(z.literal('')).or(z.null()),
     district: z
       .string()
       .trim()

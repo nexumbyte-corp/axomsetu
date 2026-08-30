@@ -1,5 +1,6 @@
 import { buildReceiptData } from './receipt/receiptBuilder.js';
 import { buildReceiptTemplate } from './receipt/receiptTemplate.js';
+import { buildDuesAdviceData, buildDuesAdviceTemplate } from './duesAdvice.js';
 import { buildSalaryReceiptData, buildSalaryReceiptTemplate } from './salaryReceipt.js';
 import { buildSalarySlipData, buildSalarySlipTemplate } from './salarySlip.js';
 import { buildFinancialLedgerData, buildFinancialLedgerTemplate } from './financialLedger.js';
@@ -37,6 +38,17 @@ const TEMPLATE_REGISTRY = {
       pageOrientation: 'portrait',
       pageMargins: [30, 25, 30, 30],
       copyLabel: 'Original Student Copy',
+    },
+  },
+  duesAdvice: {
+    name: 'Pending Dues Statement',
+    builder: buildDuesAdviceData,
+    template: buildDuesAdviceTemplate,
+    defaultOptions: {
+      pageSize: 'A4',
+      pageOrientation: 'portrait',
+      pageMargins: [30, 25, 30, 30],
+      copyLabel: 'Official Student Copy',
     },
   },
   salary: {

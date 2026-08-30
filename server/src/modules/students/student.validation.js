@@ -58,7 +58,7 @@ export const createStudentSchema = z.object({
     .string({ required_error: 'Student photo is required' })
     .trim()
     .min(1, 'Student photo is required')
-    .max(500, 'Photo URL must not exceed 500 characters'),
+    .max(150000, 'Photo URL is too large'),
 
   academicYearId: z.string({ required_error: 'Academic year ID is required' }).uuid('Invalid Academic Year ID'),
   classId: z.string({ required_error: 'Class ID is required' }).uuid('Invalid Class ID'),
@@ -111,7 +111,7 @@ export const updateStudentProfileSchema = z.object({
   gender: z.string().trim().max(20, 'Gender must not exceed 20 characters').optional().nullable(),
   caste: z.string().trim().max(50, 'Caste must not exceed 50 characters').optional().nullable(),
   address: z.string().trim().max(300, 'Address must not exceed 300 characters').optional().nullable(),
-  photoUrl: z.string().trim().max(500, 'Photo URL must not exceed 500 characters').optional().nullable(),
+  photoUrl: z.string().trim().max(150000, 'Photo URL is too large').optional().nullable(),
 });
 
 export const updateStudentStatusSchema = z.object({

@@ -8,8 +8,11 @@ export const createPDFSignatureBlock = (options = {}) => {
   const cashierTitle = options.cashierTitle || 'Cashier / Received By';
   const signatoryTitle = options.signatoryTitle || 'Authorized Signatory & Stamp';
 
+  const topMargin = options.topMargin !== undefined ? options.topMargin : 36;
+  const lineTopMargin = options.lineTopMargin !== undefined ? options.lineTopMargin : 32;
+
   return {
-    margin: [0, 16, 0, 8],
+    margin: [0, topMargin, 0, 8],
     columns: [
       {
         width: '50%',
@@ -27,7 +30,7 @@ export const createPDFSignatureBlock = (options = {}) => {
                 dash: { length: 4 },
               },
             ],
-            margin: [0, 24, 0, 4],
+            margin: [0, lineTopMargin, 0, 4],
           },
           { text: cashierTitle, style: 'signatureLine' },
         ],
@@ -48,7 +51,7 @@ export const createPDFSignatureBlock = (options = {}) => {
                 dash: { length: 4 },
               },
             ],
-            margin: [0, 24, 0, 4],
+            margin: [0, lineTopMargin, 0, 4],
           },
           { text: signatoryTitle, style: 'signatureLine' },
         ],

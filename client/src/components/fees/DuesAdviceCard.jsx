@@ -16,27 +16,15 @@ export const DuesAdviceCard = ({
 
   const totalBalance = pendingFees.reduce((sum, f) => sum + Number(f.balance || 0), 0);
 
-  const rawClassName = currentAcademic?.class?.name || '';
-  const className = rawClassName
-    ? rawClassName.startsWith('Class')
-      ? rawClassName
-      : `Class ${rawClassName}`
-    : 'N/A';
-  const sectionName = currentAcademic?.section?.name ? `(${currentAcademic.section.name})` : '';
-  const streamName = currentAcademic?.stream?.name ? `— ${currentAcademic.stream.name}` : '';
-  const mediumName = currentAcademic?.medium?.name ? `[${currentAcademic.medium.name} Medium]` : '';
-  const rollNoDisplay = (currentAcademic?.rollNumber ?? currentAcademic?.rollNo) !== null && (currentAcademic?.rollNumber ?? currentAcademic?.rollNo) !== undefined
-    ? ` | Roll No: ${currentAcademic?.rollNumber ?? currentAcademic?.rollNo}`
-    : '';
-
-  const fullClassDisplay = [
-    className !== 'N/A' ? `${className} ${sectionName}`.trim() : 'N/A',
-    streamName,
-    mediumName,
-    rollNoDisplay,
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const rawClassName = currentAcademic?.class?.name || student.class?.name || '';
+  const cleanClassName = rawClassName.replace(/^Class\s+/i, '').trim();
+  const classNameDisplay = cleanClassName ? cleanClassName : (rawClassName || 'N/A');
+  const sectionName = currentAcademic?.section?.name || student.section?.name || '';
+  const sectionDisplay = sectionName ? ` (${sectionName})` : '';
+  const streamName = currentAcademic?.stream?.name || student.stream?.name || '';
+  const mediumName = currentAcademic?.medium?.name || student.medium?.name || '';
+  const rollNoDisplay = (currentAcademic?.rollNumber ?? currentAcademic?.rollNo ?? student.rollNo ?? student.rollNumber) || null;
+  const guardianName = student.guardianName || student.guardian_name || student.fatherName || student.guardian || 'N/A';
 
   const academicYearName = academicYear?.name || currentAcademic?.academicYear?.name || `${new Date().getFullYear()}–${new Date().getFullYear() + 1}`;
 
@@ -71,14 +59,27 @@ export const DuesAdviceCard = ({
             Student Particulars
           </h4>
           <div className="space-y-0.5 text-slate-700">
-            <p className="font-bold text-slate-900 text-xs">{student.name}</p>
             <p className="font-mono text-[11px]">
-              Admission No: <span className="font-bold text-slate-900">{student.admissionNo}</span>
+              Admission No: <span className="font-bold text-slate-900">{student.admissionNo || 'N/A'}</span>
+            </p>
+            <p className="font-bold text-slate-900 text-xs">{student.name}</p>
+            <p className="text-[11px]">
+              Guardian Name: <span className="font-semibold text-slate-900">{guardianName}</span>
             </p>
             <p className="font-medium text-[11px]">
-              Class: <span className="font-bold text-slate-900">{fullClassDisplay}</span>
+              Class: <span className="font-bold text-slate-900">{classNameDisplay}{sectionDisplay}</span>
+              {mediumName && (
+                <span className="ml-3">
+                  Medium: <span className="font-bold text-slate-900">{mediumName}</span>
+                </span>
+              )}
+              {rollNoDisplay && <span className="text-slate-500 font-mono text-[10px] ml-2">| Roll No: {rollNoDisplay}</span>}
             </p>
-            {student.guardianName && <p className="text-[11px]">Guardian: {student.guardianName}</p>}
+            {streamName && (
+              <p className="font-medium text-[11px]">
+                Stream: <span className="font-bold text-slate-900">{streamName}</span>
+              </p>
+            )}
           </div>
         </div>
 
@@ -187,13 +188,13 @@ export const DuesAdviceCard = ({
       </div>
 
       {/* Official Signatory & Seal Section */}
-      <div className="pt-8 grid grid-cols-2 gap-8 text-xs font-semibold text-slate-700 border-t border-slate-200">
-        <div className="text-center space-y-8">
+      <div className="pt-16 mt-6 grid grid-cols-2 gap-8 text-xs font-semibold text-slate-700 border-t border-slate-200">
+        <div className="text-center space-y-10">
           <div className="border-b border-dashed border-slate-400 w-3/4 mx-auto" />
           <span>Accounts Officer / Prepared By</span>
         </div>
 
-        <div className="text-center space-y-8">
+        <div className="text-center space-y-10">
           <div className="border-b border-dashed border-slate-400 w-3/4 mx-auto" />
           <span>Authorized Signatory & Stamp</span>
         </div>

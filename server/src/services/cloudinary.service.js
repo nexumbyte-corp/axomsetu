@@ -48,7 +48,7 @@ export const deleteCloudinaryImage = async (urlOrPublicId) => {
     const result = await cloudinary.uploader.destroy(publicId, { invalidate: true });
     return result?.result === 'ok';
   } catch (err) {
-    console.warn(`[Cloudinary Warning] Failed to delete image asset "${publicId}":`, err.message);
+    console.warn(`[Image Storage Warning] Failed to delete image asset "${publicId}":`, err.message);
     return false;
   }
 };
@@ -67,24 +67,49 @@ export const compressAndUploadLogo = async (inputBuffer, originalMimeType, folde
   }
 
   let compressedBuffer = inputBuffer;
+  const isStudentPhoto = folder.includes('students') || originalMimeType.includes('jpeg') || originalMimeType.includes('jpg');
 
   // Perform sharp compression for bitmap images (PNG, JPEG, WebP)
   if (originalMimeType !== 'image/svg+xml') {
-    let width = 300;
-    let attempts = 0;
+    if (isStudentPhoto) {
+      let width = 500;
+      let quality = 88;
+      let attempts = 0;
 
-    while (attempts < 5) {
-      compressedBuffer = await sharp(inputBuffer)
-        .resize({ width, height: width, fit: 'inside', withoutEnlargement: true })
-        .png({ compressionLevel: 9, palette: true })
-        .toBuffer();
+      while (attempts < 8) {
+        compressedBuffer = await sharp(inputBuffer)
+          .resize({ width, fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality, mozjpeg: true, chromaSubsampling: '4:4:4' })
+          .toBuffer();
 
-      if (compressedBuffer.length <= MAX_TARGET_BYTES) {
-        break;
+        if (compressedBuffer.length <= MAX_TARGET_BYTES) {
+          break;
+        }
+
+        if (quality > 65) {
+          quality -= 5;
+        } else {
+          width = Math.max(180, width - 40);
+        }
+        attempts++;
       }
+    } else {
+      let width = 300;
+      let attempts = 0;
 
-      width = Math.max(120, width - 40);
-      attempts++;
+      while (attempts < 5) {
+        compressedBuffer = await sharp(inputBuffer)
+          .resize({ width, height: width, fit: 'inside', withoutEnlargement: true })
+          .png({ compressionLevel: 9, palette: true })
+          .toBuffer();
+
+        if (compressedBuffer.length <= MAX_TARGET_BYTES) {
+          break;
+        }
+
+        width = Math.max(120, width - 40);
+        attempts++;
+      }
     }
   }
 
@@ -99,9 +124,11 @@ export const compressAndUploadLogo = async (inputBuffer, originalMimeType, folde
     apiKey !== 'demo_api_key' &&
     apiKey !== 'your_api_key';
 
+  const mimePrefix = isStudentPhoto ? 'image/jpeg' : 'image/png';
+
   if (!isCloudinaryConfigured) {
-    // Fallback to compressed PNG Data URI (<=20KB) which pdfmake natively supports
-    const base64Data = `data:image/png;base64,${compressedBuffer.toString('base64')}`;
+    // Fallback to compressed Data URI (<=20KB) which pdfmake natively supports
+    const base64Data = `data:${mimePrefix};base64,${compressedBuffer.toString('base64')}`;
     return {
       secure_url: base64Data,
       public_id: null,
@@ -110,23 +137,16 @@ export const compressAndUploadLogo = async (inputBuffer, originalMimeType, folde
   }
 
   // Upload compressed buffer to Cloudinary stream
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder,
         resource_type: 'image',
-        format: originalMimeType === 'image/svg+xml' ? 'svg' : 'webp',
-        transformation: [{ width: 300, height: 300, crop: 'limit', quality: 'auto:good' }],
       },
       (error, result) => {
         if (error) {
-          console.warn(`[Cloudinary Warning] Upload error (${error.message}). Falling back to compressed Data URI.`);
-          const base64Data = `data:image/png;base64,${compressedBuffer.toString('base64')}`;
-          return resolve({
-            secure_url: base64Data,
-            public_id: null,
-            bytes: compressedBuffer.length,
-          });
+          console.error('[Image Storage Error]:', error.message);
+          return reject(ApiError.badRequest(`Failed to upload image: ${error.message}`));
         }
         resolve({
           secure_url: result.secure_url,
