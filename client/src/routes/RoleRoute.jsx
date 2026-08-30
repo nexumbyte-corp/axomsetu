@@ -10,7 +10,7 @@ export const RoleRoute = ({ children, allowedRoles }) => {
 
   if (!user || !allowedRoles.includes(user.role)) {
     if (user?.role === 'SUPER_ADMIN') {
-      return <Navigate to="/admin/subscriptions" replace />;
+      return <Navigate to="/admin/dashboard" replace />;
     }
     return <Navigate to="/app" replace />;
   }

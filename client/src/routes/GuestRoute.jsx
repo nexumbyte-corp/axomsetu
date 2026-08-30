@@ -21,7 +21,7 @@ export const GuestRoute = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    const mainSystemPath = user?.role === 'SUPER_ADMIN' ? '/admin/subscriptions' : '/app';
+    const mainSystemPath = user?.role === 'SUPER_ADMIN' ? '/admin/dashboard' : '/app';
     return <Navigate to={mainSystemPath} replace />;
   }
 
