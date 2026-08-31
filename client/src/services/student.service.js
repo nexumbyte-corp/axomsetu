@@ -56,5 +56,21 @@ export const studentService = {
   deleteStudentHard: async (studentId) => {
     return await api.delete(`/students/${studentId}`);
   },
+
+  // 11. Mid-Session Transfer Preview
+  getTransferPreview: async (studentId, params) => {
+    return await api.get(`/students/${studentId}/transfer-preview`, { params });
+  },
+
+  // 12. Execute Mid-Session Transfer
+  transferStudent: async (studentId, data) => {
+    return await api.post(`/students/${studentId}/transfer`, data);
+  },
+
+  // 13. Get Mid-Session Transfer History
+  getTransferHistory: async (studentId) => {
+    return await api.get(`/students/${studentId}/transfer-history`);
+  },
 };
+
 

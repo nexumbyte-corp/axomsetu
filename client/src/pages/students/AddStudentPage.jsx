@@ -314,11 +314,8 @@ export const AddStudentPage = () => {
     // Client-Side Validation
     const newErrors = {};
 
-    if (!studentInfo.photoUrl) {
-      newErrors.photoUrl = 'Student photo is mandatory (Passport size)';
-    }
-
     if (!studentInfo.name.trim()) {
+
       newErrors.name = 'Student full name is required';
     }
 
@@ -573,7 +570,7 @@ export const AddStudentPage = () => {
             <Card className="border-slate-200 shadow-2xs overflow-hidden">
               <CardHeader
                 title="1. Student Master Information"
-                subtitle="Mandatory photo, contact details & identity info"
+                subtitle="Contact details, photo (optional) & identity info"
               />
               <CardContent className="space-y-4 pt-3">
 
@@ -616,8 +613,9 @@ export const AddStudentPage = () => {
                     <div className="space-y-2 text-center sm:text-left flex-1">
                       <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
                         <span className="text-xs font-bold text-slate-900">
-                          Student Photo <span className="text-red-500">*</span>
+                          Student Photo <span className="text-slate-400 font-normal">(Optional)</span>
                         </span>
+
                         <Badge variant="warning" size="xs">
                           Passport Ratio (3.5:4.5)
                         </Badge>

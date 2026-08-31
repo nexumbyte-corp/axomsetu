@@ -10,12 +10,15 @@ export const Modal = ({ isOpen, onClose, title, description, children, footer, s
     };
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
     } else {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     }
     return () => {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
@@ -33,12 +36,15 @@ export const Modal = ({ isOpen, onClose, title, description, children, footer, s
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
         onClick={onClose}
+        onWheel={(e) => e.preventDefault()}
+        onTouchMove={(e) => e.preventDefault()}
       />
+
 
       {/* Modal Dialog Container */}
       <div className="flex min-h-full items-center justify-center p-2.5 sm:p-4 text-center">

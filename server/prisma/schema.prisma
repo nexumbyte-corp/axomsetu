@@ -209,6 +209,7 @@ model User {
   createdFundTransactions     FundTransaction[]             @relation("FundTxnCreatedBy")
   approvedSubscriptionPayments SubscriptionPayment[]        @relation("SubscriptionPaymentApprovedBy")
   overriddenFeeCharges        StudentFeeCharge[]           @relation("FeeChargeOverriddenBy")
+  createdStudentTransfers     StudentTransferHistory[]     @relation("StudentTransferCreatedBy")
   auditLogs                   AuditLog[]
   termsAcceptances            TermsAcceptance[]
   sessions                    UserSession[]
@@ -281,6 +282,7 @@ model School {
   streams              Stream[]
   students             Student[]
   studentEnrollments   StudentEnrollment[]
+  studentTransferHistories StudentTransferHistory[]
   hostelEnrollments    StudentHostelEnrollment[]
   hostels              Hostel[]
   hostelRooms          HostelRoom[]
@@ -387,6 +389,7 @@ model AcademicYear {
 
   school               School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   enrollments          StudentEnrollment[]
+  studentTransferHistories StudentTransferHistory[]
   hostelEnrollments    StudentHostelEnrollment[]
   activeHostelEnrollments HostelEnrollment[]
   hostelFeeConfigs     HostelFeeConfig[]
@@ -420,6 +423,7 @@ model Class {
 
   school               School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   enrollments          StudentEnrollment[]
+  studentTransferHistories StudentTransferHistory[]
   feeStructures        FeeStructure[]
   feeGenerationBatches FeeGenerationBatch[]
 
@@ -457,6 +461,8 @@ model Medium {
   enrollments          StudentEnrollment[]
   feeStructures        FeeStructure[]
   feeGenerationBatches FeeGenerationBatch[]
+  transfersFrom        StudentTransferHistory[] @relation("TransferFromMedium")
+  transfersTo          StudentTransferHistory[] @relation("TransferToMedium")
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -475,6 +481,8 @@ model Stream {
   enrollments          StudentEnrollment[]
   feeStructures        FeeStructure[]
   feeGenerationBatches FeeGenerationBatch[]
+  transfersFrom        StudentTransferHistory[] @relation("TransferFromStream")
+  transfersTo          StudentTransferHistory[] @relation("TransferToStream")
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -503,6 +511,7 @@ model Student {
 
   school               School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   enrollments          StudentEnrollment[]
+  transferHistories    StudentTransferHistory[]
   hostelEnrollments    StudentHostelEnrollment[]
   activeHostelEnrollments HostelEnrollment[]
   studentFeeOverrides  StudentFeeOverride[]
@@ -541,6 +550,7 @@ model StudentEnrollment {
   stream            Stream?                   @relation(fields: [streamId], references: [id])
   hostelEnrollments StudentHostelEnrollment[]
   feeCharges        StudentFeeCharge[]
+  transferHistories StudentTransferHistory[]
 
   @@unique([schoolId, academicYearId, studentId])
   @@unique([schoolId, academicYearId, classId, sectionId, rollNo])
@@ -552,6 +562,43 @@ model StudentEnrollment {
   @@index([schoolId, classId, status])
   @@index([schoolId, academicYearId, classId, status])
   @@map("student_enrollments")
+}
+
+model StudentTransferHistory {
+  id                  String   @id @default(uuid()) @db.Uuid
+  schoolId            String   @map("school_id") @db.Uuid
+  studentId           String   @map("student_id") @db.Uuid
+  studentEnrollmentId String   @map("student_enrollment_id") @db.Uuid
+  academicYearId      String   @map("academic_year_id") @db.Uuid
+  classId             String   @map("class_id") @db.Uuid
+  fromMediumId        String   @map("from_medium_id") @db.Uuid
+  toMediumId          String   @map("to_medium_id") @db.Uuid
+  fromStreamId        String?  @map("from_stream_id") @db.Uuid
+  toStreamId          String?  @map("to_stream_id") @db.Uuid
+  transferDate        DateTime @map("transfer_date") @db.Date
+  feeDifference       Decimal  @default(0) @map("fee_difference") @db.Decimal(12, 2)
+  additionalPayable   Decimal  @default(0) @map("additional_payable") @db.Decimal(12, 2)
+  reason              String?
+  createdById         String?  @map("created_by_id") @db.Uuid
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  school            School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student           Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentEnrollment StudentEnrollment @relation(fields: [studentEnrollmentId], references: [id], onDelete: Cascade)
+  academicYear      AcademicYear      @relation(fields: [academicYearId], references: [id])
+  class             Class             @relation(fields: [classId], references: [id])
+  fromMedium        Medium            @relation("TransferFromMedium", fields: [fromMediumId], references: [id])
+  toMedium          Medium            @relation("TransferToMedium", fields: [toMediumId], references: [id])
+  fromStream        Stream?           @relation("TransferFromStream", fields: [fromStreamId], references: [id])
+  toStream          Stream?           @relation("TransferToStream", fields: [toStreamId], references: [id])
+  createdBy         User?             @relation("StudentTransferCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([studentEnrollmentId])
+  @@index([academicYearId])
+  @@index([schoolId, studentId, transferDate])
+  @@map("student_transfer_histories")
 }
 
 // DEPRECATED (Legacy Hostel Model — preserved for historical data compatibility)

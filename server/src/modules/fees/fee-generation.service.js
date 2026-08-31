@@ -137,7 +137,7 @@ const getTargetEnrollments = async (schoolId, payload) => {
   const enrollments = await prisma.studentEnrollment.findMany({
     where,
     include: {
-      student: { select: { id: true, admissionNo: true, name: true, guardianName: true, status: true } },
+      student: { select: { id: true, admissionNo: true, name: true, guardianName: true, status: true, admissionDate: true } },
       class: { select: { id: true, name: true, code: true, hasStream: true } },
       medium: { select: { id: true, name: true } },
       stream: { select: { id: true, name: true } },
@@ -317,6 +317,7 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
     notActive: 0,
     alreadyExists: 0,
     noFeeStructure: 0,
+    beforeAdmission: 0,
   };
   const chargesToCreate = [];
   const noStructureClasses = new Set();
@@ -421,6 +422,28 @@ export const processFeeGenerationPreview = async (schoolId, payload) => {
 
       const billingRule = head.billingRule || 'MONTHLY';
       const titleKey = (head.title || '').trim().toLowerCase();
+
+      // Backdated month validation based on student admission date
+      if (billingRule === 'MONTHLY' && e.student.admissionDate) {
+        const isEffective = isEffectiveForMonth({
+          startDate: e.student.admissionDate,
+          generationMonth: month,
+          academicYear,
+        });
+
+        if (!isEffective) {
+          const admStr = new Date(e.student.admissionDate).toISOString().split('T')[0];
+          skippedStudents.push({
+            studentId: e.student.id,
+            studentName: e.student.name,
+            admissionNo: e.student.admissionNo,
+            feeHeadTitle: head.title,
+            reason: `Before Student Admission Date (${admStr})`,
+          });
+          skippedBreakdown.beforeAdmission += 1;
+          return;
+        }
+      }
 
       // Logical identity duplicate check (Student + AcademicYear + FeeType + Title + Month)
       const isOneTime = billingRule === 'ONE_TIME_PER_ACADEMIC_YEAR';

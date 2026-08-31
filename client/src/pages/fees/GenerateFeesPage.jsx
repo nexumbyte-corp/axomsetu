@@ -21,12 +21,35 @@ export const GenerateFeesPage = () => {
   const { selectedYear, selectedYearId } = useAcademicYear();
   const monthOptions = getAcademicMonthOptions(selectedYear);
 
+  const getCurrentMonthEnum = () => {
+    const MONTH_NAMES = [
+      'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+      'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
+    ];
+    return MONTH_NAMES[new Date().getMonth()];
+  };
+
   // Wizard Step: 1 = Selection, 2 = Review Fee Sheet, 3 = Preview, 4 = Success
   const [currentStep, setCurrentStep] = useState(1);
 
   // Form State
   const [generationMode, setGenerationMode] = useState('BY_CLASS'); // ENTIRE_SCHOOL | BY_CLASS | BY_STUDENT
-  const [selectedMonth, setSelectedMonth] = useState(monthOptions[0]?.value || 'APRIL');
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const cur = getCurrentMonthEnum();
+    const exists = monthOptions.some((m) => m.value === cur);
+    return exists ? cur : (monthOptions[0]?.value || 'APRIL');
+  });
+
+  useEffect(() => {
+    const cur = getCurrentMonthEnum();
+    const exists = monthOptions.some((m) => m.value === cur);
+    if (exists) {
+      setSelectedMonth(cur);
+    } else if (monthOptions.length > 0) {
+      setSelectedMonth(monthOptions[0]?.value || 'APRIL');
+    }
+  }, [selectedYearId]);
+
 
   // Academic Setup Options
   const [classes, setClasses] = useState([]);

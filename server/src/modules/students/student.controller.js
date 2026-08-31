@@ -2,10 +2,12 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { compressAndUploadLogo } from '../../services/cloudinary.service.js';
 import * as studentService from './student.service.js';
+import * as studentTransferService from './student-transfer.service.js';
 import {
   bulkPromoteStudentsSchema,
   createStudentSchema,
   promoteStudentSchema,
+  transferStudentSchema,
   updateEnrollmentSchema,
   updateStudentProfileSchema,
   updateStudentStatusSchema,
@@ -131,4 +133,46 @@ export const deleteStudentHard = asyncHandler(async (req, res) => {
     data: result,
   });
 });
+
+export const getTransferPreview = asyncHandler(async (req, res) => {
+  const { targetMediumId, targetStreamId, transferDate } = req.query;
+  const result = await studentTransferService.getTransferPreview(req.schoolId, req.params.studentId, {
+    targetMediumId,
+    targetStreamId,
+    transferDate,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Transfer preview calculated successfully',
+    data: result,
+  });
+});
+
+export const transferStudentMediumStream = asyncHandler(async (req, res) => {
+  const validatedBody = transferStudentSchema.parse(req.body);
+  const result = await studentTransferService.transferStudentMediumStream(
+    req.schoolId,
+    req.params.studentId,
+    validatedBody,
+    req.user?.id
+  );
+
+  res.status(200).json({
+    success: true,
+    message: result.message,
+    data: result,
+  });
+});
+
+export const getStudentTransferHistory = asyncHandler(async (req, res) => {
+  const result = await studentTransferService.getStudentTransferHistory(req.schoolId, req.params.studentId);
+
+  res.status(200).json({
+    success: true,
+    message: 'Transfer history retrieved successfully',
+    data: result,
+  });
+});
+
 

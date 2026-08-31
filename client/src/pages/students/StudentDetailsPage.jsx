@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Sparkles, UserCheck, UserX, Lock, Phone, MapPin, User, ShieldAlert, AlertCircle, FileText, RefreshCw, Building2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, Sparkles, UserCheck, UserX, Lock, Phone, MapPin, User, ShieldAlert, AlertCircle, FileText, RefreshCw, Building2, Trash2, ArrowRightLeft } from 'lucide-react';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { usePermission } from '../../hooks/usePermission.js';
@@ -24,6 +24,7 @@ import { StudentAvatar } from '../../components/students/StudentAvatar.jsx';
 import { StudentStatusBadge } from '../../components/students/StudentStatusBadge.jsx';
 import { IndividualPromotionModal } from '../../components/students/IndividualPromotionModal.jsx';
 import { EditEnrollmentModal } from '../../components/students/EditEnrollmentModal.jsx';
+import { StudentTransferModal } from '../../components/students/StudentTransferModal.jsx';
 import { StudentFeeOverridesTab } from '../../components/students/StudentFeeOverridesTab.jsx';
 import { DuesAdviceCard } from '../../components/fees/DuesAdviceCard.jsx';
 import { PhotoPreviewModal } from '../../components/students/PhotoPreviewModal.jsx';
@@ -52,8 +53,11 @@ export const StudentDetailsPage = () => {
   const [pendingFees, setPendingFees] = useState([]);
   const [pendingLoading, setPendingLoading] = useState(false);
 
+  // Transfer History State
+  const [transferHistories, setTransferHistories] = useState([]);
+
   // Modals
-  const [activeModal, setActiveModal] = useState(null); // 'PROMOTE' | 'EDIT_ENROLLMENT' | 'STATUS_CONFIRM'
+  const [activeModal, setActiveModal] = useState(null); // 'PROMOTE' | 'EDIT_ENROLLMENT' | 'TRANSFER' | 'STATUS_CONFIRM'
   const [selectedEnrollmentForEdit, setSelectedEnrollmentForEdit] = useState(null);
   const [targetStatus, setTargetStatus] = useState(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
@@ -136,10 +140,23 @@ export const StudentDetailsPage = () => {
     }
   }, [studentId, selectedYearId]);
 
+  const fetchTransferHistories = useCallback(async () => {
+    if (!studentId) return;
+    try {
+      const res = await studentService.getTransferHistory(studentId);
+      if (res.success && Array.isArray(res.data)) {
+        setTransferHistories(res.data);
+      }
+    } catch (err) {
+      console.error('Failed fetching transfer history:', err);
+    }
+  }, [studentId]);
+
   useEffect(() => {
     fetchStudentData();
     fetchPendingFees();
-  }, [fetchStudentData, fetchPendingFees]);
+    fetchTransferHistories();
+  }, [fetchStudentData, fetchPendingFees, fetchTransferHistories]);
 
   if (loading) {
     return (
@@ -281,6 +298,12 @@ export const StudentDetailsPage = () => {
                     }}
                   >
                     Edit Enrollment ({selectedYear?.name})
+                  </DropdownItem>
+                  <DropdownItem
+                    icon={ArrowRightLeft}
+                    onClick={() => setActiveModal('TRANSFER')}
+                  >
+                    Mid-Session Transfer
                   </DropdownItem>
                   <DropdownItem
                     icon={Building2}
@@ -637,6 +660,38 @@ export const StudentDetailsPage = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Mid-Session Transfer History Timeline */}
+          {transferHistories && transferHistories.length > 0 && (
+            <Card>
+              <CardHeader
+                title="Mid-Session Transfer History"
+                subtitle="Historical Medium & Stream transfers"
+              />
+              <CardContent className="space-y-3 text-xs">
+                {transferHistories.map((h) => (
+                  <div key={h.id} className="p-3 bg-indigo-50/40 border border-indigo-200 rounded-lg space-y-2">
+                    <div className="flex items-center justify-between font-bold text-slate-800">
+                      <span className="flex items-center gap-1.5 text-indigo-700">
+                        <ArrowRightLeft className="w-3.5 h-3.5" />
+                        {h.fromMedium?.name} {h.fromStream ? `(${h.fromStream.name})` : ''} → {h.toMedium?.name} {h.toStream ? `(${h.toStream.name})` : ''}
+                      </span>
+                      <Badge variant="indigo" size="sm">{formatDate(h.transferDate)}</Badge>
+                    </div>
+                    <div className="text-[11px] text-slate-600 space-y-1">
+                      <div>Academic Year: <strong>{h.academicYear?.name}</strong> | Class: <strong>{h.class?.name}</strong></div>
+                      {h.additionalPayable > 0 && (
+                        <div className="text-emerald-700 font-semibold">
+                          Additional Payable: ₹{h.additionalPayable.toFixed(2)}
+                        </div>
+                      )}
+                      {h.reason && <div className="italic text-slate-500 font-medium">"{h.reason}"</div>}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Right Column (2 cols): Fee Structure, Overrides & Dues Summary */}
@@ -916,6 +971,22 @@ export const StudentDetailsPage = () => {
           sections={sections}
           streams={streams}
           onSuccess={fetchStudentData}
+        />
+      )}
+
+      {currentAcademic && activeModal === 'TRANSFER' && (
+        <StudentTransferModal
+          isOpen={true}
+          onClose={() => setActiveModal(null)}
+          student={student}
+          currentEnrollment={currentAcademic}
+          mediums={mediums}
+          streams={streams}
+          onSuccess={() => {
+            fetchStudentData();
+            fetchPendingFees();
+            fetchTransferHistories();
+          }}
         />
       )}
 

@@ -44,4 +44,10 @@ router.patch('/:studentId/enrollments/:enrollmentId', requirePermission(PERMISSI
 // 6. Individual Student Promotion / Repeat
 router.post('/:studentId/promote', requirePermission(PERMISSIONS.STUDENTS_PROMOTE), studentController.promoteStudent);
 
+// 7. Mid-Session Class/Medium/Stream Transfer Operations
+router.get('/:studentId/transfer-preview', requirePermission([PERMISSIONS.STUDENTS_EDIT, PERMISSIONS.STUDENTS_PROMOTE]), studentController.getTransferPreview);
+router.post('/:studentId/transfer', requirePermission([PERMISSIONS.STUDENTS_EDIT, PERMISSIONS.STUDENTS_PROMOTE]), studentController.transferStudentMediumStream);
+router.get('/:studentId/transfer-history', requirePermission(PERMISSIONS.STUDENTS_VIEW), studentController.getStudentTransferHistory);
+
 export default router;
+

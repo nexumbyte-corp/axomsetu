@@ -55,10 +55,11 @@ export const createStudentSchema = z.object({
     .optional()
     .nullable(),
   photoUrl: z
-    .string({ required_error: 'Student photo is required' })
+    .string()
     .trim()
-    .min(1, 'Student photo is required')
-    .max(150000, 'Photo URL is too large'),
+    .max(150000, 'Photo URL is too large')
+    .optional()
+    .nullable(),
 
   academicYearId: z.string({ required_error: 'Academic year ID is required' }).uuid('Invalid Academic Year ID'),
   classId: z.string({ required_error: 'Class ID is required' }).uuid('Invalid Class ID'),
@@ -198,4 +199,10 @@ export const bulkPromoteStudentsSchema = z.object({
   ).max(500, 'Cannot bulk promote more than 500 students at a time').optional().nullable(),
 });
 
+export const transferStudentSchema = z.object({
+  targetMediumId: z.string({ required_error: 'Target Medium ID is required' }).uuid('Invalid Target Medium ID'),
+  targetStreamId: z.string().uuid('Invalid Target Stream ID').optional().nullable(),
+  transferDate: z.string({ required_error: 'Transfer date is required' }).min(1, 'Transfer date is required'),
+  reason: z.string().trim().max(300, 'Reason must not exceed 300 characters').optional().nullable(),
+});
 

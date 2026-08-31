@@ -13,9 +13,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "node prisma/seed.js",
-    "db:clean": "node prisma/clean-db.js",
-    "db:reset-data": "node prisma/clean-db.js --seed"
+    "prisma:seed": "node prisma/seed.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
