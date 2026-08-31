@@ -61,8 +61,8 @@ export const LandingPage = () => {
   const formatCurrency = (val) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
 
-  // Core 8 Features list
-  const coreFeatures = [
+  // Consolidated Features list
+  const features = [
     {
       icon: Users,
       title: 'Student Management',
@@ -80,12 +80,12 @@ export const LandingPage = () => {
     },
     {
       icon: Calendar,
-      title: 'Academic Management',
+      title: 'Academic Setup',
       description: 'Configure academic years, classes, sections, mediums, streams, and session locking.',
     },
     {
       icon: FileSpreadsheet,
-      title: 'Reports',
+      title: 'Reports & Analytics',
       description: 'Access complete financial, collection, fee status, and administrative PDF & Excel reports.',
     },
     {
@@ -95,47 +95,13 @@ export const LandingPage = () => {
     },
     {
       icon: Sliders,
-      title: 'Expenses',
+      title: 'Expense Tracking',
       description: 'Track daily maintenance costs, utility bills, vendor payments, and expense ledgers.',
     },
     {
       icon: UserCheck,
-      title: 'User Permissions',
+      title: 'Role Permissions',
       description: 'Assign role-based access control for administrative staff and institutional users.',
-    },
-  ];
-
-  // System Modules list
-  const systemModules = [
-    {
-      icon: Users,
-      name: 'Students',
-      description: 'Manage student profiles, academic information and records.',
-    },
-    {
-      icon: Receipt,
-      name: 'Fee Management',
-      description: 'Manage fee structures, collections, discounts and receipts.',
-    },
-    {
-      icon: CreditCard,
-      name: 'Staff & Payroll',
-      description: 'Manage staff salary, advances, payroll and disbursement.',
-    },
-    {
-      icon: FileSpreadsheet,
-      name: 'Reports',
-      description: 'Access financial, academic and operational reports.',
-    },
-    {
-      icon: Building2,
-      name: 'Hostel Management',
-      description: 'Manage hostel enrollment, rooms, beds and hostel fees.',
-    },
-    {
-      icon: Sliders,
-      name: 'Expenses & Finance',
-      description: 'Track school operational expenses, funds and account ledgers.',
     },
   ];
 
@@ -202,11 +168,11 @@ export const LandingPage = () => {
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans selection:bg-indigo-600 selection:text-white">
       {/* 1. LANDING PAGE HEADER */}
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Left: Branding */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <img src="/app-icon.png" alt="AxomSetu Logo" className="w-9 h-9 rounded-lg object-cover shadow-xs group-hover:scale-105 transition-transform" />
+            <img src="/app-icon.png" alt="AxomSetu Logo" className="w-9 h-9 rounded-lg object-cover shadow-2xs group-hover:scale-105 transition-transform" />
             <div>
               <span className="text-base font-extrabold tracking-tight text-slate-900 block leading-none">
                 {BRAND_CONFIG.productName}
@@ -221,9 +187,6 @@ export const LandingPage = () => {
           <nav className="hidden md:flex items-center gap-7 text-xs font-semibold text-slate-600">
             <a href="#features" className="hover:text-indigo-600 transition-colors">
               Features
-            </a>
-            <a href="#modules" className="hover:text-indigo-600 transition-colors">
-              Modules
             </a>
             <a href="#how-it-works" className="hover:text-indigo-600 transition-colors">
               How It Works
@@ -280,13 +243,6 @@ export const LandingPage = () => {
               className="px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
             >
               Features
-            </a>
-            <a
-              href="#modules"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
-            >
-              Modules
             </a>
             <a
               href="#how-it-works"
@@ -348,7 +304,7 @@ export const LandingPage = () => {
               </h1>
 
               <p className="mt-4 text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
-                Manage students, academics, fees, staff, payroll, reports and other school operations from one platform.
+                Manage students, academics, fees, staff, payroll, reports and daily operations seamlessly.
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -356,7 +312,7 @@ export const LandingPage = () => {
                   <Button
                     variant="primary"
                     size="lg"
-                    className="w-full sm:w-auto py-2.5 px-6 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm"
+                    className="w-full sm:w-auto py-2.5 px-6 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-xs"
                   >
                     Start Free Trial
                   </Button>
@@ -374,7 +330,7 @@ export const LandingPage = () => {
             </div>
 
             {/* 3. HERO PRODUCT VISUAL - Realistic Software UI Mockup */}
-            <div className="mt-12 max-w-5xl mx-auto rounded-xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+            <div className="mt-12 max-w-5xl mx-auto rounded-xl border border-slate-200 shadow-xs bg-white overflow-hidden">
               {/* Window Header */}
               <div className="bg-slate-100 px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -388,28 +344,31 @@ export const LandingPage = () => {
                 <div className="flex items-center bg-white rounded-lg p-1 border border-slate-200 text-xs">
                   <button
                     onClick={() => setActivePreviewTab('DASHBOARD')}
-                    className={`px-3 py-1 rounded-md font-semibold transition-colors ${activePreviewTab === 'DASHBOARD'
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                    className={`px-3 py-1 rounded-md font-semibold transition-colors ${
+                      activePreviewTab === 'DASHBOARD'
+                        ? 'bg-indigo-600 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
                   >
-                    Dashboard Preview
+                    Dashboard
                   </button>
                   <button
                     onClick={() => setActivePreviewTab('FEES')}
-                    className={`px-3 py-1 rounded-md font-semibold transition-colors ${activePreviewTab === 'FEES'
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                    className={`px-3 py-1 rounded-md font-semibold transition-colors ${
+                      activePreviewTab === 'FEES'
+                        ? 'bg-indigo-600 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
                   >
-                    Fee Management
+                    Fees & Receipts
                   </button>
                   <button
                     onClick={() => setActivePreviewTab('PAYROLL')}
-                    className={`px-3 py-1 rounded-md font-semibold transition-colors ${activePreviewTab === 'PAYROLL'
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                    className={`px-3 py-1 rounded-md font-semibold transition-colors ${
+                      activePreviewTab === 'PAYROLL'
+                        ? 'bg-indigo-600 text-white shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
                   >
                     Staff & Payroll
                   </button>
@@ -417,7 +376,7 @@ export const LandingPage = () => {
               </div>
 
               {/* Window Body Display */}
-              <div className="p-5 sm:p-8 bg-slate-50 text-left min-h-[300px]">
+              <div className="p-5 sm:p-8 bg-slate-50 text-left min-h-[280px]">
                 {activePreviewTab === 'DASHBOARD' && (
                   <div className="space-y-5">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
@@ -431,19 +390,19 @@ export const LandingPage = () => {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                         <span className="text-xs font-medium text-slate-500">Total Enrolled Students</span>
                         <div className="text-2xl font-bold text-slate-900 mt-1">1,240</div>
                         <span className="text-[11px] text-slate-500 mt-1 block">Active academic session</span>
                       </div>
 
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                         <span className="text-xs font-medium text-slate-500">Monthly Fee Collection</span>
                         <div className="text-2xl font-bold text-indigo-600 mt-1">₹14,85,000</div>
                         <span className="text-[11px] text-slate-500 mt-1 block">100% digital receipts issued</span>
                       </div>
 
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                         <span className="text-xs font-medium text-slate-500">Staff Salary Disbursements</span>
                         <div className="text-2xl font-bold text-slate-900 mt-1">₹4,20,000</div>
                         <span className="text-[11px] text-slate-500 mt-1 block">Teaching & support staff</span>
@@ -510,25 +469,25 @@ export const LandingPage = () => {
           </div>
         </section>
 
-        {/* 4. CORE FEATURES SECTION */}
+        {/* 4. CONSOLIDATED FEATURES & CAPABILITIES */}
         <section id="features" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-12">
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Everything Your School Needs
+                Features & Capabilities
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                Manage the essential operations of your school from one platform.
+                Everything your school needs to automate administration and financial management.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {coreFeatures.map((item, idx) => {
+              {features.map((item, idx) => {
                 const IconComp = item.icon;
                 return (
                   <div
                     key={idx}
-                    className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs hover:border-slate-300 transition-colors"
+                    className="bg-white rounded-xl p-5 border border-slate-200 shadow-2xs hover:border-indigo-300 transition-colors"
                   >
                     <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 mb-3">
                       <IconComp className="w-5 h-5" />
@@ -542,42 +501,8 @@ export const LandingPage = () => {
           </div>
         </section>
 
-        {/* 5. MODULES SECTION */}
-        <section id="modules" className="py-16 sm:py-20 bg-white border-b border-slate-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Core System Modules
-              </h2>
-              <p className="mt-2 text-sm text-slate-600">
-                Integrated modules to handle daily educational and financial operations.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {systemModules.map((mod, idx) => {
-                const IconComp = mod.icon;
-                return (
-                  <div
-                    key={idx}
-                    className="bg-white rounded-xl p-6 border border-slate-200 shadow-xs hover:border-indigo-200 transition-colors flex items-start gap-4"
-                  >
-                    <div className="w-11 h-11 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shrink-0">
-                      <IconComp className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-slate-900 mb-1">{mod.name}</h3>
-                      <p className="text-xs text-slate-600 leading-relaxed">{mod.description}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* 6. HOW IT WORKS */}
-        <section id="how-it-works" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200">
+        {/* 5. HOW IT WORKS */}
+        <section id="how-it-works" className="py-16 sm:py-20 bg-white border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-12">
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -588,8 +513,8 @@ export const LandingPage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {howItWorksSteps.map((step, idx) => (
-                <div key={idx} className="bg-white rounded-xl p-6 border border-slate-200 shadow-xs text-center">
-                  <div className="w-12 h-12 rounded-full bg-indigo-600 text-white font-extrabold text-base flex items-center justify-center mx-auto mb-4">
+                <div key={idx} className="bg-slate-50 rounded-xl p-6 border border-slate-200 shadow-2xs text-center">
+                  <div className="w-12 h-12 rounded-full bg-indigo-600 text-white font-extrabold text-base flex items-center justify-center mx-auto mb-4 shadow-2xs">
                     {step.step}
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 mb-2">{step.title}</h3>
@@ -600,8 +525,8 @@ export const LandingPage = () => {
           </div>
         </section>
 
-        {/* 7. PRICING SECTION */}
-        <section id="pricing" className="py-16 sm:py-20 bg-white border-b border-slate-200">
+        {/* 6. PRICING SECTION */}
+        <section id="pricing" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-10">
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -612,32 +537,36 @@ export const LandingPage = () => {
               </p>
 
               {/* Billing Cycle Filter Buttons */}
-              <div className="mt-6 inline-flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+              <div className="mt-6 inline-flex items-center bg-white p-1 rounded-lg border border-slate-200 shadow-2xs">
                 <button
                   onClick={() => setBillingFilter('ALL')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${billingFilter === 'ALL' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                    billingFilter === 'ALL' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
                   All Plans
                 </button>
                 <button
                   onClick={() => setBillingFilter('MONTHLY')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${billingFilter === 'MONTHLY' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                    billingFilter === 'MONTHLY' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
                   Monthly
                 </button>
                 <button
                   onClick={() => setBillingFilter('QUARTERLY')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${billingFilter === 'QUARTERLY' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                    billingFilter === 'QUARTERLY' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
                   Quarterly
                 </button>
                 <button
                   onClick={() => setBillingFilter('YEARLY')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${billingFilter === 'YEARLY' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                    }`}
+                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                    billingFilter === 'YEARLY' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
                 >
                   Yearly
                 </button>
@@ -648,11 +577,11 @@ export const LandingPage = () => {
             {loadingPlans ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
                 {[1, 2, 3].map((n) => (
-                  <div key={n} className="bg-slate-50 rounded-xl p-6 border border-slate-200 animate-pulse h-80" />
+                  <div key={n} className="bg-white rounded-xl p-6 border border-slate-200 animate-pulse h-80" />
                 ))}
               </div>
             ) : plansError ? (
-              <div className="text-center py-8 bg-slate-50 rounded-xl border border-slate-200 max-w-md mx-auto">
+              <div className="text-center py-8 bg-white rounded-xl border border-slate-200 max-w-md mx-auto">
                 <p className="text-xs text-slate-600 mb-3">{plansError}</p>
                 <Link to="/register">
                   <Button variant="primary" size="sm" className="bg-indigo-600 text-white">
@@ -670,7 +599,7 @@ export const LandingPage = () => {
                   return (
                     <div
                       key={plan.id}
-                      className={`bg-white rounded-xl p-6 border shadow-xs flex flex-col justify-between transition-all ${
+                      className={`bg-white rounded-xl p-6 border shadow-2xs flex flex-col justify-between transition-all ${
                         isEnterprise ? 'border-purple-300 ring-1 ring-purple-100' : 'border-slate-200 hover:border-indigo-300'
                       }`}
                     >
@@ -694,10 +623,10 @@ export const LandingPage = () => {
                           )}
                         </div>
 
-                        {/* Student Capacity Highlight Badge (Right below Plan Name) */}
+                        {/* Student Capacity Highlight Badge */}
                         <div className="mb-3">
                           <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold shadow-2xs border ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold border ${
                               isEnterprise
                                 ? 'bg-purple-50 text-purple-900 border-purple-200/90'
                                 : plan.maxStudentLimit
@@ -757,7 +686,7 @@ export const LandingPage = () => {
                         {/* Features list */}
                         <div className="space-y-2 mb-6">
                           <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
-                            Features
+                            Features Included
                           </span>
                           {Array.isArray(plan.features) &&
                             plan.features.map((feat, idx) => (
@@ -787,8 +716,8 @@ export const LandingPage = () => {
           </div>
         </section>
 
-        {/* 8. FAQ SECTION */}
-        <section id="faq" className="py-16 sm:py-20 bg-slate-50 border-b border-slate-200">
+        {/* 7. FAQ SECTION */}
+        <section id="faq" className="py-16 sm:py-20 bg-white border-b border-slate-200">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-10">
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -803,19 +732,20 @@ export const LandingPage = () => {
               {faqs.map((faq, idx) => {
                 const isOpen = openFaqIndex === idx;
                 return (
-                  <div key={idx} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+                  <div key={idx} className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
                     <button
                       onClick={() => setOpenFaqIndex(isOpen ? -1 : idx)}
                       className="w-full p-4 text-left flex items-center justify-between text-slate-900 font-bold text-sm hover:text-indigo-600 transition-colors"
                     >
                       <span>{faq.q}</span>
                       <ChevronDown
-                        className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-indigo-600' : ''
-                          }`}
+                        className={`w-4 h-4 text-slate-500 shrink-0 transition-transform duration-200 ${
+                          isOpen ? 'rotate-180 text-indigo-600' : ''
+                        }`}
                       />
                     </button>
                     {isOpen && (
-                      <div className="px-4 pb-4 text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-2.5">
+                      <div className="px-4 pb-4 text-xs text-slate-600 leading-relaxed border-t border-slate-200/60 pt-2.5">
                         {faq.a}
                       </div>
                     )}
@@ -826,14 +756,14 @@ export const LandingPage = () => {
           </div>
         </section>
 
-        {/* 9. FINAL CTA */}
-        <section className="py-16 bg-white">
+        {/* 8. FINAL CTA */}
+        <section className="py-16 bg-slate-50">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
               Ready to simplify your school management?
             </h2>
             <p className="mt-3 text-sm text-slate-600 max-w-xl mx-auto">
-              Start using AxomSetu for your school.
+              Start using AxomSetu for your school with a 30-day free trial.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
@@ -841,7 +771,7 @@ export const LandingPage = () => {
                 <Button
                   variant="primary"
                   size="lg"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 text-sm rounded-lg shadow-sm"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 text-sm rounded-lg shadow-xs"
                 >
                   Start Free Trial
                 </Button>
@@ -850,7 +780,7 @@ export const LandingPage = () => {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold px-6 py-2.5 text-sm rounded-lg"
+                  className="border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold px-6 py-2.5 text-sm rounded-lg"
                 >
                   Login
                 </Button>
@@ -860,8 +790,8 @@ export const LandingPage = () => {
         </section>
       </main>
 
-      {/* 10. LANDING FOOTER */}
-      <footer className="bg-slate-50 text-slate-600 text-xs py-10 border-t border-slate-200">
+      {/* 9. LANDING FOOTER */}
+      <footer className="bg-white text-slate-600 text-xs py-10 border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Left branding */}
           <div className="flex items-center gap-2.5">
@@ -881,8 +811,8 @@ export const LandingPage = () => {
             <a href="#features" className="hover:text-indigo-600 transition-colors">
               Features
             </a>
-            <a href="#modules" className="hover:text-indigo-600 transition-colors">
-              Modules
+            <a href="#how-it-works" className="hover:text-indigo-600 transition-colors">
+              How It Works
             </a>
             <a href="#pricing" className="hover:text-indigo-600 transition-colors">
               Pricing
@@ -903,7 +833,7 @@ export const LandingPage = () => {
               Privacy Policy
             </button>
             <Link to="/contact" className="hover:text-indigo-600 transition-colors">
-              Contact/Support
+              Contact Us
             </Link>
           </div>
 
