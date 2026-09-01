@@ -13,6 +13,7 @@ export const hostelService = {
   // Rooms
   listRooms: (params) => api.get('/hostel/rooms', { params }),
   createRoom: (data) => api.post('/hostel/rooms', data),
+  bulkCreateRooms: (data) => api.post('/hostel/rooms/bulk', data),
   updateRoom: (id, data) => api.put(`/hostel/rooms/${id}`, data),
   deleteRoom: (id) => api.delete(`/hostel/rooms/${id}`),
 

@@ -469,6 +469,95 @@ export const deleteRoom = async (schoolId, roomId, actorUserId) => {
   return { message: 'Room deleted successfully' };
 };
 
+export const bulkCreateRooms = async (schoolId, data, actorUserId) => {
+  const hostel = await getHostelById(schoolId, data.hostelId);
+
+  const prefix = (data.prefix || '').trim();
+  const startNum = data.startRoomNumber || 101;
+  const count = data.count;
+  const floor = data.floor ? data.floor.trim() : null;
+  const capacity = data.capacity || 2;
+  const roomType = data.roomType ? data.roomType.trim() : 'Non-AC';
+
+  const existingRooms = await prisma.hostelRoom.findMany({
+    where: { hostelId: data.hostelId },
+    select: { roomNumber: true },
+  });
+
+  const existingSet = new Set(existingRooms.map((r) => r.roomNumber.toLowerCase()));
+
+  const createdRooms = [];
+  let totalBedsGenerated = 0;
+  let currentNum = startNum;
+
+  while (createdRooms.length < count) {
+    const roomNumStr = prefix ? `${prefix}${currentNum}` : `${currentNum}`;
+    currentNum++;
+
+    if (existingSet.has(roomNumStr.toLowerCase())) {
+      continue;
+    }
+
+    const room = await prisma.hostelRoom.create({
+      data: {
+        schoolId,
+        hostelId: data.hostelId,
+        roomNumber: roomNumStr,
+        floor,
+        capacity,
+        roomType,
+      },
+    });
+
+    existingSet.add(roomNumStr.toLowerCase());
+    createdRooms.push(room);
+
+    const bedPayloads = [];
+    for (let i = 1; i <= capacity; i++) {
+      const padNum = String(i).padStart(2, '0');
+      bedPayloads.push({
+        schoolId,
+        hostelId: data.hostelId,
+        roomId: room.id,
+        bedNumber: `Bed ${padNum}`,
+        status: 'AVAILABLE',
+      });
+    }
+
+    await prisma.hostelBed.createMany({
+      data: bedPayloads,
+      skipDuplicates: true,
+    });
+
+    totalBedsGenerated += bedPayloads.length;
+  }
+
+  if (actorUserId && createdRooms.length > 0) {
+    await prisma.auditLog.create({
+      data: {
+        schoolId,
+        userId: actorUserId,
+        action: 'BULK_CREATE_ROOMS',
+        entityType: 'HostelRoom',
+        entityId: createdRooms[0].id,
+        newValues: {
+          hostelName: hostel.name,
+          roomsCreatedCount: createdRooms.length,
+          totalBedsGenerated,
+          startRoomNumber: startNum,
+          roomNumbers: createdRooms.map((r) => r.roomNumber),
+        },
+      },
+    });
+  }
+
+  return {
+    message: `Successfully created ${createdRooms.length} room(s) and ${totalBedsGenerated} bed(s) in '${hostel.name}'.`,
+    roomsCount: createdRooms.length,
+    bedsCount: totalBedsGenerated,
+  };
+};
+
 // ==========================================
 // BEDS CRUD & BOOKMYSHOW PREVIEW
 // ==========================================

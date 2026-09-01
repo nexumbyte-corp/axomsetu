@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save, Check, MoveUp, MoveDown, Trash2, Plus, Users, ShieldAlert, GripVertical, Pencil, X } from 'lucide-react';
+import { ArrowLeft, Save, Check, MoveUp, MoveDown, Trash2, Plus, GripVertical, Pencil, X } from 'lucide-react';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';

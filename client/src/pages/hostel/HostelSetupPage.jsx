@@ -22,6 +22,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { StudentPhotoModal } from '../../components/hostel/StudentPhotoModal.jsx';
+import { ManageHostelRoomsModal } from '../../components/hostel/ManageHostelRoomsModal.jsx';
 
 export const HostelSetupPage = () => {
   const [activeTab, setActiveTab] = useState('hostels'); // 'hostels' | 'rooms' | 'beds'
@@ -42,9 +43,9 @@ export const HostelSetupPage = () => {
   const [editingHostel, setEditingHostel] = useState(null);
   const [hostelForm, setHostelForm] = useState({ name: '', code: '', type: 'COMBINED', address: '', description: '' });
 
-  const [roomModalOpen, setRoomModalOpen] = useState(false);
-  const [editingRoom, setEditingRoom] = useState(null);
-  const [roomForm, setRoomForm] = useState({ hostelId: '', roomNumber: '', floor: '', capacity: 2, roomType: 'Non-AC' });
+  // Manage Hostel Rooms Modal (Unified Room Workspace)
+  const [manageRoomsModalOpen, setManageRoomsModalOpen] = useState(false);
+  const [targetHostelIdForRooms, setTargetHostelIdForRooms] = useState('');
 
   const [bedModalOpen, setBedModalOpen] = useState(false);
   const [bedForm, setBedForm] = useState({ hostelId: '', roomId: '', bedNumber: '', status: 'AVAILABLE' });
@@ -169,49 +170,16 @@ export const HostelSetupPage = () => {
     }
   };
 
-  // Room Handlers
-  const handleOpenRoomModal = (room = null) => {
-    if (room) {
-      setEditingRoom(room);
-      setRoomForm({
-        hostelId: room.hostelId,
-        roomNumber: room.roomNumber,
-        floor: room.floor || '',
-        capacity: room.capacity || 2,
-        roomType: room.roomType || 'Non-AC',
-      });
-    } else {
-      setEditingRoom(null);
-      setRoomForm({
-        hostelId: selectedHostelId || (hostels[0]?.id || ''),
-        roomNumber: '',
-        floor: 'Ground',
-        capacity: 2,
-        roomType: 'Non-AC',
-      });
-    }
-    setRoomModalOpen(true);
+  // Unified Room Management Modal Handler
+  const handleOpenManageRoomsModal = (hostelId = '') => {
+    const targetId = hostelId || selectedHostelId || (hostels[0]?.id || '');
+    setTargetHostelIdForRooms(targetId);
+    setManageRoomsModalOpen(true);
   };
 
-  const handleSubmitRoom = async (e) => {
-    e.preventDefault();
-    try {
-      setSubmitting(true);
-      if (editingRoom) {
-        await hostelService.updateRoom(editingRoom.id, roomForm);
-        toast.success('Room updated successfully');
-      } else {
-        await hostelService.createRoom(roomForm);
-        toast.success('Room created successfully');
-      }
-      setRoomModalOpen(false);
-      fetchRooms();
-      fetchHostels();
-    } catch (err) {
-      toast.error(err.message || 'Failed to save room');
-    } finally {
-      setSubmitting(false);
-    }
+  const handleRoomsUpdated = () => {
+    fetchRooms();
+    fetchHostels();
   };
 
   const handleConfirmDeleteRoom = async () => {
@@ -222,6 +190,7 @@ export const HostelSetupPage = () => {
       toast.success(`Room '${roomToDelete.roomNumber}' deleted successfully`);
       setRoomToDelete(null);
       fetchRooms();
+      fetchHostels();
     } catch (err) {
       toast.error(err.message || 'Failed to delete room');
     } finally {
@@ -340,7 +309,7 @@ export const HostelSetupPage = () => {
             </Button>
           )}
           {activeTab === 'rooms' && (
-            <Button size="sm" onClick={() => handleOpenRoomModal()} disabled={hostels.length === 0} className="h-8 text-xs">
+            <Button size="sm" onClick={() => handleOpenManageRoomsModal()} disabled={hostels.length === 0} className="h-8 text-xs">
               <Plus className="w-3.5 h-3.5 mr-1" />
               Add Room
             </Button>
@@ -476,8 +445,8 @@ export const HostelSetupPage = () => {
             <Card className="p-8 text-center text-xs text-slate-500 border-dashed">
               <DoorOpen className="w-10 h-10 text-slate-300 mx-auto mb-2" />
               <p>No rooms found matching filters.</p>
-              <Button size="sm" className="mt-3" onClick={() => handleOpenRoomModal()}>
-                Add New Room
+              <Button size="sm" icon={Plus} className="mt-3" onClick={() => handleOpenManageRoomsModal(selectedHostelId)}>
+                Add Room
               </Button>
             </Card>
           ) : (
@@ -507,7 +476,7 @@ export const HostelSetupPage = () => {
                         <span className="text-indigo-600 font-bold">{r.occupiedBedsCount} busy</span>
                       </td>
                       <td className="px-3.5 py-2 text-right space-x-1">
-                        <Button variant="ghost" size="sm" className="h-7" onClick={() => handleOpenRoomModal(r)}>
+                        <Button variant="ghost" size="sm" className="h-7" onClick={() => handleOpenManageRoomsModal(r.hostelId)}>
                           <Edit2 className="w-3.5 h-3.5" />
                         </Button>
                         <Button variant="ghost" size="sm" className="h-7 text-rose-600" onClick={() => setRoomToDelete(r)}>
@@ -667,72 +636,14 @@ export const HostelSetupPage = () => {
         </form>
       </Modal>
 
-      {/* CREATE / EDIT ROOM MODAL */}
-      <Modal
-        isOpen={roomModalOpen}
-        onClose={() => setRoomModalOpen(false)}
-        title={editingRoom ? 'Edit Room' : 'Add New Room'}
-      >
-        <form onSubmit={handleSubmitRoom} autoComplete="off" className="space-y-3">
-          <Select
-            label="Hostel *"
-            value={roomForm.hostelId}
-            onChange={(e) => setRoomForm({ ...roomForm, hostelId: e.target.value })}
-            required
-            disabled={!!editingRoom}
-          >
-            {hostels.map((h) => (
-              <option key={h.id} value={h.id}>
-                {h.name} ({h.type})
-              </option>
-            ))}
-          </Select>
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Room Number *"
-              placeholder="Room Number"
-              value={roomForm.roomNumber}
-              onChange={(e) => setRoomForm({ ...roomForm, roomNumber: e.target.value })}
-              required
-            />
-            <Input
-              label="Floor"
-              placeholder="Floor"
-              value={roomForm.floor}
-              onChange={(e) => setRoomForm({ ...roomForm, floor: e.target.value })}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Bed Capacity *"
-              type="number"
-              min="1"
-              max="20"
-              placeholder="Capacity"
-              value={roomForm.capacity}
-              onChange={(e) => setRoomForm({ ...roomForm, capacity: parseInt(e.target.value, 10) || 1 })}
-              required
-            />
-            <Select
-              label="Room Type"
-              value={roomForm.roomType}
-              onChange={(e) => setRoomForm({ ...roomForm, roomType: e.target.value })}
-            >
-              <option value="Non-AC">Non-AC</option>
-              <option value="AC">AC</option>
-              <option value="Deluxe AC">Deluxe AC</option>
-            </Select>
-          </div>
-          <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-            <Button type="button" variant="outline" onClick={() => setRoomModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" loading={submitting}>
-              {editingRoom ? 'Update Room' : 'Create Room & Auto-Beds'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      {/* UNIFIED ROOM MANAGEMENT MODAL */}
+      <ManageHostelRoomsModal
+        isOpen={manageRoomsModalOpen}
+        onClose={() => setManageRoomsModalOpen(false)}
+        hostels={hostels}
+        initialHostelId={targetHostelIdForRooms}
+        onSuccess={handleRoomsUpdated}
+      />
 
       {/* CREATE SINGLE BED MODAL */}
       <Modal

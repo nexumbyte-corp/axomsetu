@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Search, RefreshCw, Plus, Calendar, AlertTriangle, Edit2, Printer } from 'lucide-react';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { adminService } from '../../services/adminService.js';
-import { calculateSubscriptionEndDate, formatDateInput } from '../../utils/subscriptionUtils.js';
 import { formatDate } from '../../utils/formatters.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';

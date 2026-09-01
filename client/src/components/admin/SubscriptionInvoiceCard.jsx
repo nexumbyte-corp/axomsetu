@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from '../ui/Badge.jsx';
 import { formatDate } from '../../utils/formatters.js';
 import { BRAND_CONFIG } from '../../config/brandConfig.js';
-import { Check, ShieldCheck, Award, Receipt } from 'lucide-react';
+import { Check, ShieldCheck, Award } from 'lucide-react';
 
 export const SubscriptionInvoiceCard = ({ subscription, school }) => {
   if (!subscription) return null;

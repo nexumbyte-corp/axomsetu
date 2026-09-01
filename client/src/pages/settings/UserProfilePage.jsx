@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Lock, Save, ShieldCheck, Mail, Phone, Building, CheckCircle2, ShieldAlert, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Save, Mail, Phone, Building, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { usePermission } from '../../hooks/usePermission.js';
 import { authService } from '../../services/auth.service.js';

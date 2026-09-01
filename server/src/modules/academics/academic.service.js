@@ -182,6 +182,89 @@ export const deleteClass = async (schoolId, classId, actorUserId) => {
   });
 };
 
+export const bulkDeleteClasses = async (schoolId, classIds, actorUserId) => {
+  if (!Array.isArray(classIds) || classIds.length === 0) {
+    throw ApiError.badRequest('No class IDs provided for bulk deletion');
+  }
+
+  const uniqueIds = [...new Set(classIds)];
+
+  const targetClasses = await prisma.class.findMany({
+    where: {
+      id: { in: uniqueIds },
+      schoolId,
+    },
+  });
+
+  if (targetClasses.length === 0) {
+    throw ApiError.notFound('No valid classes found for deletion');
+  }
+
+  const deletableClasses = [];
+  const skippedClasses = [];
+
+  for (const cls of targetClasses) {
+    const [enrollmentCount, transferCount] = await Promise.all([
+      prisma.studentEnrollment.count({ where: { classId: cls.id } }),
+      prisma.studentTransferHistory.count({ where: { classId: cls.id } }),
+    ]);
+
+    const totalStudents = enrollmentCount + transferCount;
+
+    if (totalStudents > 0) {
+      skippedClasses.push({
+        id: cls.id,
+        name: cls.name,
+        reason: `Cannot delete Class '${cls.name}' because ${totalStudents} student record(s) are associated with it.`,
+      });
+    } else {
+      deletableClasses.push(cls);
+    }
+  }
+
+  const deletableIds = deletableClasses.map((c) => c.id);
+
+  if (deletableIds.length > 0) {
+    await prisma.$transaction(async (tx) => {
+      await tx.feeStructure.deleteMany({
+        where: { classId: { in: deletableIds } },
+      });
+      await tx.feeGenerationBatch.deleteMany({
+        where: { classId: { in: deletableIds } },
+      });
+
+      await tx.class.deleteMany({
+        where: {
+          id: { in: deletableIds },
+          schoolId,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: actorUserId,
+          action: 'BULK_DELETE_CLASSES',
+          entityType: 'Class',
+          entityId: deletableIds[0],
+          newValues: {
+            deletedCount: deletableIds.length,
+            deletedClassNames: deletableClasses.map((c) => c.name),
+            skippedCount: skippedClasses.length,
+          },
+        },
+      });
+    });
+  }
+
+  return {
+    deletedCount: deletableClasses.length,
+    deletedClasses: deletableClasses.map((c) => ({ id: c.id, name: c.name })),
+    skippedCount: skippedClasses.length,
+    skippedClasses,
+  };
+};
+
 // ==========================================
 // MEDIUMS SERVICE
 // ==========================================

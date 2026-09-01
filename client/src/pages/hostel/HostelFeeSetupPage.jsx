@@ -1,6 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, CheckCircle2, Receipt, Building, Edit2, Plus, Search, Ban } from 'lucide-react';
+import {
+  Play,
+  CheckCircle2,
+  Receipt,
+  Building,
+  Edit2,
+  Plus,
+  Search,
+  Ban,
+  Wallet,
+  TrendingUp,
+  Sparkles,
+} from 'lucide-react';
 import { hostelService } from '../../services/hostel.service.js';
 import { useAcademicYear } from '../../context/AcademicYearContext.jsx';
 import { Card } from '../../components/ui/Card.jsx';
@@ -13,6 +25,7 @@ import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { formatDate } from '../../utils/formatters.js';
+import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { StudentDetailsCell } from '../../components/hostel/StudentDetailsCell.jsx';
 import { StudentPhotoModal } from '../../components/hostel/StudentPhotoModal.jsx';
 
@@ -59,7 +72,7 @@ export const HostelFeeSetupPage = () => {
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState('');
   const [selectedHostelId, setSelectedHostelId] = useState('');
   const [hostels, setHostels] = useState([]);
-  const [hostelFeeConfigs, setHostelFeeConfigs] = useState({}); // hostelId -> config
+  const [hostelFeeConfigs, setHostelFeeConfigs] = useState({});
 
   // Fee Rates Setup Modal State
   const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
@@ -75,7 +88,7 @@ export const HostelFeeSetupPage = () => {
   const selectedYearObj = academicYears?.find((a) => a.id === selectedAcademicYearId);
   const orderedBillingMonths = getOrderedMonthsForAcademicYear(selectedYearObj);
 
-  // Monthly Billing State (Automatically selected to current system month)
+  // Monthly Billing State
   const [billingMonth, setBillingMonth] = useState(() => getCurrentSystemMonth());
   const [searchQuery, setSearchQuery] = useState('');
   const [studentsList, setStudentsList] = useState([]);
@@ -111,7 +124,6 @@ export const HostelFeeSetupPage = () => {
       const hostelsData = hostelRes.data || [];
       setHostels(hostelsData);
 
-      // Fetch configs for each hostel
       const configMap = {};
       await Promise.all(
         hostelsData.map(async (h) => {
@@ -123,7 +135,7 @@ export const HostelFeeSetupPage = () => {
             if (cfgRes.data) {
               configMap[h.id] = cfgRes.data;
             }
-          } catch {
+          } catch (err) {
             console.error(`Failed loading fee config for hostel ${h.name}:`, err);
           }
         })
@@ -145,9 +157,11 @@ export const HostelFeeSetupPage = () => {
       });
       if (res.data) {
         setFeeRecords(res.data.charges || []);
-        setFeeSummary(res.data.summary || { totalCharges: 0, totalAmount: 0, totalPaid: 0, totalUnpaid: 0 });
+        setFeeSummary(
+          res.data.summary || { totalCharges: 0, totalAmount: 0, totalPaid: 0, totalUnpaid: 0 }
+        );
       }
-    } catch {
+    } catch (err) {
       console.error('Failed loading hostel fee ledger:', err);
     } finally {
       setRecordsLoading(false);
@@ -169,7 +183,7 @@ export const HostelFeeSetupPage = () => {
       if (res.data && res.data.students) {
         setStudentsList(res.data.students);
       }
-    } catch {
+    } catch (err) {
       setStudentsList([]);
       setBillingError(err.message || 'Error loading billing candidates');
     } finally {
@@ -190,7 +204,6 @@ export const HostelFeeSetupPage = () => {
     }
   }, [selectedAcademicYearId, billingMonth, selectedHostelId, searchQuery, activeTab, fetchEligibleStudents]);
 
-  // Open modal to configure rates for a specific hostel
   const handleOpenFeeModal = (hostel) => {
     setEditingHostel(hostel);
     const existingConfig = hostelFeeConfigs[hostel.id] || {};
@@ -221,14 +234,13 @@ export const HostelFeeSetupPage = () => {
       toast.success(`Fee structure updated for ${editingHostel.name}`);
       setIsFeeModalOpen(false);
       fetchHostelsAndConfigs();
-    } catch {
+    } catch (err) {
       toast.error(err.message || 'Failed to save hostel fee rates');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Student list row handlers in billing generator
   const handleToggleSelectAll = (checked) => {
     setStudentsList((prev) =>
       prev.map((s) => (s.isSelectable ? { ...s, isSelected: checked } : s))
@@ -243,7 +255,6 @@ export const HostelFeeSetupPage = () => {
 
   const [bulkAmountInput, setBulkAmountInput] = useState('');
 
-  // Row input handlers
   const handleAppliedFeeChange = (studentId, val) => {
     const num = parseFloat(val);
     const feeVal = isNaN(num) ? 0 : num;
@@ -339,18 +350,14 @@ export const HostelFeeSetupPage = () => {
       setShowResultModal(true);
       fetchEligibleStudents();
       fetchFeeRecords();
-    } catch {
+    } catch (err) {
       toast.error(err.message || 'Failed to generate hostel fees');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Billing Preview Summaries
   const selectedCount = studentsList.filter((s) => s.isSelected && s.isSelectable).length;
-  const _totalBillingAmount = studentsList
-    .filter((s) => s.isSelected && s.isSelectable)
-    .reduce((sum, s) => sum + (s.appliedFee || 0), 0);
 
   const allSelectableChecked =
     studentsList.filter((s) => s.isSelectable).length > 0 &&
@@ -358,66 +365,30 @@ export const HostelFeeSetupPage = () => {
 
   return (
     <div className="space-y-6 text-xs pb-10">
-      {/* ── TOP HEADER ── */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-slate-900">Hostel Fee Setup & Billing Hub</h1>
-              <Badge variant="indigo" size="sm">Hostel Module</Badge>
-            </div>
-            <p className="text-slate-500 text-xs mt-1">
-              Step 1: Create your hostel buildings and set fee rates. Step 2: Bill monthly fees to residents.
-            </p>
-          </div>
-
+      {/* Standardized Module Header */}
+      <ModulePageHeader
+        icon={Receipt}
+        title="Hostel Fee Setup & Billing Hub"
+        description="Configure hostel building fee structures, execute monthly resident fee generation batches, and monitor hostel fee dues."
+        actions={
           <div className="flex items-center gap-2">
             <Select
               value={selectedAcademicYearId}
               onChange={(e) => setSelectedAcademicYearId(e.target.value)}
-              className="py-1.5 text-xs bg-slate-50 border-slate-200 font-semibold"
+              className="py-1.5 px-3 text-xs font-semibold bg-white border border-slate-300 rounded-lg shadow-2xs focus:ring-2 focus:ring-indigo-500"
             >
               {academicYears?.map((ay) => (
                 <option key={ay.id} value={ay.id}>
-                  {ay.name} {ay.isCurrent ? '(Current)' : ''}
+                  {ay.name} {ay.isCurrent ? '(Current Year)' : ''}
                 </option>
               ))}
             </Select>
           </div>
-        </div>
+        }
+      />
 
-        {/* Executive Dues Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100">
-          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Registered Hostels</span>
-            <span className="text-base font-extrabold text-slate-900">{hostels.length} Buildings</span>
-          </div>
-
-          <div className="bg-indigo-50/70 p-3 rounded-xl border border-indigo-100">
-            <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">Total Charges Billed</span>
-            <span className="text-base font-extrabold font-mono text-indigo-900">
-              ₹{(feeSummary.totalAmount || 0).toLocaleString('en-IN')}
-            </span>
-          </div>
-
-          <div className="bg-emerald-50/70 p-3 rounded-xl border border-emerald-100">
-            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Total Dues Collected</span>
-            <span className="text-base font-extrabold font-mono text-emerald-900">
-              ₹{(feeSummary.totalPaid || 0).toLocaleString('en-IN')}
-            </span>
-          </div>
-
-          <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-100">
-            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Outstanding Dues</span>
-            <span className="text-base font-extrabold font-mono text-amber-900">
-              ₹{(feeSummary.totalUnpaid || 0).toLocaleString('en-IN')}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── WORKFLOW TAB NAVIGATOR ── */}
-      <div className="flex space-x-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+      {/* ── WORKFLOW SEGMENTED TABS ── */}
+      <div className="-mt-2 flex space-x-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
         <button
           onClick={() => setActiveTab('rates')}
           className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
@@ -458,11 +429,84 @@ export const HostelFeeSetupPage = () => {
       {/* ── TAB 1: HOSTEL FEE RATES ── */}
       {activeTab === 'rates' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between bg-indigo-50/60 p-4 rounded-xl border border-indigo-100">
+          {/* Executive Financial Metric Cards (Only shown in Hostel Fee Rates tab) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="p-4 bg-white border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Registered Hostels
+                </span>
+                <div className="p-2 bg-slate-100 text-slate-700 rounded-lg">
+                  <Building className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className="text-xl font-extrabold text-slate-900">
+                  {hostels.length} <span className="text-xs font-normal text-slate-500">Buildings</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">Facilities</span>
+              </div>
+            </Card>
+
+            <Card className="p-4 bg-white border border-indigo-100 shadow-2xs hover:shadow-xs transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">
+                  Total Billed Charges
+                </span>
+                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                  <Wallet className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className="text-xl font-extrabold font-mono text-indigo-900">
+                  ₹{(feeSummary.totalAmount || 0).toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-indigo-600 font-semibold">Billed Dues</span>
+              </div>
+            </Card>
+
+            <Card className="p-4 bg-white border border-emerald-100 shadow-2xs hover:shadow-xs transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                  Total Collected
+                </span>
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                  <CheckCircle2 className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className="text-xl font-extrabold font-mono text-emerald-900">
+                  ₹{(feeSummary.totalPaid || 0).toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-emerald-600 font-semibold">Received</span>
+              </div>
+            </Card>
+
+            <Card className="p-4 bg-white border border-amber-100 shadow-2xs hover:shadow-xs transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                  Outstanding Dues
+                </span>
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className="text-xl font-extrabold font-mono text-amber-900">
+                  ₹{(feeSummary.totalUnpaid || 0).toLocaleString('en-IN')}
+                </span>
+                <span className="text-[10px] text-amber-600 font-semibold">Pending</span>
+              </div>
+            </Card>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-indigo-50/80 via-white to-slate-50 p-4 rounded-xl border border-indigo-100">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Hostel Building Fee Structures</h2>
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <span>Hostel Building Fee Structures</span>
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              </h2>
               <p className="text-slate-500 text-xs mt-0.5">
-                Set monthly accommodation fee and one-time admission fee rates for each created hostel building.
+                Set standard monthly accommodation fee rates and one-time admission rates for each hostel building.
               </p>
             </div>
             <Button
@@ -470,7 +514,7 @@ export const HostelFeeSetupPage = () => {
               size="sm"
               onClick={() => navigate('/app/hostel/setup')}
               icon={Plus}
-              className="bg-white text-xs"
+              className="bg-white text-xs text-indigo-700 border-indigo-200 hover:bg-indigo-50 shrink-0"
             >
               Add New Hostel Building
             </Button>
@@ -485,7 +529,7 @@ export const HostelFeeSetupPage = () => {
               <Building className="w-10 h-10 text-slate-400 mx-auto" />
               <h3 className="text-sm font-bold text-slate-800">No Hostels Registered Yet</h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                First create a hostel building in Hostel Rooms & Beds setup, then define monthly fee rates here.
+                First create a hostel building in Hostel Rooms Setup, then define monthly fee rates here.
               </p>
               <Button
                 variant="primary"
@@ -493,7 +537,7 @@ export const HostelFeeSetupPage = () => {
                 onClick={() => navigate('/app/hostel/setup')}
                 icon={Plus}
               >
-                Go to Rooms & Beds Setup
+                Go to Rooms & Setup
               </Button>
             </Card>
           ) : (
@@ -504,7 +548,10 @@ export const HostelFeeSetupPage = () => {
                 const hasAdmission = config.admissionFeeEnabled && config.admissionFeeAmount > 0;
 
                 return (
-                  <Card key={h.id} className="p-4 space-y-4 hover:border-indigo-300 transition-all shadow-2xs">
+                  <Card
+                    key={h.id}
+                    className="p-4 space-y-4 hover:border-indigo-300 transition-all shadow-2xs bg-white rounded-xl"
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
@@ -512,7 +559,13 @@ export const HostelFeeSetupPage = () => {
                         </div>
                         <div>
                           <h3 className="text-sm font-bold text-slate-900">{h.name}</h3>
-                          <Badge variant="neutral" size="xs">{h.type || 'COMBINED'}</Badge>
+                          <Badge
+                            variant={h.type === 'BOYS' ? 'blue' : h.type === 'GIRLS' ? 'pink' : 'purple'}
+                            size="xs"
+                            className="mt-0.5"
+                          >
+                            {h.type || 'COMBINED'} HOSTEL
+                          </Badge>
                         </div>
                       </div>
                       <Button
@@ -520,6 +573,7 @@ export const HostelFeeSetupPage = () => {
                         size="xs"
                         onClick={() => handleOpenFeeModal(h)}
                         icon={Edit2}
+                        className="text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50"
                       >
                         Set Rates
                       </Button>
@@ -527,16 +581,20 @@ export const HostelFeeSetupPage = () => {
 
                     <div className="space-y-2 pt-2 border-t border-slate-100">
                       <div className="flex justify-between items-center bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-                        <span className="text-slate-600 font-medium">Monthly Fee Rate:</span>
+                        <span className="text-slate-600 font-medium">Monthly Accommodation Rate:</span>
                         <span className="font-mono font-bold text-slate-900">
-                          {hasMonthly ? `₹${Number(config.monthlyFeeAmount).toLocaleString('en-IN')} / mo` : 'Not Configured'}
+                          {hasMonthly
+                            ? `₹${Number(config.monthlyFeeAmount).toLocaleString('en-IN')} / mo`
+                            : 'Not Configured'}
                         </span>
                       </div>
 
                       <div className="flex justify-between items-center bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                         <span className="text-slate-600 font-medium">One-Time Admission Fee:</span>
                         <span className="font-mono font-bold text-slate-900">
-                          {hasAdmission ? `₹${Number(config.admissionFeeAmount).toLocaleString('en-IN')}` : 'Disabled'}
+                          {hasAdmission
+                            ? `₹${Number(config.admissionFeeAmount).toLocaleString('en-IN')}`
+                            : 'Disabled'}
                         </span>
                       </div>
                     </div>
@@ -551,12 +609,12 @@ export const HostelFeeSetupPage = () => {
       {/* ── TAB 2: GENERATE MONTHLY DUES ── */}
       {activeTab === 'generate' && (
         <div className="space-y-4">
-          <Card className="p-4 space-y-3 shadow-2xs">
+          <Card className="p-4 space-y-3 shadow-2xs bg-white rounded-xl border border-slate-200">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-bold text-slate-900">Monthly Hostel Resident Billing</h2>
                 <p className="text-xs text-slate-500">
-                  Select month and hostel building, review hostellers, apply vacation waivers if needed, and generate dues.
+                  Select month and hostel, review hostellers, apply vacation waivers if needed, and generate dues.
                 </p>
               </div>
 
@@ -566,10 +624,12 @@ export const HostelFeeSetupPage = () => {
                   <Select
                     value={billingMonth}
                     onChange={(e) => setBillingMonth(e.target.value)}
-                    className="py-1 text-xs font-bold text-indigo-700 bg-slate-50 w-40"
+                    className="py-1 text-xs font-bold text-indigo-700 bg-slate-50 border-slate-300 w-40"
                   >
                     {orderedBillingMonths.map((m) => (
-                      <option key={m} value={m}>{m}</option>
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
                     ))}
                   </Select>
                 </div>
@@ -579,11 +639,13 @@ export const HostelFeeSetupPage = () => {
                   <Select
                     value={selectedHostelId}
                     onChange={(e) => setSelectedHostelId(e.target.value)}
-                    className="py-1 text-xs bg-slate-50 w-44"
+                    className="py-1 text-xs bg-slate-50 border-slate-300 w-44"
                   >
                     <option value="">All Hostels</option>
                     {hostels.map((h) => (
-                      <option key={h.id} value={h.id}>{h.name}</option>
+                      <option key={h.id} value={h.id}>
+                        {h.name}
+                      </option>
                     ))}
                   </Select>
                 </div>
@@ -592,14 +654,14 @@ export const HostelFeeSetupPage = () => {
           </Card>
 
           {billingError && (
-            <Alert type="error" className="py-3 text-xs">
+            <Alert type="danger" className="py-3 text-xs">
               <Ban className="w-4 h-4 mr-2 inline shrink-0" />
               <strong>Fee Generation Blocked:</strong> {billingError}
             </Alert>
           )}
 
           {!billingError && (
-            <Card className="p-4 space-y-3 shadow-2xs">
+            <Card className="p-4 space-y-3 shadow-2xs bg-white rounded-xl border border-slate-200">
               {/* Toolbar: Search & Bulk Controls */}
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
                 {/* Search */}
@@ -610,7 +672,7 @@ export const HostelFeeSetupPage = () => {
                     placeholder="Search resident or adm no..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none"
+                    className="w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
 
@@ -635,7 +697,12 @@ export const HostelFeeSetupPage = () => {
                       onChange={(e) => setBulkAmountInput(e.target.value)}
                       className="w-24 px-2 py-0.5 border border-slate-200 rounded text-xs font-mono outline-none"
                     />
-                    <Button variant="outline" size="sm" onClick={handleApplyBulkAmount} className="h-7 text-[11px] px-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleApplyBulkAmount}
+                      className="h-7 text-[11px] px-2"
+                    >
                       Apply
                     </Button>
                   </div>
@@ -682,7 +749,7 @@ export const HostelFeeSetupPage = () => {
                             type="checkbox"
                             checked={allSelectableChecked}
                             onChange={(e) => handleToggleSelectAll(e.target.checked)}
-                            className="w-3.5 h-3.5 text-indigo-600 rounded"
+                            className="w-3.5 h-3.5 text-indigo-600 rounded cursor-pointer"
                           />
                         </th>
                         <th className="py-2.5 px-3">Resident Details</th>
@@ -711,17 +778,22 @@ export const HostelFeeSetupPage = () => {
                                 disabled={!row.isSelectable}
                                 checked={row.isSelected}
                                 onChange={() => handleToggleStudentSelect(row.studentId)}
-                                className="w-3.5 h-3.5 text-indigo-600 rounded disabled:opacity-40"
+                                className="w-3.5 h-3.5 text-indigo-600 rounded cursor-pointer disabled:opacity-40"
                               />
                             </td>
 
                             <td className="py-2.5 px-3">
-                              <StudentDetailsCell student={row} onPhotoClick={setSelectedPhotoStudent} />
+                              <StudentDetailsCell
+                                student={row}
+                                onPhotoClick={setSelectedPhotoStudent}
+                              />
                             </td>
 
                             <td className="py-2.5 px-3">
                               <span className="font-medium text-slate-800">{row.hostelName}</span>
-                              <span className="text-slate-500 block text-[11px]">Room {row.roomNumber} (Bed {row.bedNumber})</span>
+                              <span className="text-slate-500 block text-[11px]">
+                                Room {row.roomNumber} (Bed {row.bedNumber})
+                              </span>
                               {row.hostelEnrollmentStatus === 'EXITED' && row.endDate && (
                                 <span className="text-amber-700 font-semibold block text-[10px] mt-0.5">
                                   Stayed: {formatDate(row.startDate)} - {formatDate(row.endDate)}
@@ -756,17 +828,29 @@ export const HostelFeeSetupPage = () => {
                             <td className="py-2.5 px-3 text-center space-y-1">
                               <div>
                                 {isGenerated ? (
-                                  <Badge variant="neutral" size="xs">ALREADY GENERATED</Badge>
+                                  <Badge variant="neutral" size="xs">
+                                    ALREADY GENERATED
+                                  </Badge>
                                 ) : isWaived ? (
-                                  <Badge variant="amber" size="xs">WAIVED (₹0)</Badge>
+                                  <Badge variant="amber" size="xs">
+                                    WAIVED (₹0)
+                                  </Badge>
                                 ) : row.appliedFee < row.defaultFee ? (
-                                  <Badge variant="purple" size="xs font-mono">REDUCED</Badge>
+                                  <Badge variant="purple" size="xs font-mono">
+                                    REDUCED
+                                  </Badge>
                                 ) : (
-                                  <Badge variant="green" size="xs">READY TO BILL</Badge>
+                                  <Badge variant="green" size="xs">
+                                    READY TO BILL
+                                  </Badge>
                                 )}
                               </div>
                               {row.hostelEnrollmentStatus === 'EXITED' && (
-                                <Badge variant="warning" size="xs font-mono" className="block mx-auto text-[10px]">
+                                <Badge
+                                  variant="warning"
+                                  size="xs font-mono"
+                                  className="block mx-auto text-[10px]"
+                                >
                                   EXITED IN {getActualExitMonthName(row.endDate) || billingMonth}
                                 </Badge>
                               )}
@@ -798,10 +882,12 @@ export const HostelFeeSetupPage = () => {
       {/* ── TAB 3: BILLED DUES & LEDGER ── */}
       {activeTab === 'history' && (
         <div className="space-y-4">
-          <Card className="p-4 shadow-2xs space-y-3">
+          <Card className="p-4 shadow-2xs space-y-3 bg-white rounded-xl border border-slate-200">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-slate-900">Billed Hostel Dues & History</h2>
-              <span className="text-slate-500 text-xs">Total Records: {feeRecords.length}</span>
+              <span className="text-slate-500 text-xs font-semibold">
+                Total Records: {feeRecords.length}
+              </span>
             </div>
 
             {recordsLoading ? (
@@ -809,7 +895,7 @@ export const HostelFeeSetupPage = () => {
                 <Spinner size="lg" />
               </div>
             ) : feeRecords.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 italic bg-slate-50 rounded-xl border">
+              <div className="p-8 text-center text-slate-500 italic bg-slate-50 rounded-xl border border-slate-200">
                 No hostel fee charges billed yet.
               </div>
             ) : (
@@ -826,8 +912,10 @@ export const HostelFeeSetupPage = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {feeRecords.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50">
-                        <td className="py-2.5 px-3 font-bold text-slate-900">{item.studentName || item.student?.name}</td>
+                      <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-2.5 px-3 font-bold text-slate-900">
+                          {item.studentName || item.student?.name}
+                        </td>
                         <td className="py-2.5 px-3 font-semibold text-indigo-700">{item.month}</td>
                         <td className="py-2.5 px-3 text-slate-700">{item.title}</td>
                         <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
@@ -835,11 +923,17 @@ export const HostelFeeSetupPage = () => {
                         </td>
                         <td className="py-2.5 px-3 text-center">
                           {item.status === 'PAID' ? (
-                            <Badge variant="green" size="xs">PAID</Badge>
+                            <Badge variant="green" size="xs">
+                              PAID
+                            </Badge>
                           ) : item.status === 'PARTIAL' ? (
-                            <Badge variant="purple" size="xs">PARTIAL</Badge>
+                            <Badge variant="purple" size="xs">
+                              PARTIAL
+                            </Badge>
                           ) : (
-                            <Badge variant="amber" size="xs">UNPAID</Badge>
+                            <Badge variant="amber" size="xs">
+                              UNPAID
+                            </Badge>
                           )}
                         </td>
                       </tr>
@@ -877,7 +971,7 @@ export const HostelFeeSetupPage = () => {
                 type="checkbox"
                 checked={feeFormData.monthlyFeeEnabled}
                 onChange={(e) => setFeeFormData({ ...feeFormData, monthlyFeeEnabled: e.target.checked })}
-                className="w-4 h-4 text-indigo-600 rounded"
+                className="w-4 h-4 text-indigo-600 rounded cursor-pointer"
               />
             </div>
 
@@ -901,7 +995,7 @@ export const HostelFeeSetupPage = () => {
                 type="checkbox"
                 checked={feeFormData.admissionFeeEnabled}
                 onChange={(e) => setFeeFormData({ ...feeFormData, admissionFeeEnabled: e.target.checked })}
-                className="w-4 h-4 text-indigo-600 rounded"
+                className="w-4 h-4 text-indigo-600 rounded cursor-pointer"
               />
             </div>
 
@@ -945,7 +1039,7 @@ export const HostelFeeSetupPage = () => {
           </h3>
 
           {genResult && (
-            <div className="bg-slate-50 p-3 rounded-xl border text-left text-xs space-y-1.5 font-medium">
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-left text-xs space-y-1.5 font-medium">
               <div className="flex justify-between">
                 <span>Total Processed:</span>
                 <strong className="font-mono text-slate-900">{genResult.totalProcessed} residents</strong>

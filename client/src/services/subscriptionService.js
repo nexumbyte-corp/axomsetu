@@ -18,6 +18,10 @@ export const subscriptionService = {
     return await api.get('/subscriptions/public-schools');
   },
 
+  async getPlatformContact() {
+    return await api.get('/platform/contact');
+  },
+
   async submitPurchaseRequest(data) {
     return await api.post('/subscriptions/purchase', data);
   },

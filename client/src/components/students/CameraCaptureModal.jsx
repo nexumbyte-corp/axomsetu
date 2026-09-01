@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   Lock,
   HelpCircle,
-  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '../ui/Button.jsx';
 import { toast } from '../ui/Toast.jsx';

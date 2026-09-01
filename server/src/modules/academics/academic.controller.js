@@ -53,6 +53,24 @@ export const deleteClass = asyncHandler(async (req, res) => {
   });
 });
 
+export const bulkDeleteClasses = asyncHandler(async (req, res) => {
+  const result = await academicService.bulkDeleteClasses(
+    req.schoolId,
+    req.body.classIds,
+    req.user?.id
+  );
+
+  res.status(200).json({
+    success: true,
+    message: result.skippedCount > 0 && result.deletedCount > 0
+      ? `Successfully deleted ${result.deletedCount} class(es). ${result.skippedCount} class(es) skipped.`
+      : result.deletedCount > 0
+      ? `${result.deletedCount} class(es) deleted successfully`
+      : `No classes deleted. ${result.skippedCount} class(es) contain student records and cannot be deleted.`,
+    data: result,
+  });
+});
+
 // ==========================================
 // MEDIUMS CONTROLLERS
 // ==========================================

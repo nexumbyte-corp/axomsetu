@@ -150,12 +150,6 @@ export const SalaryHistoryPage = () => {
     label: `${st.name} (${st.employeeId}) — ${st.department || 'Staff'}`,
   }));
 
-  const yearOptions = [
-    { value: currentYear - 1, label: String(currentYear - 1) },
-    { value: currentYear, label: String(currentYear) },
-    { value: currentYear + 1, label: String(currentYear + 1) },
-  ];
-
   return (
     <div className="space-y-6">
       <ModulePageHeader

@@ -37,6 +37,16 @@ export const updateRoomSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export const bulkCreateRoomsSchema = z.object({
+  hostelId: uuidSchema,
+  startRoomNumber: z.number().int().min(1, 'Start room number must be at least 1').max(9999, 'Start room number must not exceed 9999').default(101),
+  count: z.number().int().min(1, 'Count must be at least 1').max(50, 'Cannot bulk create more than 50 rooms at once'),
+  prefix: z.string().trim().max(20, 'Prefix must not exceed 20 characters').optional().default(''),
+  floor: z.string().trim().max(50, 'Floor must not exceed 50 characters').optional().nullable(),
+  capacity: z.number().int().min(1, 'Capacity must be at least 1').max(20, 'Capacity must not exceed 20').default(2),
+  roomType: z.string().trim().max(50, 'Room type must not exceed 50 characters').optional().default('Non-AC'),
+});
+
 export const createBedSchema = z.object({
   hostelId: uuidSchema,
   roomId: uuidSchema,

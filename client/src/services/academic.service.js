@@ -28,6 +28,9 @@ export const academicService = {
   deleteClass: async (id) => {
     return await api.delete(`/classes/${id}`);
   },
+  bulkDeleteClasses: async (classIds) => {
+    return await api.post('/classes/bulk-delete', { classIds });
+  },
 
   // Mediums
   getMediums: async () => {

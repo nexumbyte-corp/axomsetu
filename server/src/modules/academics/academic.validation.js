@@ -27,6 +27,15 @@ export const classIdParamSchema = {
   }),
 };
 
+export const bulkDeleteClassesSchema = {
+  body: z.object({
+    classIds: z
+      .array(z.string().uuid('Invalid class ID format'))
+      .min(1, 'At least one class ID must be provided')
+      .max(100, 'Cannot bulk delete more than 100 classes at once'),
+  }),
+};
+
 // ==========================================
 // MEDIUM SCHEMAS
 // ==========================================

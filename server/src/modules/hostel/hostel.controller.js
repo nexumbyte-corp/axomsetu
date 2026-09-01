@@ -116,6 +116,17 @@ export const deleteRoom = async (req, res, next) => {
   }
 };
 
+export const bulkCreateRooms = async (req, res, next) => {
+  try {
+    const schoolId = getSchoolId(req);
+    const payload = schemas.bulkCreateRoomsSchema.parse(req.body);
+    const data = await hostelService.bulkCreateRooms(schoolId, payload, getActorId(req));
+    res.status(201).json({ success: true, ...data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Beds CRUD
 export const listBeds = async (req, res, next) => {
   try {

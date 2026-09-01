@@ -12,7 +12,6 @@ import {
   Building,
   Wallet,
   FileSpreadsheet,
-  UserPlus,
   Settings,
 } from 'lucide-react';
 

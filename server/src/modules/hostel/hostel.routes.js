@@ -17,6 +17,7 @@ router.delete('/hostels/:id', requirePermission('HOSTEL_SETUP'), hostelControlle
 // Setup: Rooms
 router.get('/rooms', requirePermission('HOSTEL_VIEW'), hostelController.listRooms);
 router.post('/rooms', requirePermission('HOSTEL_SETUP'), hostelController.createRoom);
+router.post('/rooms/bulk', requirePermission('HOSTEL_SETUP'), hostelController.bulkCreateRooms);
 router.put('/rooms/:id', requirePermission('HOSTEL_SETUP'), hostelController.updateRoom);
 router.delete('/rooms/:id', requirePermission('HOSTEL_SETUP'), hostelController.deleteRoom);
 

@@ -10,7 +10,6 @@ import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '.
 import { Select } from '../../components/ui/Select.jsx';
 import { TableSkeleton } from '../../components/ui/Skeleton.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
-import { formatDate } from '../../utils/formatters.js';
 
 export const SuperAdminPlansPage = () => {
   const navigate = useNavigate();

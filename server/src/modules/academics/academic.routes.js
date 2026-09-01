@@ -9,6 +9,7 @@ import {
   createClassSchema,
   updateClassSchema,
   classIdParamSchema,
+  bulkDeleteClassesSchema,
   createMediumSchema,
   updateMediumSchema,
   mediumIdParamSchema,
@@ -28,6 +29,7 @@ classesRouter.use(authenticate, resolveSchool);
 
 classesRouter.get('/', requirePermission([PERMISSIONS.ACADEMICS_VIEW, PERMISSIONS.ACADEMICS_MANAGE, PERMISSIONS.STUDENTS_VIEW, PERMISSIONS.FEES_VIEW]), academicController.getClasses);
 classesRouter.post('/', requirePermission(PERMISSIONS.ACADEMICS_MANAGE), validate(createClassSchema), academicController.addClass);
+classesRouter.post('/bulk-delete', requireOwnerOrSchoolAdmin(), validate(bulkDeleteClassesSchema), academicController.bulkDeleteClasses);
 classesRouter.patch('/:classId', requirePermission(PERMISSIONS.ACADEMICS_MANAGE), validate(classIdParamSchema), validate(updateClassSchema), academicController.updateClass);
 classesRouter.delete('/:classId', requireOwnerOrSchoolAdmin(), validate(classIdParamSchema), academicController.deleteClass);
 

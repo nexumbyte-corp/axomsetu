@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Eye, EyeOff, Lock, Mail, ArrowRight, ArrowLeft, ShieldCheck, Zap, BarChart3, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, ArrowRight, ArrowLeft, ShieldCheck, CheckCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { Button } from '../components/ui/Button.jsx';
 import { Input } from '../components/ui/Input.jsx';
