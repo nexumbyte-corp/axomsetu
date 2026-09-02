@@ -269,45 +269,16 @@ export const StudentsListPage = () => {
         </Alert>
       )}
 
-      {/* Compact Search Bar & Count Row */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* Compact Search Bar */}
-        <div className="flex-1 min-w-0">
-          <Input
-            placeholder="Search students by name, admission no., guardian or phone..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setPage(1);
-            }}
-            icon={Search}
-            size="sm"
-            className="h-10 text-xs sm:text-sm placeholder:text-slate-400 rounded-xl"
-          />
-        </div>
-
-        {/* Desktop Student Count Indicator */}
-        <div className="hidden sm:flex items-center text-xs font-semibold text-slate-600 shrink-0 whitespace-nowrap bg-white px-3 py-2 rounded-xl border border-slate-200 h-10 shadow-2xs">
-          <span className="font-bold text-slate-900 mr-1">{pagination.total}</span>
-          {pagination.total === 1 ? 'Student' : 'Students'}
-        </div>
-
-        {/* Mobile Filter Button Trigger */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsFilterDrawerOpen(true)}
-          icon={Filter}
-          className="md:hidden shrink-0 h-10 px-3 text-xs"
-        >
-          Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
-        </Button>
-      </div>
-
-      {/* Compact Filter Toolbar */}
+      {/* Unified Single-Row Search & Filter Toolbar */}
       <StudentFiltersDrawer
         isOpen={isFilterDrawerOpen}
         onClose={() => setIsFilterDrawerOpen(false)}
+        onOpenMobileDrawer={() => setIsFilterDrawerOpen(true)}
+        searchTerm={searchTerm}
+        onSearchChange={(e) => {
+          setSearchTerm(e.target.value);
+          setPage(1);
+        }}
         filters={filters}
         onChange={handleFilterChange}
         onReset={handleResetFilters}
@@ -316,6 +287,7 @@ export const StudentsListPage = () => {
         mediums={mediums}
         streams={streams}
         activeCount={activeFilterCount}
+        totalStudents={pagination.total}
       />
 
       {/* Content Area: Table / Mobile Cards / Skeletons / EmptyState */}

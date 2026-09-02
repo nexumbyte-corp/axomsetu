@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { staffService } from '../../services/staff.service.js';
 import { Card } from '../../components/ui/Card.jsx';
@@ -50,6 +50,7 @@ export const StaffListPage = () => {
 
   // Filters
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('ALL');
   const [selectedDesignation, setSelectedDesignation] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
@@ -64,20 +65,35 @@ export const StaffListPage = () => {
   const [staffToDelete, setStaffToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchStaffData = async () => {
+  // Debounce search term (350ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Reset to page 1 whenever search, department, designation, or status changes
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, selectedDepartment, selectedDesignation, selectedStatus]);
+
+  const fetchStaffData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await staffService.getStaffList({
         page,
         limit: 10,
-        search,
+        search: debouncedSearch || undefined,
         department: selectedDepartment,
         designation: selectedDesignation,
         status: selectedStatus,
       });
 
-      setStaffList(res.data);
-      setPagination(res.pagination);
+      setStaffList(res.data || []);
+      if (res.pagination) {
+        setPagination(res.pagination);
+      }
 
       if (res.metadata) {
         setDepartments(res.metadata.departments || []);
@@ -88,16 +104,16 @@ export const StaffListPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, debouncedSearch, selectedDepartment, selectedDesignation, selectedStatus]);
 
   useEffect(() => {
     fetchStaffData();
-  }, [page, selectedDepartment, selectedDesignation, selectedStatus]);
+  }, [fetchStaffData]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
+    setDebouncedSearch(search);
     setPage(1);
-    fetchStaffData();
   };
 
   const handleDeleteConfirm = async () => {
@@ -388,15 +404,12 @@ export const StaffListPage = () => {
         )}
 
         {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="p-4 border-t border-slate-200">
-            <Pagination
-              currentPage={pagination.page}
-              totalPages={pagination.totalPages}
-              onPageChange={(p) => setPage(p)}
-            />
-          </div>
-        )}
+        <Pagination
+          page={page}
+          limit={pagination.limit || 10}
+          total={pagination.total || 0}
+          onPageChange={(p) => setPage(p)}
+        />
       </Card>
 
       {/* Add / Edit Staff Modal */}
