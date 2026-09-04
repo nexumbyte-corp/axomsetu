@@ -113,7 +113,12 @@ export const financialLedgerService = {
     const { academicYearId, startDate, endDate } = query;
 
     const where = { schoolId };
-    if (academicYearId) where.academicYearId = academicYearId;
+    if (academicYearId) {
+      where.OR = [
+        { academicYearId },
+        { sourceType: 'OPENING_BALANCE' }
+      ];
+    }
     if (startDate || endDate) {
       where.transactionDate = {
         ...(startDate && { gte: new Date(`${startDate}T00:00:00.000+05:30`) }),
@@ -366,9 +371,20 @@ export const financialLedgerService = {
       throw ApiError.badRequest('Opening balance amount must be greater than zero');
     }
 
+    let targetAcademicYearId = academicYearId || null;
+    if (!targetAcademicYearId) {
+      const activeYear = await prisma.academicYear.findFirst({
+        where: { schoolId, isCurrent: true },
+        select: { id: true },
+      });
+      if (activeYear) {
+        targetAcademicYearId = activeYear.id;
+      }
+    }
+
     const txn = await this.createTransaction(prisma, {
       schoolId,
-      academicYearId: academicYearId || null,
+      academicYearId: targetAcademicYearId,
       transactionDate: transactionDate ? new Date(transactionDate) : new Date(),
       type: 'CREDIT',
       sourceType: 'OPENING_BALANCE',

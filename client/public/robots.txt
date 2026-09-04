@@ -1,0 +1,40 @@
+# Robots.txt for AxomSetu School Management Platform & ERP
+# https://nexumbyte.tech
+
+User-agent: *
+Allow: /
+Allow: /subscription
+Allow: /contact
+Allow: /login
+Allow: /register
+Allow: /public/
+Allow: /app-icon.png
+Allow: /favicon.svg
+
+# Block crawling of authenticated internal portal routes & API endpoints
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /students
+Disallow: /students/*
+Disallow: /staff
+Disallow: /staff/*
+Disallow: /fees
+Disallow: /fees/*
+Disallow: /payroll
+Disallow: /payroll/*
+Disallow: /hostel
+Disallow: /hostel/*
+Disallow: /finance
+Disallow: /finance/*
+Disallow: /reports
+Disallow: /reports/*
+Disallow: /api/
+Disallow: /api/*
+
+# Crawl-delay for polite indexing
+Crawl-delay: 1
+
+# Sitemap URL
+Sitemap: https://nexumbyte.tech/sitemap.xml

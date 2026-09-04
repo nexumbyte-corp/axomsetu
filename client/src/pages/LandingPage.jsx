@@ -1,17 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, CreditCard, Building2, Calendar, Menu, Receipt, FileSpreadsheet, ChevronDown, Check, Sliders, UserCheck } from 'lucide-react';
+import {
+  Users,
+  CreditCard,
+  Building2,
+  Calendar,
+  Menu,
+  Receipt,
+  FileSpreadsheet,
+  ChevronDown,
+  Check,
+  Sliders,
+  UserCheck,
+  Wallet,
+  ArrowRight,
+  Sparkles
+} from 'lucide-react';
 import { Button } from '../components/ui/Button.jsx';
 import { Drawer } from '../components/ui/Drawer.jsx';
 import { subscriptionService } from '../services/subscriptionService.js';
 
 import { BRAND_CONFIG } from '../config/brandConfig.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
+import { PAGE_SEO } from '../config/seoConfig.js';
 import { TermsAndConditionsModal } from '../components/legal/TermsAndConditionsModal.jsx';
 import { PrivacyPolicyModal } from '../components/legal/PrivacyPolicyModal.jsx';
 
 export const LandingPage = () => {
-  useDocumentTitle();
+  useDocumentTitle(PAGE_SEO.landing);
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [plans, setPlans] = useState([]);
@@ -20,7 +36,7 @@ export const LandingPage = () => {
 
   // Dynamic UI States
   const [billingFilter, setBillingFilter] = useState('ALL'); // ALL, MONTHLY, QUARTERLY, YEARLY
-  const [activePreviewTab, setActivePreviewTab] = useState('DASHBOARD'); // DASHBOARD, FEES, PAYROLL
+  const [activePreviewTab, setActivePreviewTab] = useState('DASHBOARD'); // DASHBOARD, FEES, PAYROLL, HOSTEL, FINANCE
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
 
   // Legal Modal states
@@ -61,47 +77,47 @@ export const LandingPage = () => {
   const formatCurrency = (val) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
 
-  // Consolidated Features list
+  // Consolidated Features list (100% Real Implemented System Modules)
   const features = [
     {
       icon: Users,
       title: 'Student Management',
-      description: 'Manage student profiles, admissions, academic records, and parent contact details.',
+      description: 'Manage student profiles, admissions, guardian contacts, class allocations, and bulk academic promotions.',
     },
     {
       icon: Receipt,
-      title: 'Fee Management',
-      description: 'Define fee structures, issue instant digital receipts, track collections, and view ledgers.',
+      title: 'Fee Management & Receipts',
+      description: 'Define custom fee structures, generate monthly student fees, collect fees, issue digital receipts, and track ledgers.',
     },
     {
       icon: CreditCard,
       title: 'Staff & Payroll',
-      description: 'Manage staff salaries, advance requests, monthly payroll disbursements, and payslips.',
+      description: 'Maintain staff profiles and departments, setup base salaries, process monthly payroll, and manage salary advances.',
     },
     {
       icon: Calendar,
       title: 'Academic Setup',
-      description: 'Configure academic years, classes, sections, mediums, streams, and session locking.',
+      description: 'Configure academic years with session locking, classes, sections, mediums (English/Assamese/Hindi), and streams.',
     },
     {
-      icon: FileSpreadsheet,
-      title: 'Reports & Analytics',
-      description: 'Access complete financial, collection, fee status, and administrative PDF & Excel reports.',
+      icon: Wallet,
+      title: 'Finance & Expense Ledgers',
+      description: 'Track daily maintenance expenses, manage category budgets, monitor income vs expenditure, and control opening funds.',
     },
     {
       icon: Building2,
       title: 'Hostel Management',
-      description: 'Manage hostel room allocations, mess fees, resident admissions, and facility billing.',
+      description: 'Manage hostel blocks, room bed allocations, resident student admissions, mess fee structures, and exit transfers.',
     },
     {
-      icon: Sliders,
-      title: 'Expense Tracking',
-      description: 'Track daily maintenance costs, utility bills, vendor payments, and expense ledgers.',
+      icon: FileSpreadsheet,
+      title: 'Reports & Exports',
+      description: 'Generate complete financial summaries, fee collection registers, student ledgers, and export to PDF & Excel formats.',
     },
     {
       icon: UserCheck,
-      title: 'Role Permissions',
-      description: 'Assign role-based access control for administrative staff and institutional users.',
+      title: 'Role Permissions & Access',
+      description: 'Assign role-based access control (RBAC) to office staff, accountants, and teachers with strict permission guards.',
     },
   ];
 
@@ -109,18 +125,18 @@ export const LandingPage = () => {
   const howItWorksSteps = [
     {
       step: '01',
-      title: 'Set Up',
-      description: 'Configure your school profile, classes, and academic session information.',
+      title: 'Configure Session & Academics',
+      description: 'Set up your academic session, define classes, sections, mediums, streams, and fee templates.',
     },
     {
       step: '02',
-      title: 'Manage',
-      description: 'Manage students, fee structures, staff profiles, and daily school operations.',
+      title: 'Enroll Students, Staff & Hostel',
+      description: 'Admit students, assign fee structures, onboard teaching and support staff, and allocate hostel rooms.',
     },
     {
       step: '03',
-      title: 'Track',
-      description: 'Monitor fee collections, salary payments, expenses, and operational reports.',
+      title: 'Collect Fees, Run Payroll & Track Finance',
+      description: 'Issue instant fee receipts, disburse staff monthly salaries, track expenses, and export financial reports.',
     },
   ];
 
@@ -133,35 +149,35 @@ export const LandingPage = () => {
     return true;
   });
 
-  // FAQs List
+  // FAQs List (Accurate to codebase capabilities)
   const faqs = [
     {
       q: 'What is AxomSetu?',
-      a: 'AxomSetu is a comprehensive school management SaaS platform that allows school administrators to handle student admissions, fee collection, staff payroll, expenses, hostel management, and administrative reporting from one unified system.',
+      a: 'AxomSetu is a modern school management SaaS platform engineered for educational institutions. It brings student admissions, fee collection, staff payroll, expense tracking, hostel administration, and financial reporting into a single system.',
     },
     {
-      q: 'How does the trial work?',
-      a: 'When you register your school, you automatically receive a 30-day free trial with full access to all platform features. No credit card is required to get started.',
+      q: 'How does the free trial work?',
+      a: 'When you register your school, you immediately get a 30-day free trial with access to all core platform modules. No payment or credit card is required to register and test the system.',
     },
     {
-      q: 'What modules are available?',
-      a: 'AxomSetu includes Student Management, Fee Management, Staff & Payroll, Academic Setup, Expense Tracking, Hostel Management, User & Permission Controls, and PDF/Excel Reports.',
+      q: 'What modules are included in AxomSetu?',
+      a: 'AxomSetu includes Student Profiles & Bulk Promotion, Fee Structures & Digital Receipts, Staff Directory & Payroll (with Salary Advance tracking), Academic Setup (Sessions, Classes, Mediums, Streams), Expense & Fund Management, Hostel Block/Room & Resident Management, Role Permissions, and PDF/Excel Exports.',
     },
     {
-      q: 'Can multiple users use AxomSetu?',
-      a: 'Yes. School administrators can create multiple user accounts for office staff, accountants, and teachers with specific access permissions.',
+      q: 'Can multiple administrative users use AxomSetu?',
+      a: 'Yes. School administrators can create multiple user accounts for office administrators, accountants, and teachers, assigning granular permissions to control which modules each user can access or modify.',
     },
     {
-      q: 'Can I control user permissions?',
-      a: 'Yes. AxomSetu provides granular role-based permission management, allowing administrators to restrict access to specific modules such as fee collection, payroll, or system settings.',
+      q: 'Does AxomSetu support regional mediums and streams?',
+      a: 'Yes. You can configure academic mediums (e.g. English, Assamese, Hindi, Bengali) and academic streams (e.g. Science, Commerce, Arts) according to your institution’s requirements.',
     },
     {
-      q: 'What happens after subscription expiry?',
-      a: 'Your school data remains securely stored. To continue creating new fee receipts, disbursing salary, or modifying records, simply renew your subscription from the Subscription page.',
+      q: 'Can fee receipts and reports be exported or printed?',
+      a: 'Yes. Digital fee receipts, student ledger summaries, salary payment histories, and overall financial statements can be exported directly to standard PDF or Excel spreadsheets.',
     },
     {
-      q: 'Can I export school data?',
-      a: 'Yes. All fee collection receipts, ledger summaries, student lists, and financial reports can be exported directly to standard PDF or Excel formats.',
+      q: 'What happens when our subscription expires?',
+      a: 'Your institutional records and student data remain safely stored. To continue generating new receipts, running monthly payroll, or adding new records, you can renew your subscription directly from the Subscription page.',
     },
   ];
 
@@ -172,7 +188,11 @@ export const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Left: Branding */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <img src="/app-icon.png" alt="AxomSetu Logo" className="w-9 h-9 rounded-lg object-cover shadow-2xs group-hover:scale-105 transition-transform" />
+            <img
+              src="/app-icon.png"
+              alt="AxomSetu Logo"
+              className="w-9 h-9 rounded-lg object-cover shadow-2xs group-hover:scale-105 transition-transform"
+            />
             <div>
               <span className="text-base font-extrabold tracking-tight text-slate-900 block leading-none">
                 {BRAND_CONFIG.productName}
@@ -294,17 +314,18 @@ export const LandingPage = () => {
         <section className="py-16 sm:py-20 lg:py-24 bg-white border-b border-slate-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-3xl mx-auto">
-              <span className="inline-block text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full mb-4">
-                SCHOOL MANAGEMENT PLATFORM
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 border border-indigo-100 px-3.5 py-1 rounded-full mb-4">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>INTEGRATED SCHOOL MANAGEMENT SOFTWARE</span>
               </span>
 
               <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
-                Simple School Management. <br />
-                <span className="text-indigo-600">Everything in One Place.</span>
+                Complete School Administration. <br />
+                <span className="text-indigo-600">Simplified, Secure & Efficient.</span>
               </h1>
 
               <p className="mt-4 text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
-                Manage students, academics, fees, staff, payroll, reports and daily operations seamlessly.
+                Streamline student admissions, fee collection, staff payroll, hostel management, daily expenses, and administrative reporting from one unified cloud dashboard.
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -312,9 +333,10 @@ export const LandingPage = () => {
                   <Button
                     variant="primary"
                     size="lg"
-                    className="w-full sm:w-auto py-2.5 px-6 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-xs"
+                    className="w-full sm:w-auto py-2.5 px-6 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-xs flex items-center justify-center gap-2"
                   >
-                    Start Free Trial
+                    <span>Start 30-Day Free Trial</span>
+                    <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
                 <Link to="/login" className="w-full sm:w-auto">
@@ -323,7 +345,7 @@ export const LandingPage = () => {
                     size="lg"
                     className="w-full sm:w-auto py-2.5 px-6 text-sm font-semibold border-slate-300 text-slate-700 hover:bg-slate-50"
                   >
-                    Login
+                    Login to Portal
                   </Button>
                 </Link>
               </div>
@@ -337,75 +359,82 @@ export const LandingPage = () => {
                   <div className="w-3 h-3 rounded-full bg-rose-400" />
                   <div className="w-3 h-3 rounded-full bg-amber-400" />
                   <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                  <span className="text-xs text-slate-500 font-mono ml-2">AxomSetu School Admin Portal</span>
+                  <span className="text-xs text-slate-500 font-mono ml-2">AxomSetu School Management Portal</span>
                 </div>
 
                 {/* Mockup Tabs */}
-                <div className="flex items-center bg-white rounded-lg p-1 border border-slate-200 text-xs">
-                  <button
-                    onClick={() => setActivePreviewTab('DASHBOARD')}
-                    className={`px-3 py-1 rounded-md font-semibold transition-colors ${
-                      activePreviewTab === 'DASHBOARD'
-                        ? 'bg-indigo-600 text-white shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Dashboard
-                  </button>
-                  <button
-                    onClick={() => setActivePreviewTab('FEES')}
-                    className={`px-3 py-1 rounded-md font-semibold transition-colors ${
-                      activePreviewTab === 'FEES'
-                        ? 'bg-indigo-600 text-white shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Fees & Receipts
-                  </button>
-                  <button
-                    onClick={() => setActivePreviewTab('PAYROLL')}
-                    className={`px-3 py-1 rounded-md font-semibold transition-colors ${
-                      activePreviewTab === 'PAYROLL'
-                        ? 'bg-indigo-600 text-white shadow-2xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Staff & Payroll
-                  </button>
+                <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-slate-200 text-xs flex-wrap">
+                  {[
+                    { key: 'DASHBOARD', label: 'Dashboard' },
+                    { key: 'FEES', label: 'Fees & Receipts' },
+                    { key: 'PAYROLL', label: 'Staff & Payroll' },
+                    { key: 'HOSTEL', label: 'Hostel' },
+                    { key: 'FINANCE', label: 'Finance & Expenses' },
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      onClick={() => setActivePreviewTab(tab.key)}
+                      className={`px-3 py-1 rounded-md font-semibold transition-colors ${
+                        activePreviewTab === tab.key
+                          ? 'bg-indigo-600 text-white shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               {/* Window Body Display */}
-              <div className="p-5 sm:p-8 bg-slate-50 text-left min-h-[280px]">
+              <div className="p-5 sm:p-8 bg-slate-50 text-left min-h-[300px]">
                 {activePreviewTab === 'DASHBOARD' && (
                   <div className="space-y-5">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3">
                       <div>
                         <h2 className="text-base font-bold text-slate-900">Saint Francis High School</h2>
-                        <span className="text-xs text-slate-500">Academic Year: 2026–2027</span>
+                        <span className="text-xs text-slate-500">Active Session: 2026–2027 • English & Regional Mediums</span>
                       </div>
-                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 self-start sm:self-auto">
-                        Trial Active
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 self-start sm:self-auto flex items-center gap-1">
+                        <Check className="w-3 h-3" /> System Operational
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                        <span className="text-xs font-medium text-slate-500">Total Enrolled Students</span>
-                        <div className="text-2xl font-bold text-slate-900 mt-1">1,240</div>
-                        <span className="text-[11px] text-slate-500 mt-1 block">Active academic session</span>
+                        <div className="flex items-center justify-between text-slate-500 mb-1">
+                          <span className="text-xs font-medium">Enrolled Students</span>
+                          <Users className="w-4 h-4 text-indigo-600" />
+                        </div>
+                        <div className="text-2xl font-bold text-slate-900">1,240</div>
+                        <span className="text-[11px] text-slate-500 block mt-1">Across 12 classes & 4 streams</span>
                       </div>
 
                       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                        <span className="text-xs font-medium text-slate-500">Monthly Fee Collection</span>
-                        <div className="text-2xl font-bold text-indigo-600 mt-1">₹14,85,000</div>
-                        <span className="text-[11px] text-slate-500 mt-1 block">100% digital receipts issued</span>
+                        <div className="flex items-center justify-between text-slate-500 mb-1">
+                          <span className="text-xs font-medium">Fee Collection (Month)</span>
+                          <Receipt className="w-4 h-4 text-emerald-600" />
+                        </div>
+                        <div className="text-2xl font-bold text-emerald-700">₹14,85,000</div>
+                        <span className="text-[11px] text-slate-500 block mt-1">100% digital receipts issued</span>
                       </div>
 
                       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-                        <span className="text-xs font-medium text-slate-500">Staff Salary Disbursements</span>
-                        <div className="text-2xl font-bold text-slate-900 mt-1">₹4,20,000</div>
-                        <span className="text-[11px] text-slate-500 mt-1 block">Teaching & support staff</span>
+                        <div className="flex items-center justify-between text-slate-500 mb-1">
+                          <span className="text-xs font-medium">Monthly Staff Payroll</span>
+                          <CreditCard className="w-4 h-4 text-indigo-600" />
+                        </div>
+                        <div className="text-2xl font-bold text-slate-900">₹4,20,000</div>
+                        <span className="text-[11px] text-slate-500 block mt-1">Teaching & support staff</span>
+                      </div>
+
+                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                        <div className="flex items-center justify-between text-slate-500 mb-1">
+                          <span className="text-xs font-medium">Hostel Residents</span>
+                          <Building2 className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <div className="text-2xl font-bold text-slate-900">185</div>
+                        <span className="text-[11px] text-slate-500 block mt-1">Boys & Girls hostels</span>
                       </div>
                     </div>
                   </div>
@@ -414,28 +443,39 @@ export const LandingPage = () => {
                 {activePreviewTab === 'FEES' && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                      <h3 className="text-sm font-bold text-slate-900">Fee Collection Register & Digital Receipts</h3>
-                      <span className="text-xs text-indigo-600 font-semibold">Instant Receipt Generator</span>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900">Fee Collection Register & Digital Receipts</h3>
+                        <p className="text-xs text-slate-500">Collect class fees and generate instant printable receipts</p>
+                      </div>
+                      <span className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-md font-semibold">
+                        Custom Templates Active
+                      </span>
                     </div>
 
                     <div className="space-y-2.5">
-                      <div className="p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                      <div className="p-3 bg-white rounded-lg border border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
                         <div>
                           <span className="font-bold text-slate-900">Receipt #RCT-2026-0842</span>
-                          <span className="text-slate-500 block text-[11px]">Aarav Sharma • Class X-A</span>
+                          <span className="text-slate-500 block text-[11px]">Aarav Sharma • Class X-A (English Medium)</span>
                         </div>
-                        <span className="font-bold text-slate-900">₹12,500</span>
+                        <div className="text-right">
+                          <span className="font-bold text-slate-900 block">₹12,500</span>
+                          <span className="text-[10px] text-slate-400">Monthly Tuition & Computer Fee</span>
+                        </div>
                         <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold text-[10px]">
                           PAID
                         </span>
                       </div>
 
-                      <div className="p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                      <div className="p-3 bg-white rounded-lg border border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
                         <div>
                           <span className="font-bold text-slate-900">Receipt #RCT-2026-0841</span>
                           <span className="text-slate-500 block text-[11px]">Ananya Patel • Class XII-Science</span>
                         </div>
-                        <span className="font-bold text-slate-900">₹18,000</span>
+                        <div className="text-right">
+                          <span className="font-bold text-slate-900 block">₹18,000</span>
+                          <span className="text-[10px] text-slate-400">Lab Fee & Academic Fee</span>
+                        </div>
                         <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold text-[10px]">
                           PAID
                         </span>
@@ -447,19 +487,99 @@ export const LandingPage = () => {
                 {activePreviewTab === 'PAYROLL' && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                      <h3 className="text-sm font-bold text-slate-900">Staff Monthly Payroll Ledger</h3>
-                      <span className="text-xs text-indigo-600 font-semibold">Automated Deductions</span>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900">Staff Monthly Payroll Ledger</h3>
+                        <p className="text-xs text-slate-500">Automated salary advance deductions and monthly disbursement registers</p>
+                      </div>
+                      <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-md font-semibold">
+                        Payroll Processed
+                      </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                       <div className="p-4 bg-white rounded-lg border border-slate-200">
-                        <span className="text-slate-500 block">Gross Monthly Staff Salary</span>
+                        <span className="text-slate-500 block">Gross Staff Base Salary</span>
                         <span className="text-xl font-bold text-slate-900 mt-1 block">₹4,50,000</span>
                       </div>
 
                       <div className="p-4 bg-white rounded-lg border border-slate-200">
                         <span className="text-slate-500 block">Salary Advances Deducted</span>
                         <span className="text-xl font-bold text-indigo-600 mt-1 block">₹30,000</span>
+                      </div>
+
+                      <div className="p-4 bg-white rounded-lg border border-slate-200">
+                        <span className="text-slate-500 block">Net Salary Paid</span>
+                        <span className="text-xl font-bold text-emerald-700 mt-1 block">₹4,20,000</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activePreviewTab === 'HOSTEL' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900">Hostel & Resident Management</h3>
+                        <p className="text-xs text-slate-500">Track hostel blocks, rooms, bed availability, mess fees & admissions</p>
+                      </div>
+                      <span className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-md font-semibold">
+                        2 Hostels Active
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="p-4 bg-white rounded-lg border border-slate-200 space-y-1.5">
+                        <div className="flex justify-between font-bold text-slate-900">
+                          <span>Boys Hostel Block A</span>
+                          <span className="text-indigo-600">100 Beds</span>
+                        </div>
+                        <p className="text-slate-500 text-[11px]">Occupied: 92 Beds • Vacant: 8 Beds</p>
+                        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                          <div className="bg-indigo-600 h-full rounded-full w-[92%]" />
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-white rounded-lg border border-slate-200 space-y-1.5">
+                        <div className="flex justify-between font-bold text-slate-900">
+                          <span>Girls Hostel Block B</span>
+                          <span className="text-indigo-600">100 Beds</span>
+                        </div>
+                        <p className="text-slate-500 text-[11px]">Occupied: 93 Beds • Vacant: 7 Beds</p>
+                        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                          <div className="bg-indigo-600 h-full rounded-full w-[93%]" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activePreviewTab === 'FINANCE' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900">Finance & Expense Tracking</h3>
+                        <p className="text-xs text-slate-500">Monitor campus maintenance, utility bills, vendor payments & opening funds</p>
+                      </div>
+                      <span className="text-xs bg-slate-100 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-md font-semibold">
+                        Real-time Ledger
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="p-3 bg-white rounded-lg border border-slate-200 flex justify-between items-center">
+                        <div>
+                          <span className="font-bold text-slate-900 block">Electricity & Utilities Bill</span>
+                          <span className="text-slate-500 text-[11px]">Category: Campus Maintenance • Fund: General Fund</span>
+                        </div>
+                        <span className="font-bold text-rose-600 text-sm">-₹45,200</span>
+                      </div>
+
+                      <div className="p-3 bg-white rounded-lg border border-slate-200 flex justify-between items-center">
+                        <div>
+                          <span className="font-bold text-slate-900 block">Library Book Purchases</span>
+                          <span className="text-slate-500 text-[11px]">Category: Academic Expenses • Fund: Library Fund</span>
+                        </div>
+                        <span className="font-bold text-rose-600 text-sm">-₹18,500</span>
                       </div>
                     </div>
                   </div>
@@ -474,10 +594,10 @@ export const LandingPage = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-12">
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Features & Capabilities
+                Features & System Modules
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                Everything your school needs to automate administration and financial management.
+                Built specifically for school management with robust tools for academics, finance, hostel, and staff operations.
               </p>
             </div>
 
@@ -508,7 +628,7 @@ export const LandingPage = () => {
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                 How It Works
               </h2>
-              <p className="mt-2 text-sm text-slate-600">Get your institution running in three simple steps.</p>
+              <p className="mt-2 text-sm text-slate-600">Get your school fully operational in three straightforward steps.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -530,10 +650,10 @@ export const LandingPage = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-10">
               <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Subscription Plans
+                Transparent Subscription Plans
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                Transparent plans configured for your school. Start with a free trial and upgrade anytime.
+                Choose a plan tailored to your school’s student capacity. Start with a 30-day free trial.
               </p>
 
               {/* Billing Cycle Filter Buttons */}
@@ -664,7 +784,7 @@ export const LandingPage = () => {
                             )}
                             {isEnterprise && (
                               <span className="text-[11px] font-medium text-purple-700 block mt-0.5">
-                                Tailored to school requirements
+                                Tailored for large institutions
                               </span>
                             )}
                           </div>
@@ -724,7 +844,7 @@ export const LandingPage = () => {
                 Frequently Asked Questions
               </h2>
               <p className="mt-2 text-sm text-slate-600">
-                Common questions about AxomSetu school management platform.
+                Everything you need to know about AxomSetu software features and setup.
               </p>
             </div>
 
@@ -760,10 +880,10 @@ export const LandingPage = () => {
         <section className="py-16 bg-slate-50">
           <div className="max-w-4xl mx-auto px-4 text-center">
             <h2 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-              Ready to simplify your school management?
+              Ready to simplify your school operations?
             </h2>
             <p className="mt-3 text-sm text-slate-600 max-w-xl mx-auto">
-              Start using AxomSetu for your school with a 30-day free trial.
+              Get started today with a 30-day free trial. Setup takes less than 5 minutes.
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
@@ -771,9 +891,10 @@ export const LandingPage = () => {
                 <Button
                   variant="primary"
                   size="lg"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 text-sm rounded-lg shadow-xs"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 text-sm rounded-lg shadow-xs flex items-center justify-center gap-2"
                 >
-                  Start Free Trial
+                  <span>Start Free Trial</span>
+                  <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
               <Link to="/login">
@@ -782,7 +903,7 @@ export const LandingPage = () => {
                   size="lg"
                   className="border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold px-6 py-2.5 text-sm rounded-lg"
                 >
-                  Login
+                  Login to Portal
                 </Button>
               </Link>
             </div>
@@ -800,14 +921,14 @@ export const LandingPage = () => {
               <span className="font-bold text-slate-900 text-sm block leading-none">
                 {BRAND_CONFIG.productName}
               </span>
-              <span className="text-[10px] text-slate-500 font-medium block mt-0.5">
+              <span className="text-[10px] text-slate-400 block mt-0.5">
                 {BRAND_CONFIG.poweredBy}
               </span>
             </div>
           </div>
 
-          {/* Links */}
-          <div className="flex flex-wrap justify-center gap-5 text-slate-600 font-medium">
+          {/* Center Links */}
+          <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-slate-600 font-medium">
             <a href="#features" className="hover:text-indigo-600 transition-colors">
               Features
             </a>
@@ -822,13 +943,13 @@ export const LandingPage = () => {
             </a>
             <button
               onClick={() => setIsTermsModalOpen(true)}
-              className="hover:text-indigo-600 transition-colors bg-transparent p-0 font-medium text-slate-600"
+              className="hover:text-indigo-600 transition-colors bg-transparent p-0 font-medium text-slate-600 cursor-pointer"
             >
               Terms & Conditions
             </button>
             <button
               onClick={() => setIsPrivacyModalOpen(true)}
-              className="hover:text-indigo-600 transition-colors bg-transparent p-0 font-medium text-slate-600"
+              className="hover:text-indigo-600 transition-colors bg-transparent p-0 font-medium text-slate-600 cursor-pointer"
             >
               Privacy Policy
             </button>

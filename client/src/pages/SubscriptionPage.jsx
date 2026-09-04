@@ -19,6 +19,7 @@ import {
 import { subscriptionService } from '../services/subscriptionService.js';
 import { useSubscription } from '../hooks/useSubscription.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
+import { PAGE_SEO } from '../config/seoConfig.js';
 import { formatDate } from '../utils/formatters.js';
 
 import { ModulePageHeader } from '../components/ui/ModulePageHeader.jsx';
@@ -32,7 +33,7 @@ import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '.
 import { TableSkeleton } from '../components/ui/Skeleton.jsx';
 
 export const SubscriptionPage = () => {
-  useDocumentTitle('Subscription Management');
+  useDocumentTitle(PAGE_SEO.subscription);
   const { currentSubData: contextSubData, refreshSubscription } = useSubscription();
   const [currentSubData, setCurrentSubData] = useState(contextSubData || null);
   const [plans, setPlans] = useState([]);

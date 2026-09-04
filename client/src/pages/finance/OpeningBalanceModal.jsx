@@ -8,7 +8,7 @@ import { Button } from '../../components/ui/Button.jsx';
 import { financeService } from '../../services/financeService.js';
 import { Landmark, ArrowUpRight } from 'lucide-react';
 
-export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess }) => {
+export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess, academicYearId }) => {
   const [formData, setFormData] = useState({
     amount: '',
     paymentMode: 'BANK_TRANSFER',
@@ -40,7 +40,10 @@ export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess }) => {
 
     setLoading(true);
     try {
-      await financeService.recordOpeningBalance(formData);
+      await financeService.recordOpeningBalance({
+        ...formData,
+        academicYearId,
+      });
       onSuccess?.();
       onClose();
     } catch (err) {

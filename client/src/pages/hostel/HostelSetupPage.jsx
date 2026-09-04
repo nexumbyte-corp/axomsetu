@@ -37,6 +37,7 @@ export const HostelSetupPage = () => {
   // Filters
   const [selectedHostelId, setSelectedHostelId] = useState('');
   const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('ALL');
 
   // Modals
   const [hostelModalOpen, setHostelModalOpen] = useState(false);
@@ -68,9 +69,10 @@ export const HostelSetupPage = () => {
     if (activeTab === 'rooms') {
       fetchRooms();
     } else if (activeTab === 'beds') {
+      fetchRooms();
       fetchBeds();
     }
-  }, [activeTab, selectedHostelId, selectedRoomId]);
+  }, [activeTab, selectedHostelId, selectedRoomId, selectedStatus]);
 
   const fetchHostels = async () => {
     try {
@@ -89,26 +91,22 @@ export const HostelSetupPage = () => {
 
   const fetchRooms = async () => {
     try {
-      setLoading(true);
-      const res = await hostelService.listRooms({ hostelId: selectedHostelId });
+      const res = await hostelService.listRooms();
       setRooms(res.data || []);
-      if (!selectedRoomId && res.data?.length > 0) {
-        setSelectedRoomId(res.data[0].id);
-      }
     } catch (err) {
       toast.error(err.message || 'Failed to load rooms');
-    } finally {
-      setLoading(false);
     }
   };
 
   const fetchBeds = async () => {
     try {
       setLoading(true);
-      const res = await hostelService.listBeds({
-        hostelId: selectedHostelId,
-        roomId: selectedRoomId,
-      });
+      const params = {};
+      if (selectedHostelId) params.hostelId = selectedHostelId;
+      if (selectedRoomId) params.roomId = selectedRoomId;
+      if (selectedStatus && selectedStatus !== 'ALL') params.status = selectedStatus;
+
+      const res = await hostelService.listBeds(params);
       setBeds(res.data || []);
     } catch (err) {
       toast.error(err.message || 'Failed to load beds');
@@ -199,10 +197,15 @@ export const HostelSetupPage = () => {
   };
 
   // Bed Handlers
-  const handleOpenBedModal = () => {
+  const handleOpenBedModal = async () => {
+    if (rooms.length === 0) {
+      await fetchRooms();
+    }
+    const currentHostel = selectedHostelId || hostels[0]?.id || '';
+    const availableRooms = rooms.filter((r) => !currentHostel || r.hostelId === currentHostel);
     setBedForm({
-      hostelId: selectedHostelId || (hostels[0]?.id || ''),
-      roomId: selectedRoomId || (rooms[0]?.id || ''),
+      hostelId: currentHostel,
+      roomId: selectedRoomId || availableRooms[0]?.id || '',
       bedNumber: '',
       status: 'AVAILABLE',
     });
@@ -224,10 +227,15 @@ export const HostelSetupPage = () => {
     }
   };
 
-  const handleOpenBulkBedModal = () => {
+  const handleOpenBulkBedModal = async () => {
+    if (rooms.length === 0) {
+      await fetchRooms();
+    }
+    const currentHostel = selectedHostelId || hostels[0]?.id || '';
+    const availableRooms = rooms.filter((r) => !currentHostel || r.hostelId === currentHostel);
     setBulkBedForm({
-      hostelId: selectedHostelId || (hostels[0]?.id || ''),
-      roomId: selectedRoomId || (rooms[0]?.id || ''),
+      hostelId: currentHostel,
+      roomId: selectedRoomId || availableRooms[0]?.id || '',
       count: 4,
       prefix: 'Bed',
     });
@@ -337,7 +345,7 @@ export const HostelSetupPage = () => {
             <span>Filter:</span>
           </div>
 
-          <div className="w-48">
+          <div className="w-44 sm:w-48">
             <Select
               value={selectedHostelId}
               onChange={(e) => {
@@ -356,20 +364,53 @@ export const HostelSetupPage = () => {
           </div>
 
           {activeTab === 'beds' && (
-            <div className="w-48">
-              <Select
-                value={selectedRoomId}
-                onChange={(e) => setSelectedRoomId(e.target.value)}
-                className="py-1 text-xs"
-              >
-                <option value="">All Rooms</option>
-                {rooms.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    Room {r.roomNumber} ({r.floor || 'G'})
-                  </option>
-                ))}
-              </Select>
-            </div>
+            <>
+              <div className="w-44 sm:w-48">
+                <Select
+                  value={selectedRoomId}
+                  onChange={(e) => setSelectedRoomId(e.target.value)}
+                  className="py-1 text-xs"
+                >
+                  <option value="">All Rooms</option>
+                  {rooms
+                    .filter((r) => !selectedHostelId || r.hostelId === selectedHostelId)
+                    .map((r) => (
+                      <option key={r.id} value={r.id}>
+                        Room {r.roomNumber} ({r.floor || 'G'})
+                      </option>
+                    ))}
+                </Select>
+              </div>
+
+              <div className="w-36 sm:w-40">
+                <Select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="py-1 text-xs"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="AVAILABLE">Available (Free)</option>
+                  <option value="OCCUPIED">Occupied (Busy)</option>
+                  <option value="MAINTENANCE">Maintenance</option>
+                  <option value="BLOCKED">Blocked</option>
+                </Select>
+              </div>
+
+              {(selectedHostelId || selectedRoomId || selectedStatus !== 'ALL') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedHostelId('');
+                    setSelectedRoomId('');
+                    setSelectedStatus('ALL');
+                  }}
+                  className="h-7 text-[11px] text-slate-500 hover:text-slate-800"
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </>
           )}
         </div>
       )}
@@ -464,7 +505,9 @@ export const HostelSetupPage = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {rooms.map((r) => (
+                  {rooms
+                    .filter((r) => !selectedHostelId || r.hostelId === selectedHostelId)
+                    .map((r) => (
                     <tr key={r.id} className="hover:bg-slate-50/50">
                       <td className="px-3.5 py-2 font-medium text-slate-900">{r.hostel.name}</td>
                       <td className="px-3.5 py-2 font-bold text-indigo-600">Room {r.roomNumber}</td>
@@ -503,6 +546,20 @@ export const HostelSetupPage = () => {
             <Card className="p-8 text-center text-xs text-slate-500 border-dashed">
               <Bed className="w-10 h-10 text-slate-300 mx-auto mb-2" />
               <p>No beds found matching filters.</p>
+              {(selectedHostelId || selectedRoomId || selectedStatus !== 'ALL') && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-3 text-xs"
+                  onClick={() => {
+                    setSelectedHostelId('');
+                    setSelectedRoomId('');
+                    setSelectedStatus('ALL');
+                  }}
+                >
+                  Reset Filters
+                </Button>
+              )}
             </Card>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">

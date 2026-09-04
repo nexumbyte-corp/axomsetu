@@ -6,11 +6,12 @@ import { Drawer } from '../components/ui/Drawer.jsx';
 import { platformService } from '../services/platformService.js';
 import { BRAND_CONFIG } from '../config/brandConfig.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
+import { PAGE_SEO } from '../config/seoConfig.js';
 import { TermsAndConditionsModal } from '../components/legal/TermsAndConditionsModal.jsx';
 import { PrivacyPolicyModal } from '../components/legal/PrivacyPolicyModal.jsx';
 
 export const ContactPage = () => {
-  useDocumentTitle('Contact Us');
+  useDocumentTitle(PAGE_SEO.contact);
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [contactInfo, setContactInfo] = useState(null);

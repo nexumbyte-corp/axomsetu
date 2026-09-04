@@ -564,9 +564,9 @@ export const bulkCreateRooms = async (schoolId, data, actorUserId) => {
 
 export const listBeds = async (schoolId, query = {}) => {
   const where = { schoolId };
-  if (query.hostelId) where.hostelId = query.hostelId;
-  if (query.roomId) where.roomId = query.roomId;
-  if (query.status) where.status = query.status;
+  if (query.hostelId && query.hostelId.trim() !== '') where.hostelId = query.hostelId;
+  if (query.roomId && query.roomId.trim() !== '') where.roomId = query.roomId;
+  if (query.status && query.status.trim() !== '' && query.status !== 'ALL') where.status = query.status;
   if (query.isActive === 'true') where.isActive = true;
 
   const beds = await prisma.hostelBed.findMany({
@@ -577,7 +577,7 @@ export const listBeds = async (schoolId, query = {}) => {
       enrollments: {
         where: { status: 'ACTIVE' },
         include: {
-          student: { select: { id: true, name: true, admissionNo: true } },
+          student: { select: { id: true, name: true, admissionNo: true, photoUrl: true, guardianName: true } },
         },
         take: 1,
       },
@@ -596,6 +596,8 @@ export const listBeds = async (schoolId, query = {}) => {
           studentId: activeEnrollment.student.id,
           studentName: activeEnrollment.student.name,
           admissionNo: activeEnrollment.student.admissionNo,
+          photoUrl: activeEnrollment.student.photoUrl || null,
+          guardianName: activeEnrollment.student.guardianName || null,
           startDate: activeEnrollment.startDate,
         }
         : null,

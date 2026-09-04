@@ -23,8 +23,13 @@ export const financeReportsService = {
 
     const whereClause = {
       schoolId,
-      ...(academicYearId && { academicYearId }),
     };
+    if (academicYearId) {
+      whereClause.OR = [
+        { academicYearId },
+        { sourceType: 'OPENING_BALANCE' }
+      ];
+    }
 
     if (startDate || endDate) {
       whereClause.transactionDate = {
@@ -49,6 +54,7 @@ export const financeReportsService = {
       FEE_COLLECTION: 0,
       FUND_ADDED: 0,
       ADVANCE_RECOVERY: 0,
+      OPENING_BALANCE: 0,
       OTHER: 0,
     };
 

@@ -9,12 +9,13 @@ import { useToast } from '../components/ui/Toast.jsx';
 import { SupportModal } from '../components/support/SupportModal.jsx';
 import { BRAND_CONFIG } from '../config/brandConfig.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
+import { PAGE_SEO } from '../config/seoConfig.js';
 import { TermsAndConditionsModal } from '../components/legal/TermsAndConditionsModal.jsx';
 import { PrivacyPolicyModal } from '../components/legal/PrivacyPolicyModal.jsx';
 import { TERMS_VERSION, PRIVACY_POLICY_VERSION } from '../constants/legalContent.js';
 
 export const RegisterPage = () => {
-  useDocumentTitle('Register School');
+  useDocumentTitle(PAGE_SEO.register);
   const navigate = useNavigate();
   const { registerSchool } = useAuth();
   const { showToast } = useToast();

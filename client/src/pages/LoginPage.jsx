@@ -10,9 +10,10 @@ import { Spinner } from '../components/ui/Spinner.jsx';
 import { SupportModal } from '../components/support/SupportModal.jsx';
 import { BRAND_CONFIG } from '../config/brandConfig.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
+import { PAGE_SEO } from '../config/seoConfig.js';
 
 export const LoginPage = () => {
-  useDocumentTitle('Login');
+  useDocumentTitle(PAGE_SEO.login);
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isAuthenticated, isInitializing, user } = useAuth();

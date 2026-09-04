@@ -311,6 +311,7 @@ export const FinanceOverviewPage = () => {
         isOpen={isOpeningBalanceModalOpen}
         onClose={() => setIsOpeningBalanceModalOpen(false)}
         onSuccess={fetchOverview}
+        academicYearId={selectedYearId}
       />
     </div>
   );
