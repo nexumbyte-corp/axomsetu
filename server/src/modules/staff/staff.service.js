@@ -47,7 +47,7 @@ export const staffService = {
           department: data.department || null,
           designation: data.designation || null,
           joiningDate: data.joiningDate ? new Date(data.joiningDate) : new Date(),
-          baseSalary: data.baseSalary ?? 0,
+          baseSalary: data.baseSalary,
           bankName: data.bankName || null,
           bankAccountNo: data.bankAccountNo || null,
           ifscCode: data.ifscCode || null,

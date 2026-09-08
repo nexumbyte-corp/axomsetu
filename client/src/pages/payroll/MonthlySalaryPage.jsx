@@ -27,11 +27,27 @@ export const MonthlySalaryPage = () => {
   const { selectedYearId, selectedYear } = useAcademicYear();
 
   const monthOptions = getAcademicMonthOptions(selectedYear);
-  const defaultMonth = monthOptions[0]?.value || 'APRIL';
-  const defaultYear = monthOptions[0]?.year || new Date().getFullYear();
 
-  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
-  const [selectedYearNum, setSelectedYearNum] = useState(defaultYear);
+  const getCurrentMonthDefault = () => {
+    const now = new Date();
+    const currentMonthName = now.toLocaleString('en-US', { month: 'long' }).toUpperCase();
+    const currentYearNum = now.getFullYear();
+
+    const matchedOpt =
+      monthOptions.find((opt) => opt.value === currentMonthName && opt.year === currentYearNum) ||
+      monthOptions.find((opt) => opt.value === currentMonthName) ||
+      monthOptions[0];
+
+    return {
+      month: matchedOpt?.value || 'APRIL',
+      year: matchedOpt?.year || currentYearNum,
+    };
+  };
+
+  const initialDefaults = getCurrentMonthDefault();
+
+  const [selectedMonth, setSelectedMonth] = useState(initialDefaults.month);
+  const [selectedYearNum, setSelectedYearNum] = useState(initialDefaults.year);
   const [workingDaysInput, setWorkingDaysInput] = useState('30');
 
   const [isReviewMode, setIsReviewMode] = useState(false);
@@ -93,6 +109,12 @@ export const MonthlySalaryPage = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const defaults = getCurrentMonthDefault();
+    setSelectedMonth(defaults.month);
+    setSelectedYearNum(defaults.year);
+  }, [selectedYearId]);
 
   useEffect(() => {
     fetchPayrollData();

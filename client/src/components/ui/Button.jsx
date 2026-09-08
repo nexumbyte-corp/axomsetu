@@ -16,6 +16,7 @@ export const Button = React.forwardRef(
       className = '',
       icon: Icon,
       iconPosition = 'left',
+      fullWidth = false,
       ...props
     },
     ref
@@ -56,7 +57,7 @@ export const Button = React.forwardRef(
         type={type}
         disabled={isButtonDisabled}
         onClick={handleClick}
-        className={`${baseStyles} ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${className}`}
+        className={`${baseStyles} ${variants[variant] || variants.primary} ${sizes[size] || sizes.md} ${fullWidth ? 'w-full' : ''} ${className}`}
         {...props}
       >
         {isSpinnerLoading ? (

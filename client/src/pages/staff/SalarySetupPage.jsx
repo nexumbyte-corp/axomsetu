@@ -62,7 +62,9 @@ export const SalarySetupPage = () => {
       setRows(data.rows || []);
 
       if (data.rows?.[0]?.effectiveFrom) {
-        setEffectiveFrom(new Date(data.rows[0].effectiveFrom).toISOString().split('T')[0]);
+        const loadedDate = new Date(data.rows[0].effectiveFrom).toISOString().split('T')[0];
+        const todayStr = getTodayFormatted();
+        setEffectiveFrom(loadedDate < todayStr ? todayStr : loadedDate);
       } else {
         setEffectiveFrom(getTodayFormatted());
       }
@@ -113,6 +115,13 @@ export const SalarySetupPage = () => {
 
   const handleSaveSetup = async () => {
     if (!targetYearId) return;
+
+    const todayStr = getTodayFormatted();
+    if (effectiveFrom && effectiveFrom < todayStr) {
+      setMessage({ type: 'error', text: 'Effective Date cannot be a back-date. Please select today or a future date.' });
+      return;
+    }
+
     setSaving(true);
     setMessage(null);
     try {
@@ -213,14 +222,24 @@ export const SalarySetupPage = () => {
           <Calendar className="w-4 h-4 text-indigo-600" />
           <div>
             <label className="text-xs font-bold text-slate-800">Salary Effective Date</label>
-            <p className="text-[11px] text-slate-500">Historical salary records prior to this date remain unchanged.</p>
+            <p className="text-[11px] text-slate-500">Effective date must be today or a future date (back-dating restricted).</p>
           </div>
         </div>
 
         <div className="w-48">
           <DatePicker
             value={effectiveFrom}
-            onChange={(val) => setEffectiveFrom(val)}
+            minDate={getTodayFormatted()}
+            onChange={(val) => {
+              const todayStr = getTodayFormatted();
+              if (val && val < todayStr) {
+                setMessage({ type: 'error', text: 'Effective Date cannot be a back-date. Please select today or a future date.' });
+                setEffectiveFrom(todayStr);
+              } else {
+                setMessage(null);
+                setEffectiveFrom(val || todayStr);
+              }
+            }}
           />
         </div>
       </Card>

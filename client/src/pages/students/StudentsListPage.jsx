@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Search, Filter, MoreVertical, Lock, Edit, Eye, Sparkles, UserCheck, UserX, Trash2, Receipt, Building } from 'lucide-react';
+import { Users, Plus, MoreVertical, Lock, Edit, Eye, Sparkles, UserCheck, UserX, Trash2, Receipt, Building } from 'lucide-react';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
 import { Button } from '../../components/ui/Button.jsx';
-import { Input } from '../../components/ui/Input.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { Dropdown, DropdownItem, DropdownDivider } from '../../components/ui/Dropdown.jsx';
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from '../../components/ui/Table.jsx';

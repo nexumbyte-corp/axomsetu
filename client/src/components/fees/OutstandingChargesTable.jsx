@@ -5,6 +5,12 @@ import { Badge } from '../ui/Badge.jsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.jsx';
 import { usePermission } from '../../hooks/usePermission.js';
 
+const WhatsAppIcon = ({ className = 'w-3.5 h-3.5' }) => (
+  <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984 0 1.764.459 3.487 1.333 5.006L2 22l5.133-1.339c1.462.798 3.109 1.218 4.873 1.218 5.509 0 9.994-4.477 9.995-9.983C22.002 6.39 17.519 2 12.012 2zm0 18.293c-1.517 0-3.003-.404-4.306-1.17l-.309-.183-3.197.835.852-3.111-.202-.321c-.848-1.349-1.296-2.909-1.296-4.512 0-4.636 3.778-8.411 8.418-8.411 4.638 0 8.413 3.775 8.414 8.411 0 4.637-3.776 8.462-8.374 8.462zm4.61-6.312c-.253-.127-1.493-.737-1.724-.821-.231-.085-.399-.127-.567.127-.168.254-.649.821-.796.99-.147.169-.295.19-.547.063-.253-.127-1.069-.394-2.036-1.257-.753-.671-1.261-1.501-1.408-1.754-.147-.253-.016-.39.111-.516.114-.113.253-.296.379-.444.127-.148.168-.253.253-.422.084-.169.042-.317-.021-.444-.063-.127-.567-1.371-.777-1.877-.204-.492-.412-.425-.567-.433-.146-.008-.314-.009-.482-.009-.168 0-.441.063-.672.317-.231.254-.882.863-.882 2.105 0 1.242.903 2.441 1.029 2.61.126.169 1.776 2.712 4.303 3.803.601.259 1.07.414 1.435.53.604.192 1.155.165 1.59.101.485-.072 1.493-.61 1.703-1.2 0.21-.59.21-1.096.147-1.203-.063-.106-.231-.169-.484-.296z" />
+  </svg>
+);
+
 export const OutstandingChargesTable = ({
   charges = [],
   selectedChargeIds = [],
@@ -13,6 +19,8 @@ export const OutstandingChargesTable = ({
   onToggleAll,
   onUpdatePaymentAmount,
   onDeleteCharge,
+  onShareWhatsApp,
+  isSharingWhatsApp = false,
   isDeleting = false,
   isLoading = false,
 }) => {
@@ -85,18 +93,33 @@ export const OutstandingChargesTable = ({
         <div className="shrink-0 px-3 py-2 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/50">
           <h3 className="text-xs font-bold text-slate-900">Fee Dues</h3>
 
-          {payableCharges.length > 0 && (
-            <div className="flex items-center gap-1.5">
-              <Checkbox
-                checked={isAllSelected}
-                onChange={onToggleAll}
-                id="select-all-charges"
-              />
-              <label htmlFor="select-all-charges" className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
-                All ({payableCharges.length})
-              </label>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {onShareWhatsApp && (
+              <button
+                type="button"
+                disabled={isSharingWhatsApp}
+                onClick={onShareWhatsApp}
+                className="inline-flex items-center justify-center p-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
+                title="Share Outstanding Fee Statement on WhatsApp"
+                aria-label="Share Outstanding Fee Statement on WhatsApp"
+              >
+                <WhatsAppIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+              </button>
+            )}
+
+            {payableCharges.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Checkbox
+                  checked={isAllSelected}
+                  onChange={onToggleAll}
+                  id="select-all-charges"
+                />
+                <label htmlFor="select-all-charges" className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                  All ({payableCharges.length})
+                </label>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-auto min-h-0">

@@ -8,15 +8,18 @@ import { PaymentConfirmModal } from '../../components/fees/PaymentConfirmModal.j
 import { ReceiptSuccessModal } from '../../components/fees/ReceiptSuccessModal.jsx';
 import { useStudentOutstanding, useCollectPayment, useDeleteUnpaidFeeCharge } from '../../hooks/usePaymentEngine.js';
 import { toast } from '../../components/ui/Toast.jsx';
+import { useAuth } from '../../hooks/useAuth.js';
 
 import { StudentPickerTable } from '../../components/fees/StudentPickerTable.jsx';
 
 export const CollectFeesPage = () => {
+  const { schoolMembership, user } = useAuth();
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedChargeIds, setSelectedChargeIds] = useState([]);
   const [paymentAmounts, setPaymentAmounts] = useState({});
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [successModalData, setSuccessModalData] = useState(null);
+  const [isSharingWhatsApp, setIsSharingWhatsApp] = useState(false);
 
   // Fetch outstanding charges for selected student
   const {
@@ -41,6 +44,102 @@ export const CollectFeesPage = () => {
     setSelectedStudent(null);
     setSelectedChargeIds([]);
     setPaymentAmounts({});
+  };
+
+  const handleShareWhatsApp = async () => {
+    if (!selectedStudent) return;
+    setIsSharingWhatsApp(true);
+
+    try {
+      const rawPhone =
+        selectedStudent.phone ||
+        selectedStudent.guardianPhone ||
+        selectedStudent.guardianMobile ||
+        selectedStudent.fatherPhone ||
+        selectedStudent.mobile ||
+        '';
+      const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+      const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+
+      const schoolInfo = schoolMembership?.school || user?.school || user?.schoolAdmin?.school || {};
+      const schoolName = (schoolInfo?.name || schoolInfo?.schoolName || 'SCHOOL ACADEMY').trim();
+      const schoolAddress = (schoolInfo?.address || schoolInfo?.location || '').trim();
+      const schoolPhone = (schoolInfo?.phone || schoolInfo?.contactNo || '').trim();
+
+      let headerBlock = `*🏫 ${schoolName.toUpperCase()}*`;
+      if (schoolAddress) headerBlock += `\n${schoolAddress}`;
+      if (schoolPhone) headerBlock += `\nContact: ${schoolPhone}`;
+
+      const pendingList = charges.filter((c) => c.status === 'UNPAID' || c.status === 'PARTIAL');
+      const activeEnrollment =
+        selectedStudent.enrollments?.find((e) => e.status === 'ACTIVE') ||
+        selectedStudent.enrollments?.[0] ||
+        selectedStudent.enrollment;
+
+      const rawClassName = activeEnrollment?.class?.name || selectedStudent?.class?.name || '';
+      const cleanClassName = rawClassName.replace(/^Class\s+/i, '').trim();
+      const classNameDisplay = cleanClassName ? cleanClassName : (rawClassName || 'N/A');
+      const sectionName = activeEnrollment?.section?.name || selectedStudent?.section?.name || '';
+      const sectionDisplay = sectionName ? ` (${sectionName})` : '';
+      const guardianName = selectedStudent.guardianName || selectedStudent.fatherName || 'N/A';
+
+      const targetList = pendingList.length > 0 ? pendingList : charges;
+
+      const totalDues = targetList.reduce(
+        (sum, c) =>
+          sum +
+          (c.balance !== undefined && c.balance !== null
+            ? Number(c.balance)
+            : Math.max(0, Number(c.chargeAmount ?? c.amount ?? 0) - Number(c.paidAmount ?? 0))),
+        0
+      );
+
+      const itemsBreakdown = targetList
+        .map((f, i) => {
+          const bal =
+            f.balance !== undefined && f.balance !== null
+              ? Number(f.balance)
+              : Math.max(0, Number(f.chargeAmount ?? f.amount ?? 0) - Number(f.paidAmount ?? 0));
+          const monthText = f.month ? ` (${f.month}${f.year ? ' ' + f.year : ''})` : '';
+          return `${i + 1}. ${f.title}${monthText}: ₹${bal.toFixed(2)}`;
+        })
+        .join('\n');
+
+      const messageText = `${headerBlock}\n\n*OUTSTANDING FEE STATEMENT*\n----------------------------------------\n*Student:* ${selectedStudent.name}\n*Admission No:* ${selectedStudent.admissionNo || 'N/A'}\n*Class:* ${classNameDisplay}${sectionDisplay}\n*Guardian:* ${guardianName}\n\n*PENDING DUES BREAKDOWN:*\n${itemsBreakdown || 'No active pending dues.'}\n\n----------------------------------------\n*Total Outstanding Dues:* ₹${totalDues.toLocaleString('en-IN', { minimumFractionDigits: 2 })}\n----------------------------------------\n\nPlease clear the pending dues at the school office or via online payment. Thank you!`;
+
+      const encodedMsg = encodeURIComponent(messageText);
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      if (isMobile && navigator.share) {
+        try {
+          await navigator.share({
+            title: `Outstanding Fee Statement - ${selectedStudent.name}`,
+            text: messageText,
+          });
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            const whatsappUrl = formattedPhone
+              ? `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodedMsg}`
+              : `https://api.whatsapp.com/send?text=${encodedMsg}`;
+            window.open(whatsappUrl, '_blank');
+          }
+        }
+        toast.success('WhatsApp sharing opened.');
+        return;
+      }
+
+      const whatsappUrl = formattedPhone
+        ? `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodedMsg}`
+        : `https://api.whatsapp.com/send?text=${encodedMsg}`;
+
+      window.open(whatsappUrl, '_blank');
+      toast.success('WhatsApp opened with Fee Statement.');
+    } catch (err) {
+      console.error('WhatsApp share error:', err);
+      toast.error('Could not open WhatsApp share.');
+    } finally {
+      setIsSharingWhatsApp(false);
+    }
   };
 
   const handleToggleCharge = (chargeId, remainingBal) => {
@@ -223,6 +322,8 @@ export const CollectFeesPage = () => {
                 onToggleAll={handleToggleAll}
                 onUpdatePaymentAmount={handleUpdatePaymentAmount}
                 onDeleteCharge={handleDeleteCharge}
+                onShareWhatsApp={handleShareWhatsApp}
+                isSharingWhatsApp={isSharingWhatsApp}
                 isDeleting={deleteChargeMutation.isPending}
                 isLoading={isLoadingOutstanding}
               />

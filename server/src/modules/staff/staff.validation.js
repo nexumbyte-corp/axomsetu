@@ -37,6 +37,7 @@ export const createStaffSchema = z.object({
     .trim()
     .max(50, 'Employee ID must not exceed 50 characters')
     .optional()
+    .nullable()
     .or(z.literal('')),
   name: z
     .string({ required_error: 'Name is required' })
@@ -46,9 +47,12 @@ export const createStaffSchema = z.object({
   email: z
     .string()
     .trim()
-    .email('Invalid email address')
     .max(100, 'Email must not exceed 100 characters')
+    .refine((val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+      message: 'Invalid email address',
+    })
     .optional()
+    .nullable()
     .or(z.literal('')),
   phone: z
     .string()
@@ -57,6 +61,7 @@ export const createStaffSchema = z.object({
       message: 'Phone number must be between 7 and 15 valid phone characters',
     })
     .optional()
+    .nullable()
     .or(z.literal('')),
   role: z.enum(STAFF_ROLES).default('TEACHER'),
   department: z
@@ -64,37 +69,50 @@ export const createStaffSchema = z.object({
     .trim()
     .max(100, 'Department must not exceed 100 characters')
     .optional()
+    .nullable()
     .or(z.literal('')),
   designation: z
     .string()
     .trim()
     .max(100, 'Designation must not exceed 100 characters')
     .optional()
+    .nullable()
     .or(z.literal('')),
-  joiningDate: z.string().optional().or(z.literal('')),
+  joiningDate: z.string().optional().nullable().or(z.literal('')),
   baseSalary: z
     .coerce
-    .number()
-    .min(0, 'Base salary must be non-negative')
-    .max(10000000, 'Base salary must not exceed 10,000,000')
-    .default(0),
+    .number({
+      required_error: 'Base monthly salary is mandatory',
+      invalid_type_error: 'Base monthly salary must be a valid number',
+    })
+    .min(0.01, 'Base monthly salary must be greater than 0')
+    .max(10000000, 'Base monthly salary must not exceed 10,000,000'),
   bankName: z
     .string()
     .trim()
     .max(100, 'Bank name must not exceed 100 characters')
     .optional()
+    .nullable()
     .or(z.literal('')),
   bankAccountNo: z
     .string()
     .trim()
     .max(50, 'Bank account number must not exceed 50 characters')
+    .refine((val) => !val || /^\d{9,18}$/.test(val), {
+      message: 'Bank account number must be between 9 and 18 digits',
+    })
     .optional()
+    .nullable()
     .or(z.literal('')),
   ifscCode: z
     .string()
     .trim()
     .max(20, 'IFSC code must not exceed 20 characters')
+    .refine((val) => !val || /^[A-Z]{4}0[A-Z0-9]{6}$/.test(val.toUpperCase()), {
+      message: 'IFSC code must be 11 characters (e.g. SBIN0001234)',
+    })
     .optional()
+    .nullable()
     .or(z.literal('')),
 });
 

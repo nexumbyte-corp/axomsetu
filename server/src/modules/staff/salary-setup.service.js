@@ -219,7 +219,16 @@ export const salarySetupService = {
       throw ApiError.notFound('Academic year not found.');
     }
 
-    const effDate = effectiveFrom ? new Date(effectiveFrom) : new Date(academicYear.startDate || new Date());
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const effDate = effectiveFrom ? new Date(effectiveFrom) : today;
+    const effDateZero = new Date(effDate);
+    effDateZero.setHours(0, 0, 0, 0);
+
+    if (effDateZero.getTime() < today.getTime()) {
+      throw ApiError.badRequest('Effective date cannot be a back-date. Please select today or a future date.');
+    }
 
     return await prisma.$transaction(async (tx) => {
       let savedCount = 0;

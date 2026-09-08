@@ -38,7 +38,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
     department: 'Teaching',
     designation: 'Teacher',
     joiningDate: new Date().toISOString().split('T')[0],
-    baseSalary: '25000',
+    baseSalary: '',
     bankName: '',
     bankAccountNo: '',
     ifscCode: '',
@@ -60,7 +60,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
         department: staff.department || '',
         designation: staff.designation || '',
         joiningDate: staff.joiningDate ? new Date(staff.joiningDate).toISOString().split('T')[0] : '',
-        baseSalary: staff.baseSalary ? String(staff.baseSalary) : '0',
+        baseSalary: staff.baseSalary !== undefined && staff.baseSalary !== null ? String(staff.baseSalary) : '',
         bankName: staff.bankName || '',
         bankAccountNo: staff.bankAccountNo || '',
         ifscCode: staff.ifscCode || '',
@@ -107,10 +107,17 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
         fieldError = 'Enter a valid email address';
       }
-    } else if (name === 'baseSalary' && value !== '') {
-      const num = parseFloat(value);
-      if (isNaN(num) || num < 0) {
-        fieldError = 'Base salary must be a positive number';
+    } else if (name === 'baseSalary') {
+      const strVal = String(value || '').trim();
+      if (!strVal) {
+        fieldError = 'Base monthly salary is mandatory';
+      } else {
+        const num = parseFloat(strVal);
+        if (isNaN(num) || num <= 0) {
+          fieldError = 'Base monthly salary must be greater than 0';
+        } else if (num > 10000000) {
+          fieldError = 'Base monthly salary must not exceed ₹10,000,000';
+        }
       }
     } else if (name === 'ifscCode' && value.trim()) {
       if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value.trim().toUpperCase())) {
@@ -154,8 +161,16 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
       newErrors.email = 'Enter a valid email address';
     }
 
-    if (formData.baseSalary !== '' && (isNaN(parseFloat(formData.baseSalary)) || parseFloat(formData.baseSalary) < 0)) {
-      newErrors.baseSalary = 'Base salary must be a positive number';
+    const salaryStr = String(formData.baseSalary || '').trim();
+    if (!salaryStr) {
+      newErrors.baseSalary = 'Base monthly salary is mandatory';
+    } else {
+      const num = parseFloat(salaryStr);
+      if (isNaN(num) || num <= 0) {
+        newErrors.baseSalary = 'Base monthly salary must be greater than 0';
+      } else if (num > 10000000) {
+        newErrors.baseSalary = 'Base monthly salary must not exceed ₹10,000,000';
+      }
     }
 
     if (formData.ifscCode?.trim() && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscCode.trim().toUpperCase())) {
@@ -190,7 +205,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
         bankName: formData.bankName?.trim() || null,
         bankAccountNo: formData.bankAccountNo?.trim() || null,
         ifscCode: formData.ifscCode?.trim()?.toUpperCase() || null,
-        baseSalary: parseFloat(formData.baseSalary) || 0,
+        baseSalary: parseFloat(formData.baseSalary),
       };
 
       let response;
@@ -232,7 +247,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
           </div>
         </div>
       }
-      size="lg"
+      size="xl"
     >
       <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4 text-xs">
         {submitError && (
@@ -368,7 +383,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
               <CreditCard className="w-3.5 h-3.5 text-emerald-600" />
               <span>2. Salary & Bank Deposit Details</span>
             </div>
-            <span className="text-[10px] text-slate-400 font-normal">Optional for Direct Transfer</span>
+            <span className="text-[10px] text-slate-500 font-medium">Bank details optional</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

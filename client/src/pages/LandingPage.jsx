@@ -10,7 +10,6 @@ import {
   FileSpreadsheet,
   ChevronDown,
   Check,
-  Sliders,
   UserCheck,
   Wallet,
   ArrowRight,

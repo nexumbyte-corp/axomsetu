@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Users, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
@@ -86,7 +86,13 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
           }
         }
       } catch (err) {
-        if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
+        const isCanceled =
+          err?.name === 'CanceledError' ||
+          err?.name === 'AbortError' ||
+          err?.code === 'ERR_CANCELED' ||
+          err?.message === 'canceled';
+
+        if (!isCanceled) {
           console.error('Failed to fetch students for fee collection picker', err);
           setStudents([]);
         }
