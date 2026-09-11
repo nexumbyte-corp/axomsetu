@@ -1,41 +1,44 @@
 /**
- * Centralized fixed-day subscription end date calculator for frontend UI.
- * Rules:
- * - 1 Month = strictly 30 days (N months = N * 30 days)
- * - 1 Year = strictly 365 days (N years = N * 365 days)
- * - 1 Day = strictly 1 day (N days = N * 1 days)
- * 
- * @param {Date|string} startDate - Subscription start date
- * @param {string} durationUnit - 'MONTH' | 'YEAR' | 'DAY'
- * @param {number} durationValue - Duration multiplier
- * @returns {Date} Calculated end date
+ * Helper utility for detecting and parsing subscription student limit errors.
  */
-export const calculateSubscriptionEndDate = (startDate, durationUnit = 'MONTH', durationValue = 1) => {
-  const start = startDate ? new Date(startDate) : new Date();
-  const end = new Date(start.getTime());
-  const val = Math.max(1, parseInt(durationValue, 10) || 1);
-  const unitUpper = String(durationUnit || 'MONTH').toUpperCase();
 
-  let daysToAdd = val * 30; // Default: 1 month = 30 days
+export const isStudentLimitError = (err) => {
+  if (!err) return false;
+  const msg = typeof err === 'string' ? err : err?.message || '';
+  const lower = msg.toLowerCase();
 
-  if (unitUpper === 'YEAR') {
-    daysToAdd = val * 365;
-  } else if (unitUpper === 'DAY') {
-    daysToAdd = val;
-  } else if (unitUpper === 'MONTH') {
-    daysToAdd = val * 30;
-  }
-
-  end.setDate(end.getDate() + daysToAdd);
-  return end;
+  return (
+    lower.includes('student limit reached') ||
+    (lower.includes('maximum of') && lower.includes('active students')) ||
+    (lower.includes('student limit') && lower.includes('subscription'))
+  );
 };
 
-/**
- * Format calculated date as YYYY-MM-DD for HTML date inputs.
- */
-export const formatDateInput = (date) => {
-  if (!date) return '';
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return '';
-  return d.toISOString().split('T')[0];
+export const parseStudentLimitError = (err, fallbackSubscription = null) => {
+  const msg = typeof err === 'string' ? err : err?.message || '';
+
+  // Extract using regex from backend message format:
+  // "Student limit reached. Your subscription plan 'Free Trial' allows a maximum of 300 active students. Current active students: 300. Please upgrade your subscription plan."
+  const planMatch = msg.match(/plan ['"]([^'"]+)['"]/i);
+  const maxMatch = msg.match(/maximum of (\d+) active students/i);
+  const currentMatch = msg.match(/Current active students: (\d+)/i);
+
+  const planName = planMatch
+    ? planMatch[1]
+    : fallbackSubscription?.planNameSnapshot || fallbackSubscription?.name || 'Free Trial';
+
+  const maxStudents = maxMatch
+    ? parseInt(maxMatch[1], 10)
+    : fallbackSubscription?.maxStudentLimitSnapshot ?? 300;
+
+  const currentStudents = currentMatch
+    ? parseInt(currentMatch[1], 10)
+    : maxStudents;
+
+  return {
+    planName,
+    maxStudents,
+    currentStudents,
+    rawMessage: msg,
+  };
 };

@@ -175,13 +175,22 @@
     box-shadow: none !important;
   }
 
-  #printable-subscription-invoice {
+  #printable-subscription-invoice,
+  #printable-report-area {
     display: block !important;
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
     border: none !important;
     box-shadow: none !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
   }
 }
 

@@ -14,7 +14,7 @@ const DOC_TYPE_TAGS = {
 /**
  * Normalizes academic year into YYYY-YY format (e.g. "2026-27").
  */
-export const normalizeAcademicYearName = (name) => {
+const normalizeAcademicYearName = (name) => {
   if (name && typeof name === 'string') {
     const trimmed = name.trim();
     const match = trimmed.match(/(\d{4})[-/](\d{2,4})/);
@@ -35,7 +35,7 @@ export const normalizeAcademicYearName = (name) => {
  * Helper to derive school initials from school name or school code.
  * E.g. "Aravali Hill Academy" -> "AHA"
  */
-export const getSchoolInitials = (schoolName = '', schoolCode = '') => {
+const getSchoolInitials = (schoolName = '', schoolCode = '') => {
   if (!schoolName || typeof schoolName !== 'string') {
     if (schoolCode && typeof schoolCode === 'string') return schoolCode.trim().toUpperCase();
     return 'SCH';

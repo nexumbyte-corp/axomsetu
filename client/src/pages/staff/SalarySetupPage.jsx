@@ -162,6 +162,7 @@ export const SalarySetupPage = () => {
           <div className="flex flex-wrap items-center gap-2">
             <div className="w-44">
               <Select
+                size="sm"
                 value={targetYearId}
                 onChange={(e) => setTargetYearId(e.target.value)}
                 options={yearOptions}
@@ -228,6 +229,7 @@ export const SalarySetupPage = () => {
 
         <div className="w-48">
           <DatePicker
+            size="sm"
             value={effectiveFrom}
             minDate={getTodayFormatted()}
             onChange={(val) => {
@@ -289,6 +291,7 @@ export const SalarySetupPage = () => {
 
                     <td className="py-3 px-4 text-right">
                       <Input
+                        size="sm"
                         type="number"
                         min="0"
                         step="500"

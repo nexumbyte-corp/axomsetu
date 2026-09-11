@@ -186,8 +186,9 @@ export const SalaryHistoryPage = () => {
       {/* TAB 1: PAYMENT VOUCHER HISTORY */}
       {activeTab === 'history' && (
         <div className="space-y-4">
-          <Card className="p-4 bg-white border border-slate-200 shadow-2xs">
+          <Card className="p-3 bg-white border border-slate-200 shadow-2xs">
             <Input
+              size="sm"
               placeholder="Search by Voucher No (e.g. PAY-2026-001) or Staff Name..."
               value={historySearch}
               onChange={(e) => setHistorySearch(e.target.value)}
@@ -213,6 +214,7 @@ export const SalaryHistoryPage = () => {
                       <th className="py-3.5 px-4">Payment Date</th>
                       <th className="py-3.5 px-4">Staff Member</th>
                       <th className="py-3.5 px-4">Months Settled</th>
+                      <th className="py-3.5 px-4 text-center">Working Days</th>
                       <th className="py-3.5 px-4">Mode & Ref</th>
                       <th className="py-3.5 px-4 text-right">Adv. Adjustment (₹)</th>
                       <th className="py-3.5 px-4 text-right">Net Amount Paid (₹)</th>
@@ -221,66 +223,76 @@ export const SalaryHistoryPage = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
                     {payments.map((p) => {
-                      const staff = p.staff || {};
+                      const staffName = p.staff?.name || p.staffName || 'Staff';
+                      const employeeId = p.staff?.employeeId || p.employeeId || '-';
+                      const monthsText = Array.isArray(p.months)
+                        ? p.months.join(', ')
+                        : p.settledMonths?.join(', ') || p.months || '-';
+                      const workingDaysText = Array.isArray(p.allocations) && p.allocations.length > 0
+                        ? p.allocations
+                            .map((a) => {
+                              const mp = a.monthlyPayroll;
+                              if (!mp) return null;
+                              return `${mp.workedDays ?? '-'}/${mp.workingDays ?? '-'}d`;
+                            })
+                            .filter(Boolean)
+                            .join(', ')
+                        : (p.workingDays ? `${p.workedDays || '-'}/${p.workingDays}d` : '-');
                       const advAdjustment = Number(
-                        p.advanceDeducted ||
-                        p.advanceDeduction ||
-                        p.advanceRecovery ||
-                        p.advanceAdjusted ||
-                        p.advanceAmount ||
-                        0
+                        p.advanceDeducted ?? p.advanceAdjustment ?? p.advanceDeduction ?? p.advanceRecovery ?? 0
                       );
+                      const netPaidAmount = Number(
+                        p.netSalary ?? p.netPaidAmount ?? p.paidAmount ?? 0
+                      );
+                      const modeLabel =
+                        p.paymentMode === 'BANK_TRANSFER'
+                          ? 'Bank'
+                          : p.paymentMode === 'CHEQUE'
+                          ? 'Cheque'
+                          : p.paymentMode === 'UPI'
+                          ? 'UPI'
+                          : 'Cash';
+
                       return (
                         <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-3.5 px-4 font-mono font-bold text-indigo-700">
+                          <td className="py-3 px-4 font-mono font-bold text-indigo-600">
                             {p.paymentNumber}
                           </td>
-
-                          <td className="py-3.5 px-4 font-mono text-slate-600">
+                          <td className="py-3 px-4 text-slate-700 font-mono">
                             {formatDate(p.paymentDate)}
                           </td>
-
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-center gap-2">
-                              <User className="w-4 h-4 text-slate-400 shrink-0" />
-                              <div>
-                                <p className="font-bold text-slate-900">{staff.name}</p>
-                                <p className="text-[10px] text-slate-500 font-mono">ID: {staff.employeeId}</p>
-                              </div>
-                            </div>
+                          <td className="py-3 px-4">
+                            <p className="font-bold text-slate-900">{staffName}</p>
+                            <p className="text-[10px] text-slate-500 font-mono">ID: {employeeId}</p>
                           </td>
-
-                          <td className="py-3.5 px-4">
-                            <span className="px-2 py-0.5 bg-slate-100 text-slate-800 rounded text-[11px] font-bold font-mono">
-                              {Array.isArray(p.months) ? p.months.join(', ') : p.months}
+                          <td className="py-3 px-4 text-slate-600">
+                            {monthsText}
+                          </td>
+                          <td className="py-3 px-4 text-center text-slate-700 font-mono">
+                            <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[11px] font-bold border border-indigo-100/80">
+                              {workingDaysText || '-'}
                             </span>
                           </td>
-
-                          <td className="py-3.5 px-4">
-                            <span className="font-bold text-slate-800">{p.paymentMode}</span>
+                          <td className="py-3 px-4 text-slate-700">
+                            <span className="font-semibold">{modeLabel}</span>
                             {p.referenceNo && (
-                              <span className="text-[10px] text-slate-500 font-mono block">Ref: {p.referenceNo}</span>
+                              <span className="text-[10px] text-slate-500 font-mono block">
+                                #{p.referenceNo}
+                              </span>
                             )}
                           </td>
-
-                          <td className="py-3.5 px-4 text-right font-mono font-bold text-amber-700">
-                            {advAdjustment > 0 ? (
-                              `- ₹${advAdjustment.toLocaleString('en-IN')}`
-                            ) : (
-                              <span className="text-slate-300">-</span>
-                            )}
+                          <td className="py-3 px-4 text-right font-mono text-slate-600">
+                            {advAdjustment > 0 ? `₹${advAdjustment.toLocaleString('en-IN')}` : '-'}
                           </td>
-
-                          <td className="py-3.5 px-4 text-right font-mono font-extrabold text-emerald-600 text-sm">
-                            ₹{Number(p.netSalary || 0).toLocaleString('en-IN')}
+                          <td className="py-3 px-4 text-right font-mono font-extrabold text-slate-900 text-sm">
+                            ₹{netPaidAmount.toLocaleString('en-IN')}
                           </td>
-
-                          <td className="py-3.5 px-4 text-center">
+                          <td className="py-3 px-4 text-center">
                             <div className="flex items-center justify-center gap-1.5">
                               <button
                                 type="button"
-                                title="Print Salary Voucher"
-                                aria-label="Print Salary Voucher"
+                                title="Print Voucher"
+                                aria-label="Print Voucher"
                                 className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 hover:text-indigo-600 text-slate-600 shadow-2xs transition-colors"
                                 onClick={() => handlePrintVoucher(p.id)}
                               >
@@ -311,16 +323,17 @@ export const SalaryHistoryPage = () => {
       {/* TAB 2: SALARY SLIPS GENERATOR & PDF DOWNLOAD */}
       {activeTab === 'slips' && (
         <div className="space-y-6">
-          <Card className="p-5 bg-white border border-slate-200 shadow-2xs space-y-4">
+          <Card className="p-4 bg-white border border-slate-200 shadow-2xs space-y-4">
             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-3">
               Configure Salary Slip Options
             </h3>
 
             {slipError && <Alert type="danger">{slipError}</Alert>}
 
-            <form onSubmit={handleGenerateSlipPayload} autoComplete="off" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleGenerateSlipPayload} autoComplete="off" className="space-y-3.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Select
+                  size="sm"
                   label="Select Employee *"
                   value={selectedStaffId}
                   onChange={(e) => setSelectedStaffId(e.target.value)}
@@ -329,10 +342,9 @@ export const SalaryHistoryPage = () => {
                 />
 
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5 block">
-                    Slip Period / Range *
-                  </label>
                   <Select
+                    size="sm"
+                    label="Slip Period / Range *"
                     value={rangeType}
                     onChange={(e) => setRangeType(e.target.value)}
                     options={[
@@ -347,8 +359,9 @@ export const SalaryHistoryPage = () => {
 
               {/* Conditional Range Selectors */}
               {rangeType === 'SINGLE_MONTH' && (
-                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <Select
+                    size="sm"
                     label="Month *"
                     value={selectedMonth}
                     onChange={(e) => {
@@ -365,8 +378,9 @@ export const SalaryHistoryPage = () => {
               )}
 
               {rangeType === 'CUSTOM_RANGE' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
                   <Select
+                    size="sm"
                     label="Start Month *"
                     value={startMonth}
                     onChange={(e) => {
@@ -381,6 +395,7 @@ export const SalaryHistoryPage = () => {
                   />
 
                   <Select
+                    size="sm"
                     label="End Month *"
                     value={endMonth}
                     onChange={(e) => {
@@ -396,10 +411,11 @@ export const SalaryHistoryPage = () => {
                 </div>
               )}
 
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-end pt-1">
                 <Button
                   type="submit"
                   variant="primary"
+                  size="sm"
                   icon={FileText}
                   loading={generatingPdf}
                   loadingText="Generating Slip..."

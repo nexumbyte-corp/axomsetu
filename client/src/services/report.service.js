@@ -64,10 +64,38 @@ export const reportService = {
   },
 
   /**
+   * Fetch Student List Report
+   */
+  async getStudentListReport(params = {}) {
+    return this.fetchReport('/reports/students/directory', params);
+  },
+
+  /**
+   * Fetch Fee Collection Report
+   */
+  async getFeeCollectionReport(params = {}) {
+    return this.fetchReport('/reports/fees/collection', params);
+  },
+
+  /**
+   * Fetch Fee Outstanding Report
+   */
+  async getOutstandingReport(params = {}) {
+    return this.fetchReport('/reports/fees/outstanding', params);
+  },
+
+  /**
    * Fetch Individual Staff Advance Ledger Statement
    */
   async fetchIndividualStaffAdvanceLedger(staffId, params = {}) {
     return this.fetchReport('/reports/payroll/individual-advance', { ...params, staffId });
+  },
+
+  /**
+   * Fetch Financial Analytics Charts Data (Collection vs Expense, Expense Distribution, Expected vs Actual)
+   */
+  async getFinancialChartsReport(params = {}) {
+    return this.fetchReport('/reports/finance/charts', params);
   },
 };
 

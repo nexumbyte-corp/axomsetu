@@ -55,7 +55,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
         employeeId: staff.employeeId || '',
         name: staff.name || '',
         email: staff.email || '',
-        phone: staff.phone || '',
+        phone: staff.phone ? String(staff.phone).replace(/\D/g, '').slice(0, 10) : '',
         role: staff.role || 'TEACHER',
         department: staff.department || '',
         designation: staff.designation || '',
@@ -100,7 +100,10 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
     } else if (name === 'joiningDate') {
       if (!value) fieldError = 'Joining Date is required';
     } else if (name === 'phone' && value.trim()) {
-      if (!/^[6-9]\d{9}$/.test(value.trim())) {
+      const trimmed = value.trim();
+      if (trimmed.length < 10) {
+        fieldError = 'Phone number must be 10 digits';
+      } else if (!/^[6-9]\d{9}$/.test(trimmed)) {
         fieldError = 'Enter a valid 10-digit phone number (starting 6-9)';
       }
     } else if (name === 'email' && value.trim()) {
@@ -136,6 +139,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
     const { name, value } = e.target;
     let updatedValue = value;
     if (name === 'ifscCode') updatedValue = value.toUpperCase();
+    if (name === 'phone') updatedValue = value.replace(/\D/g, '').slice(0, 10);
     setFormData((prev) => ({ ...prev, [name]: updatedValue }));
 
     if (errors[name]) {
@@ -153,8 +157,13 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
     if (!formData.designation.trim()) newErrors.designation = 'Designation is required';
     if (!formData.joiningDate) newErrors.joiningDate = 'Joining Date is required';
 
-    if (formData.phone?.trim() && !/^[6-9]\d{9}$/.test(formData.phone.trim())) {
-      newErrors.phone = 'Enter a valid 10-digit phone number (starting 6-9)';
+    if (formData.phone?.trim()) {
+      const trimmedPhone = formData.phone.trim();
+      if (trimmedPhone.length < 10) {
+        newErrors.phone = 'Phone number must be 10 digits';
+      } else if (!/^[6-9]\d{9}$/.test(trimmedPhone)) {
+        newErrors.phone = 'Enter a valid 10-digit phone number (starting 6-9)';
+      }
     }
 
     if (formData.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
@@ -274,6 +283,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Input
+                size="sm"
                 label="Full Name *"
                 name="name"
                 value={formData.name}
@@ -281,24 +291,25 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 onBlur={() => validateField('name', formData.name)}
                 placeholder="Full Name"
                 error={errors.name}
-                className="text-xs"
               />
             </div>
 
             <div>
               <Input
+                size="sm"
                 label="Employee Code"
                 name="employeeId"
                 value={formData.employeeId || (isEditing ? '' : 'Auto-generated')}
                 disabled={true}
                 readOnly
                 placeholder="Auto-generated automatically"
-                className="text-xs bg-slate-100/90 text-slate-500 font-mono cursor-not-allowed"
+                className="bg-slate-100/90 text-slate-500 font-mono cursor-not-allowed"
               />
             </div>
 
             <div>
               <Input
+                size="sm"
                 label="Department *"
                 name="department"
                 value={formData.department}
@@ -306,12 +317,12 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 onBlur={() => validateField('department', formData.department)}
                 placeholder="Department"
                 error={errors.department}
-                className="text-xs"
               />
             </div>
 
             <div>
               <Input
+                size="sm"
                 label="Designation *"
                 name="designation"
                 value={formData.designation}
@@ -319,23 +330,23 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 onBlur={() => validateField('designation', formData.designation)}
                 placeholder="Designation"
                 error={errors.designation}
-                className="text-xs"
               />
             </div>
 
             <div>
               <Select
+                size="sm"
                 label="Role / Category *"
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
                 options={ROLE_OPTIONS}
-                className="text-xs"
               />
             </div>
 
             <div>
               <DatePicker
+                size="sm"
                 label="Joining Date *"
                 name="joiningDate"
                 value={formData.joiningDate}
@@ -349,19 +360,22 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
 
             <div>
               <Input
+                size="sm"
                 label="Phone Number"
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
                 onBlur={() => validateField('phone', formData.phone)}
-                placeholder="Phone Number"
+                placeholder="10-digit phone number"
                 error={errors.phone}
-                className="text-xs"
+                maxLength={10}
+                className="font-mono"
               />
             </div>
 
             <div>
               <Input
+                size="sm"
                 label="Email Address"
                 name="email"
                 type="email"
@@ -370,7 +384,6 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 onBlur={() => validateField('email', formData.email)}
                 placeholder="Email Address"
                 error={errors.email}
-                className="text-xs"
               />
             </div>
           </div>
@@ -389,6 +402,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <Input
+                size="sm"
                 label="Base Monthly Salary (₹) *"
                 name="baseSalary"
                 type="number"
@@ -399,23 +413,24 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 onBlur={() => validateField('baseSalary', formData.baseSalary)}
                 placeholder="Base Salary"
                 error={errors.baseSalary}
-                className="text-xs font-mono font-semibold"
+                className="font-mono font-semibold"
               />
             </div>
 
             <div>
               <Input
+                size="sm"
                 label="Bank Name"
                 name="bankName"
                 value={formData.bankName}
                 onChange={handleChange}
                 placeholder="Bank Name"
-                className="text-xs"
               />
             </div>
 
             <div>
               <Input
+                size="sm"
                 label="Account Number"
                 name="bankAccountNo"
                 value={formData.bankAccountNo}
@@ -423,12 +438,13 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 onBlur={() => validateField('bankAccountNo', formData.bankAccountNo)}
                 placeholder="Account Number"
                 error={errors.bankAccountNo}
-                className="text-xs font-mono"
+                className="font-mono"
               />
             </div>
 
             <div>
               <Input
+                size="sm"
                 label="IFSC Code"
                 name="ifscCode"
                 value={formData.ifscCode}
@@ -436,19 +452,19 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 onBlur={() => validateField('ifscCode', formData.ifscCode)}
                 placeholder="IFSC Code"
                 error={errors.ifscCode}
-                className="text-xs font-mono uppercase"
+                className="font-mono uppercase"
               />
             </div>
 
             {isEditing && (
               <div className="sm:col-span-2">
                 <Select
+                  size="sm"
                   label="Employment Status"
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
                   options={STATUS_OPTIONS}
-                  className="text-xs"
                 />
               </div>
             )}

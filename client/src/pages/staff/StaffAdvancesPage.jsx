@@ -120,7 +120,7 @@ export const StaffAdvancesPage = () => {
         title="Staff Advances"
         description="Disburse cash advances to active staff members and track outstanding recovery balances."
         actions={
-          <Button variant="primary" icon={Plus} onClick={() => setIsGiveModalOpen(true)}>
+          <Button variant="primary" size="sm" icon={Plus} onClick={() => setIsGiveModalOpen(true)}>
             Give Advance
           </Button>
         }
@@ -154,8 +154,9 @@ export const StaffAdvancesPage = () => {
         </Card>
       </div>
 
-      <Card className="p-4 bg-white border border-slate-200 shadow-2xs">
+      <Card className="p-3 bg-white border border-slate-200 shadow-2xs">
         <Input
+          size="sm"
           placeholder="Search staff by name or employee code..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -278,6 +279,7 @@ export const StaffAdvancesPage = () => {
           )}
 
           <Select
+            size="sm"
             label="Select Staff *"
             value={selectedStaffId}
             onChange={(e) => setSelectedStaffId(e.target.value)}
@@ -285,8 +287,9 @@ export const StaffAdvancesPage = () => {
             required
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <DatePicker
+              size="sm"
               label="Advance Date *"
               value={advanceDate}
               onChange={(val) => setAdvanceDate(val)}
@@ -294,6 +297,7 @@ export const StaffAdvancesPage = () => {
             />
 
             <Input
+              size="sm"
               label="Advance Amount (₹) *"
               type="number"
               min="100"
@@ -306,6 +310,7 @@ export const StaffAdvancesPage = () => {
           </div>
 
           <Select
+            size="sm"
             label="Payment Mode *"
             value={paymentMode}
             onChange={(e) => setPaymentMode(e.target.value)}
@@ -313,6 +318,7 @@ export const StaffAdvancesPage = () => {
           />
 
           <Input
+            size="sm"
             label="Transaction / Reference No."
             placeholder="e.g. Ref #12345"
             value={referenceNo}
@@ -320,17 +326,18 @@ export const StaffAdvancesPage = () => {
           />
 
           <Input
+            size="sm"
             label="Remarks / Note"
             placeholder="e.g. Personal emergency request"
             value={remarks}
             onChange={(e) => setRemarks(e.target.value)}
           />
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-            <Button type="button" variant="secondary" onClick={() => setIsGiveModalOpen(false)} disabled={submitting}>
+          <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200">
+            <Button type="button" variant="secondary" size="sm" onClick={() => setIsGiveModalOpen(false)} disabled={submitting}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" loading={submitting} loadingText="Giving Advance...">
+            <Button type="submit" variant="primary" size="sm" loading={submitting} loadingText="Giving Advance...">
               Disburse Advance
             </Button>
           </div>

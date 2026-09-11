@@ -37,6 +37,6 @@ export const genericReportQuerySchema = z.object({
     .string()
     .optional()
     .transform((val) => (val ? parseInt(val, 10) : 20))
-    .refine((val) => !isNaN(val) && val > 0 && val <= 100, 'Limit must be between 1 and 100'),
+    .refine((val) => !isNaN(val) && val > 0 && val <= 10000, 'Limit must be between 1 and 10000'),
 });
 

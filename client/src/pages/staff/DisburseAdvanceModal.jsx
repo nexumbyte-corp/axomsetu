@@ -85,6 +85,7 @@ export const DisburseAdvanceModal = ({ isOpen, onClose, staff, onSuccess }) => {
         </div>
 
         <Input
+          size="sm"
           label="Advance Amount (₹) *"
           type="number"
           min="100"
@@ -96,6 +97,7 @@ export const DisburseAdvanceModal = ({ isOpen, onClose, staff, onSuccess }) => {
         />
 
         <DatePicker
+          size="sm"
           label="Disbursement Date *"
           value={advanceDate}
           onChange={(val) => setAdvanceDate(val)}
@@ -103,6 +105,7 @@ export const DisburseAdvanceModal = ({ isOpen, onClose, staff, onSuccess }) => {
         />
 
         <Select
+          size="sm"
           label="Payment Mode *"
           value={paymentMode}
           onChange={(e) => setPaymentMode(e.target.value)}
@@ -110,6 +113,7 @@ export const DisburseAdvanceModal = ({ isOpen, onClose, staff, onSuccess }) => {
         />
 
         <Input
+          size="sm"
           label="Transaction / Reference No."
           value={referenceNo}
           onChange={(e) => setReferenceNo(e.target.value)}
@@ -117,18 +121,19 @@ export const DisburseAdvanceModal = ({ isOpen, onClose, staff, onSuccess }) => {
         />
 
         <Input
+          size="sm"
           label="Reason / Remarks"
           value={remarks}
           onChange={(e) => setRemarks(e.target.value)}
           placeholder="e.g. Personal emergency advance request"
         />
 
-        <div className="flex justify-end gap-3 border-t border-slate-200 pt-4 mt-4">
-          <Button type="button" variant="secondary" onClick={onClose} disabled={loading}>
+        <div className="flex justify-end gap-2.5 border-t border-slate-200 pt-3 mt-3">
+          <Button type="button" variant="secondary" size="sm" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
 
-          <Button type="submit" variant="primary" loading={loading}>
+          <Button type="submit" variant="primary" size="sm" loading={loading}>
             Disburse Advance
           </Button>
         </div>

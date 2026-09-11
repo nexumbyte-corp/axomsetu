@@ -57,10 +57,14 @@ export const buildSalaryReceiptData = (rawData = {}) => {
       const totalPaid = s.totalPaid !== undefined ? s.totalPaid : (previouslyPaid + currentDisbursement);
       const remainingUnpaid = s.remainingUnpaid !== undefined ? s.remainingUnpaid : Math.max(0, salaryDue - totalPaid);
       const status = s.status || (remainingUnpaid <= 0.01 ? 'PAID' : (totalPaid > 0 ? 'PARTIALLY PAID' : 'UNPAID'));
+      const workingDays = mp.workingDays ?? a.workingDays ?? rawData.workingDays ?? 0;
+      const workedDays = mp.workedDays ?? a.workedDays ?? rawData.workedDays ?? 0;
 
       return {
         month: mp.month || '',
         year: mp.year || rawData.year,
+        workingDays,
+        workedDays,
         salaryDue,
         previouslyPaid,
         currentDisbursement,
@@ -136,6 +140,8 @@ export const buildSalaryReceiptTemplate = (data, _settings = {}) => {
   const allocItems = data.allocations.length > 0 ? data.allocations : [{
     month: data.monthsText,
     year: data.year,
+    workingDays: 0,
+    workedDays: 0,
     salaryDue: data.baseSalary + data.allowances - data.deductions - data.advanceDeducted,
     previouslyPaid: 0,
     currentDisbursement: data.netSalary,
@@ -155,6 +161,13 @@ export const buildSalaryReceiptTemplate = (data, _settings = {}) => {
         { text: formatCurrency(item.salaryDue), fontSize: 9, alignment: 'right', color: '#0f172a', bold: true },
       ],
     ];
+
+    if (item.workingDays > 0 || item.workedDays > 0) {
+      summaryRows.push([
+        { text: 'Working Days (Worked / Total)', fontSize: 9, color: '#334155', bold: true },
+        { text: `${item.workedDays || 0} / ${item.workingDays || 0} Days`, fontSize: 9, alignment: 'right', color: '#4f46e5', bold: true },
+      ]);
+    }
 
     if (data.advanceDeducted > 0) {
       summaryRows.push([

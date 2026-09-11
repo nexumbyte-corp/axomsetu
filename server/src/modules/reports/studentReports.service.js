@@ -17,7 +17,18 @@ export const studentReportsService = {
       limit = 20,
     } = query;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const numLimit = Number(limit);
+    const isUnlimited = numLimit <= 0 || numLimit >= 10000;
+    const skip = isUnlimited ? undefined : (Number(page) - 1) * numLimit;
+
+    let statusCondition = undefined;
+    if (status && status !== 'ALL') {
+      if (status === 'INACTIVE') {
+        statusCondition = { in: ['LEFT', 'GRADUATED', 'ARCHIVED'] };
+      } else {
+        statusCondition = status;
+      }
+    }
 
     const enrollmentWhere = {
       schoolId,
@@ -26,7 +37,7 @@ export const studentReportsService = {
       ...(sectionId && { sectionId }),
       ...(mediumId && { mediumId }),
       ...(streamId && { streamId }),
-      ...(status && { status }),
+      ...(statusCondition && { status: statusCondition }),
       ...(search && {
         student: {
           OR: [
@@ -55,8 +66,8 @@ export const studentReportsService = {
         orderBy: [
           { createdAt: 'desc' },
         ],
-        skip,
-        take: Number(limit),
+        ...(skip !== undefined && { skip }),
+        ...(!isUnlimited && { take: numLimit }),
       }),
     ]);
 

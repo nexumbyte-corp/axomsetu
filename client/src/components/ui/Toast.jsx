@@ -8,7 +8,16 @@ export const toast = {
     window.dispatchEvent(new CustomEvent('app:toast', { detail: { message, type: 'success' } }));
   },
   error: (message) => {
-    window.dispatchEvent(new CustomEvent('app:toast', { detail: { message, type: 'error' } }));
+    const msgStr = typeof message === 'string' ? message : message?.message || '';
+    const lower = msgStr.toLowerCase();
+    if (
+      lower.includes('student limit reached') ||
+      (lower.includes('maximum of') && lower.includes('active students'))
+    ) {
+      window.dispatchEvent(new CustomEvent('subscription:student_limit_exceeded', { detail: { message: msgStr } }));
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('app:toast', { detail: { message: msgStr, type: 'error' } }));
   },
   info: (message) => {
     window.dispatchEvent(new CustomEvent('app:toast', { detail: { message, type: 'info' } }));

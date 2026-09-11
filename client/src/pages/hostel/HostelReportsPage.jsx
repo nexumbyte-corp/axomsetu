@@ -24,7 +24,7 @@ import { Spinner } from '../../components/ui/Spinner.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
 import { formatDate } from '../../utils/formatters.js';
-import { exportToCSV } from '../../utils/csvExport.js';
+import { exportToCSV } from '../../utils/exportUtils.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { StudentDetailsCell } from '../../components/hostel/StudentDetailsCell.jsx';
 import { StudentPhotoModal } from '../../components/hostel/StudentPhotoModal.jsx';

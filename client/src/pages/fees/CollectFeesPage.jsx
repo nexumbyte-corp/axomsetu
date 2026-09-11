@@ -9,17 +9,39 @@ import { ReceiptSuccessModal } from '../../components/fees/ReceiptSuccessModal.j
 import { useStudentOutstanding, useCollectPayment, useDeleteUnpaidFeeCharge } from '../../hooks/usePaymentEngine.js';
 import { toast } from '../../components/ui/Toast.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
+import { useAcademicYear } from '../../hooks/useAcademicYear.js';
+import { schoolService } from '../../services/school.service.js';
 
 import { StudentPickerTable } from '../../components/fees/StudentPickerTable.jsx';
 
 export const CollectFeesPage = () => {
   const { schoolMembership, user } = useAuth();
+  const { selectedYear } = useAcademicYear();
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedChargeIds, setSelectedChargeIds] = useState([]);
   const [paymentAmounts, setPaymentAmounts] = useState({});
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [successModalData, setSuccessModalData] = useState(null);
   const [isSharingWhatsApp, setIsSharingWhatsApp] = useState(false);
+  const [schoolProfile, setSchoolProfile] = useState(null);
+
+  React.useEffect(() => {
+    schoolService
+      .getTenantProfile()
+      .then((res) => {
+        if (res?.success) setSchoolProfile(res.data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const schoolHeader =
+    schoolProfile ||
+    schoolMembership?.school ||
+    user?.schoolAdmins?.[0]?.school ||
+    user?.school ||
+    user?.staffProfile?.school ||
+    user?.studentProfile?.school ||
+    {};
 
   // Fetch outstanding charges for selected student
   const {
@@ -315,6 +337,9 @@ export const CollectFeesPage = () => {
             {/* Left 2 Columns: Outstanding Charges Business Table */}
             <div className="lg:col-span-2 flex flex-col h-full min-h-0 overflow-hidden">
               <OutstandingChargesTable
+                student={selectedStudent}
+                schoolHeader={schoolHeader}
+                academicYear={selectedYear}
                 charges={charges}
                 selectedChargeIds={selectedChargeIds}
                 paymentAmounts={paymentAmounts}

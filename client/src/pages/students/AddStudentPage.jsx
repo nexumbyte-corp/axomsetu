@@ -18,7 +18,9 @@ import { PassportPhotoCropModal } from '../../components/students/PassportPhotoC
 import { CameraCaptureModal } from '../../components/students/CameraCaptureModal.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { usePageHeader } from '../../context/PageHeaderContext.jsx';
+import { useSubscription } from '../../context/SubscriptionContext.jsx';
 import { getFormErrors } from '../../utils/errorUtils.js';
+import { isStudentLimitError, parseStudentLimitError } from '../../utils/subscriptionUtils.js';
 
 const MONTH_NAMES = [
   'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
@@ -44,6 +46,7 @@ export const AddStudentPage = () => {
   const navigate = useNavigate();
   const { selectedYear, selectedYearId } = useAcademicYear();
   const { user } = useAuth();
+  const { showStudentLimitModal, subscription } = useSubscription();
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
 
@@ -410,10 +413,14 @@ export const AddStudentPage = () => {
       toast.success('Student registered successfully and initial fee charges generated!');
       navigate('/app/students');
     } catch (err) {
-      toast.error(err?.message || 'Failed adding student');
-      const backendErrors = getFormErrors(err);
-      if (Object.keys(backendErrors).length > 0) {
-        setErrors((prev) => ({ ...prev, ...backendErrors }));
+      if (isStudentLimitError(err)) {
+        showStudentLimitModal(parseStudentLimitError(err, subscription));
+      } else {
+        toast.error(err?.message || 'Failed adding student');
+        const backendErrors = getFormErrors(err);
+        if (Object.keys(backendErrors).length > 0) {
+          setErrors((prev) => ({ ...prev, ...backendErrors }));
+        }
       }
     } finally {
       setSubmitting(false);

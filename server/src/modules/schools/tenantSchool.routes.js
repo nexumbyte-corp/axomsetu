@@ -13,7 +13,6 @@ router.use(authenticate, resolveSchool);
 
 router.get(
   '/profile',
-  requireSchoolOwner('Only the School Owner can access the school profile.'),
   schoolController.getTenantSchoolProfile
 );
 

@@ -216,6 +216,12 @@ export const getPaymentModeSummaryReport = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: 'Payment mode summary report generated', ...result });
 });
 
+export const getFinancialChartsReport = asyncHandler(async (req, res) => {
+  const query = genericReportQuerySchema.parse(req.query);
+  const result = await financeReportsService.getFinancialChartsReport(req.schoolId, query);
+  res.status(200).json({ success: true, message: 'Financial charts report generated', data: result });
+});
+
 // --- Audit Report ---
 export const getAuditLogsReport = asyncHandler(async (req, res) => {
   const query = genericReportQuerySchema.parse(req.query);

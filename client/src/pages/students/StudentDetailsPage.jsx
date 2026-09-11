@@ -28,6 +28,7 @@ import {
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { usePermission } from '../../hooks/usePermission.js';
+import { useAuth } from '../../hooks/useAuth.js';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
 import { paymentService } from '../../services/payment.service.js';
@@ -56,8 +57,9 @@ import { PhotoPreviewModal } from '../../components/students/PhotoPreviewModal.j
 export const StudentDetailsPage = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
-  const { selectedYear, selectedYearId, academicYears } = useAcademicYear();
+  const { selectedYear, selectedYearId } = useAcademicYear();
   const { can } = usePermission();
+  const { user } = useAuth();
 
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -69,6 +71,14 @@ export const StudentDetailsPage = () => {
 
   // School Profile State for Print Header
   const [schoolInfo, setSchoolInfo] = useState(null);
+
+  const schoolHeader =
+    schoolInfo ||
+    user?.schoolAdmins?.[0]?.school ||
+    user?.school ||
+    user?.staffProfile?.school ||
+    user?.studentProfile?.school ||
+    {};
 
   // Setup options for modals
   const [classes, setClasses] = useState([]);
@@ -825,7 +835,7 @@ export const StudentDetailsPage = () => {
                         student,
                         currentAcademic,
                         pendingFees,
-                        schoolHeader: schoolInfo,
+                        schoolHeader,
                         academicYear: selectedYear,
                       }}
                       filename={`Dues_Slip_${student.admissionNo || 'Student'}.pdf`}
@@ -1157,7 +1167,7 @@ export const StudentDetailsPage = () => {
           student={student}
           currentAcademic={currentAcademic}
           pendingFees={pendingFees}
-          schoolHeader={schoolInfo}
+          schoolHeader={schoolHeader}
           academicYear={selectedYear}
           copyLabel="Official Student Copy"
         />

@@ -15,11 +15,14 @@ export const feeReportsService = {
       streamId,
       feeTypeId,
       paymentMode,
+      month,
       page = 1,
       limit = 20,
     } = query;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const numLimit = Number(limit);
+    const isUnlimited = numLimit <= 0 || numLimit >= 10000;
+    const skip = isUnlimited ? undefined : (Number(page) - 1) * numLimit;
 
     const paymentWhere = {
       schoolId,
@@ -35,11 +38,12 @@ export const feeReportsService = {
       };
     }
 
-    if (classId || mediumId || streamId || feeTypeId) {
+    if (classId || mediumId || streamId || feeTypeId || month) {
       paymentWhere.allocations = {
         some: {
           charge: {
             ...(feeTypeId && { feeTypeId }),
+            ...(month && { month: String(month).toUpperCase() }),
             studentEnrollment: {
               ...(classId && { classId }),
               ...(mediumId && { mediumId }),
@@ -75,8 +79,8 @@ export const feeReportsService = {
           },
         },
         orderBy: { paymentDate: 'desc' },
-        skip,
-        take: Number(limit),
+        ...(skip !== undefined && { skip }),
+        ...(!isUnlimited && { take: numLimit }),
       }),
     ]);
 
@@ -165,16 +169,20 @@ export const feeReportsService = {
       mediumId,
       streamId,
       status,
+      month,
       page = 1,
       limit = 20,
     } = query;
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const numLimit = Number(limit);
+    const isUnlimited = numLimit <= 0 || numLimit >= 10000;
+    const skip = isUnlimited ? 0 : (Number(page) - 1) * numLimit;
 
     const chargeWhere = {
       schoolId,
       status: status ? status : { in: ['UNPAID', 'PARTIAL'] },
       ...(academicYearId && { academicYearId }),
+      ...(month && { month: String(month).toUpperCase() }),
     };
 
     if (classId || sectionId || mediumId || streamId) {
@@ -262,7 +270,7 @@ export const feeReportsService = {
     });
 
     const totalStudents = allDues.length;
-    const paginatedDues = allDues.slice(skip, skip + Number(limit));
+    const paginatedDues = isUnlimited ? allDues : allDues.slice(skip, skip + numLimit);
 
     const totalOutstandingDecimal = allDues.reduce(
       (sum, d) => sum.plus(new Prisma.Decimal(d.balance)),

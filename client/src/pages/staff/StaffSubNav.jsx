@@ -23,10 +23,9 @@ export const StaffSubNav = () => {
               to={tab.path}
               end={tab.end}
               className={({ isActive }) =>
-                `flex items-center gap-2 py-3 px-3 border-b-2 text-xs font-semibold transition-colors ${
-                  isActive
-                    ? 'border-indigo-600 text-indigo-600 font-bold'
-                    : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
+                `flex items-center gap-2 py-3 px-3 border-b-2 text-xs font-semibold transition-colors ${isActive
+                  ? 'border-indigo-600 text-indigo-600 font-bold'
+                  : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
                 }`
               }
             >

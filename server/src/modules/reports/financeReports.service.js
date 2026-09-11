@@ -331,4 +331,337 @@ export const financeReportsService = {
       data: summary,
     };
   },
+
+  /**
+   * Financial Analytics Charts Report with strict scope rules:
+   * Student/Fee Analytics: Academic Year -> Class -> Medium -> Stream -> Month
+   * School Expense Analytics: Academic Year -> Month
+   */
+  async getFinancialChartsReport(schoolId, query = {}) {
+    const { academicYearId, classId, mediumId, streamId, month } = query;
+
+    // 1. Fetch Target Academic Year
+    let targetYear = null;
+    if (academicYearId) {
+      targetYear = await prisma.academicYear.findFirst({
+        where: { id: academicYearId, schoolId },
+      });
+    }
+    if (!targetYear) {
+      targetYear =
+        (await prisma.academicYear.findFirst({
+          where: { schoolId, isCurrent: true },
+        })) ||
+        (await prisma.academicYear.findFirst({
+          where: { schoolId },
+          orderBy: { startDate: 'desc' },
+        }));
+    }
+
+    const yearId = targetYear?.id;
+
+    const enumMonths = [
+      'JANUARY',
+      'FEBRUARY',
+      'MARCH',
+      'APRIL',
+      'MAY',
+      'JUNE',
+      'JULY',
+      'AUGUST',
+      'SEPTEMBER',
+      'OCTOBER',
+      'NOVEMBER',
+      'DECEMBER',
+    ];
+
+    const monthLabels = {
+      JANUARY: 'Jan',
+      FEBRUARY: 'Feb',
+      MARCH: 'Mar',
+      APRIL: 'Apr',
+      MAY: 'May',
+      JUNE: 'Jun',
+      JULY: 'Jul',
+      AUGUST: 'Aug',
+      SEPTEMBER: 'Sep',
+      OCTOBER: 'Oct',
+      NOVEMBER: 'Nov',
+      DECEMBER: 'Dec',
+    };
+
+    // Dynamically derive academic month sequence from targetYear.startDate & targetYear.endDate
+    const academicMonths = [];
+    const monthFullLabels = {};
+
+    if (targetYear?.startDate && targetYear?.endDate) {
+      const start = new Date(targetYear.startDate);
+      const end = new Date(targetYear.endDate);
+
+      let cur = new Date(start.getFullYear(), start.getMonth(), 1);
+      const endMonthObj = new Date(end.getFullYear(), end.getMonth(), 1);
+
+      while (cur <= endMonthObj) {
+        const mIdx = cur.getMonth();
+        const mKey = enumMonths[mIdx];
+        const yearNum = cur.getFullYear();
+
+        if (!academicMonths.includes(mKey)) {
+          academicMonths.push(mKey);
+        }
+        monthFullLabels[mKey] = `${monthLabels[mKey]} ${yearNum}`;
+
+        cur.setMonth(cur.getMonth() + 1);
+      }
+    }
+
+    if (academicMonths.length === 0) {
+      const defaultSequence = [
+        'APRIL',
+        'MAY',
+        'JUNE',
+        'JULY',
+        'AUGUST',
+        'SEPTEMBER',
+        'OCTOBER',
+        'NOVEMBER',
+        'DECEMBER',
+        'JANUARY',
+        'FEBRUARY',
+        'MARCH',
+      ];
+      const startYr = targetYear?.startDate
+        ? new Date(targetYear.startDate).getFullYear()
+        : new Date().getFullYear();
+
+      defaultSequence.forEach((mKey, idx) => {
+        academicMonths.push(mKey);
+        const yr = idx >= 9 ? startYr + 1 : startYr;
+        monthFullLabels[mKey] = `${monthLabels[mKey]} ${yr}`;
+      });
+    }
+
+    const getFullMonthLabel = (mKey) => {
+      return monthFullLabels[mKey] || `${monthLabels[mKey] || mKey}`;
+    };
+
+    // 2. Student/Fee Charge Where Clause (Expected Collection)
+    const feeChargeWhere = {
+      schoolId,
+      status: { not: 'VOID' },
+      ...(yearId && { academicYearId: yearId }),
+    };
+
+    if (classId || mediumId || streamId) {
+      feeChargeWhere.studentEnrollment = {
+        ...(classId && { classId }),
+        ...(mediumId && { mediumId }),
+        ...(streamId && { streamId }),
+      };
+    }
+
+    // 3. Payment Allocation Where Clause (Actual Collection)
+    const paymentAllocWhere = {
+      payment: {
+        schoolId,
+        status: 'SUCCESS',
+        ...(yearId && { academicYearId: yearId }),
+      },
+      charge: {
+        schoolId,
+        status: { not: 'VOID' },
+        ...(yearId && { academicYearId: yearId }),
+        ...(classId || mediumId || streamId
+          ? {
+              studentEnrollment: {
+                ...(classId && { classId }),
+                ...(mediumId && { mediumId }),
+                ...(streamId && { streamId }),
+              },
+            }
+          : {}),
+      },
+    };
+
+    // 4. Expense Where Clause (School Expenses: Academic Year + Month ONLY)
+    const expenseWhere = {
+      schoolId,
+      status: 'ACTIVE',
+      ...(yearId && { academicYearId: yearId }),
+    };
+
+    // Execute queries in parallel
+    const [charges, allocations, expenses] = await Promise.all([
+      prisma.studentFeeCharge.findMany({
+        where: feeChargeWhere,
+        select: {
+          id: true,
+          month: true,
+          amount: true,
+          discountAmount: true,
+        },
+      }),
+      prisma.paymentAllocation.findMany({
+        where: paymentAllocWhere,
+        select: {
+          id: true,
+          allocatedAmount: true,
+          charge: {
+            select: {
+              month: true,
+            },
+          },
+        },
+      }),
+      prisma.expense.findMany({
+        where: expenseWhere,
+        include: {
+          category: { select: { id: true, name: true } },
+        },
+      }),
+    ]);
+
+    // Aggregate monthly metrics
+    const monthlyExpected = {};
+    const monthlyActual = {};
+    const monthlyExpense = {};
+
+    academicMonths.forEach((m) => {
+      monthlyExpected[m] = new Prisma.Decimal(0);
+      monthlyActual[m] = new Prisma.Decimal(0);
+      monthlyExpense[m] = new Prisma.Decimal(0);
+    });
+
+    // Sum charges (Expected Collection)
+    charges.forEach((c) => {
+      if (c.month && monthlyExpected[c.month] !== undefined) {
+        const netAmt = new Prisma.Decimal(c.amount).minus(new Prisma.Decimal(c.discountAmount || 0));
+        monthlyExpected[c.month] = monthlyExpected[c.month].plus(Prisma.Decimal.max(new Prisma.Decimal(0), netAmt));
+      }
+    });
+
+    // Sum allocations (Actual Collection)
+    allocations.forEach((a) => {
+      const m = a.charge?.month;
+      if (m && monthlyActual[m] !== undefined) {
+        monthlyActual[m] = monthlyActual[m].plus(new Prisma.Decimal(a.allocatedAmount));
+      }
+    });
+
+    // Sum expenses (School Expenses)
+    expenses.forEach((e) => {
+      if (e.expenseDate) {
+        const dateObj = new Date(e.expenseDate);
+        const monthIndex = dateObj.getMonth();
+        const mKey = enumMonths[monthIndex];
+        if (mKey && monthlyExpense[mKey] !== undefined) {
+          monthlyExpense[mKey] = monthlyExpense[mKey].plus(new Prisma.Decimal(e.amount));
+        }
+      }
+    });
+
+    // Selected month normalization
+    const normalizedMonth = month && month !== 'ALL' ? String(month).toUpperCase() : 'ALL';
+
+    // Build Monthly Chart Data
+    const monthlyChartData = academicMonths.map((mKey) => {
+      const expDecimal = monthlyExpected[mKey] || new Prisma.Decimal(0);
+      const actDecimal = monthlyActual[mKey] || new Prisma.Decimal(0);
+      const exDecimal = monthlyExpense[mKey] || new Prisma.Decimal(0);
+
+      const isSelected = normalizedMonth === 'ALL' || normalizedMonth === mKey;
+
+      return {
+        month: mKey,
+        label: monthLabels[mKey],
+        fullLabel: getFullMonthLabel(mKey),
+        expectedCollection: Number(expDecimal),
+        actualCollection: Number(actDecimal),
+        expense: Number(exDecimal),
+        isSelected,
+      };
+    });
+
+    // Expense Distribution (by ExpenseCategory for selected month / all months)
+    const categoryTotals = {};
+    let totalExpenseForPeriod = new Prisma.Decimal(0);
+
+    expenses.forEach((e) => {
+      if (e.expenseDate) {
+        const dateObj = new Date(e.expenseDate);
+        const monthIndex = dateObj.getMonth();
+        const mKey = enumMonths[monthIndex];
+
+        if (normalizedMonth === 'ALL' || normalizedMonth === mKey) {
+          const amtDecimal = new Prisma.Decimal(e.amount);
+          const catName = e.category?.name || 'Uncategorized';
+
+          totalExpenseForPeriod = totalExpenseForPeriod.plus(amtDecimal);
+          categoryTotals[catName] = (categoryTotals[catName] || new Prisma.Decimal(0)).plus(amtDecimal);
+        }
+      }
+    });
+
+    const expenseDistribution = Object.entries(categoryTotals)
+      .map(([catName, amtDecimal]) => {
+        const amt = Number(amtDecimal);
+        const total = Number(totalExpenseForPeriod);
+        const percentage = total > 0 ? Number(((amt / total) * 100).toFixed(1)) : 0;
+        return {
+          categoryName: catName,
+          amount: amt,
+          percentage,
+        };
+      })
+      .sort((a, b) => b.amount - a.amount);
+
+    // Summary Cards Calculation
+    let totalExpected = new Prisma.Decimal(0);
+    let totalActual = new Prisma.Decimal(0);
+    let totalExpenseSummary = totalExpenseForPeriod;
+
+    academicMonths.forEach((mKey) => {
+      if (normalizedMonth === 'ALL' || normalizedMonth === mKey) {
+        totalExpected = totalExpected.plus(monthlyExpected[mKey] || 0);
+        totalActual = totalActual.plus(monthlyActual[mKey] || 0);
+      }
+    });
+
+    const netCollection = totalActual.minus(totalExpenseSummary);
+    const outstandingDues = Prisma.Decimal.max(new Prisma.Decimal(0), totalExpected.minus(totalActual));
+
+    const totalExpNum = Number(totalExpected);
+    const totalActNum = Number(totalActual);
+    const collectionRate = totalExpNum > 0 ? Number(((totalActNum / totalExpNum) * 100).toFixed(1)) : 0;
+
+    const hasData = totalExpNum > 0 || totalActNum > 0 || Number(totalExpenseSummary) > 0;
+
+    return {
+      academicYear: {
+        id: targetYear?.id,
+        name: targetYear?.name,
+        startDate: targetYear?.startDate,
+        endDate: targetYear?.endDate,
+      },
+      selectedFilters: {
+        academicYearId: yearId,
+        classId: classId || null,
+        mediumId: mediumId || null,
+        streamId: streamId || null,
+        month: normalizedMonth,
+      },
+      summaryCards: {
+        expectedCollection: totalExpNum,
+        actualCollection: totalActNum,
+        totalExpense: Number(totalExpenseSummary),
+        netBalance: Number(netCollection),
+        outstandingDues: Number(outstandingDues),
+        collectionRate,
+        hasData,
+      },
+      monthlyChartData,
+      expenseDistribution,
+    };
+  },
 };
+

@@ -3,8 +3,7 @@
  * Ensures consistent timezone handling across all server modules, DB queries, and report aggregations.
  */
 
-export const IST_TIMEZONE = 'Asia/Kolkata';
-export const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // +05:30 in milliseconds
+const IST_TIMEZONE = 'Asia/Kolkata';
 
 /**
  * Returns current Date object in IST timezone context.
@@ -148,50 +147,12 @@ export const getISTYearBounds = (yearOrDate) => {
   return { startOfYear, endOfYear, year };
 };
 
-/**
- * Returns formatted ISO string representation in IST (+05:30 offset).
- * @param {Date|string|number} [date]
- * @returns {string} e.g. "2026-08-25T21:34:00.000+05:30"
- */
-export const getISTISOString = (date = new Date()) => {
-  const d = getISTDate(date);
-  const parts = getISTDateParts(d);
-  const y = parts.year;
-  const m = String(parts.month).padStart(2, '0');
-  const day = String(parts.day).padStart(2, '0');
-  const h = String(parts.hours).padStart(2, '0');
-  const min = String(parts.minutes).padStart(2, '0');
-  const s = String(parts.seconds).padStart(2, '0');
-  const ms = String(d.getMilliseconds()).padStart(3, '0');
-
-  return `${y}-${m}-${day}T${h}:${min}:${s}.${ms}+05:30`;
-};
-
-/**
- * Returns start of day (00:00:00.000 IST / 12:00 AM) Date object.
- * @param {string|Date} [date]
- * @returns {Date}
- */
-export const getISTStartOfDay = (date) => getISTDayBounds(date).startOfDay;
-
-/**
- * Returns end of day (23:59:59.999 IST / 11:59:59 PM) Date object.
- * @param {string|Date} [date]
- * @returns {Date}
- */
-export const getISTEndOfDay = (date) => getISTDayBounds(date).endOfDay;
-
 export default {
-  IST_TIMEZONE,
-  IST_OFFSET_MS,
   getISTDate,
   getISTDateParts,
   getISTDateString,
   getISTDayBounds,
   getISTMonthBounds,
   getISTYearBounds,
-  getISTISOString,
-  getISTStartOfDay,
-  getISTEndOfDay,
 };
 

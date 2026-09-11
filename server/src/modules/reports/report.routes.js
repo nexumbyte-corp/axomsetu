@@ -60,6 +60,7 @@ router.get('/finance/transactions', reportController.getFinancialTransactionRepo
 router.get('/finance/expenses', reportController.getExpenseReport);
 router.get('/finance/funds', reportController.getFundReport);
 router.get('/finance/payment-modes', reportController.getPaymentModeSummaryReport);
+router.get('/finance/charts', reportController.getFinancialChartsReport);
 
 // --- Audit Report ---
 router.get('/audit/logs', reportController.getAuditLogsReport);

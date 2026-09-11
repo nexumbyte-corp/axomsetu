@@ -255,6 +255,7 @@ export const SalaryPaymentsPage = () => {
               Select Staff Member
             </label>
             <Select
+              size="sm"
               value={selectedStaffId}
               onChange={(e) => setSelectedStaffId(e.target.value)}
               options={[{ value: '', label: '-- Select Staff Member to Pay --' }, ...staffSelectOptions]}
@@ -429,13 +430,14 @@ export const SalaryPaymentsPage = () => {
                                 Full
                               </button>
                               <Input
+                                size="sm"
                                 type="number"
                                 min="1"
                                 max={p.balance}
                                 value={item.payNowAmount ?? p.balance}
                                 onChange={(e) => handlePayNowChange(p.id, e.target.value)}
                                 disabled={!isSelected}
-                                className={`w-28 text-right font-mono font-bold text-xs py-1 px-1.5 ${
+                                className={`w-28 text-right font-mono font-bold text-xs ${
                                   hasErr ? 'border-rose-500 focus:ring-rose-500 bg-rose-50' : ''
                                 }`}
                               />
@@ -491,6 +493,7 @@ export const SalaryPaymentsPage = () => {
                 <div>
                   <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Payment Mode *</label>
                   <Select
+                    size="sm"
                     value={paymentMode}
                     onChange={(e) => setPaymentMode(e.target.value)}
                     options={PAYMENT_MODES}
@@ -500,6 +503,7 @@ export const SalaryPaymentsPage = () => {
                 <div>
                   <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Ref / UTR / Cheque No.</label>
                   <Input
+                    size="sm"
                     placeholder="e.g. UTR / Txn # / Cheque #"
                     value={referenceNo}
                     onChange={(e) => setReferenceNo(e.target.value)}
@@ -509,6 +513,7 @@ export const SalaryPaymentsPage = () => {
                 <div>
                   <label className="block text-[10px] font-bold text-slate-600 mb-0.5">Remarks</label>
                   <Input
+                    size="sm"
                     placeholder="Optional disbursement note..."
                     value={remarks}
                     onChange={(e) => setRemarks(e.target.value)}
@@ -648,6 +653,11 @@ export const SalaryPaymentsPage = () => {
                       <div className="flex items-center justify-between text-xs border-b border-slate-100 pb-1.5">
                         <span className="font-bold text-slate-900">
                           Period: {alloc.monthlyPayroll?.month} {alloc.monthlyPayroll?.year}
+                          {alloc.monthlyPayroll?.workingDays ? (
+                            <span className="ml-2 font-mono text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                              Worked: {alloc.monthlyPayroll.workedDays ?? '-'} / {alloc.monthlyPayroll.workingDays} days
+                            </span>
+                          ) : null}
                         </span>
                         <Badge variant={s.status === 'PAID' ? 'success' : 'neutral'} size="sm">
                           {s.status || 'PARTIALLY PAID'}

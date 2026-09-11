@@ -28,7 +28,7 @@ export const DocumentActions = ({
 
   // Pre-warm PDF engine and fonts on mount for instant zero-latency generation
   React.useEffect(() => {
-    loadPdfMake().catch(() => {});
+    loadPdfMake().catch(() => { });
   }, []);
 
   const validateData = () => {

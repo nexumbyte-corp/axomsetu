@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { reportService } from '../../services/report.service.js';
-import { exportToCSV } from '../../utils/csvExport.js';
+import { exportToCSV } from '../../utils/exportUtils.js';
 import { formatDate } from '../../utils/formatters.js';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Button } from '../../components/ui/Button.jsx';
@@ -136,11 +136,13 @@ export const IndividualStaffAdvanceReportModal = ({
         <div className="flex flex-col sm:flex-row items-end gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
             <DatePicker
+              size="sm"
               label="From Date"
               value={startDate}
               onChange={(val) => setStartDate(val)}
             />
             <DatePicker
+              size="sm"
               label="To Date"
               value={endDate}
               onChange={(val) => setEndDate(val)}

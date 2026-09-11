@@ -179,11 +179,11 @@ export const StaffListPage = () => {
       {/* Shared Staff Navigation Tabs */}
       <StaffSubNav />
 
-      {/* Filter and Search Section */}
-      <Card className="p-4 bg-white border border-slate-200 shadow-2xs">
-        <form onSubmit={handleSearchSubmit} autoComplete="off" className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+      <Card className="p-3 bg-white border border-slate-200 shadow-2xs">
+        <form onSubmit={handleSearchSubmit} autoComplete="off" className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
           <div className="sm:col-span-1">
             <Input
+              size="sm"
               placeholder="Search staff by name or employee code..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -192,6 +192,7 @@ export const StaffListPage = () => {
           </div>
 
           <Select
+            size="sm"
             value={selectedDepartment}
             onChange={(e) => {
               setSelectedDepartment(e.target.value);
@@ -201,6 +202,7 @@ export const StaffListPage = () => {
           />
 
           <Select
+            size="sm"
             value={selectedDesignation}
             onChange={(e) => {
               setSelectedDesignation(e.target.value);
@@ -210,6 +212,7 @@ export const StaffListPage = () => {
           />
 
           <Select
+            size="sm"
             value={selectedStatus}
             onChange={(e) => {
               setSelectedStatus(e.target.value);

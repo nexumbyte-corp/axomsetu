@@ -288,6 +288,7 @@ export const MonthlySalaryPage = () => {
         <div className="flex flex-wrap items-center gap-2">
           <div className="w-48">
             <Select
+              size="sm"
               value={selectedMonth}
               onChange={(e) => {
                 const newMonth = e.target.value;
@@ -308,10 +309,10 @@ export const MonthlySalaryPage = () => {
               max="31"
               value={workingDaysInput}
               onChange={(e) => setWorkingDaysInput(e.target.value)}
-              className="w-full h-9 px-2 text-center text-xs font-bold font-mono border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50"
+              className="w-full h-8 px-2 text-center text-xs font-bold font-mono border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-slate-50"
               title="Total Working Days for the Month"
             />
-            <span className="text-[10px] text-slate-400 font-semibold absolute right-2 top-2.5 pointer-events-none">
+            <span className="text-[10px] text-slate-400 font-semibold absolute right-2 top-2 pointer-events-none">
               days
             </span>
           </div>
