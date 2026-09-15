@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Users, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
@@ -13,36 +13,76 @@ import { EmptyState } from '../ui/EmptyState.jsx';
 import { StudentAvatar } from '../students/StudentAvatar.jsx';
 import { StudentStatusBadge } from '../students/StudentStatusBadge.jsx';
 
+const FEE_PICKER_FILTERS_STORAGE_KEY = 'fee_picker_filters';
+
+const loadSavedFeePickerFilters = () => {
+  try {
+    const saved = localStorage.getItem(FEE_PICKER_FILTERS_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (err) {
+    console.error('Failed loading saved fee picker filters:', err);
+  }
+  return null;
+};
+
 export const StudentPickerTable = ({ onSelectStudent }) => {
   const { selectedYearId, selectedYear } = useAcademicYear();
+
+  const savedFilters = useMemo(() => loadSavedFeePickerFilters(), []);
 
   // Data States
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [sections, setSections] = useState([]);
+  const [mediums, setMediums] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Search & Filter States
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [selectedClassId, setSelectedClassId] = useState('');
-  const [selectedSectionId, setSelectedSectionId] = useState('');
-  const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ page: 1, limit: 15, total: 0, totalPages: 1 });
+  const [searchTerm, setSearchTerm] = useState(() => savedFilters?.searchTerm || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(() => savedFilters?.searchTerm || '');
+  const [selectedClassId, setSelectedClassId] = useState(() => savedFilters?.selectedClassId || '');
+  const [selectedSectionId, setSelectedSectionId] = useState(() => savedFilters?.selectedSectionId || '');
+  const [selectedMediumId, setSelectedMediumId] = useState(() => savedFilters?.selectedMediumId || '');
+  const [page, setPage] = useState(() => savedFilters?.page || 1);
+  const [pagination, setPagination] = useState({ page: savedFilters?.page || 1, limit: 15, total: 0, totalPages: 1 });
 
-  // 1. Fetch Setup Options (Classes & Sections)
+  // Persist filters to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        FEE_PICKER_FILTERS_STORAGE_KEY,
+        JSON.stringify({
+          searchTerm,
+          selectedClassId,
+          selectedSectionId,
+          selectedMediumId,
+          page,
+        })
+      );
+    } catch (err) {
+      console.error('Failed saving fee picker filters:', err);
+    }
+  }, [searchTerm, selectedClassId, selectedSectionId, selectedMediumId, page]);
+
+  // 1. Fetch Setup Options (Classes, Sections & Mediums)
   useEffect(() => {
     const fetchSetupOptions = async () => {
       try {
-        const [clsRes, secRes] = await Promise.allSettled([
+        const [clsRes, secRes, medRes] = await Promise.allSettled([
           academicService.getClasses(),
           academicService.getSections(),
+          academicService.getMediums(),
         ]);
         if (clsRes.status === 'fulfilled' && clsRes.value?.success) {
           setClasses(clsRes.value.data || []);
         }
         if (secRes.status === 'fulfilled' && secRes.value?.success) {
           setSections(secRes.value.data || []);
+        }
+        if (medRes.status === 'fulfilled' && medRes.value?.success) {
+          setMediums(medRes.value.data || []);
         }
       } catch (err) {
         console.error('Failed to load academic options for fee picker', err);
@@ -76,6 +116,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
           search: debouncedSearch || undefined,
           classId: debouncedSearch ? undefined : (selectedClassId || undefined),
           sectionId: debouncedSearch ? undefined : (selectedSectionId || undefined),
+          mediumId: debouncedSearch ? undefined : (selectedMediumId || undefined),
         }, { signal: controller.signal });
 
         if (!controller.signal.aborted) {
@@ -108,14 +149,18 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
     return () => {
       controller.abort();
     };
-  }, [selectedYearId, page, debouncedSearch, selectedClassId, selectedSectionId]);
+  }, [selectedYearId, page, debouncedSearch, selectedClassId, selectedSectionId, selectedMediumId]);
 
   const handleResetFilters = () => {
     setSearchTerm('');
     setDebouncedSearch('');
     setSelectedClassId('');
     setSelectedSectionId('');
+    setSelectedMediumId('');
     setPage(1);
+    try {
+      localStorage.removeItem(FEE_PICKER_FILTERS_STORAGE_KEY);
+    } catch (err) {}
   };
 
   return (
@@ -160,6 +205,23 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
             ))}
           </select>
 
+          {/* Medium Select Filter */}
+          <select
+            value={selectedMediumId}
+            onChange={(e) => {
+              setSelectedMediumId(e.target.value);
+              setPage(1);
+            }}
+            className="py-1 px-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold text-slate-700 min-w-[100px]"
+          >
+            <option value="">All Medium</option>
+            {mediums.map((med) => (
+              <option key={med.id} value={med.id}>
+                {med.name ? med.name.replace(/\s*medium$/i, '').trim() : ''}
+              </option>
+            ))}
+          </select>
+
           {/* Section Select Filter */}
           <select
             value={selectedSectionId}
@@ -188,7 +250,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
             />
           </div>
 
-          {(searchTerm || selectedClassId || selectedSectionId) && (
+          {(searchTerm || selectedClassId || selectedMediumId || selectedSectionId) && (
             <Button variant="ghost" size="sm" onClick={handleResetFilters} className="text-xs py-1 px-2 h-7">
               Clear
             </Button>
@@ -211,11 +273,11 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
             icon={Users}
             title="No students found"
             description={
-              searchTerm || selectedClassId || selectedSectionId
+              searchTerm || selectedClassId || selectedMediumId || selectedSectionId
                 ? 'No students match search filters.'
                 : `No active students found for ${selectedYear?.name || ''}.`
             }
-            actionText={searchTerm || selectedClassId || selectedSectionId ? 'Clear Filters' : null}
+            actionText={searchTerm || selectedClassId || selectedMediumId || selectedSectionId ? 'Clear Filters' : null}
             onAction={handleResetFilters}
           />
         </div>

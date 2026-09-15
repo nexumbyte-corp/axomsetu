@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Edit2, Trash2, FileSpreadsheet, PlusCircle, Trash, X, Info, Copy, RefreshCw, CheckSquare, Square } from 'lucide-react';
 import { feeService } from '../../services/fee.service.js';
 import { academicService } from '../../services/academic.service.js';
@@ -11,12 +11,46 @@ import { Skeleton } from '../../components/ui/Skeleton.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 
+const FEE_TEMPLATES_FILTERS_STORAGE_KEY = 'fee_templates_filters';
+
+const loadSavedFeeTemplateFilters = () => {
+  try {
+    const saved = localStorage.getItem(FEE_TEMPLATES_FILTERS_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (err) {
+    console.error('Failed loading saved fee template filters:', err);
+  }
+  return null;
+};
+
 export const FeeTemplatesPage = () => {
   const { selectedYearId, academicYears } = useAcademicYear();
 
+  const savedFilters = useMemo(() => loadSavedFeeTemplateFilters(), []);
+
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => savedFilters?.searchQuery || '');
+  const [selectedClassId, setSelectedClassId] = useState(() => savedFilters?.selectedClassId || '');
+  const [selectedMediumId, setSelectedMediumId] = useState(() => savedFilters?.selectedMediumId || '');
+
+  // Persist filter values to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        FEE_TEMPLATES_FILTERS_STORAGE_KEY,
+        JSON.stringify({
+          searchQuery,
+          selectedClassId,
+          selectedMediumId,
+        })
+      );
+    } catch (err) {
+      console.error('Failed saving fee template filters:', err);
+    }
+  }, [searchQuery, selectedClassId, selectedMediumId]);
 
   // Dropdown options
   const [classes, setClasses] = useState([]);
@@ -77,7 +111,7 @@ export const FeeTemplatesPage = () => {
     try {
       const res = await feeService.getFeeStructures({ academicYearId: selectedYearId });
       setTemplates(res.data || []);
-    } catch {
+    } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to load fee templates');
     } finally {
       setLoading(false);
@@ -98,28 +132,25 @@ export const FeeTemplatesPage = () => {
       mediumId: mediums[0]?.id || '',
       streamId: '',
       isActive: true,
-      heads: feeTypes.slice(0, 4).map((ft) => ({
-        feeTypeId: ft.id,
-        amount: 500,
-        isActive: true,
-      })),
+      heads: [],
     });
     setFormError('');
     setIsDrawerOpen(true);
   };
 
-  const handleOpenEditDrawer = (item) => {
-    setEditingTemplate(item);
+  const handleOpenEditDrawer = (template) => {
+    setEditingTemplate(template);
     setFormData({
-      academicYearId: item.academicYearId,
-      classId: item.classId,
-      mediumId: item.mediumId,
-      streamId: item.streamId || '',
-      isActive: item.isActive,
-      heads: item.heads.map((h) => ({
+      academicYearId: template.academicYearId,
+      classId: template.classId,
+      mediumId: template.mediumId,
+      streamId: template.streamId || '',
+      isActive: template.isActive,
+      heads: (template.heads || []).map((h) => ({
+        id: h.id,
         feeTypeId: h.feeTypeId,
         amount: Number(h.amount),
-        isActive: h.isActive,
+        isOptional: h.isOptional || false,
       })),
     });
     setFormError('');
@@ -163,51 +194,54 @@ export const FeeTemplatesPage = () => {
     toast.success(`Fee heads copied from '${source.class?.name}'. Modify amounts if needed.`);
   };
 
-  const handleAddHeadRow = () => {
-    const unusedType = feeTypes.find(
+  const handleAddHeadToForm = () => {
+    const availableTypes = feeTypes.filter(
       (ft) => !formData.heads.some((h) => h.feeTypeId === ft.id)
     );
-    const feeTypeId = unusedType ? unusedType.id : feeTypes[0]?.id || '';
-    setFormData({
-      ...formData,
-      heads: [...formData.heads, { feeTypeId, amount: 0, isActive: true }],
-    });
+    if (availableTypes.length === 0) {
+      toast.error('All available fee types have already been added to this structure.');
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      heads: [
+        ...prev.heads,
+        {
+          feeTypeId: availableTypes[0].id,
+          amount: 0,
+          isOptional: false,
+        },
+      ],
+    }));
   };
 
-  const handleRemoveHeadRow = (index) => {
-    const newHeads = [...formData.heads];
-    newHeads.splice(index, 1);
-    setFormData({ ...formData, heads: newHeads });
+  const handleRemoveHeadFromForm = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      heads: prev.heads.filter((_, i) => i !== index),
+    }));
   };
 
   const handleHeadChange = (index, field, value) => {
-    const newHeads = [...formData.heads];
-    newHeads[index][field] = value;
-    setFormData({ ...formData, heads: newHeads });
+    setFormData((prev) => {
+      const updated = [...prev.heads];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, heads: updated };
+    });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSaveStructure = async () => {
     setFormError('');
-
     if (!formData.classId || !formData.mediumId) {
-      setFormError('Class and Medium are required');
+      setFormError('Class and Medium are required.');
       return;
     }
-
     if (selectedClassObj?.hasStream && !formData.streamId) {
-      setFormError(`Stream is required for class '${selectedClassObj.name}'`);
+      setFormError(`Class ${selectedClassObj.name} requires selecting a Stream.`);
       return;
     }
-
     if (formData.heads.length === 0) {
-      setFormError('At least one fee head is required');
-      return;
-    }
-
-    const headTypeIds = formData.heads.map((h) => h.feeTypeId);
-    if (new Set(headTypeIds).size !== headTypeIds.length) {
-      setFormError('Duplicate fee items are not allowed within the same fee template');
+      setFormError('At least one fee head must be added to the fee template.');
       return;
     }
 
@@ -217,12 +251,12 @@ export const FeeTemplatesPage = () => {
         academicYearId: formData.academicYearId || selectedYearId,
         classId: formData.classId,
         mediumId: formData.mediumId,
-        streamId: selectedClassObj?.hasStream ? formData.streamId : null,
+        streamId: formData.streamId || null,
         isActive: formData.isActive,
         heads: formData.heads.map((h) => ({
           feeTypeId: h.feeTypeId,
-          amount: parseFloat(h.amount) || 0,
-          isActive: h.isActive ?? true,
+          amount: Number(h.amount),
+          isOptional: Boolean(h.isOptional),
         })),
       };
 
@@ -233,15 +267,27 @@ export const FeeTemplatesPage = () => {
         await feeService.createFeeStructure(payload);
         toast.success('Fee template created successfully');
       }
-
       setIsDrawerOpen(false);
       fetchTemplates();
-    } catch {
-      const errorMsg = err.response?.data?.message || err.message || 'Failed to save fee template';
-      setFormError(errorMsg);
-      toast.error(errorMsg);
+    } catch (err) {
+      setFormError(err.response?.data?.message || err.message || 'Failed to save fee template');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteStructure = async () => {
+    if (!deletingTemplate) return;
+    setIsDeleting(true);
+    try {
+      await feeService.deleteFeeStructure(deletingTemplate.id);
+      toast.success('Fee template deleted successfully');
+      setDeletingTemplate(null);
+      fetchTemplates();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete fee template');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -255,184 +301,94 @@ export const FeeTemplatesPage = () => {
     }
   };
 
-  const handleConfirmDelete = async () => {
-    if (!deletingTemplate) return;
-    setIsDeleting(true);
-    try {
-      await feeService.deleteFeeStructure(deletingTemplate.id);
-      toast.success('Fee template deleted successfully');
-      setDeletingTemplate(null);
-      fetchTemplates();
-    } catch {
-      toast.error(err.response?.data?.message || 'Failed to delete template');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   const calculateFormTotal = () => {
-    return formData.heads.reduce((sum, h) => (h.isActive ? sum + (parseFloat(h.amount) || 0) : sum), 0);
+    return formData.heads.reduce((sum, h) => (h.isActive !== false ? sum + (parseFloat(h.amount) || 0) : sum), 0);
   };
 
-  // --- Bulk Copy Templates Logic ---
-  const findBestSourceYearId = () => {
-    if (!academicYears || academicYears.length === 0) return '';
-    const sortedYears = [...academicYears].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-    const currentYearObj = academicYears.find((y) => y.id === selectedYearId);
-    
-    if (currentYearObj) {
-      // Find years before currentYear
-      const preceding = sortedYears.filter((y) => new Date(y.startDate) < new Date(currentYearObj.startDate));
-      if (preceding.length > 0) {
-        return preceding[preceding.length - 1].id;
-      }
-    }
-    // Default to earliest year or first year different from selectedYearId
-    const otherYear = sortedYears.find((y) => y.id !== selectedYearId);
-    return otherYear ? otherYear.id : sortedYears[0]?.id || '';
-  };
-
-  const loadBulkSourceTemplates = async (sourceYearId) => {
-    if (!sourceYearId) return;
-    setBulkLoading(true);
-    setBulkError('');
-    try {
-      const res = await feeService.getFeeStructures({ academicYearId: sourceYearId });
-      const sourceList = res.data || [];
-
-      if (sourceList.length === 0) {
-        setStagedTemplates([]);
-        setBulkError('No fee templates found in the selected source academic year.');
-      } else {
-        const staged = sourceList.map((t) => ({
-          tempId: t.id,
-          selected: true,
-          classId: t.classId,
-          className: t.class?.name || 'Class',
-          mediumId: t.mediumId,
-          mediumName: t.medium?.name || 'Medium',
-          streamId: t.streamId || null,
-          streamName: t.stream?.name || null,
-          heads: (t.heads || []).map((h) => ({
-            feeTypeId: h.feeTypeId,
-            feeTypeName: h.feeType?.name || 'Fee Head',
-            amount: Number(h.amount),
-            isActive: h.isActive ?? true,
-          })),
-        }));
-        setStagedTemplates(staged);
-      }
-    } catch {
-      setBulkError(err.response?.data?.message || 'Failed to fetch templates from source year.');
-    } finally {
-      setBulkLoading(false);
-    }
-  };
-
+  // Bulk Copy Methods
   const handleOpenBulkCopyModal = () => {
-    const sourceId = findBestSourceYearId();
-    const sortedYears = [...academicYears].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
-    // If selectedYearId equals sourceId, set target to next year or latest year
-    let targetId = selectedYearId;
-    if (targetId === sourceId && sortedYears.length > 1) {
-      targetId = sortedYears.find((y) => y.id !== sourceId)?.id || targetId;
-    }
+    const sortedYears = [...academicYears].sort(
+      (a, b) => new Date(a.startDate) - new Date(b.startDate)
+    );
+    const currentYearObj = sortedYears.find((y) => y.id === selectedYearId);
+    const preceding = currentYearObj
+      ? sortedYears.filter((y) => new Date(y.startDate) < new Date(currentYearObj.startDate))
+      : [];
+    const defaultSourceId = preceding.length > 0 ? preceding[preceding.length - 1].id : sortedYears[0]?.id || '';
 
-    setBulkSourceYearId(sourceId);
-    setBulkTargetYearId(targetId);
-    setIsBulkCopyModalOpen(true);
-    if (sourceId) {
-      loadBulkSourceTemplates(sourceId);
-    }
-  };
-
-  const handleSourceYearChange = (newSourceId) => {
-    setBulkSourceYearId(newSourceId);
-    if (newSourceId === bulkTargetYearId) {
-      const other = academicYears.find((y) => y.id !== newSourceId);
-      if (other) setBulkTargetYearId(other.id);
-    }
-    loadBulkSourceTemplates(newSourceId);
-  };
-
-  const handleToggleStageSelect = (idx) => {
-    setStagedTemplates((prev) => {
-      const copy = [...prev];
-      copy[idx].selected = !copy[idx].selected;
-      return copy;
-    });
-  };
-
-  const handleStageHeadChange = (templateIdx, headIdx, field, value) => {
-    setStagedTemplates((prev) => {
-      const copy = [...prev];
-      const heads = [...copy[templateIdx].heads];
-      heads[headIdx] = { ...heads[headIdx], [field]: value };
-      copy[templateIdx] = { ...copy[templateIdx], heads };
-      return copy;
-    });
-  };
-
-  const handleAddStageHeadRow = (templateIdx) => {
-    setStagedTemplates((prev) => {
-      const copy = [...prev];
-      const unusedType = feeTypes.find(
-        (ft) => !copy[templateIdx].heads.some((h) => h.feeTypeId === ft.id)
-      );
-      const feeTypeId = unusedType ? unusedType.id : feeTypes[0]?.id || '';
-      copy[templateIdx].heads.push({ feeTypeId, amount: 0, isActive: true });
-      return copy;
-    });
-  };
-
-  const handleRemoveStageHeadRow = (templateIdx, headIdx) => {
-    setStagedTemplates((prev) => {
-      const copy = [...prev];
-      copy[templateIdx].heads.splice(headIdx, 1);
-      return copy;
-    });
-  };
-
-  const handleSaveBulkTemplates = async () => {
+    setBulkSourceYearId(defaultSourceId);
+    setBulkTargetYearId(selectedYearId);
+    setStagedTemplates([]);
     setBulkError('');
+    setIsBulkCopyModalOpen(true);
+  };
+
+  useEffect(() => {
+    if (isBulkCopyModalOpen && bulkSourceYearId) {
+      const fetchSourceTemplates = async () => {
+        setBulkLoading(true);
+        setBulkError('');
+        try {
+          const res = await feeService.getFeeStructures({ academicYearId: bulkSourceYearId });
+          const sourceList = res.data || [];
+
+          const currentClassMediumMap = new Set(
+            templates.map((t) => `${t.classId}_${t.mediumId}_${t.streamId || 'NONE'}`)
+          );
+
+          const staged = sourceList.map((st) => {
+            const key = `${st.classId}_${st.mediumId}_${st.streamId || 'NONE'}`;
+            const existsInTarget = currentClassMediumMap.has(key);
+            return {
+              ...st,
+              selected: !existsInTarget,
+              existsInTarget,
+            };
+          });
+
+          setStagedTemplates(staged);
+        } catch {
+          setBulkError('Failed to load fee templates from source academic year.');
+        } finally {
+          setBulkLoading(false);
+        }
+      };
+      fetchSourceTemplates();
+    }
+  }, [isBulkCopyModalOpen, bulkSourceYearId, templates]);
+
+  const handleToggleSelectStaged = (id) => {
+    setStagedTemplates((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, selected: !item.selected } : item))
+    );
+  };
+
+  const handleToggleSelectAllStaged = () => {
+    const allSelected = stagedTemplates.every((t) => t.selected);
+    setStagedTemplates((prev) => prev.map((t) => ({ ...t, selected: !allSelected })));
+  };
+
+  const handleExecuteBulkCopy = async () => {
     const selectedToSave = stagedTemplates.filter((t) => t.selected);
-
     if (selectedToSave.length === 0) {
-      setBulkError('Please select at least one class template to save.');
+      setBulkError('Please select at least one class fee template to copy.');
       return;
-    }
-
-    if (!bulkTargetYearId) {
-      setBulkError('Please select a target academic year.');
-      return;
-    }
-
-    // Validate heads
-    for (const item of selectedToSave) {
-      if (item.heads.length === 0) {
-        setBulkError(`Class '${item.className}' must have at least one fee head.`);
-        return;
-      }
-      const typeIds = item.heads.map((h) => h.feeTypeId);
-      if (new Set(typeIds).size !== typeIds.length) {
-        setBulkError(`Class '${item.className}' has duplicate fee items.`);
-        return;
-      }
     }
 
     setBulkSaving(true);
+    setBulkError('');
     try {
       const payload = {
-        targetAcademicYearId: bulkTargetYearId,
+        academicYearId: bulkTargetYearId,
         structures: selectedToSave.map((t) => ({
           classId: t.classId,
           mediumId: t.mediumId,
           streamId: t.streamId || null,
           isActive: true,
-          heads: t.heads.map((h) => ({
+          heads: (t.heads || []).map((h) => ({
             feeTypeId: h.feeTypeId,
-            amount: parseFloat(h.amount) || 0,
-            isActive: h.isActive ?? true,
+            amount: Number(h.amount),
+            isOptional: Boolean(h.isOptional),
           })),
         })),
       };
@@ -441,7 +397,7 @@ export const FeeTemplatesPage = () => {
       toast.success(res.data?.message || res.message || 'Bulk fee templates saved successfully!');
       setIsBulkCopyModalOpen(false);
       fetchTemplates();
-    } catch {
+    } catch (err) {
       setBulkError(err.response?.data?.message || err.message || 'Failed to save bulk fee templates.');
       toast.error('Failed to save bulk fee templates.');
     } finally {
@@ -449,8 +405,14 @@ export const FeeTemplatesPage = () => {
     }
   };
 
-  // Instant Search Filtering
+  // Instant Search & Multi-Option Filtering
   const filteredTemplates = templates.filter((item) => {
+    if (selectedClassId && item.classId !== selectedClassId && item.class?.id !== selectedClassId) {
+      return false;
+    }
+    if (selectedMediumId && item.mediumId !== selectedMediumId && item.medium?.id !== selectedMediumId) {
+      return false;
+    }
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     const className = item.class?.name?.toLowerCase() || '';
@@ -463,19 +425,68 @@ export const FeeTemplatesPage = () => {
     <div className="h-full flex flex-col min-h-0 overflow-hidden space-y-2 max-w-7xl mx-auto">
       {/* Search & Actions Bar */}
       <div className="shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            autoComplete="off"
-            placeholder="Search by class, medium, or stream..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
-          />
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto flex-1">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[200px] sm:w-64">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              autoComplete="off"
+              placeholder="Search by class, medium, or stream..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-medium"
+            />
+          </div>
+
+          {/* Class Filter Select */}
+          <select
+            value={selectedClassId}
+            onChange={(e) => setSelectedClassId(e.target.value)}
+            className="py-1.5 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold text-slate-700"
+          >
+            <option value="">All Classes</option>
+            {classes.map((cls) => (
+              <option key={cls.id} value={cls.id}>
+                Class {cls.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Medium Filter Select */}
+          <select
+            value={selectedMediumId}
+            onChange={(e) => setSelectedMediumId(e.target.value)}
+            className="py-1.5 px-3 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold text-slate-700"
+          >
+            <option value="">All Medium</option>
+            {mediums.map((med) => (
+              <option key={med.id} value={med.id}>
+                {med.name ? med.name.replace(/\s*medium$/i, '').trim() : ''}
+              </option>
+            ))}
+          </select>
+
+          {(searchQuery || selectedClassId || selectedMediumId) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedClassId('');
+                setSelectedMediumId('');
+                try {
+                  localStorage.removeItem(FEE_TEMPLATES_FILTERS_STORAGE_KEY);
+                } catch (err) {}
+              }}
+              className="text-xs py-1 px-2 h-7"
+            >
+              Clear
+            </Button>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
           <Button
             variant="outline"
             onClick={handleOpenBulkCopyModal}
@@ -946,7 +957,7 @@ export const FeeTemplatesPage = () => {
               <Button
                 variant="primary"
                 size="sm"
-                onClick={handleSaveBulkTemplates}
+                onClick={handleExecuteBulkCopy}
                 loading={bulkSaving}
                 disabled={bulkLoading || stagedTemplates.filter(t => t.selected).length === 0}
                 icon={Copy}
@@ -962,7 +973,7 @@ export const FeeTemplatesPage = () => {
       <ConfirmDialog
         isOpen={Boolean(deletingTemplate)}
         onClose={() => setDeletingTemplate(null)}
-        onConfirm={handleConfirmDelete}
+        onConfirm={handleDeleteStructure}
         title="Delete Fee Template"
         message={`Are you sure you want to delete fee template for ${deletingTemplate?.class?.name}?`}
         confirmText="Delete Template"

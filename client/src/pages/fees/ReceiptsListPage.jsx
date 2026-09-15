@@ -11,6 +11,7 @@ import { DashboardCards } from '../../components/fees/DashboardCards.jsx';
 import { ReceiptTable } from '../../components/fees/ReceiptTable.jsx';
 import { usePaymentsList, useDashboardSummary } from '../../hooks/usePaymentEngine.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
+import { academicService } from '../../services/academic.service.js';
 import { Input } from '../../components/ui/Input.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
@@ -20,18 +21,81 @@ import { Badge } from '../../components/ui/Badge.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
 import { formatDateForInput, formatCurrency, formatNumber } from '../../utils/formatters.js';
 
+const FEE_RECEIPTS_FILTERS_STORAGE_KEY = 'fee_receipts_filters';
+
+const loadSavedFeeReceiptFilters = () => {
+  try {
+    const saved = localStorage.getItem(FEE_RECEIPTS_FILTERS_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (err) {
+    console.error('Failed loading saved fee receipt filters:', err);
+  }
+  return null;
+};
+
 export const ReceiptsListPage = () => {
   const navigate = useNavigate();
   const { selectedYearId } = useAcademicYear();
 
+  const savedFilters = useMemo(() => loadSavedFeeReceiptFilters(), []);
+
+  // Academic Dropdown States
+  const [classes, setClasses] = useState([]);
+  const [mediums, setMediums] = useState([]);
+
   // Filter States
-  const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [paymentMode, setPaymentMode] = useState('');
-  const [status, setStatus] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState(() => savedFilters?.searchTerm || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(() => savedFilters?.searchTerm || '');
+  const [selectedClassId, setSelectedClassId] = useState(() => savedFilters?.selectedClassId || '');
+  const [selectedMediumId, setSelectedMediumId] = useState(() => savedFilters?.selectedMediumId || '');
+  const [paymentMode, setPaymentMode] = useState(() => savedFilters?.paymentMode || '');
+  const [status, setStatus] = useState(() => savedFilters?.status || '');
+  const [startDate, setStartDate] = useState(() => savedFilters?.startDate || '');
+  const [endDate, setEndDate] = useState(() => savedFilters?.endDate || '');
+  const [page, setPage] = useState(() => savedFilters?.page || 1);
+
+  // Persist filter values to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        FEE_RECEIPTS_FILTERS_STORAGE_KEY,
+        JSON.stringify({
+          searchTerm,
+          selectedClassId,
+          selectedMediumId,
+          paymentMode,
+          status,
+          startDate,
+          endDate,
+          page,
+        })
+      );
+    } catch (err) {
+      console.error('Failed saving fee receipt filters:', err);
+    }
+  }, [searchTerm, selectedClassId, selectedMediumId, paymentMode, status, startDate, endDate, page]);
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const [clsRes, medRes] = await Promise.allSettled([
+          academicService.getClasses(),
+          academicService.getMediums(),
+        ]);
+        if (clsRes.status === 'fulfilled' && clsRes.value?.success) {
+          setClasses(clsRes.value.data || []);
+        }
+        if (medRes.status === 'fulfilled' && medRes.value?.success) {
+          setMediums(medRes.value.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to load classes or mediums for receipts filter', err);
+      }
+    };
+    fetchOptions();
+  }, []);
 
   // Debounce search input (350ms)
   useEffect(() => {
@@ -47,6 +111,8 @@ export const ReceiptsListPage = () => {
     limit: 15, // Higher compact page limit for high-density view
     ...(debouncedSearch.trim() && { search: debouncedSearch.trim() }),
     ...(selectedYearId && { academicYearId: selectedYearId }),
+    ...(selectedClassId && { classId: selectedClassId }),
+    ...(selectedMediumId && { mediumId: selectedMediumId }),
     ...(paymentMode && { paymentMode }),
     ...(status && { status }),
     ...(startDate && { startDate }),
@@ -80,17 +146,22 @@ export const ReceiptsListPage = () => {
   }, [payments]);
 
   const hasActiveFilters = Boolean(
-    searchTerm || paymentMode || status || startDate || endDate
+    searchTerm || selectedClassId || selectedMediumId || paymentMode || status || startDate || endDate
   );
 
   const handleResetFilters = () => {
     setSearchTerm('');
     setDebouncedSearch('');
+    setSelectedClassId('');
+    setSelectedMediumId('');
     setPaymentMode('');
     setStatus('');
     setStartDate('');
     setEndDate('');
     setPage(1);
+    try {
+      localStorage.removeItem(FEE_RECEIPTS_FILTERS_STORAGE_KEY);
+    } catch (err) {}
   };
 
   const todayStr = formatDateForInput(new Date());
@@ -185,17 +256,48 @@ export const ReceiptsListPage = () => {
         </div>
 
         {/* Dense Multi-Filter Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-          {/* Search Input (spans 2 cols) */}
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2">
+          {/* Search Input */}
+          <div className="lg:col-span-1">
             <Input
-              placeholder="Search receipt #, student, adm code, phone..."
+              placeholder="Search receipt #, student..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               icon={Search}
               className="text-xs py-1"
             />
           </div>
+
+          {/* Class Filter */}
+          <Select
+            value={selectedClassId}
+            onChange={(e) => {
+              setSelectedClassId(e.target.value);
+              setPage(1);
+            }}
+            options={[
+              { label: 'All Classes', value: '' },
+              ...classes.map((cls) => ({ label: `Class ${cls.name}`, value: cls.id })),
+            ]}
+            className="text-xs py-1"
+          />
+
+          {/* Medium Filter */}
+          <Select
+            value={selectedMediumId}
+            onChange={(e) => {
+              setSelectedMediumId(e.target.value);
+              setPage(1);
+            }}
+            options={[
+              { label: 'All Medium', value: '' },
+              ...mediums.map((med) => ({
+                label: med.name ? med.name.replace(/\s*medium$/i, '').trim() : '',
+                value: med.id,
+              })),
+            ]}
+            className="text-xs py-1"
+          />
 
           {/* Payment Mode */}
           <Select
