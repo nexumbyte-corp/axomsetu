@@ -596,7 +596,6 @@ export const createManualSubscription = async (schoolId, data, adminId) => {
     end = calculateSubscriptionEndDate(start, 'MONTH', 1);
   }
   const finalPrice = isComplimentary ? 0 : Number(amount);
-  const durationText = durationMonths ? `${durationMonths} month(s)` : 'Custom Duration';
 
   return await prisma.$transaction(async (tx) => {
     // Check if school currently has an active subscription to calculate pro-rata credit days

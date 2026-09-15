@@ -2,6 +2,7 @@ import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { getPaymentProvider } from '../../services/paymentProvider.js';
 import { memoryCache } from '../../utils/cache.js';
+import { approvePayment } from '../admin/adminSubscription.service.js';
 
 /**
  * Get current active or latest subscription for a school.
@@ -277,6 +278,16 @@ export const submitPurchaseRequest = async (schoolId, data, actorUserId) => {
   memoryCache.delPattern(`subscription:`);
   memoryCache.del(`subscription:current:${schoolId}`);
 
+  if (paymentMethod === 'RAZORPAY') {
+    const approved = await approvePayment(paymentRecord.id, actorUserId || null);
+    return {
+      payment: approved.payment,
+      subscription: approved.subscription,
+      success: true,
+      message: 'Payment verified and subscription activated successfully!',
+    };
+  }
+
   return {
     payment: {
       id: paymentRecord.id,
@@ -288,10 +299,7 @@ export const submitPurchaseRequest = async (schoolId, data, actorUserId) => {
       status: paymentRecord.status,
       requestedAt: paymentRecord.requestedAt,
     },
-    message:
-      paymentMethod === 'CASH'
-        ? 'Cash payment request submitted. It will be activated after Super Admin verification.'
-        : 'UPI payment request submitted with reference number. Awaiting Super Admin verification.',
+    message: 'Cash payment request submitted. It will be activated after Super Admin verification.',
   };
 };
 

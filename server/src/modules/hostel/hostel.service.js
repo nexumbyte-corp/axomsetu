@@ -2164,7 +2164,7 @@ export const getHostelReports = async (schoolId, reportType, query = {}) => {
       if (search && search.trim()) {
         const s = search.trim();
         where.enrollment = {
-          ...(where.enrollment || {}),
+          ...where.enrollment,
           student: {
             OR: [
               { name: { contains: s, mode: 'insensitive' } },
@@ -2353,7 +2353,7 @@ export const getHostelReports = async (schoolId, reportType, query = {}) => {
       if (search && search.trim()) {
         const s = search.trim();
         where.student = {
-          ...(where.student || {}),
+          ...where.student,
           OR: [
             { name: { contains: s, mode: 'insensitive' } },
             { admissionNo: { contains: s, mode: 'insensitive' } },

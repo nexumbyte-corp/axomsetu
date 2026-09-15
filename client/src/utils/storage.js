@@ -1,6 +1,7 @@
 const TOKEN_KEY = 'school_saas_access_token';
 const REFRESH_TOKEN_KEY = 'school_saas_refresh_token';
 const ACADEMIC_YEAR_KEY = 'school_saas_selected_academic_year';
+const ADMIT_CARD_EXAM_NAME_KEY = 'axomsetu_admit_card_exam_name';
 
 export const storage = {
   getAccessToken: () => localStorage.getItem(TOKEN_KEY),
@@ -29,5 +30,11 @@ export const storage = {
     localStorage.removeItem(ACADEMIC_YEAR_KEY);
   },
 
+  getAdmitCardExamName: () => localStorage.getItem(ADMIT_CARD_EXAM_NAME_KEY) || '',
+  setAdmitCardExamName: (name) => {
+    if (name) localStorage.setItem(ADMIT_CARD_EXAM_NAME_KEY, name);
+    else localStorage.removeItem(ADMIT_CARD_EXAM_NAME_KEY);
+  },
 };
+
 

@@ -1214,7 +1214,7 @@ export const hardDeleteSchool = async (schoolId, payload, actorUserId) => {
   let decodedToken;
   try {
     decodedToken = jwt.verify(captchaToken, secret);
-  } catch (err) {
+  } catch {
     throw ApiError.badRequest('CAPTCHA verification code has expired or is invalid. Please request a new CAPTCHA.');
   }
 

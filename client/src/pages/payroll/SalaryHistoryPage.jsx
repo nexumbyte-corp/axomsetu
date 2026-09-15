@@ -15,7 +15,7 @@ import { DocumentActions } from '../../components/documents/DocumentActions.jsx'
 import { formatDate, getAcademicMonthOptions } from '../../utils/formatters.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { toast } from '../../components/ui/Toast.jsx';
-import { History, FileText, Download, Printer, Search, User, CreditCard } from 'lucide-react';
+import { History, FileText, Download, Printer, Search, CreditCard } from 'lucide-react';
 
 export const SalaryHistoryPage = () => {
   const { selectedYear: academicYearObj } = useAcademicYear();

@@ -25,6 +25,7 @@ import { ClassesPage } from '../pages/ClassesPage.jsx';
 import { MediumsPage } from '../pages/MediumsPage.jsx';
 import { SectionsPage } from '../pages/SectionsPage.jsx';
 import { StreamsPage } from '../pages/StreamsPage.jsx';
+import { AdmitCardGenerationPage } from '../pages/academics/AdmitCardGenerationPage.jsx';
 
 // Student Module Pages
 import { StudentsListPage } from '../pages/students/StudentsListPage.jsx';
@@ -134,6 +135,7 @@ export const AppRoutes = () => {
         <Route path="mediums" element={<SubscriptionRoute><PermissionRoute permission="ACADEMICS_VIEW"><MediumsPage /></PermissionRoute></SubscriptionRoute>} />
         <Route path="sections" element={<SubscriptionRoute><PermissionRoute permission="ACADEMICS_VIEW"><SectionsPage /></PermissionRoute></SubscriptionRoute>} />
         <Route path="streams" element={<SubscriptionRoute><PermissionRoute permission="ACADEMICS_VIEW"><StreamsPage /></PermissionRoute></SubscriptionRoute>} />
+        <Route path="admit-cards" element={<SubscriptionRoute><PermissionRoute permission="ACADEMICS_VIEW"><AdmitCardGenerationPage /></PermissionRoute></SubscriptionRoute>} />
 
         {/* Students Routes */}
         <Route path="students" element={<SubscriptionRoute><PermissionRoute permission="STUDENTS_VIEW"><StudentsListPage /></PermissionRoute></SubscriptionRoute>} />

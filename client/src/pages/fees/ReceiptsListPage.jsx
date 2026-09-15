@@ -161,7 +161,7 @@ export const ReceiptsListPage = () => {
     setPage(1);
     try {
       localStorage.removeItem(FEE_RECEIPTS_FILTERS_STORAGE_KEY);
-    } catch (err) {}
+    } catch {}
   };
 
   const todayStr = formatDateForInput(new Date());

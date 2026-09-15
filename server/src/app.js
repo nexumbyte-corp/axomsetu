@@ -9,6 +9,7 @@ import cookieParser from 'cookie-parser';
 
 import { env } from './config/env.js';
 import routes, { healthCheckHandler } from './routes/index.js';
+import razorpayRouter from './modules/razorpay/razorpay.routes.js';
 import { authLimiter } from './middleware/rateLimit.middleware.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { ApiError } from './utils/ApiError.js';
@@ -139,6 +140,7 @@ app.get('/', (req, res) => {
 });
 
 // API Base Route
+app.use('/api', razorpayRouter);
 app.use('/api/v1', routes);
 
 // Serve Client static build in unified deployment mode if SERVE_CLIENT is set

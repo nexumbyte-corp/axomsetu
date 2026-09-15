@@ -13,6 +13,7 @@ import {
   Wallet,
   FileSpreadsheet,
   Settings,
+  IdCard,
 } from 'lucide-react';
 
 /**
@@ -72,6 +73,7 @@ export const getSidebarNavigation = ({ isSubscriptionActive, isOwner, _hasFullAc
         { label: 'Mediums', path: '/app/mediums', icon: Languages, permission: 'ACADEMICS_VIEW' },
         { label: 'Streams', path: '/app/streams', icon: GitBranch, permission: 'ACADEMICS_VIEW' },
         { label: 'Sections', path: '/app/sections', icon: Layers, permission: 'ACADEMICS_VIEW' },
+        { label: 'Admit Card Generation', path: '/app/admit-cards', icon: IdCard, permission: 'ACADEMICS_VIEW' },
       ],
     },
     {

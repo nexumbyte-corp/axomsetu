@@ -254,7 +254,6 @@ export const getTransferPreview = async (schoolId, studentId, { targetMediumId, 
     .reduce((sum, h) => sum + Number(h.amount), 0);
 
   const monthlyDifference = targetMonthlyFee - currentMonthlyFee;
-  const oneTimeDifference = targetOneTimeFee - currentOneTimeFee;
 
   // Target Fee Head Amount Map: feeTypeId -> amount
   const targetHeadMap = new Map();

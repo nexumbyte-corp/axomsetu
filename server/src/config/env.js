@@ -23,6 +23,8 @@ const envSchema = z.object({
   SEED_ADMIN_NAME: z.string().default('Super Admin'),
   SEED_ADMIN_EMAIL: z.string().email().default('admin@schoolsaas.com'),
   SEED_ADMIN_PASSWORD: z.string().default('SuperAdminPass123!'),
+  RAZORPAY_KEY_ID: z.string().optional().default('rzp_test_TcN6LHCXuBovS1'),
+  RAZORPAY_KEY_SECRET: z.string().optional().default('6iGAa26DZHKzsgenoDnWnUx0'),
 });
 
 const parseEnv = () => {

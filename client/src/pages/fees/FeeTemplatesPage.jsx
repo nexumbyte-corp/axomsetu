@@ -194,86 +194,12 @@ export const FeeTemplatesPage = () => {
     toast.success(`Fee heads copied from '${source.class?.name}'. Modify amounts if needed.`);
   };
 
-  const handleAddHeadToForm = () => {
-    const availableTypes = feeTypes.filter(
-      (ft) => !formData.heads.some((h) => h.feeTypeId === ft.id)
-    );
-    if (availableTypes.length === 0) {
-      toast.error('All available fee types have already been added to this structure.');
-      return;
-    }
-    setFormData((prev) => ({
-      ...prev,
-      heads: [
-        ...prev.heads,
-        {
-          feeTypeId: availableTypes[0].id,
-          amount: 0,
-          isOptional: false,
-        },
-      ],
-    }));
-  };
-
-  const handleRemoveHeadFromForm = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      heads: prev.heads.filter((_, i) => i !== index),
-    }));
-  };
-
   const handleHeadChange = (index, field, value) => {
     setFormData((prev) => {
       const updated = [...prev.heads];
       updated[index] = { ...updated[index], [field]: value };
       return { ...prev, heads: updated };
     });
-  };
-
-  const handleSaveStructure = async () => {
-    setFormError('');
-    if (!formData.classId || !formData.mediumId) {
-      setFormError('Class and Medium are required.');
-      return;
-    }
-    if (selectedClassObj?.hasStream && !formData.streamId) {
-      setFormError(`Class ${selectedClassObj.name} requires selecting a Stream.`);
-      return;
-    }
-    if (formData.heads.length === 0) {
-      setFormError('At least one fee head must be added to the fee template.');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const payload = {
-        academicYearId: formData.academicYearId || selectedYearId,
-        classId: formData.classId,
-        mediumId: formData.mediumId,
-        streamId: formData.streamId || null,
-        isActive: formData.isActive,
-        heads: formData.heads.map((h) => ({
-          feeTypeId: h.feeTypeId,
-          amount: Number(h.amount),
-          isOptional: Boolean(h.isOptional),
-        })),
-      };
-
-      if (editingTemplate) {
-        await feeService.updateFeeStructure(editingTemplate.id, payload);
-        toast.success('Fee template updated successfully');
-      } else {
-        await feeService.createFeeStructure(payload);
-        toast.success('Fee template created successfully');
-      }
-      setIsDrawerOpen(false);
-      fetchTemplates();
-    } catch (err) {
-      setFormError(err.response?.data?.message || err.message || 'Failed to save fee template');
-    } finally {
-      setSaving(false);
-    }
   };
 
   const handleDeleteStructure = async () => {
@@ -296,7 +222,7 @@ export const FeeTemplatesPage = () => {
       await feeService.toggleFeeStructureStatus(item.id);
       toast.success('Fee template status updated');
       fetchTemplates();
-    } catch {
+    } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update status');
     }
   };
@@ -357,16 +283,7 @@ export const FeeTemplatesPage = () => {
     }
   }, [isBulkCopyModalOpen, bulkSourceYearId, templates]);
 
-  const handleToggleSelectStaged = (id) => {
-    setStagedTemplates((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, selected: !item.selected } : item))
-    );
-  };
 
-  const handleToggleSelectAllStaged = () => {
-    const allSelected = stagedTemplates.every((t) => t.selected);
-    setStagedTemplates((prev) => prev.map((t) => ({ ...t, selected: !allSelected })));
-  };
 
   const handleExecuteBulkCopy = async () => {
     const selectedToSave = stagedTemplates.filter((t) => t.selected);
@@ -477,7 +394,7 @@ export const FeeTemplatesPage = () => {
                 setSelectedMediumId('');
                 try {
                   localStorage.removeItem(FEE_TEMPLATES_FILTERS_STORAGE_KEY);
-                } catch (err) {}
+                } catch {}
               }}
               className="text-xs py-1 px-2 h-7"
             >

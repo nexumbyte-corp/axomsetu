@@ -160,7 +160,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
     setPage(1);
     try {
       localStorage.removeItem(FEE_PICKER_FILTERS_STORAGE_KEY);
-    } catch (err) {}
+    } catch {}
   };
 
   return (
