@@ -465,7 +465,7 @@ export const GenerateFeesPage = () => {
   }
 
   return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden space-y-2 max-w-5xl mx-auto">
+    <div className="h-full flex flex-col min-h-0 overflow-hidden space-y-2 w-full">
       {/* Wizard Progress Steps Indicator */}
       <div className="shrink-0 bg-white px-3.5 py-2.5 rounded-xl border border-slate-200 shadow-2xs">
         <div className="flex items-center justify-between">

@@ -20,7 +20,6 @@ export const ReceiptDetailsPage = () => {
 
   const [isVoidModalOpen, setIsVoidModalOpen] = useState(false);
   const [voidReason, setVoidReason] = useState('');
-  const [printMode, setPrintMode] = useState('DUAL'); // 'SINGLE' | 'DUAL'
 
   const receipt = receiptRes?.data || receiptRes;
 
@@ -90,22 +89,12 @@ export const ReceiptDetailsPage = () => {
         </button>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Print Mode Selector */}
-          <select
-            value={printMode}
-            onChange={(e) => setPrintMode(e.target.value)}
-            className="py-1.5 px-2.5 text-xs bg-slate-50 border border-slate-300 rounded-lg font-bold text-slate-700 focus:outline-none"
-          >
-            <option value="DUAL">📄 Dual Copy (Student + Office)</option>
-            <option value="SINGLE">📄 Single Copy (Student Copy Only)</option>
-          </select>
-
           <DocumentActions
             templateId="receipt"
             data={receipt}
             filename={filename}
             title={`Fee Receipt #${receipt.receiptNumber || 'RCPT'}`}
-            options={{ copyLabel: printMode === 'DUAL' ? 'Dual Copy' : 'Original Copy' }}
+            options={{ copyLabel: 'Student Copy' }}
           />
 
           {!isVoid && canVoidReceipt && (
@@ -124,21 +113,8 @@ export const ReceiptDetailsPage = () => {
       </div>
 
       {/* On-Screen Card Preview */}
-      <div className="space-y-6 print:space-y-4">
-        {printMode === 'DUAL' ? (
-          <>
-            <ReceiptCard receipt={receipt} copyLabel="Student Copy" />
-            <div className="relative py-2 flex items-center justify-center">
-              <div className="border-t-2 border-dashed border-slate-300 w-full" />
-              <span className="absolute bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest border border-slate-200 rounded-full shadow-2xs">
-                ✂ Perforation — Cut Here for Office Copy ✂
-              </span>
-            </div>
-            <ReceiptCard receipt={receipt} copyLabel="Office Copy" />
-          </>
-        ) : (
-          <ReceiptCard receipt={receipt} copyLabel="Original Student Copy" />
-        )}
+      <div>
+        <ReceiptCard receipt={receipt} copyLabel="Student Copy" />
       </div>
 
       {/* Void Receipt Confirmation Modal */}
@@ -150,7 +126,7 @@ export const ReceiptDetailsPage = () => {
       >
         <div className="space-y-4 pt-2">
           <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium space-y-1">
-            <p className="font-bold">⚠️ Warning: Void this payment?</p>
+            <p className="font-bold">Warning: Void this payment?</p>
             <p>
               This action will mark receipt <span className="font-mono font-bold">{receipt.receiptNumber}</span> as VOID, ignore its allocations, and restore the student's fee charge balances.
             </p>

@@ -34,7 +34,7 @@ export const ReceiptCard = ({ receipt, schoolHeader, copyLabel = 'Original Copy'
     `${new Date().getFullYear()}–${new Date().getFullYear() + 1}`;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-300 shadow-sm p-6 sm:p-8 max-w-3xl mx-auto space-y-5 relative overflow-hidden print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none">
+    <div className="bg-white rounded-2xl border border-slate-300 shadow-sm p-5 sm:p-7 max-w-3xl mx-auto space-y-4 relative overflow-hidden print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none print:break-inside-avoid print:page-break-inside-avoid">
       {/* Void Watermark Overlay if VOID */}
       {isVoid && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 opacity-15">
@@ -132,17 +132,17 @@ export const ReceiptCard = ({ receipt, schoolHeader, copyLabel = 'Original Copy'
       {/* Allocations Breakdown Table */}
       <div className="space-y-1.5">
         <h4 className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">Fee Heads Breakdown</h4>
-        <div className="border border-slate-200 rounded-xl overflow-hidden">
+        <div className="border border-slate-200 rounded-xl overflow-x-auto print:overflow-visible">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-100 text-slate-700 font-bold uppercase text-[9px] border-b border-slate-200">
               <tr>
-                <th className="py-2 px-3">Fee Head / Particulars</th>
-                <th className="py-2 px-3">Month</th>
-                <th className="py-2 px-3 text-right">Total Fee</th>
-                <th className="py-2 px-3 text-right">Prev. Paid</th>
-                <th className="py-2 px-3 text-right">Paid Now</th>
-                <th className="py-2 px-3 text-right">Remaining</th>
-                <th className="py-2 px-3 text-center">Status</th>
+                <th className="py-1.5 px-2.5">Fee Head / Particulars</th>
+                <th className="py-1.5 px-2.5">Month</th>
+                <th className="py-1.5 px-2.5 text-right">Total Fee</th>
+                <th className="py-1.5 px-2.5 text-right">Prev. Paid</th>
+                <th className="py-1.5 px-2.5 text-right">Paid Now</th>
+                <th className="py-1.5 px-2.5 text-right">Remaining</th>
+                <th className="py-1.5 px-2.5 text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -170,32 +170,32 @@ export const ReceiptCard = ({ receipt, schoolHeader, copyLabel = 'Original Copy'
 
                 return (
                   <tr key={alloc.id} className="hover:bg-slate-50">
-                    <td className="py-2 px-3 font-bold text-slate-900">
+                    <td className="py-1.5 px-2.5 font-bold text-slate-900">
                       {alloc.title || alloc.chargeTitle}
                       {alloc.feeType?.name && (
                         <span className="block text-[9px] text-slate-400 font-normal">{alloc.feeType.name}</span>
                       )}
                     </td>
-                    <td className="py-2 px-3 text-slate-700 font-semibold">
+                    <td className="py-1.5 px-2.5 text-slate-700 font-semibold whitespace-nowrap">
                       {formatFeeMonthYear(
                         alloc.month,
                         alloc.year || alloc.charge?.year,
                         academicYearName || receipt.paymentDate
                       )}
                     </td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-600">
+                    <td className="py-1.5 px-2.5 text-right font-mono text-slate-600 whitespace-nowrap">
                       ₹{chargeAmt.toFixed(2)}
                     </td>
-                    <td className="py-2 px-3 text-right font-mono text-slate-500 font-medium">
+                    <td className="py-1.5 px-2.5 text-right font-mono text-slate-500 font-medium whitespace-nowrap">
                       ₹{prevPaidAmt.toFixed(2)}
                     </td>
-                    <td className="py-2 px-3 text-right font-mono font-bold text-emerald-700">
+                    <td className="py-1.5 px-2.5 text-right font-mono font-bold text-emerald-700 whitespace-nowrap">
                       ₹{paidNowAmt.toFixed(2)}
                     </td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold text-amber-700">
+                    <td className="py-1.5 px-2.5 text-right font-mono font-semibold text-amber-700 whitespace-nowrap">
                       ₹{remainingAmt.toFixed(2)}
                     </td>
-                    <td className="py-2 px-3 text-center">
+                    <td className="py-1.5 px-2.5 text-center whitespace-nowrap">
                       <Badge variant={alloc.chargeStatus === 'PAID' ? 'success' : 'warning'} size="sm">
                         {alloc.chargeStatus || 'ALLOCATED'}
                       </Badge>
@@ -232,13 +232,13 @@ export const ReceiptCard = ({ receipt, schoolHeader, copyLabel = 'Original Copy'
       </div>
 
       {/* Official Signatory & Seal Section */}
-      <div className="pt-16 mt-6 grid grid-cols-2 gap-8 text-xs font-semibold text-slate-700 border-t border-slate-200">
-        <div className="text-center space-y-10">
+      <div className="pt-6 mt-4 print:pt-4 print:mt-2 grid grid-cols-2 gap-8 text-xs font-semibold text-slate-700 border-t border-slate-200">
+        <div className="text-center space-y-6 print:space-y-3">
           <div className="border-b border-dashed border-slate-400 w-3/4 mx-auto" />
           <span>Cashier / Received By</span>
         </div>
 
-        <div className="text-center space-y-10">
+        <div className="text-center space-y-6 print:space-y-3">
           <div className="border-b border-dashed border-slate-400 w-3/4 mx-auto" />
           <span>Authorized Signatory & Stamp</span>
         </div>

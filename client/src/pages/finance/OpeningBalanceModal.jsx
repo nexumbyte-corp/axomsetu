@@ -75,6 +75,7 @@ export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess, academicYearId
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
             label="Amount (₹) *"
+            size="sm"
             type="number"
             min="1"
             step="any"
@@ -86,6 +87,7 @@ export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess, academicYearId
 
           <Select
             label="Account / Payment Mode *"
+            size="sm"
             value={formData.paymentMode}
             onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}
             options={paymentModes}
@@ -96,6 +98,7 @@ export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess, academicYearId
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <DatePicker
             label="Transaction Date *"
+            size="sm"
             value={formData.transactionDate}
             onChange={(val) => setFormData({ ...formData, transactionDate: val })}
             required
@@ -103,6 +106,7 @@ export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess, academicYearId
 
           <Input
             label="Reference Number / Acc No"
+            size="sm"
             placeholder="e.g. ACC-2026-001"
             value={formData.referenceNumber}
             onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
@@ -111,6 +115,7 @@ export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess, academicYearId
 
         <Textarea
           label="Remarks / Note"
+          size="sm"
           placeholder="e.g. Initial school operating cash balance"
           rows={2}
           value={formData.remarks}
@@ -118,10 +123,10 @@ export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess, academicYearId
         />
 
         <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
-          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" loading={loading} icon={ArrowUpRight}>
+          <Button type="submit" variant="primary" size="sm" loading={loading} icon={ArrowUpRight}>
             {loading ? 'Saving Balance...' : 'Record Opening Balance'}
           </Button>
         </div>

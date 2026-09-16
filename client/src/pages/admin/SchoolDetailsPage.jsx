@@ -127,6 +127,14 @@ export const SchoolDetailsPage = () => {
 
   const handleUpdateSchoolSubmit = async (e) => {
     e.preventDefault();
+    if (!schoolForm.phone?.trim()) {
+      setToast({ type: 'danger', message: 'Phone number is required.' });
+      return;
+    }
+    if (!/^\d{10}$/.test(schoolForm.phone.trim())) {
+      setToast({ type: 'danger', message: 'Phone number must be exactly 10 digits.' });
+      return;
+    }
     setSubmittingSchool(true);
     try {
       await adminService.updateSchool(schoolId, schoolForm);
@@ -448,7 +456,10 @@ export const SchoolDetailsPage = () => {
                   onChange={(e) => setSchoolForm({ ...schoolForm, email: e.target.value })}
                 />
                 <Input
-                  label="Phone Number"
+                  label="Phone Number *"
+                  required
+                  maxLength={10}
+                  placeholder="10-digit phone number"
                   value={schoolForm.phone}
                   onChange={(e) => setSchoolForm({ ...schoolForm, phone: e.target.value })}
                 />

@@ -2,10 +2,15 @@ import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 
 export const Modal = ({ isOpen, onClose, title, description, children, footer, size = 'md' }) => {
+  const onCloseRef = React.useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isOpen && onClose) {
-        onClose();
+      if (e.key === 'Escape' && isOpen && onCloseRef.current) {
+        onCloseRef.current();
       }
     };
     if (isOpen) {
@@ -21,7 +26,7 @@ export const Modal = ({ isOpen, onClose, title, description, children, footer, s
       document.documentElement.style.overflow = '';
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

@@ -212,6 +212,7 @@ export const FundsPage = () => {
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
         <Select
           label="Fund Source"
+          size="sm"
           value={fundSourceId}
           onChange={(e) => setFundSourceId(e.target.value)}
           options={[
@@ -222,6 +223,7 @@ export const FundsPage = () => {
 
         <Select
           label="Payment Mode"
+          size="sm"
           value={paymentMode}
           onChange={(e) => setPaymentMode(e.target.value)}
           options={[
@@ -237,28 +239,27 @@ export const FundsPage = () => {
 
         <DatePicker
           label="From Date"
+          size="sm"
           value={startDate}
           onChange={(val) => setStartDate(val)}
         />
 
         <DatePicker
           label="To Date"
+          size="sm"
           value={endDate}
           onChange={(val) => setEndDate(val)}
         />
 
         <div className="flex items-end">
-          <div className="relative w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search remarks/ref..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && fetchFunds(1)}
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-            />
-          </div>
+          <Input
+            size="sm"
+            placeholder="Search remarks/ref..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && fetchFunds(1)}
+            icon={Search}
+          />
         </div>
       </div>
 
@@ -354,6 +355,7 @@ export const FundsPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <DatePicker
               label="Date *"
+              size="sm"
               value={fundForm.transactionDate}
               onChange={(val) => setFundForm({ ...fundForm, transactionDate: val })}
               required
@@ -361,6 +363,7 @@ export const FundsPage = () => {
 
             <Input
               label="Amount (₹) *"
+              size="sm"
               type="number"
               min="1"
               step="any"
@@ -374,6 +377,7 @@ export const FundsPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
               label="Fund Source *"
+              size="sm"
               value={fundForm.fundSourceId}
               onChange={(e) => setFundForm({ ...fundForm, fundSourceId: e.target.value })}
               options={[
@@ -385,6 +389,7 @@ export const FundsPage = () => {
 
             <Select
               label="Payment Mode *"
+              size="sm"
               value={fundForm.paymentMode}
               onChange={(e) => setFundForm({ ...fundForm, paymentMode: e.target.value })}
               options={[
@@ -401,6 +406,7 @@ export const FundsPage = () => {
 
           <Input
             label="Reference Number"
+            size="sm"
             placeholder="e.g. TXN12345"
             value={fundForm.referenceNumber}
             onChange={(e) => setFundForm({ ...fundForm, referenceNumber: e.target.value })}
@@ -408,6 +414,7 @@ export const FundsPage = () => {
 
           <Textarea
             label="Remarks / Note"
+            size="sm"
             placeholder="e.g. Initial school operating fund contribution"
             rows={2}
             value={fundForm.remarks}
@@ -415,10 +422,10 @@ export const FundsPage = () => {
           />
 
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
-            <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)} disabled={formLoading}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setIsAddModalOpen(false)} disabled={formLoading}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" loading={formLoading}>
+            <Button type="submit" variant="primary" size="sm" loading={formLoading}>
               {formLoading ? 'Adding Fund...' : 'Add Fund'}
             </Button>
           </div>
@@ -434,12 +441,14 @@ export const FundsPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
                 placeholder="Source Name (e.g. Management Grant)"
+                size="sm"
                 value={sourceForm.name}
                 onChange={(e) => setSourceForm({ ...sourceForm, name: e.target.value })}
                 required
               />
               <Input
                 placeholder="Description (Optional)"
+                size="sm"
                 value={sourceForm.description}
                 onChange={(e) => setSourceForm({ ...sourceForm, description: e.target.value })}
               />
@@ -496,6 +505,7 @@ export const FundsPage = () => {
 
           <Textarea
             label="Reason for Cancellation *"
+            size="sm"
             placeholder="e.g. Incorrect amount entered or bank transaction failed"
             rows={2}
             value={cancelReason}
@@ -504,10 +514,10 @@ export const FundsPage = () => {
           />
 
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
-            <Button variant="outline" onClick={() => setCancelModalFund(null)} disabled={formLoading}>
+            <Button variant="outline" size="sm" onClick={() => setCancelModalFund(null)} disabled={formLoading}>
               Go Back
             </Button>
-            <Button variant="danger" onClick={handleCancelFund} loading={formLoading}>
+            <Button variant="danger" size="sm" onClick={handleCancelFund} loading={formLoading}>
               {formLoading ? 'Cancelling...' : 'Confirm Cancellation'}
             </Button>
           </div>

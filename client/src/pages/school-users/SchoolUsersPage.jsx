@@ -311,7 +311,7 @@ const UserPermissionEditor = ({ targetUser, onBack, onSaveSuccess }) => {
   }).filter(Boolean);
 
   return (
-    <div className="space-y-5 animate-in fade-in duration-150 max-w-6xl mx-auto">
+    <div className="space-y-5 animate-in fade-in duration-150 w-full">
       {/* Sleek Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-2xs">
         <div className="flex items-center gap-3.5">
@@ -604,7 +604,7 @@ export const SchoolUsersPage = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 w-full">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

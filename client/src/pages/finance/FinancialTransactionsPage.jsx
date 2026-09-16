@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { financeService } from '../../services/financeService.js';
 import { Select } from '../../components/ui/Select.jsx';
+import { Input } from '../../components/ui/Input.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { Skeleton } from '../../components/ui/Skeleton.jsx';
@@ -122,15 +123,13 @@ export const FinancialTransactionsPage = () => {
               title="Financial Ledger Statement"
             />
             <form onSubmit={handleSearchSubmit} autoComplete="off" className="flex items-center gap-2">
-              <div className="relative w-full sm:w-64">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  autoComplete="off"
+              <div className="w-full sm:w-64">
+                <Input
+                  size="sm"
                   placeholder="Search ref #, description..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  icon={Search}
                 />
               </div>
               <Button type="submit" variant="secondary" size="sm">Search</Button>
@@ -142,6 +141,7 @@ export const FinancialTransactionsPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 pt-3 border-t border-slate-100">
           <Select
             label="Transaction Type"
+            size="sm"
             value={type}
             onChange={(e) => setType(e.target.value)}
             options={[
@@ -153,6 +153,7 @@ export const FinancialTransactionsPage = () => {
 
           <Select
             label="Source Type"
+            size="sm"
             value={sourceType}
             onChange={(e) => setSourceType(e.target.value)}
             options={sourceTypes}
@@ -160,6 +161,7 @@ export const FinancialTransactionsPage = () => {
 
           <Select
             label="Payment Mode"
+            size="sm"
             value={paymentMode}
             onChange={(e) => setPaymentMode(e.target.value)}
             options={paymentModes}
@@ -167,12 +169,14 @@ export const FinancialTransactionsPage = () => {
 
           <DatePicker
             label="From Date"
+            size="sm"
             value={startDate}
             onChange={(val) => setStartDate(val)}
           />
 
           <DatePicker
             label="To Date"
+            size="sm"
             value={endDate}
             onChange={(val) => setEndDate(val)}
           />

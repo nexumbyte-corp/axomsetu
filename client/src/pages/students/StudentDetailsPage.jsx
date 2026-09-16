@@ -197,7 +197,7 @@ export const StudentDetailsPage = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6 max-w-7xl mx-auto px-4 py-6">
+      <div className="space-y-6 w-full px-4 py-6">
         <Skeleton height="140px" width="100%" className="rounded-2xl" />
         <Skeleton height="50px" width="100%" className="rounded-xl" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -287,7 +287,7 @@ export const StudentDetailsPage = () => {
 
   return (
     <>
-      <div className="space-y-6 print:hidden max-w-7xl mx-auto">
+      <div className="space-y-6 print:hidden w-full">
         {/* Module Header Bar */}
         <ModulePageHeader
           icon={User}

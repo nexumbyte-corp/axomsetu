@@ -63,10 +63,10 @@ export const SuperAdminSchoolsPage = () => {
       errors.name = 'School name must not exceed 100 characters.';
     }
 
-    if (createForm.phone?.trim()) {
-      if (!phoneRegex.test(createForm.phone.trim())) {
-        errors.phone = 'Phone number must be 7 to 15 digits (optional +, -, spaces or parentheses).';
-      }
+    if (!createForm.phone?.trim()) {
+      errors.phone = 'Phone number is required.';
+    } else if (!/^\d{10}$/.test(createForm.phone.trim())) {
+      errors.phone = 'Phone number must be exactly 10 digits.';
     }
 
     if (!createForm.email.trim()) {
@@ -256,7 +256,7 @@ export const SuperAdminSchoolsPage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {toast && <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />}
 
       <ModulePageHeader
@@ -269,32 +269,80 @@ export const SuperAdminSchoolsPage = () => {
         }
       />
 
-      {/* Filter & Search Bar */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 shadow-2xs">
-        <div className="lg:col-span-2">
-          <Input
-            placeholder="Search school name, code, email, or phone..."
-            icon={Search}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      {/* Compact Quick Stats & Filter Controls Bar */}
+      <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-2xs space-y-3">
+        {/* Quick Filter Status Badges */}
+        <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-slate-100 text-xs font-semibold">
+          <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider mr-1">Directory Overview:</span>
+          <button
+            onClick={() => { setStatusFilter(''); setTrialFilter(''); }}
+            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${
+              !statusFilter && !trialFilter
+                ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            All Schools ({pagination.total || schools.length})
+          </button>
+          <button
+            onClick={() => { setStatusFilter('ACTIVE'); setTrialFilter(''); }}
+            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${
+              statusFilter === 'ACTIVE'
+                ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+            }`}
+          >
+            Active Status
+          </button>
+          <button
+            onClick={() => { setStatusFilter(''); setTrialFilter('TRIAL'); }}
+            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${
+              trialFilter === 'TRIAL'
+                ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+            }`}
+          >
+            Trial Mode
+          </button>
+          <button
+            onClick={() => { setStatusFilter('SUSPENDED'); setTrialFilter(''); }}
+            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${
+              statusFilter === 'SUSPENDED'
+                ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
+                : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+            }`}
+          >
+            Suspended
+          </button>
         </div>
 
-        <div>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">All Statuses</option>
-            <option value="ACTIVE">Active Status</option>
-            <option value="SUSPENDED">Suspended Status</option>
-            <option value="INACTIVE">Inactive Status</option>
-          </Select>
-        </div>
+        {/* Filter Inputs Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <div className="lg:col-span-2">
+            <Input
+              placeholder="Search school name, code, email, or phone..."
+              icon={Search}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
 
-        <div>
-          <Select value={trialFilter} onChange={(e) => setTrialFilter(e.target.value)}>
-            <option value="">All Trial Statuses</option>
-            <option value="TRIAL">Trial Schools</option>
-            <option value="NON_TRIAL">Paid Subscriptions</option>
-          </Select>
+          <div>
+            <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="">All Statuses</option>
+              <option value="ACTIVE">Active Status</option>
+              <option value="SUSPENDED">Suspended Status</option>
+              <option value="INACTIVE">Inactive Status</option>
+            </Select>
+          </div>
+
+          <div>
+            <Select value={trialFilter} onChange={(e) => setTrialFilter(e.target.value)}>
+              <option value="">All Trial Statuses</option>
+              <option value="TRIAL">Trial Schools</option>
+              <option value="NON_TRIAL">Paid Subscriptions</option>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -505,10 +553,10 @@ export const SuperAdminSchoolsPage = () => {
               error={createErrors.email}
             />
             <Input
-              label="Phone Number"
-              minLength={7}
-              maxLength={15}
-              placeholder="Phone Number"
+              label="Phone Number *"
+              required
+              maxLength={10}
+              placeholder="10-digit phone number"
               value={createForm.phone}
               onChange={(e) => {
                 setCreateForm({ ...createForm, phone: e.target.value });

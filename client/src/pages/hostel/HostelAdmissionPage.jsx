@@ -323,7 +323,7 @@ export const HostelAdmissionPage = () => {
   };
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto pb-10">
+    <div className="space-y-4 w-full pb-10">
       {/* Wizard Progress Header */}
       <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
         <div className="flex items-center justify-between text-xs">

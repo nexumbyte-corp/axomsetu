@@ -98,25 +98,42 @@ export const SubscriptionPage = () => {
     }
   }, [contextSubData]);
 
-  const handleOpenPurchaseModal = (plan) => {
+  const sub = currentSubData?.subscription;
+  const remainingDays = currentSubData?.remainingDays || 0;
+  const hasActiveSubscription = currentSubData?.status === 'ACTIVE' && remainingDays > 0;
+  const isSuspended = currentSubData?.status === 'SUSPENDED' || sub?.status === 'SUSPENDED';
+
+  // Derived attributes of current active plan
+  const currentPlanNameLower = sub?.planName?.toLowerCase() || '';
+  const isTrialPlan = Boolean(sub?.isTrial || sub?.planType === 'TRIAL' || currentPlanNameLower.includes('trial') || currentPlanNameLower.includes('free'));
+  const isCurrentEnterprise = Boolean(sub?.isEnterprise || sub?.planType === 'ENTERPRISE' || currentPlanNameLower.includes('enterprise'));
+  const currentPlanPrice = Number(sub?.finalPrice || sub?.basePrice || 0);
+  const currentStudentLimit = Number(sub?.maxStudentLimit || 0);
+
+  const handleOpenPurchaseModal = useCallback((plan) => {
+    if (hasActiveSubscription && isCurrentEnterprise) {
+      const msg = 'Your school is currently operating under an active Enterprise Subscription. Additional plan purchases are disabled until your subscription expires.';
+      toast.error(msg);
+      return;
+    }
     setSelectedPlan(plan);
     setPaymentMethod('RAZORPAY');
     setReferenceNumber('');
     setRemarks('');
     setNoRefundAccepted(false);
     setModalError('');
-  };
+  }, [hasActiveSubscription, isCurrentEnterprise]);
 
-  const handleClosePurchaseModal = () => {
+  const handleClosePurchaseModal = useCallback(() => {
     if (submitting) return;
     setSelectedPlan(null);
     setModalError('');
-  };
+  }, [submitting]);
 
-  const handleOpenContactModal = (plan = null) => {
+  const handleOpenContactModal = useCallback((plan = null) => {
     setContactModalPlan(plan);
     setContactSupportModalOpen(true);
-  };
+  }, []);
 
   const handleSubmitPurchase = async (e) => {
     e.preventDefault();
@@ -177,25 +194,13 @@ export const SubscriptionPage = () => {
   const formatCurrency = (val) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
 
-  const sub = currentSubData?.subscription;
-  const remainingDays = currentSubData?.remainingDays || 0;
-  const hasActiveSubscription = currentSubData?.status === 'ACTIVE' && remainingDays > 0;
-  const isSuspended = currentSubData?.status === 'SUSPENDED' || sub?.status === 'SUSPENDED';
-
-  // Derived attributes of current active plan
-  const currentPlanNameLower = sub?.planName?.toLowerCase() || '';
-  const isTrialPlan = Boolean(sub?.isTrial || sub?.planType === 'TRIAL' || currentPlanNameLower.includes('trial') || currentPlanNameLower.includes('free'));
-  const isCurrentEnterprise = Boolean(sub?.isEnterprise || sub?.planType === 'ENTERPRISE' || currentPlanNameLower.includes('enterprise'));
-  const currentPlanPrice = Number(sub?.finalPrice || sub?.basePrice || 0);
-  const currentStudentLimit = Number(sub?.maxStudentLimit || 0);
-
   // Find matching plan object for current sub if available
   const currentMatchingPlan = plans.find(
     (p) => p.id === sub?.planId || p.name?.toLowerCase() === currentPlanNameLower
   );
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-8 w-full">
       {toastMessage && <Toast type={toastMessage.type} message={toastMessage.message} onClose={() => setToastMessage(null)} />}
 
       <ModulePageHeader
@@ -308,13 +313,12 @@ export const SubscriptionPage = () => {
                 </div>
                 <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-500 ${
-                      remainingDays > 30
+                    className={`h-full transition-all duration-500 ${remainingDays > 30
                         ? 'bg-emerald-500'
                         : remainingDays > 10
                           ? 'bg-amber-500'
                           : 'bg-rose-500'
-                    }`}
+                      }`}
                     style={{ width: `${Math.min(100, (remainingDays / 60) * 100)}%` }}
                   />
                 </div>
@@ -364,11 +368,10 @@ export const SubscriptionPage = () => {
         <div className="border-b border-slate-200 px-6 pt-4 flex items-center gap-6 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveBottomTab('plans')}
-            className={`pb-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeBottomTab === 'plans'
+            className={`pb-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${activeBottomTab === 'plans'
                 ? 'border-indigo-600 text-indigo-600 font-extrabold'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+              }`}
           >
             <Zap className="w-4 h-4" />
             Available Subscription Plans ({plans.length})
@@ -376,11 +379,10 @@ export const SubscriptionPage = () => {
 
           <button
             onClick={() => setActiveBottomTab('requests')}
-            className={`pb-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeBottomTab === 'requests'
+            className={`pb-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${activeBottomTab === 'requests'
                 ? 'border-indigo-600 text-indigo-600 font-extrabold'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+              }`}
           >
             <Clock className="w-4 h-4" />
             Payment & Approval Requests ({requests.length})
@@ -388,11 +390,10 @@ export const SubscriptionPage = () => {
 
           <button
             onClick={() => setActiveBottomTab('history')}
-            className={`pb-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-              activeBottomTab === 'history'
+            className={`pb-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${activeBottomTab === 'history'
                 ? 'border-indigo-600 text-indigo-600 font-extrabold'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+              }`}
           >
             <History className="w-4 h-4" />
             Subscription History ({history.length})
@@ -414,201 +415,248 @@ export const SubscriptionPage = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch pt-2">
-                {plans.map((plan) => {
-                  const hasDiscount = plan.discountAmount > 0 || plan.discountPercentage > 0;
-                  const planNameLower = plan.name?.toLowerCase() || '';
-                  const isEnterprisePlan = Boolean(plan.isEnterprise || plan.type === 'ENTERPRISE' || planNameLower.includes('enterprise'));
-                  const isTrial = Boolean(plan.isTrial || plan.type === 'TRIAL' || planNameLower.includes('trial'));
-                  const isCurrentPlan = Boolean(
-                    hasActiveSubscription &&
+              {hasActiveSubscription && isCurrentEnterprise ? (
+                <div className="bg-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg space-y-6 border border-slate-800 my-2">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-2.5 max-w-2xl">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-400/30 uppercase tracking-wider">
+                          Active Enterprise Subscription
+                        </span>
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          Active until {formatDate(sub?.endDate, 'N/A')}
+                        </span>
+                      </div>
+                      <h3 className="text-xl sm:text-2xl font-extrabold text-white">
+                        Enterprise Subscription Active ({sub?.planName || 'Enterprise Custom'})
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        Your institution is currently operating under an active Enterprise Subscription valid through{' '}
+                        <strong className="text-white">{formatDate(sub?.endDate, 'N/A')}</strong> ({remainingDays} days remaining).
+                        Standard subscription plan purchasing and switching are disabled while your Enterprise subscription is active.
+                      </p>
+                    </div>
+
+                    <Button
+                      variant="primary"
+                      onClick={() => handleOpenContactModal()}
+                      className="bg-purple-600 hover:bg-purple-500 text-white border-0 font-bold px-5 py-2.5 rounded-xl shadow-md cursor-pointer flex items-center gap-2 shrink-0 self-start md:self-auto"
+                    >
+                      <Phone className="w-4 h-4" />
+                      Contact Enterprise Support
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-5 border-t border-slate-800 text-xs">
+                    <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/60 space-y-1">
+                      <span className="text-slate-400 font-medium block">Current Student Capacity</span>
+                      <span className="text-base font-bold text-white font-mono">
+                        {currentSubData?.activeStudentCount ?? 0} / {sub?.maxStudentLimit ? `${sub.maxStudentLimit}` : 'Custom / Unlimited'}
+                      </span>
+                    </div>
+                    <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/60 space-y-1">
+                      <span className="text-slate-400 font-medium block">Subscription Validity</span>
+                      <span className="text-xs font-bold text-white">
+                        {formatDate(sub?.startDate)} - {formatDate(sub?.endDate)}
+                      </span>
+                    </div>
+                    <div className="bg-slate-800/60 p-4 rounded-xl border border-slate-700/60 space-y-1">
+                      <span className="text-slate-400 font-medium block">Plan Switch Status</span>
+                      <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                        Locked until subscription expiry
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch pt-2">
+                  {plans.map((plan) => {
+                    const hasDiscount = plan.discountAmount > 0 || plan.discountPercentage > 0;
+                    const planNameLower = plan.name?.toLowerCase() || '';
+                    const isEnterprisePlan = Boolean(plan.isEnterprise || plan.type === 'ENTERPRISE' || planNameLower.includes('enterprise'));
+                    const isTrial = Boolean(plan.isTrial || plan.type === 'TRIAL' || planNameLower.includes('trial'));
+                    const isCurrentPlan = Boolean(
+                      hasActiveSubscription &&
                       (sub?.planId === plan.id ||
                         currentPlanNameLower === planNameLower ||
                         (isCurrentEnterprise && isEnterprisePlan))
-                  );
+                    );
 
-                  // Determine if plan is higher tier than current active plan
-                  const planFinalPrice = Number(plan.finalPrice || 0);
-                  const planStudentLimit = Number(plan.maxStudentLimit || 999999);
-                  const isHigherPlan = !isCurrentPlan && (
-                    planFinalPrice > currentPlanPrice ||
-                    planStudentLimit > currentStudentLimit ||
-                    (isEnterprisePlan && !isCurrentEnterprise)
-                  );
+                    // Determine if plan is higher tier than current active plan
+                    const planFinalPrice = Number(plan.finalPrice || 0);
+                    const planStudentLimit = Number(plan.maxStudentLimit || 999999);
+                    const isHigherPlan = !isCurrentPlan && (
+                      planFinalPrice > currentPlanPrice ||
+                      planStudentLimit > currentStudentLimit ||
+                      (isEnterprisePlan && !isCurrentEnterprise)
+                    );
 
-                  // Derive dynamic button text and action
-                  let btnText = 'Purchase Now';
-                  let btnVariant = 'primary';
-                  let btnAction = () => handleOpenPurchaseModal(plan);
-                  let btnDisabled = false;
+                    // Derive dynamic button text and action
+                    let btnText = 'Purchase Now';
+                    let btnVariant = 'primary';
+                    let btnAction = () => handleOpenPurchaseModal(plan);
+                    let btnDisabled = false;
 
-                  if (!hasActiveSubscription) {
-                    if (isEnterprisePlan) {
-                      btnText = 'Contact Support';
-                      btnAction = () => handleOpenContactModal(plan);
+                    if (!hasActiveSubscription) {
+                      if (isEnterprisePlan) {
+                        btnText = 'Contact Support';
+                        btnAction = () => handleOpenContactModal(plan);
+                      } else {
+                        btnText = 'Purchase Now';
+                        btnAction = () => handleOpenPurchaseModal(plan);
+                      }
                     } else {
-                      btnText = 'Purchase Now';
-                      btnAction = () => handleOpenPurchaseModal(plan);
-                    }
-                  } else {
-                    // User has active subscription
-                    if (isCurrentEnterprise) {
-                      btnText = 'Contact Support for Upgrade';
-                      btnAction = () => handleOpenContactModal(plan);
-                    } else if (isEnterprisePlan) {
-                      btnText = 'Contact Support for Upgrade';
-                      btnAction = () => handleOpenContactModal(plan);
-                    } else if (isCurrentPlan) {
-                      if (isTrialPlan) {
+                      // User has active subscription
+                      if (isCurrentEnterprise) {
+                        btnText = 'Contact Support for Upgrade';
+                        btnAction = () => handleOpenContactModal(plan);
+                      } else if (isEnterprisePlan) {
+                        btnText = 'Contact Support for Upgrade';
+                        btnAction = () => handleOpenContactModal(plan);
+                      } else if (isCurrentPlan) {
+                        if (isTrialPlan) {
+                          btnText = 'Upgrade Plan';
+                          btnAction = () => handleOpenPurchaseModal(plan);
+                        } else {
+                          btnText = 'Renew Plan';
+                          btnAction = () => handleOpenPurchaseModal(plan);
+                        }
+                      } else if (isHigherPlan) {
                         btnText = 'Upgrade Plan';
                         btnAction = () => handleOpenPurchaseModal(plan);
                       } else {
-                        btnText = 'Renew Plan';
-                        btnAction = () => handleOpenPurchaseModal(plan);
+                        btnText = 'Current Plan (Included)';
+                        btnDisabled = true;
+                        btnVariant = 'outline';
                       }
-                    } else if (isHigherPlan) {
-                      btnText = 'Upgrade Plan';
-                      btnAction = () => handleOpenPurchaseModal(plan);
-                    } else {
-                      btnText = 'Current Plan (Included)';
-                      btnDisabled = true;
-                      btnVariant = 'outline';
                     }
-                  }
 
-                  return (
-                    <div
-                      key={plan.id}
-                      className={`bg-white rounded-xl p-6 border shadow-2xs flex flex-col justify-between transition-all relative ${
-                        isCurrentPlan
-                          ? 'border-indigo-400 ring-2 ring-indigo-100'
-                          : isEnterprisePlan
-                            ? 'border-purple-300 ring-1 ring-purple-100'
-                            : 'border-slate-200 hover:border-indigo-300'
-                      }`}
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-2 gap-1.5 flex-wrap">
-                          <h4 className="text-lg font-bold text-slate-900">{plan.name}</h4>
-                          {isCurrentPlan ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-indigo-600 text-white uppercase tracking-wider">
-                              Current Plan
-                            </span>
-                          ) : isTrial ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                              Trial
-                            </span>
-                          ) : isEnterprisePlan ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
-                              Enterprise
-                            </span>
-                          ) : plan.badge ? (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
-                              {plan.badge}
-                            </span>
-                          ) : null}
-                        </div>
-
-                        {/* Student Capacity Highlight Badge */}
-                        <div className="mb-3">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold border ${
-                              isEnterprisePlan
-                                ? 'bg-purple-50 text-purple-900 border-purple-200/90'
-                                : plan.maxStudentLimit
-                                ? 'bg-indigo-50 text-indigo-800 border-indigo-200/90'
-                                : 'bg-emerald-50 text-emerald-800 border-emerald-200/90'
-                            }`}
-                          >
-                            <Users className={`w-3.5 h-3.5 shrink-0 ${isEnterprisePlan ? 'text-purple-600' : plan.maxStudentLimit ? 'text-indigo-600' : 'text-emerald-600'}`} />
-                            <span>
-                              {isEnterprisePlan
-                                ? (plan.maxStudentLimit ? `${plan.maxStudentLimit}+ Active Students` : '701+ Active Students')
-                                : plan.maxStudentLimit
-                                ? `Upto ${plan.maxStudentLimit} Active Students`
-                                : 'Unlimited Active Students'}
-                            </span>
-                          </span>
-                        </div>
-
-                        <p className="text-xs text-slate-500 mb-4 min-h-[32px] leading-relaxed">{plan.description}</p>
-
-                        {/* Pricing Box - Styled as per Landing Page */}
-                        <div className="py-3 border-y border-slate-100 my-4">
-                          <div className="flex items-baseline gap-1.5 flex-wrap">
-                            <span className={`text-2xl font-bold ${isEnterprisePlan ? 'text-purple-900 font-extrabold' : 'text-slate-900'}`}>
-                              {isTrial
-                                ? 'Free'
-                                : isEnterprisePlan || plan.finalPrice === 0
-                                  ? 'Custom Price'
-                                  : formatCurrency(plan.finalPrice)}
-                            </span>
-                            {!isTrial && !isEnterprisePlan && plan.finalPrice > 0 && (
-                              <span className="text-xs text-slate-500">
-                                / {plan.durationValue} {plan.durationUnit?.toLowerCase() || 'year'}{(plan.durationValue || 1) > 1 ? 's' : ''}
+                    return (
+                      <div
+                        key={plan.id}
+                        className={`bg-white rounded-xl p-6 border shadow-2xs flex flex-col justify-between transition-all relative ${isCurrentPlan
+                            ? 'border-indigo-400 ring-2 ring-indigo-100'
+                            : isEnterprisePlan
+                              ? 'border-purple-300 ring-1 ring-purple-100'
+                              : 'border-slate-200 hover:border-indigo-300'
+                          }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-2 gap-1.5 flex-wrap">
+                            <h4 className="text-lg font-bold text-slate-900">{plan.name}</h4>
+                            {isCurrentPlan ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-indigo-600 text-white uppercase tracking-wider">
+                                Current Plan
                               </span>
-                            )}
-                            {isEnterprisePlan && (
-                              <span className="text-[11px] font-medium text-purple-700 block mt-0.5">
-                                Tailored to school requirements
+                            ) : isTrial ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                Trial
                               </span>
+                            ) : isEnterprisePlan ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                                Enterprise
+                              </span>
+                            ) : plan.badge ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
+                                {plan.badge}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          {/* Student Capacity Highlight Badge */}
+                          <div className="mb-3">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold border ${isEnterprisePlan
+                                  ? 'bg-purple-50 text-purple-900 border-purple-200/90'
+                                  : plan.maxStudentLimit
+                                    ? 'bg-indigo-50 text-indigo-800 border-indigo-200/90'
+                                    : 'bg-emerald-50 text-emerald-800 border-emerald-200/90'
+                                }`}
+                            >
+                              <Users className="w-3.5 h-3.5 shrink-0" />
+                              <span>
+                                {isEnterprisePlan
+                                  ? 'Custom Student Capacity (Contact Sales)'
+                                  : plan.type === 'ENTERPRISE' || planNameLower.includes('enterprise')
+                                    ? 'Custom Capacity (Unlimited Active Students)'
+                                    : plan.maxStudentLimit
+                                      ? `Upto ${plan.maxStudentLimit} Active Students`
+                                      : 'Unlimited Active Students'}
+                              </span>
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-slate-500 mb-4 min-h-[32px] leading-relaxed">{plan.description}</p>
+
+                          {/* Pricing Box - Styled as per Landing Page */}
+                          <div className="py-3 border-y border-slate-100 my-4">
+                            <div className="flex items-baseline gap-1.5 flex-wrap">
+                              <span className={`text-2xl font-bold ${isEnterprisePlan ? 'text-purple-900 font-extrabold' : 'text-slate-900'}`}>
+                                {isTrial
+                                  ? 'Free'
+                                  : isEnterprisePlan
+                                    ? 'Custom Pricing'
+                                    : formatCurrency(plan.finalPrice)}
+                              </span>
+                              {!isEnterprisePlan && !isTrial && (
+                                <span className="text-xs text-slate-500 font-medium">
+                                  / {plan.durationValue || 1} {plan.durationUnit || 'Year'}
+                                </span>
+                              )}
+                            </div>
+                            {hasDiscount && !isEnterprisePlan && !isTrial && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-slate-400 line-through">
+                                  {formatCurrency(plan.basePrice)}
+                                </span>
+                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                                  Save {formatCurrency(plan.discountAmount)}
+                                </span>
+                              </div>
                             )}
                           </div>
 
-                          {hasDiscount && !isEnterprisePlan && !isTrial && (
-                            <div className="flex items-center gap-2 mt-1.5">
-                              <span className="text-xs text-slate-400 line-through font-mono">
-                                {formatCurrency(plan.basePrice)}
-                              </span>
-                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                {plan.discountPercentage > 0
-                                  ? `${plan.discountPercentage}% OFF`
-                                  : `Save ${formatCurrency(plan.discountAmount)}`}
-                              </span>
-                            </div>
-                          )}
-
-                          {plan.offerTitle && (
-                            <div className="mt-2.5 text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 p-1.5 rounded-lg flex items-center gap-1.5">
-                              <Zap className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                              <span>{plan.offerTitle}</span>
-                            </div>
-                          )}
+                          {/* Feature List */}
+                          <div className="space-y-2 mb-6">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                              Included Features:
+                            </span>
+                            {Array.isArray(plan.features) && plan.features.length > 0 ? (
+                              plan.features.map((feat, idx) => (
+                                <div key={idx} className="flex items-start gap-2 text-xs text-slate-600">
+                                  <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                                  <span className="leading-tight">{typeof feat === 'string' ? feat : feat.name || feat.title}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">All core school management modules</span>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Features List - Styled as per Landing Page */}
-                        <div className="space-y-2 mb-6">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
-                            Features Included
-                          </span>
-                          {Array.isArray(plan.features) &&
-                            plan.features.map((feat, idx) => (
-                              <div key={idx} className="flex items-center gap-2 text-xs text-slate-700">
-                                <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                <span>{typeof feat === 'string' ? feat : feat.name}</span>
-                              </div>
-                            ))}
-                        </div>
+                        {/* Action CTA Button */}
+                        <Button
+                          variant={btnVariant}
+                          size="md"
+                          className={`w-full justify-center font-bold text-xs py-2.5 rounded-xl transition-all cursor-pointer ${isCurrentPlan
+                              ? 'bg-slate-100 hover:bg-indigo-50 border-indigo-200 text-indigo-700'
+                              : isEnterprisePlan
+                                ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-xs'
+                                : ''
+                            }`}
+                          disabled={btnDisabled}
+                          icon={btnDisabled ? undefined : isEnterprisePlan || btnText.includes('Contact Support') ? Phone : ArrowRight}
+                          iconPosition="right"
+                          onClick={btnAction}
+                        >
+                          {btnText}
+                        </Button>
                       </div>
-
-                      <Button
-                        variant={btnVariant}
-                        disabled={btnDisabled}
-                        className={`w-full justify-center py-2 text-xs font-semibold rounded-lg shadow-xs ${
-                          isEnterprisePlan
-                            ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                            : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                        }`}
-                        icon={isEnterprisePlan || btnText.includes('Contact Support') ? Phone : ArrowRight}
-                        iconPosition="right"
-                        onClick={btnAction}
-                      >
-                        {btnText}
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -770,14 +818,13 @@ export const SubscriptionPage = () => {
                     setPaymentMethod('RAZORPAY');
                     if (modalError) setModalError('');
                   }}
-                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
-                    paymentMethod === 'RAZORPAY'
+                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${paymentMethod === 'RAZORPAY'
                       ? 'border-indigo-600 bg-indigo-50/60 text-indigo-900 font-bold ring-1 ring-indigo-500 shadow-xs'
                       : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                  }`}
+                    }`}
                 >
                   <div>
-                    <span className="text-xs block font-bold">Razorpay Online</span>
+                    <span className="text-xs block font-bold">Online Payment</span>
                     <span className="text-[11px] text-indigo-600 font-medium">Instant Automatic Activation</span>
                   </div>
                   <CreditCard className="w-5 h-5 text-indigo-600 shrink-0" />
@@ -790,11 +837,10 @@ export const SubscriptionPage = () => {
                     setPaymentMethod('CASH');
                     if (modalError) setModalError('');
                   }}
-                  className={`hidden p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
-                    paymentMethod === 'CASH'
+                  className={`hidden p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${paymentMethod === 'CASH'
                       ? 'border-indigo-600 bg-indigo-50/60 text-indigo-900 font-bold ring-1 ring-indigo-500 shadow-xs'
                       : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                  }`}
+                    }`}
                 >
                   <div>
                     <span className="text-xs block font-bold">Cash / Direct</span>
@@ -861,11 +907,10 @@ export const SubscriptionPage = () => {
             </div>
 
             {/* Mandatory Refund Confirmation */}
-            <div className={`rounded-xl p-3 space-y-1 border transition-all ${
-              !noRefundAccepted && modalError
+            <div className={`rounded-xl p-3 space-y-1 border transition-all ${!noRefundAccepted && modalError
                 ? 'bg-rose-100/70 border-rose-400 ring-2 ring-rose-300'
                 : 'bg-rose-50/80 border-rose-200'
-            }`}>
+              }`}>
               <label className="flex items-start gap-2.5 cursor-pointer select-none">
                 <input
                   type="checkbox"

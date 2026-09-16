@@ -213,6 +213,7 @@ export const ExpensesPage = () => {
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         <Select
           label="Category"
+          size="sm"
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
           options={[
@@ -223,6 +224,7 @@ export const ExpensesPage = () => {
 
         <Select
           label="Payment Mode"
+          size="sm"
           value={paymentMode}
           onChange={(e) => setPaymentMode(e.target.value)}
           options={[
@@ -238,28 +240,27 @@ export const ExpensesPage = () => {
 
         <DatePicker
           label="From Date"
+          size="sm"
           value={startDate}
           onChange={(val) => setStartDate(val)}
         />
 
         <DatePicker
           label="To Date"
+          size="sm"
           value={endDate}
           onChange={(val) => setEndDate(val)}
         />
 
         <div className="flex items-end">
-          <div className="relative w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search description/ref..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && fetchExpenses(1)}
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-            />
-          </div>
+          <Input
+            size="sm"
+            placeholder="Search description/ref..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && fetchExpenses(1)}
+            icon={Search}
+          />
         </div>
       </div>
 
@@ -363,6 +364,7 @@ export const ExpensesPage = () => {
 
           <Select
             label="Expense Category *"
+            size="sm"
             value={expenseForm.categoryId}
             onChange={(e) => setExpenseForm({ ...expenseForm, categoryId: e.target.value })}
             options={[
@@ -375,6 +377,7 @@ export const ExpensesPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <DatePicker
               label="Date *"
+              size="sm"
               value={expenseForm.expenseDate}
               onChange={(val) => setExpenseForm({ ...expenseForm, expenseDate: val })}
               required
@@ -382,6 +385,7 @@ export const ExpensesPage = () => {
 
             <Input
               label="Amount (₹) *"
+              size="sm"
               type="number"
               min="1"
               step="any"
@@ -395,6 +399,7 @@ export const ExpensesPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
               label="Payment Mode *"
+              size="sm"
               value={expenseForm.paymentMode}
               onChange={(e) => setExpenseForm({ ...expenseForm, paymentMode: e.target.value })}
               options={[
@@ -410,6 +415,7 @@ export const ExpensesPage = () => {
 
             <Input
               label="Reference Number"
+              size="sm"
               placeholder="e.g. EB-2026-08"
               value={expenseForm.referenceNumber}
               onChange={(e) => setExpenseForm({ ...expenseForm, referenceNumber: e.target.value })}
@@ -418,6 +424,7 @@ export const ExpensesPage = () => {
 
           <Textarea
             label="Description / Purpose"
+            size="sm"
             placeholder="e.g. July electricity bill payment"
             rows={2}
             value={expenseForm.description}
@@ -425,10 +432,10 @@ export const ExpensesPage = () => {
           />
 
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
-            <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)} disabled={formLoading}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setIsAddModalOpen(false)} disabled={formLoading}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" loading={formLoading}>
+            <Button type="submit" variant="primary" size="sm" loading={formLoading}>
               {formLoading ? 'Recording Expense...' : 'Record Expense'}
             </Button>
           </div>
@@ -444,12 +451,14 @@ export const ExpensesPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
                 placeholder="Category Name (e.g. Maintenance)"
+                size="sm"
                 value={categoryForm.name}
                 onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
                 required
               />
               <Input
                 placeholder="Description (Optional)"
+                size="sm"
                 value={categoryForm.description}
                 onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
               />
@@ -506,6 +515,7 @@ export const ExpensesPage = () => {
 
           <Textarea
             label="Reason for Cancellation *"
+            size="sm"
             placeholder="e.g. Duplicate expense entry or vendor refund"
             rows={2}
             value={cancelReason}
@@ -514,10 +524,10 @@ export const ExpensesPage = () => {
           />
 
           <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
-            <Button variant="outline" onClick={() => setCancelModalExpense(null)} disabled={formLoading}>
+            <Button variant="outline" size="sm" onClick={() => setCancelModalExpense(null)} disabled={formLoading}>
               Go Back
             </Button>
-            <Button variant="danger" onClick={handleCancelExpense} loading={formLoading}>
+            <Button variant="danger" size="sm" onClick={handleCancelExpense} loading={formLoading}>
               {formLoading ? 'Cancelling...' : 'Confirm Cancellation'}
             </Button>
           </div>

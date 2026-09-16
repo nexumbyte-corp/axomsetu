@@ -214,7 +214,7 @@ export const EditStudentProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto space-y-4">
+      <div className="w-full space-y-4">
         <Skeleton height="40px" width="40%" />
         <Skeleton height="350px" width="100%" />
       </div>

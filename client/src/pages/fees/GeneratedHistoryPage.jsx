@@ -72,7 +72,7 @@ export const GeneratedHistoryPage = () => {
   };
 
   return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden max-w-7xl mx-auto">
+    <div className="h-full flex flex-col min-h-0 overflow-hidden w-full">
       <div className="h-full flex flex-col min-h-0 overflow-hidden bg-white rounded-xl border border-slate-200 shadow-2xs">
         <div className="shrink-0 p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2">

@@ -82,6 +82,10 @@ export const adminService = {
   },
 
   // Business Analytics & Reports
+  async listPayments(params = {}) {
+    return await api.get('/admin/subscriptions', { params });
+  },
+
   async getRevenueReport(params = {}) {
     return await api.get('/admin/reports/revenue', { params });
   },

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const phoneRegex = /^[0-9+\-\s()]{7,15}$/;
+const phoneRegex = /^\d{10}$/;
 
 export const registerSchoolSchema = {
   body: z
@@ -18,13 +18,12 @@ export const registerSchoolSchema = {
         .optional()
         .or(z.literal('')),
       phone: z
-        .string()
+        .string({ required_error: 'Phone number is required' })
         .trim()
-        .refine((val) => !val || phoneRegex.test(val), {
-          message: 'Phone number must be 7 to 15 digits (optional +, -, spaces or parentheses)',
-        })
-        .optional()
-        .or(z.literal('')),
+        .min(1, 'Phone number is required')
+        .refine((val) => phoneRegex.test(val), {
+          message: 'Phone number must be exactly 10 digits',
+        }),
       email: z
         .string()
         .email('Invalid school email address format')
@@ -88,13 +87,12 @@ export const createSchoolSchema = {
         .optional()
         .or(z.literal('')),
       phone: z
-        .string()
+        .string({ required_error: 'Phone number is required' })
         .trim()
-        .refine((val) => !val || phoneRegex.test(val), {
-          message: 'Phone number must be 7 to 15 digits (optional +, -, spaces or parentheses)',
-        })
-        .optional()
-        .or(z.literal('')),
+        .min(1, 'Phone number is required')
+        .refine((val) => phoneRegex.test(val), {
+          message: 'Phone number must be exactly 10 digits',
+        }),
       email: z
         .string()
         .email('Invalid email address format')
@@ -157,12 +155,10 @@ export const updateSchoolSchema = {
     phone: z
       .string()
       .trim()
-      .refine((val) => !val || phoneRegex.test(val), {
-        message: 'Phone number must be 7 to 15 digits (optional +, -, spaces or parentheses)',
+      .refine((val) => val === undefined || (val.length > 0 && phoneRegex.test(val)), {
+        message: 'Phone number is required and must be exactly 10 digits',
       })
-      .optional()
-      .or(z.literal(''))
-      .or(z.null()),
+      .optional(),
     email: z
       .string()
       .email('Invalid email address format')

@@ -64,12 +64,9 @@ export const StudentLedgerPage = () => {
             <Button variant="primary" size="sm" onClick={() => navigate('/app/fees/collect')}>
               Collect Fee
             </Button>
-            <button
-              onClick={() => refetchLedger()}
-              className="p-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-600 shadow-2xs"
-            >
+            <Button variant="outline" size="sm" onClick={() => refetchLedger()} title="Refresh Ledger">
               <RefreshCw className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         }
       />

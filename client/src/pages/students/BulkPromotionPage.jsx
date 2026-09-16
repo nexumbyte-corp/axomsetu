@@ -264,7 +264,7 @@ export const BulkPromotionPage = () => {
   }, [sourceStudents, selectedStudentIds]);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Standardized Module Page Header */}
       <ModulePageHeader
         icon={Sparkles}

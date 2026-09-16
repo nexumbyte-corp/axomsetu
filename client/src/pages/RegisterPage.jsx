@@ -62,10 +62,10 @@ export const RegisterPage = () => {
       errors.schoolName = 'Must not exceed 100 characters.';
     }
 
-    if (formData.phone.trim()) {
-      if (!phoneRegex.test(formData.phone.trim())) {
-        errors.phone = 'Phone number must be 7 to 15 digits.';
-      }
+    if (!formData.phone.trim()) {
+      errors.phone = 'School phone number is required.';
+    } else if (!/^\d{10}$/.test(formData.phone.trim())) {
+      errors.phone = 'Phone number must be exactly 10 digits.';
     }
 
     if (!formData.email.trim()) {
@@ -325,11 +325,11 @@ export const RegisterPage = () => {
                   <Input
                     variant="light"
                     size="sm"
-                    label="School Phone"
+                    label="School Phone *"
                     name="phone"
-                    placeholder="+91 9876543210"
-                    minLength={7}
-                    maxLength={15}
+                    placeholder="10-digit phone number"
+                    required
+                    maxLength={10}
                     icon={Phone}
                     value={formData.phone}
                     onChange={handleChange}

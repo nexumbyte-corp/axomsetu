@@ -487,7 +487,7 @@ const getPageTitle = (locationPath, headerTitle) => {
         </Drawer>
 
         {/* Page Content Outlet */}
-        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-x-hidden space-y-4">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 w-full max-w-full overflow-x-hidden space-y-4">
           <Outlet />
         </main>
       </div>

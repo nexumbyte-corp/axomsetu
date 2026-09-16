@@ -32,23 +32,19 @@ export const SchoolReportHeader = ({
   return (
     <div className="text-center space-y-1.5 pb-4 border-b border-slate-200">
       {/* Centered School Logo */}
-      <div className="flex justify-center mb-3">
-        {school.logoUrl ? (
+      {school.logoUrl && (
+        <div className="flex justify-center mb-2">
           <img
             src={school.logoUrl}
             alt={school.name || 'School Logo'}
-            className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl object-contain border border-slate-200 shadow-xs"
+            className="max-h-16 w-auto object-contain border border-slate-200 rounded-lg p-1 shadow-2xs"
             onError={(e) => {
               e.target.onerror = null;
               e.target.style.display = 'none';
             }}
           />
-        ) : (
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-xs">
-            <School className="w-10 h-10 sm:w-12 sm:h-12" />
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* School Name */}
       <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight uppercase">

@@ -339,7 +339,7 @@ export const FeeTemplatesPage = () => {
   });
 
   return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden space-y-2 max-w-7xl mx-auto">
+    <div className="h-full flex flex-col min-h-0 overflow-hidden space-y-2 w-full">
       {/* Search & Actions Bar */}
       <div className="shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto flex-1">

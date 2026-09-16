@@ -402,7 +402,7 @@ export const ReportsPage = () => {
           icon={PieChart}
         />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        <div className="w-full mt-4">
           {/* Main Navigation Tabs & Compact Action Controls */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
             {/* Tab Buttons */}
@@ -828,7 +828,7 @@ export const ReportsPage = () => {
       {/* ========================================================================= */}
       {/* MAIN REPORT SECTION (CHARTS / TABLES)                                     */}
       {/* ========================================================================= */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+      <div className="w-full mt-4">
         {activeTab === 'charts' ? (
           <FinancialReportCharts
             chartData={chartData}

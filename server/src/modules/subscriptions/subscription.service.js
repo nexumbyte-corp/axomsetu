@@ -220,6 +220,25 @@ export const submitPurchaseRequest = async (schoolId, data, actorUserId) => {
     paymentMethod,
   });
 
+  const currentSub = await prisma.schoolSubscription.findFirst({
+    where: { schoolId },
+    orderBy: { createdAt: 'desc' },
+    include: { plan: true },
+  });
+
+  const now = new Date();
+  if (
+    currentSub &&
+    currentSub.status === 'ACTIVE' &&
+    currentSub.endDate &&
+    new Date(currentSub.endDate) > now &&
+    (currentSub.isEnterpriseSnapshot || currentSub.plan?.isEnterprise || currentSub.plan?.type === 'ENTERPRISE')
+  ) {
+    throw ApiError.badRequest(
+      'Your school is currently on an active Enterprise Subscription. Additional plan purchases are disabled until your Enterprise subscription expires.'
+    );
+  }
+
   // Check if there is already a pending payment request for this school
   const existingPending = await prisma.subscriptionPayment.findFirst({
     where: {
@@ -231,11 +250,6 @@ export const submitPurchaseRequest = async (schoolId, data, actorUserId) => {
   if (existingPending) {
     throw ApiError.conflict('You already have a pending payment request awaiting Super Admin approval.');
   }
-
-  const currentSub = await prisma.schoolSubscription.findFirst({
-    where: { schoolId },
-    orderBy: { createdAt: 'desc' },
-  });
 
   const paymentRecord = await prisma.subscriptionPayment.create({
     data: {
