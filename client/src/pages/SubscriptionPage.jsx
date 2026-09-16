@@ -51,7 +51,7 @@ export const SubscriptionPage = () => {
 
   // Purchase Modal State
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('UPI');
+  const [paymentMethod, setPaymentMethod] = useState('RAZORPAY');
   const [referenceNumber, setReferenceNumber] = useState('');
   const [remarks, setRemarks] = useState('');
   const [noRefundAccepted, setNoRefundAccepted] = useState(false);
@@ -760,7 +760,7 @@ export const SubscriptionPage = () => {
               </div>
             </div>
 
-            {/* Payment Method Options (Only Razorpay & Cash) */}
+            {/* Payment Method Options (Razorpay Online & Hidden Cash Option) */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-2">Select Payment Method *</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -783,13 +783,14 @@ export const SubscriptionPage = () => {
                   <CreditCard className="w-5 h-5 text-indigo-600 shrink-0" />
                 </button>
 
+                {/* Cash option hidden from UI */}
                 <button
                   type="button"
                   onClick={() => {
                     setPaymentMethod('CASH');
                     if (modalError) setModalError('');
                   }}
-                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                  className={`hidden p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
                     paymentMethod === 'CASH'
                       ? 'border-indigo-600 bg-indigo-50/60 text-indigo-900 font-bold ring-1 ring-indigo-500 shadow-xs'
                       : 'border-slate-200 hover:bg-slate-50 text-slate-700'
