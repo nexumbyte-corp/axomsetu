@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Building, User, Lock, Eye, EyeOff, Save, AlertCircle, ShieldCheck, CreditCard, School, Mail, Phone, MapPin, Image, Upload, Trash2, RefreshCw, ExternalLink } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Building, User, Lock, Eye, EyeOff, Save, AlertCircle, ShieldCheck, CreditCard, School, Mail, Phone, MapPin, Upload, Trash2, RefreshCw, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.js';
 import { usePermission } from '../../hooks/usePermission.js';
 import { useToast } from '../../components/ui/Toast.jsx';
@@ -11,7 +11,6 @@ import { AccessDeniedPage } from '../AccessDeniedPage.jsx';
 
 export const SchoolProfilePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const _navigate = useNavigate();
   const { user, refreshProfile } = useAuth();
   const { isOwner } = usePermission();
   const { showToast } = useToast();
@@ -392,18 +391,6 @@ export const SchoolProfilePage = () => {
   const passwordStrength = getPasswordStrength(passwordData.newPassword);
 
   // Subscription remaining days calculation helper
-  const calculateRemainingDays = (endDateStr) => {
-    if (!endDateStr) return null;
-    const end = new Date(endDateStr);
-    const now = new Date();
-    const diffTime = end.getTime() - now.getTime();
-    return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-  };
-
-  const _remainingDays = schoolData.activeSubscription?.endDate
-    ? calculateRemainingDays(schoolData.activeSubscription.endDate)
-    : null;
-
   const schoolNameDisplay = schoolData.name || user?.schoolAdmins?.[0]?.school?.name || 'School Profile';
 
   return (

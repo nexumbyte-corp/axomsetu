@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { LayoutDashboard, Users, Briefcase, CreditCard, DollarSign, Wallet, AlertCircle, RefreshCw } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth.js';
 import { useAcademicYear } from '../hooks/useAcademicYear.js';
 import { dashboardService } from '../services/dashboard.service.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
@@ -11,6 +12,7 @@ import { Card, CardContent } from '../components/ui/Card.jsx';
 import { DashboardSkeleton } from '../components/dashboard/DashboardSkeleton.jsx';
 import { DashboardMetricCard } from '../components/dashboard/DashboardMetricCard.jsx';
 import { TodayCollectionSection } from '../components/dashboard/TodayCollectionSection.jsx';
+import { MonthlyCollectionChart } from '../components/dashboard/MonthlyCollectionChart.jsx';
 import { NeedsAttentionSection } from '../components/dashboard/NeedsAttentionSection.jsx';
 import { RecentFeeCollections, RecentExpenses, RecentSalaryPayments } from '../components/dashboard/RecentActivityTables.jsx';
 import { QuickActionsSection } from '../components/dashboard/QuickActionsSection.jsx';
@@ -18,6 +20,7 @@ import { formatCurrency, formatNumber, formatDate } from '../utils/formatters.js
 
 export const DashboardPage = () => {
   useDocumentTitle('Dashboard');
+  const { user } = useAuth();
   const { selectedYear: _selectedYear, selectedYearId } = useAcademicYear();
 
   const [dashboardData, setDashboardData] = useState(null);
@@ -53,12 +56,14 @@ export const DashboardPage = () => {
     return <DashboardSkeleton />;
   }
 
+  const userName = user?.name || 'Admin';
+
   if (error && !dashboardData) {
     return (
       <div className="space-y-6">
         <ModulePageHeader
           icon={LayoutDashboard}
-          title="Dashboard"
+          title={`Welcome, ${userName}`}
           description="Overview of your school's students, fees, payroll and finances."
         />
         <Card className="border-rose-200 bg-rose-50/40">
@@ -77,10 +82,29 @@ export const DashboardPage = () => {
     );
   }
 
-  const { school, subscription, metrics, needsAttention, recentActivity } = dashboardData || {};
+  const { school, subscription, metrics, needsAttention, recentActivity, monthlyCollections } = dashboardData || {};
 
   return (
     <div className="space-y-6">
+      <ModulePageHeader
+        icon={LayoutDashboard}
+        title={`Welcome, ${userName}`}
+        description="Overview of your school's students, fees, payroll and finances."
+      />
+
+      {/* Welcome Greeting Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/80 shadow-2xs">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <span>Welcome, <span className="text-indigo-600">{userName}</span></span>
+            <span className="text-2xl inline-block">👋</span>
+          </h1>
+          <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">
+            Here's an overview of <strong className="text-slate-700">{school?.name || 'your school workspace'}</strong> metrics and operations today.
+          </p>
+        </div>
+      </div>
+
       {/* Subscription Status Banner Widget */}
       {subscription && (
         <div className="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-4 sm:p-5 text-white shadow-md border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -96,8 +120,8 @@ export const DashboardPage = () => {
                     subscription.status === 'ACTIVE' && subscription.remainingDays > 0
                       ? 'success'
                       : subscription.status === 'SUSPENDED'
-                      ? 'warning'
-                      : 'danger'
+                        ? 'warning'
+                        : 'danger'
                   }
                 >
                   {subscription.status === 'ACTIVE' && subscription.remainingDays > 0
@@ -195,8 +219,11 @@ export const DashboardPage = () => {
       {/* Today Collection Widget with DatePicker */}
       <TodayCollectionSection selectedYearId={selectedYearId} />
 
-      {/* Items Requiring Attention */}
-      <NeedsAttentionSection items={needsAttention} />
+      {/* Monthly Collection Line Chart & Items Requiring Attention */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <MonthlyCollectionChart data={monthlyCollections} />
+        <NeedsAttentionSection items={needsAttention} />
+      </div>
 
 
       {/* Recent Fee Collections & Recent Expenses */}

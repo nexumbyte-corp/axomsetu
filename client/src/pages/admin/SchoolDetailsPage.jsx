@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Building2, Plus, ArrowLeft, Key, Edit2, AlertTriangle, Printer, Trash2 } from 'lucide-react';
 import { adminService } from '../../services/adminService.js';
 import { subscriptionService } from '../../services/subscriptionService.js';
@@ -17,7 +17,6 @@ import { HardDeleteSchoolModal } from '../../components/admin/HardDeleteSchoolMo
 
 export const SchoolDetailsPage = () => {
   const { schoolId } = useParams();
-  const _navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'info';
 

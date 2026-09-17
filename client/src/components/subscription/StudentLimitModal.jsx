@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, AlertTriangle, ArrowRight, X, Zap, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, ArrowRight, X, Zap, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { Button } from '../ui/Button.jsx';
 
 export const StudentLimitModal = ({

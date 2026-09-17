@@ -69,7 +69,6 @@ export const FeeTemplatesPage = () => {
     isActive: true,
     heads: [],
   });
-  const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
   // Delete state

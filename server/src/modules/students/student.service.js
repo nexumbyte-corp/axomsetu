@@ -541,6 +541,22 @@ export const listStudents = async (schoolId, query) => {
   if (query.status) {
     studentWhere.status = query.status;
   }
+
+  const residenceType = query.residenceType || query.hostelStatus;
+  if (residenceType === 'HOSTELLER' || residenceType === 'HOSTEL') {
+    studentWhere.activeHostelEnrollments = {
+      some: {
+        status: 'ACTIVE',
+      },
+    };
+  } else if (residenceType === 'DAY_SCHOLAR') {
+    studentWhere.activeHostelEnrollments = {
+      none: {
+        status: 'ACTIVE',
+      },
+    };
+  }
+
   if (Object.keys(studentWhere).length > 0) {
     whereClause.student = studentWhere;
   }

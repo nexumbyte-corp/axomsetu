@@ -16,6 +16,7 @@ import { Badge } from '../components/ui/Badge.jsx';
 import { BRAND_CONFIG } from '../config/brandConfig.js';
 import { getSidebarNavigation } from '../config/navigationConfig.js';
 import { SchoolHeaderLogo } from '../components/common/SchoolHeaderLogo.jsx';
+import { SubscriptionExpiryBanner } from '../components/subscription/SubscriptionExpiryBanner.jsx';
 
 export const SchoolAdminLayout = () => {
   const navigate = useNavigate();
@@ -486,10 +487,15 @@ const getPageTitle = (locationPath, headerTitle) => {
           {renderNavItems(() => setIsMobileNavOpen(false))}
         </Drawer>
 
-        {/* Page Content Outlet */}
-        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 w-full max-w-full overflow-x-hidden space-y-4">
-          <Outlet />
-        </main>
+        {/* Content Column with Warning Banner */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <SubscriptionExpiryBanner />
+
+          {/* Page Content Outlet */}
+          <main className="flex-1 p-3.5 sm:p-6 lg:p-8 w-full max-w-full overflow-x-hidden space-y-4">
+            <Outlet />
+          </main>
+        </div>
       </div>
 
       {/* Support Modal */}

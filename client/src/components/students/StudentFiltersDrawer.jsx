@@ -81,6 +81,17 @@ export const StudentFiltersDrawer = ({
       </Select>
 
       <Select
+        label="Residence (Day Scholar / Hosteller)"
+        size="sm"
+        value={filters.residenceType || ''}
+        onChange={(e) => onChange('residenceType', e.target.value)}
+      >
+        <option value="">Day Scholar / Hosteller (All)</option>
+        <option value="DAY_SCHOLAR">Day Scholar</option>
+        <option value="HOSTELLER">Hosteller</option>
+      </Select>
+
+      <Select
         label="Student Status"
         size="sm"
         value={filters.status || ''}
@@ -114,7 +125,7 @@ export const StudentFiltersDrawer = ({
       {/* Desktop & Tablet Single-Row Toolbar (Search + Filters + Count) */}
       <div className="hidden md:flex items-center gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs">
         {/* Search Input */}
-        <div className="w-64 min-w-[200px] shrink-0">
+        <div className="w-56 min-w-[180px] shrink-0">
           <Input
             placeholder="Search students..."
             value={searchTerm}
@@ -126,7 +137,7 @@ export const StudentFiltersDrawer = ({
         </div>
 
         {/* Filter Selects Row */}
-        <div className="flex-1 grid grid-cols-5 gap-2 min-w-0">
+        <div className="flex-1 grid grid-cols-6 gap-2 min-w-0">
           <Select
             size="sm"
             value={filters.classId || ''}
@@ -182,6 +193,17 @@ export const StudentFiltersDrawer = ({
                 {st.name}
               </option>
             ))}
+          </Select>
+
+          <Select
+            size="sm"
+            value={filters.residenceType || ''}
+            onChange={(e) => onChange('residenceType', e.target.value)}
+            className="text-xs py-1 h-9 bg-slate-50/60 border-slate-200 hover:bg-white transition-colors rounded-lg font-medium text-slate-700"
+          >
+            <option value="">Day Scholar / Hosteller</option>
+            <option value="DAY_SCHOLAR">Day Scholar</option>
+            <option value="HOSTELLER">Hosteller</option>
           </Select>
 
           <Select

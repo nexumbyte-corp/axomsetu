@@ -65,6 +65,7 @@ export const StudentsListPage = () => {
     sectionId: savedFilterState?.filters?.sectionId || '',
     mediumId: savedFilterState?.filters?.mediumId || '',
     streamId: savedFilterState?.filters?.streamId || '',
+    residenceType: savedFilterState?.filters?.residenceType || '',
     status: savedFilterState?.filters?.status || '',
   }));
   const [page, setPage] = useState(() => savedFilterState?.page || 1);
@@ -176,6 +177,7 @@ export const StudentsListPage = () => {
         sectionId: filters.sectionId || undefined,
         mediumId: filters.mediumId || undefined,
         streamId: filters.streamId || undefined,
+        residenceType: filters.residenceType || undefined,
         status: filters.status || undefined,
       };
 
@@ -204,7 +206,7 @@ export const StudentsListPage = () => {
   };
 
   const handleResetFilters = () => {
-    const emptyFilters = { classId: '', sectionId: '', mediumId: '', streamId: '', status: '' };
+    const emptyFilters = { classId: '', sectionId: '', mediumId: '', streamId: '', residenceType: '', status: '' };
     setFilters(emptyFilters);
     setSearchTerm('');
     setDebouncedSearch('');

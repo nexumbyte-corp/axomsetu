@@ -1,13 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Users, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Sparkles,
+  Users,
+  AlertTriangle,
+  CheckCircle2,
+  Search,
+  ArrowRight,
+} from 'lucide-react';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
 import { Button } from '../../components/ui/Button.jsx';
 import { Select } from '../../components/ui/Select.jsx';
-import { Badge } from '../../components/ui/Badge.jsx';
-import { Card, CardHeader, CardContent } from '../../components/ui/Card.jsx';
+import { Input } from '../../components/ui/Input.jsx';
+import { Card, CardContent } from '../../components/ui/Card.jsx';
 import { Checkbox } from '../../components/ui/Checkbox.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
@@ -31,9 +39,7 @@ export const BulkPromotionPage = () => {
 
   // Setup options
   const [classes, setClasses] = useState([]);
-  const [_mediums, setMediums] = useState([]);
   const [sections, setSections] = useState([]);
-  const [_streams, setStreams] = useState([]);
 
   // Source Selection States
   const [sourceYearId, setSourceYearId] = useState(selectedYearId || '');
@@ -44,6 +50,7 @@ export const BulkPromotionPage = () => {
   const [sourceStudents, setSourceStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+  const [studentSearch, setStudentSearch] = useState('');
 
   // Target Selection States
   const [targetYearId, setTargetYearId] = useState('');
@@ -87,7 +94,7 @@ export const BulkPromotionPage = () => {
     return classes.find((c) => c.id === sourceClassId);
   }, [classes, sourceClassId]);
 
-  // Is Class X restriction check (Requirement 11)
+  // Is Class X restriction check
   const isSourceClassX = useMemo(() => {
     return isClassX(sourceClass);
   }, [sourceClass]);
@@ -146,6 +153,7 @@ export const BulkPromotionPage = () => {
       if (!sourceYearId || !sourceClassId) {
         setSourceStudents([]);
         setSelectedStudentIds([]);
+        setStudentSearch('');
         return;
       }
       setLoadingStudents(true);
@@ -154,7 +162,7 @@ export const BulkPromotionPage = () => {
           academicYearId: sourceYearId,
           classId: sourceClassId,
           sectionId: sourceSectionId || undefined,
-          status: 'ACTIVE', // REQUIREMENT 6: Only ACTIVE status eligible
+          status: 'ACTIVE',
           limit: 300,
         });
         if (res.success) {
@@ -162,8 +170,8 @@ export const BulkPromotionPage = () => {
           setSourceStudents(list);
           setSelectedStudentIds(list.map((s) => s.id));
         }
-      } catch {
-        toast.error(err.message || 'Failed loading source students');
+      } catch (err) {
+        toast.error(err?.message || 'Failed loading source students');
       } finally {
         setLoadingStudents(false);
       }
@@ -171,6 +179,19 @@ export const BulkPromotionPage = () => {
 
     fetchSourceStudents();
   }, [sourceYearId, sourceClassId, sourceSectionId]);
+
+  // Filtered students based on search term
+  const filteredSourceStudents = useMemo(() => {
+    if (!studentSearch.trim()) return sourceStudents;
+    const q = studentSearch.trim().toLowerCase();
+    return sourceStudents.filter((s) => {
+      return (
+        s.name?.toLowerCase().includes(q) ||
+        s.admissionNo?.toLowerCase().includes(q) ||
+        String(s.enrollment?.rollNumber || '').includes(q)
+      );
+    });
+  }, [sourceStudents, studentSearch]);
 
   const handleSelectAll = (checked) => {
     if (checked) {
@@ -211,7 +232,7 @@ export const BulkPromotionPage = () => {
     setSubmitting(true);
     try {
       const selectedStudentsList = sourceStudents.filter((s) => selectedStudentIds.includes(s.id));
-      
+
       const studentsPayload = selectedStudentsList.map((s) => ({
         studentId: s.id,
         sourceEnrollmentId: s.enrollment.id,
@@ -243,8 +264,8 @@ export const BulkPromotionPage = () => {
       if (targetYearId) {
         setSelectedYearId(targetYearId);
       }
-    } catch {
-      toast.error(err.message || 'Bulk promotion failed');
+    } catch (err) {
+      toast.error(err?.message || 'Bulk promotion failed');
     } finally {
       setSubmitting(false);
       setIsPreviewOpen(false);
@@ -258,50 +279,58 @@ export const BulkPromotionPage = () => {
     return academicYears.find((y) => y.id === targetYearId)?.name || 'Next Academic Year';
   }, [academicYears, targetYearId]);
 
+  const sourceAcademicYearName = useMemo(() => {
+    return academicYears.find((y) => y.id === sourceYearId)?.name || 'Current Academic Year';
+  }, [academicYears, sourceYearId]);
+
   // Selected students array for preview
   const selectedStudentsForPreview = useMemo(() => {
     return sourceStudents.filter((s) => selectedStudentIds.includes(s.id));
   }, [sourceStudents, selectedStudentIds]);
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-3">
       {/* Standardized Module Page Header */}
       <ModulePageHeader
         icon={Sparkles}
-        title="Student Promotion"
-        description="Controlled bulk promotion of active students to the next academic year."
+        title="Student Bulk Promotion"
+        description="Efficiently promote active students from one academic year to the next."
         actions={
           <Button
             variant="outline"
             size="sm"
             icon={ArrowLeft}
             onClick={() => navigate('/app/students')}
+            className="h-7 text-xs px-2.5"
           >
-            Back to Students List
+            Back to Students
           </Button>
         }
       />
 
       {/* Success State Banner after Promotion */}
       {promotionResult && (
-        <Card className="border-emerald-200 bg-emerald-50/50">
-          <CardContent className="p-6 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-7 h-7" />
+        <Card className="border-emerald-200 bg-emerald-50/50 shadow-2xs">
+          <CardContent className="p-4 text-center space-y-2.5">
+            <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-emerald-900">
-                {promotionResult.count} students promoted successfully.
+              <h3 className="text-sm font-bold text-emerald-900">
+                {promotionResult.count} Students Promoted Successfully
               </h3>
-              <p className="text-xs text-emerald-700 mt-1">
-                Promoted from Class {promotionResult.sourceClassName} to Class {promotionResult.targetClassName} for Academic Year {promotionResult.targetYearName}.
+              <p className="text-[11px] text-emerald-700 mt-0.5">
+                Promoted from <strong>Class {promotionResult.sourceClassName}</strong> to{' '}
+                <strong>Class {promotionResult.targetClassName}</strong> for Academic Year{' '}
+                <strong>{promotionResult.targetYearName}</strong>.
               </p>
             </div>
-            <div className="flex items-center justify-center gap-3 pt-2">
+            <div className="flex items-center justify-center gap-2 pt-1">
               <Button
                 variant="primary"
                 size="sm"
                 onClick={() => navigate('/app/students')}
+                className="h-7 text-xs px-3"
               >
                 View Promoted Students
               </Button>
@@ -314,6 +343,7 @@ export const BulkPromotionPage = () => {
                   setSourceStudents([]);
                   setSelectedStudentIds([]);
                 }}
+                className="h-7 text-xs px-3"
               >
                 Promote Another Class
               </Button>
@@ -324,7 +354,7 @@ export const BulkPromotionPage = () => {
 
       {validFutureYears.length === 0 && sourceYearId && !promotionResult && (
         <Alert variant="warning" icon={AlertTriangle} title="No Target Academic Year Available">
-          Promotion requires a future academic year relative to source year. Please create the next academic year (e.g. 2026-27) in{' '}
+          Promotion requires a future academic year relative to the source year. Please create the next academic year (e.g. 2026-27) in{' '}
           <strong className="underline cursor-pointer" onClick={() => navigate('/app/academic-years')}>
             Academic Setup
           </strong>{' '}
@@ -334,18 +364,24 @@ export const BulkPromotionPage = () => {
 
       {!promotionResult && (
         <>
-          {/* Step 1. Source Class & Year Controls */}
-          <Card>
-            <CardHeader title="Select Source Academic Year & Class" subtitle="Choose class to promote students from" />
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Step 1. Academic Parameters Card */}
+          <Card className="shadow-2xs">
+            <div className="px-3.5 py-2 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-bold text-slate-900">1. Academic Parameters & Class Mapping</h3>
+                <p className="text-[11px] text-slate-500">Select source year and class. Target class and next year are auto-calculated.</p>
+              </div>
+            </div>
+            <CardContent className="p-3 space-y-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                 <Select
-                  label="Academic Year"
+                  label="Source Academic Year"
+                  size="sm"
                   required
                   value={sourceYearId}
                   onChange={(e) => setSourceYearId(e.target.value)}
                 >
-                  <option value="">-- Select Academic Year --</option>
+                  <option value="">-- Select Year --</option>
                   {academicYears.map((yr) => (
                     <option key={yr.id} value={yr.id}>
                       {yr.name} {yr.isCurrent ? '(Current)' : ''}
@@ -354,7 +390,8 @@ export const BulkPromotionPage = () => {
                 </Select>
 
                 <Select
-                  label="Class"
+                  label="Source Class"
+                  size="sm"
                   required
                   value={sourceClassId}
                   onChange={(e) => setSourceClassId(e.target.value)}
@@ -369,6 +406,7 @@ export const BulkPromotionPage = () => {
 
                 <Select
                   label="Section (Optional)"
+                  size="sm"
                   value={sourceSectionId}
                   onChange={(e) => setSourceSectionId(e.target.value)}
                 >
@@ -379,104 +417,167 @@ export const BulkPromotionPage = () => {
                     </option>
                   ))}
                 </Select>
+
+                <Select
+                  label="Target Academic Year"
+                  size="sm"
+                  required
+                  value={targetYearId}
+                  onChange={(e) => setTargetYearId(e.target.value)}
+                  disabled={validFutureYears.length === 0}
+                >
+                  <option value="">-- Select Target Year --</option>
+                  {validFutureYears.map((yr) => (
+                    <option key={yr.id} value={yr.id}>
+                      {yr.name}
+                    </option>
+                  ))}
+                </Select>
               </div>
 
-              {/* Automatic Target Resolution Summary Badge */}
+              {/* Automatic Target Resolution Banner */}
               {sourceClass && !isSourceClassX && !isTerminalClass && (
-                <div className="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-                  <div>
-                    <span className="font-bold text-indigo-900 block">Target Placement:</span>
-                    <span className="text-slate-600">
-                      {targetAcademicYearName} • Class <strong>{targetClass?.name}</strong> (Auto-determined)
+                <div className="p-2 px-3 rounded-lg bg-indigo-50/70 border border-indigo-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-slate-800">
+                    <span className="font-semibold text-slate-500 text-[11px]">Class Mapping:</span>
+                    <span className="font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 text-[11px]">
+                      Class {sourceClass.name} ({sourceAcademicYearName})
+                    </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <span className="font-bold text-indigo-700 bg-indigo-100/80 px-2 py-0.5 rounded border border-indigo-200 text-[11px]">
+                      Class {targetClass?.name} ({targetAcademicYearName})
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="indigo" size="sm">Medium: Preserved</Badge>
-                    <Badge variant="indigo" size="sm">Section: Preserved</Badge>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-block text-[10px] font-semibold text-indigo-700 bg-white px-2 py-0.5 rounded border border-indigo-200">
+                      Medium: Preserved
+                    </span>
+                    <span className="inline-block text-[10px] font-semibold text-indigo-700 bg-white px-2 py-0.5 rounded border border-indigo-200">
+                      Section: Preserved
+                    </span>
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* REQUIREMENT 11 & 35: Class X Restriction Banner */}
+          {/* Class X Restriction Banner */}
           {isSourceClassX && (
             <Alert variant="warning" icon={AlertTriangle} title="Bulk Promotion Restricted for Class X">
-              Bulk promotion is not available for Class X. Students must be promoted individually with the target class, medium, stream and section.
-              <div className="mt-3">
+              Bulk promotion is not available for Class X. Students must be promoted individually.
+              <div className="mt-1.5">
                 <Button
                   variant="primary"
                   size="sm"
                   onClick={() => navigate('/app/students')}
+                  className="h-7 text-xs px-2.5"
                 >
-                  Individual Promotion
+                  Go to Individual Promotion
                 </Button>
               </div>
             </Alert>
           )}
 
-          {/* REQUIREMENT 30: Terminal Class Restriction Banner */}
+          {/* Terminal Class Restriction Banner */}
           {isTerminalClass && sourceClass && !isSourceClassX && (
-            <Alert variant="warning" icon={AlertTriangle} title="Terminal Class">
-              This is the terminal class. Students cannot be promoted to another class.
+            <Alert variant="warning" icon={AlertTriangle} title="Terminal Class Reached">
+              Class {sourceClass.name} is the highest terminal class in school configuration. Students cannot be promoted to a higher class.
             </Alert>
           )}
 
           {/* Step 2. Selectable Student Checklist */}
           {sourceClassId && !isSourceClassX && !isTerminalClass && (
-            <Card>
-              <CardHeader
-                title="Review Eligible Students"
-                subtitle={
-                  loadingStudents
-                    ? 'Loading eligible active students...'
-                    : `${sourceStudents.length} eligible active student(s) found.`
-                }
-                action={
-                  sourceStudents.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        label="Select All"
-                        checked={isAllSelected}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
-                      />
-                    </div>
-                  )
-                }
-              />
-              <CardContent>
+            <Card className="shadow-2xs">
+              <div className="px-3.5 py-2 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900">2. Review & Select Eligible Students</h3>
+                  <p className="text-[11px] text-slate-500">
+                    {loadingStudents
+                      ? 'Loading eligible active students...'
+                      : `${sourceStudents.length} eligible active student(s) found in Class ${sourceClass?.name}.`}
+                  </p>
+                </div>
+
+                {sourceStudents.length > 0 && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => handleSelectAll(!isAllSelected)}
+                      className="text-[11px] text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-semibold h-7 px-2"
+                    >
+                      {isAllSelected ? 'Deselect All' : 'Select All'}
+                    </Button>
+                    <span className="text-[11px] font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                      {selectedStudentIds.length} / {sourceStudents.length} Selected
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <CardContent className="p-3 space-y-2">
+                {/* Search Bar */}
+                {sourceStudents.length > 0 && (
+                  <div className="w-full sm:w-64">
+                    <Input
+                      placeholder="Search student by name or adm no..."
+                      value={studentSearch}
+                      onChange={(e) => setStudentSearch(e.target.value)}
+                      icon={Search}
+                      size="sm"
+                      className="h-7 text-xs placeholder:text-slate-400 rounded-lg bg-slate-50/60 border-slate-200 focus:bg-white"
+                    />
+                  </div>
+                )}
+
                 {loadingStudents ? (
-                  <div className="space-y-2 p-4">
-                    <Skeleton height="35px" width="100%" />
-                    <Skeleton height="35px" width="100%" />
-                    <Skeleton height="35px" width="100%" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                    <Skeleton height="38px" width="100%" />
+                    <Skeleton height="38px" width="100%" />
+                    <Skeleton height="38px" width="100%" />
+                    <Skeleton height="38px" width="100%" />
                   </div>
                 ) : sourceStudents.length === 0 ? (
                   <EmptyState
                     icon={Users}
-                    title="No eligible active students found"
-                    description="Only students with ACTIVE status are eligible for bulk promotion."
+                    title="No active students found"
+                    description="Only students with ACTIVE status in this class are eligible for bulk promotion."
                   />
+                ) : filteredSourceStudents.length === 0 ? (
+                  <div className="py-4 text-center text-xs text-slate-500">
+                    No students match search term "<strong className="text-slate-800">{studentSearch}</strong>"
+                  </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto p-1">
-                    {sourceStudents.map((item) => {
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1.5 max-h-72 overflow-y-auto pr-1">
+                    {filteredSourceStudents.map((item) => {
                       const isSelected = selectedStudentIds.includes(item.id);
+                      const rollNo = item.enrollment?.rollNumber;
+                      const secName = item.enrollment?.section?.name;
+
                       return (
                         <div
                           key={item.id}
                           onClick={() => handleToggleStudent(item.id)}
-                          className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 select-none ${
+                          className={`p-1.5 px-2.5 rounded-md border transition-all cursor-pointer flex items-center gap-2 select-none ${
                             isSelected
-                              ? 'border-indigo-500 bg-indigo-50/40 shadow-2xs'
-                              : 'border-slate-200 bg-white hover:bg-slate-50'
+                              ? 'border-indigo-500 bg-indigo-50/50 text-indigo-950 shadow-2xs'
+                              : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-800'
                           }`}
                         >
-                          <Checkbox checked={isSelected} readOnly />
-                          <StudentAvatar name={item.name} photoUrl={item.photoUrl} size="sm" />
-                          <div className="truncate flex-1">
-                            <p className="text-xs font-bold text-slate-900 truncate">{item.name}</p>
-                            <p className="text-[10px] text-slate-500 font-mono">
-                              Adm: {item.admissionNo} {item.enrollment?.section ? `• Sec ${item.enrollment.section.name}` : ''}
+                          <Checkbox checked={isSelected} onChange={() => {}} readOnly size="sm" />
+                          <StudentAvatar name={item.name} photoUrl={item.photoUrl} size="xs" />
+                          <div className="truncate flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="text-xs font-semibold truncate leading-tight">{item.name}</p>
+                              {rollNo && (
+                                <span className="text-[10px] font-mono text-slate-400 shrink-0">
+                                  #{rollNo}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-500 font-mono truncate leading-tight mt-0.5">
+                              Adm: {item.admissionNo} {secName ? `• Sec ${secName}` : ''}
                             </p>
                           </div>
                         </div>
@@ -490,97 +591,126 @@ export const BulkPromotionPage = () => {
 
           {/* Promotion Action Toolbar */}
           {sourceClassId && !isSourceClassX && !isTerminalClass && (
-            <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-              <Button variant="outline" onClick={() => navigate('/app/students')}>
-                Cancel
-              </Button>
+            <div className="flex items-center justify-between p-2.5 px-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+              <div className="text-xs text-slate-600 font-medium">
+                Ready to promote <span className="font-bold text-indigo-700">{selectedStudentIds.length}</span> student(s)
+                from Class <span className="font-semibold text-slate-900">{sourceClass?.name}</span> to Class{' '}
+                <span className="font-semibold text-indigo-700">{targetClass?.name}</span>.
+              </div>
 
-              <Button
-                variant="primary"
-                onClick={handleOpenPreview}
-                disabled={selectedStudentIds.length === 0 || submitting || validFutureYears.length === 0}
-                icon={Sparkles}
-              >
-                Review Promotion ({selectedStudentIds.length})
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/app/students')}
+                  className="h-7 text-xs px-2.5"
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleOpenPreview}
+                  disabled={selectedStudentIds.length === 0 || submitting || validFutureYears.length === 0}
+                  icon={Sparkles}
+                  className="h-7 text-xs px-3"
+                >
+                  Review Promotion ({selectedStudentIds.length})
+                </Button>
+              </div>
             </div>
           )}
         </>
       )}
 
-      {/* REQUIREMENT 17 & 37: Bulk Promotion Preview Modal */}
+      {/* Bulk Promotion Preview Modal */}
       <Modal
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
-        title="Promotion Preview"
+        title="Confirm Bulk Student Promotion"
         size="xl"
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsPreviewOpen(false)} disabled={submitting}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPreviewOpen(false)}
+              disabled={submitting}
+              className="h-7 text-xs px-2.5"
+            >
               Cancel
             </Button>
             <Button
               variant="primary"
+              size="sm"
               onClick={handleExecuteBulkPromotion}
               loading={submitting}
-              loadingText="Executing Promotion..."
+              loadingText="Promoting..."
               icon={Sparkles}
+              className="h-7 text-xs px-3"
             >
-              Confirm Promotion
+              Confirm Promotion ({selectedStudentIds.length})
             </Button>
           </>
         }
       >
-        <div className="space-y-4 text-xs">
+        <div className="space-y-3 text-xs">
           {/* Summary Box */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200">
             <div>
               <span className="text-slate-400 block font-bold text-[10px] uppercase">From</span>
               <span className="font-bold text-slate-900">
-                {academicYears.find((y) => y.id === sourceYearId)?.name} → Class {sourceClass?.name}
+                {sourceAcademicYearName} → Class {sourceClass?.name}
               </span>
             </div>
             <div>
-              <span className="text-slate-400 block font-bold text-[10px] uppercase">To</span>
+              <span className="text-slate-400 block font-bold text-[10px] uppercase">To Target</span>
               <span className="font-bold text-indigo-700">
                 {targetAcademicYearName} → Class {targetClass?.name}
               </span>
             </div>
             <div>
               <span className="text-slate-400 block font-bold text-[10px] uppercase">Students Count</span>
-              <span className="font-bold text-slate-900">
-                {selectedStudentIds.length} Selected / {sourceStudents.length} Eligible
+              <span className="font-bold text-slate-900 font-mono">
+                {selectedStudentIds.length} / {sourceStudents.length} Selected
               </span>
             </div>
             <div>
-              <span className="text-slate-400 block font-bold text-[10px] uppercase">Settings</span>
-              <span className="font-semibold text-slate-700">Medium & Section Preserved</span>
+              <span className="text-slate-400 block font-bold text-[10px] uppercase">Preservation</span>
+              <span className="font-semibold text-slate-700">Medium & Section Maintained</span>
             </div>
           </div>
 
           {/* Student Table Preview */}
-          <div className="max-h-64 overflow-y-auto rounded-xl border border-slate-200">
-            <Table>
+          <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200">
+            <Table minWidth="min-w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Current Class</TableHead>
-                  <TableHead>Target Class</TableHead>
-                  <TableHead>Medium</TableHead>
-                  <TableHead>Section</TableHead>
+                  <TableHead className="py-1.5 px-2.5 text-[10px] font-bold">STUDENT</TableHead>
+                  <TableHead className="py-1.5 px-2.5 text-[10px] font-bold">CURRENT CLASS</TableHead>
+                  <TableHead className="py-1.5 px-2.5 text-[10px] font-bold">TARGET CLASS</TableHead>
+                  <TableHead className="py-1.5 px-2.5 text-[10px] font-bold">MEDIUM</TableHead>
+                  <TableHead className="py-1.5 px-2.5 text-[10px] font-bold">SECTION</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {selectedStudentsForPreview.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell>
-                      <div className="font-bold text-slate-900">{s.name}</div>
+                  <TableRow key={s.id} className="border-b border-slate-100">
+                    <TableCell className="py-1.5 px-2.5">
+                      <div className="font-bold text-slate-900 text-xs">{s.name}</div>
                       <div className="text-[10px] text-slate-500 font-mono">{s.admissionNo}</div>
                     </TableCell>
-                    <TableCell>Class {sourceClass?.name}</TableCell>
-                    <TableCell className="font-bold text-indigo-700">Class {targetClass?.name}</TableCell>
-                    <TableCell>{s.enrollment?.medium?.name || 'Preserved'}</TableCell>
-                    <TableCell>{s.enrollment?.section?.name ? `Section ${s.enrollment.section.name}` : 'Same Section'}</TableCell>
+                    <TableCell className="py-1.5 px-2.5 text-xs">Class {sourceClass?.name}</TableCell>
+                    <TableCell className="py-1.5 px-2.5 text-xs font-bold text-indigo-700">
+                      Class {targetClass?.name}
+                    </TableCell>
+                    <TableCell className="py-1.5 px-2.5 text-xs">
+                      {s.enrollment?.medium?.name || 'Preserved'}
+                    </TableCell>
+                    <TableCell className="py-1.5 px-2.5 text-xs">
+                      {s.enrollment?.section?.name ? `Section ${s.enrollment.section.name}` : 'Same Section'}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -591,3 +721,5 @@ export const BulkPromotionPage = () => {
     </div>
   );
 };
+
+export default BulkPromotionPage;

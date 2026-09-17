@@ -130,22 +130,20 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
             <button
               type="button"
               onClick={setPresetToday}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
-                isToday
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${isToday
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
+                }`}
             >
               Today
             </button>
             <button
               type="button"
               onClick={setPresetYesterday}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${
-                isYesterday
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors ${isYesterday
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
+                }`}
             >
               Yesterday
             </button>

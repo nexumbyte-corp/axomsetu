@@ -34,7 +34,6 @@ export const AdmitCardGenerationPage = () => {
   const [sections, setSections] = useState([]);
   const [mediums, setMediums] = useState([]);
   const [streams, setStreams] = useState([]);
-  const [_loadingConfig, setLoadingConfig] = useState(true);
 
   // 2. Generation Inputs & Filters
   const [academicYearId, setAcademicYearId] = useState(selectedYearId || '');

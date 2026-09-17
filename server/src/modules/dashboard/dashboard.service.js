@@ -70,6 +70,7 @@ export const dashboardService = {
         recentExpenses,
         recentSalaryPayments,
         latestSubscription,
+        allFeePaymentsUpToNow,
       ] = await Promise.all([
         // Total active students in system
         prisma.student.count({ where: { schoolId, status: 'ACTIVE' } }),
@@ -162,6 +163,20 @@ export const dashboardService = {
           where: { schoolId },
           orderBy: { createdAt: 'desc' },
         }),
+
+        // Monthly fee payments up to current date (no future months) (14th query)
+        prisma.feePayment.findMany({
+          where: {
+            schoolId,
+            status: 'SUCCESS',
+            paymentDate: { lte: now },
+            ...(academicYearId && { academicYearId }),
+          },
+          select: {
+            paymentDate: true,
+            receivedAmount: true,
+          },
+        }),
       ]);
 
       const needsAttention = [];
@@ -247,9 +262,57 @@ export const dashboardService = {
         });
       }
 
+      // Aggregate monthly collections up to current month (strictly no future months)
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      let startMonthDate = activeAcademicYear?.startDate ? new Date(activeAcademicYear.startDate) : new Date(now.getFullYear(), 0, 1);
+      if (isNaN(startMonthDate.getTime()) || startMonthDate > now) {
+        startMonthDate = new Date(now.getFullYear(), 0, 1);
+      }
+
+      const monthlyCollectionSlots = [];
+      const currentCursor = new Date(startMonthDate.getFullYear(), startMonthDate.getMonth(), 1);
+      const endMonthCutoff = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      while (currentCursor <= endMonthCutoff) {
+        const year = currentCursor.getFullYear();
+        const monthIdx = currentCursor.getMonth();
+        const label = monthNames[monthIdx];
+        const monthKey = `${year}-${String(monthIdx + 1).padStart(2, '0')}`;
+
+        monthlyCollectionSlots.push({
+          key: monthKey,
+          label,
+          fullLabel: `${label} ${year}`,
+          year,
+          monthIndex: monthIdx,
+          totalAmount: 0,
+          count: 0,
+        });
+
+        currentCursor.setMonth(currentCursor.getMonth() + 1);
+      }
+
+      if (allFeePaymentsUpToNow && allFeePaymentsUpToNow.length > 0) {
+        const slotMap = new Map(monthlyCollectionSlots.map((s) => [s.key, s]));
+
+        for (const pay of allFeePaymentsUpToNow) {
+          if (!pay.paymentDate) continue;
+          const pDate = new Date(pay.paymentDate);
+          if (pDate > now) continue; // Skip future dates
+
+          const pKey = `${pDate.getFullYear()}-${String(pDate.getMonth() + 1).padStart(2, '0')}`;
+          const slot = slotMap.get(pKey);
+          if (slot) {
+            slot.totalAmount += Number(pay.receivedAmount || 0);
+            slot.count += 1;
+          }
+        }
+      }
+
       return {
         school,
         subscription: subscriptionWidget,
+        monthlyCollections: monthlyCollectionSlots.map(({ key, ...rest }) => rest),
         academicYear: activeAcademicYear
           ? {
             id: activeAcademicYear.id,

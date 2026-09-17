@@ -60,9 +60,8 @@ export const NeedsAttentionSection = ({ items = [] }) => {
             >
               <div className="flex items-start gap-3 min-w-0">
                 <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                    isDanger ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-700'
-                  }`}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${isDanger ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-700'
+                    }`}
                 >
                   <IconComp className="w-4 h-4" />
                 </div>
@@ -76,9 +75,8 @@ export const NeedsAttentionSection = ({ items = [] }) => {
               {item.actionUrl && (
                 <Link
                   to={item.actionUrl}
-                  className={`text-xs font-semibold flex items-center gap-1 shrink-0 transition-colors ${
-                    isDanger ? 'text-rose-600 hover:text-rose-700' : 'text-indigo-600 hover:text-indigo-700'
-                  }`}
+                  className={`text-xs font-semibold flex items-center gap-1 shrink-0 transition-colors ${isDanger ? 'text-rose-600 hover:text-rose-700' : 'text-indigo-600 hover:text-indigo-700'
+                    }`}
                 >
                   <span>{item.actionLabel || 'Action →'}</span>
                 </Link>

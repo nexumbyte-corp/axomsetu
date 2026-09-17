@@ -27,7 +27,7 @@ export const SalaryHistoryPage = () => {
   const [payments, setPayments] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [historySearch, setHistorySearch] = useState('');
-  const [page, _setPage] = useState(1);
+  const [page] = useState(1);
 
   // Salary Slips Generator State
   const [staffList, setStaffList] = useState([]);
