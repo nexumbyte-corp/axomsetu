@@ -1438,7 +1438,16 @@ export const getEligibleHostelStudentsForBilling = async (schoolId, query) => {
 
   const studentIds = hostelEnrollments.map((h) => h.studentId);
 
-  const [existingCharges, waivedStudentMap] = await Promise.all([
+  const FEE_MONTHS_ALL = [
+    'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+    'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
+  ];
+
+  const currentMonthIndex = FEE_MONTHS_ALL.indexOf(month);
+  const prevMonthIndex = currentMonthIndex >= 0 ? (currentMonthIndex - 1 + 12) % 12 : -1;
+  const previousMonth = prevMonthIndex >= 0 ? FEE_MONTHS_ALL[prevMonthIndex] : null;
+
+  const [existingCharges, waivedStudentMap, previousCharges] = await Promise.all([
     prisma.studentFeeCharge.findMany({
       where: {
         schoolId,
@@ -1449,11 +1458,29 @@ export const getEligibleHostelStudentsForBilling = async (schoolId, query) => {
       },
     }),
     getWaivedStudentIdsForMonth(prisma, { schoolId, academicYearId, month }),
+    previousMonth && studentIds.length > 0
+      ? prisma.studentFeeCharge.findMany({
+          where: {
+            schoolId,
+            studentId: { in: studentIds },
+            feeTypeId: defaultMonthlyFeeType.id,
+            month: previousMonth,
+          },
+          orderBy: { createdAt: 'desc' },
+        })
+      : Promise.resolve([]),
   ]);
 
   const existingChargeMap = new Map();
   existingCharges.forEach((c) => {
     existingChargeMap.set(c.studentId, c);
+  });
+
+  const previousChargeMap = new Map();
+  previousCharges.forEach((c) => {
+    if (!previousChargeMap.has(c.studentId)) {
+      previousChargeMap.set(c.studentId, Number(c.amount));
+    }
   });
 
   const studentList = [];
@@ -1487,6 +1514,8 @@ export const getEligibleHostelStudentsForBilling = async (schoolId, query) => {
     const defaultFee = cfg && cfg.monthlyFeeEnabled ? Number(cfg.monthlyFeeAmount) : 3000;
     const existing = existingChargeMap.get(he.studentId);
     const waivedReason = waivedStudentMap.get(he.studentId);
+    const prevFee = previousChargeMap.get(he.studentId);
+    const hasPrevFee = prevFee !== undefined && prevFee !== null;
 
     const isAlreadyGenerated = Boolean(existing);
     const isAlreadyWaived = !isAlreadyGenerated && Boolean(waivedReason);
@@ -1525,6 +1554,8 @@ export const getEligibleHostelStudentsForBilling = async (schoolId, query) => {
       startDate: he.startDate,
       endDate: he.endDate,
       defaultFee,
+      previousMonth,
+      previousMonthFee: hasPrevFee ? prevFee : null,
       appliedFee,
       status,
       reason,
@@ -1537,6 +1568,7 @@ export const getEligibleHostelStudentsForBilling = async (schoolId, query) => {
   return {
     academicYearId,
     month,
+    previousMonth,
     totalHostellers: studentList.length,
     students: studentList,
   };

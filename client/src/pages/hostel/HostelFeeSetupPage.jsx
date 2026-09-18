@@ -12,6 +12,7 @@ import {
   Wallet,
   TrendingUp,
   Sparkles,
+  Copy,
 } from 'lucide-react';
 import { hostelService } from '../../services/hostel.service.js';
 import { useAcademicYear } from '../../context/AcademicYearContext.jsx';
@@ -319,6 +320,46 @@ export const HostelFeeSetupPage = () => {
       })
     );
     toast.success('Set Applied Fee = ₹0 (WAIVED) for selected residents');
+  };
+
+  const handleCopyPreviousMonthFees = () => {
+    let copiedCount = 0;
+    let noPrevCount = 0;
+
+    setStudentsList((prev) =>
+      prev.map((s) => {
+        if (s.isSelected && s.isSelectable) {
+          if (s.previousMonthFee !== null && s.previousMonthFee !== undefined) {
+            copiedCount++;
+            const prevAmt = Number(s.previousMonthFee);
+            const isWaived = prevAmt === 0;
+            return {
+              ...s,
+              appliedFee: prevAmt,
+              status: isWaived ? 'WAIVED' : (prevAmt < s.defaultFee ? 'REDUCED' : 'NEW'),
+              reason: isWaived
+                ? 'Copied from Previous Month (Waived)'
+                : `Copied from Previous Month (₹${prevAmt})`,
+            };
+          } else {
+            noPrevCount++;
+          }
+        }
+        return s;
+      })
+    );
+
+    if (copiedCount > 0) {
+      toast.success(
+        `Copied previous month fees for ${copiedCount} resident(s)${
+          noPrevCount > 0 ? ` (${noPrevCount} had no previous month fee)` : ''
+        }`
+      );
+    } else if (noPrevCount > 0) {
+      toast.info('No previous month fee records found for the selected residents.');
+    } else {
+      toast.error('No residents selected.');
+    }
   };
 
   const handleExecuteGeneration = async () => {
@@ -718,6 +759,16 @@ export const HostelFeeSetupPage = () => {
                   </Button>
 
                   <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyPreviousMonthFees}
+                    className="h-8 text-xs bg-indigo-50/80 border-indigo-200 text-indigo-700 hover:bg-indigo-100 font-semibold"
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-1" />
+                    Copy Previous Month Fees
+                  </Button>
+
+                  <Button
                     variant="primary"
                     size="sm"
                     onClick={handleExecuteGeneration}
@@ -801,8 +852,19 @@ export const HostelFeeSetupPage = () => {
                               )}
                             </td>
 
-                            <td className="py-2.5 px-3 text-right font-mono font-semibold text-slate-700">
-                              ₹{row.defaultFee.toLocaleString('en-IN')}
+                            <td className="py-2.5 px-3 text-right">
+                              <span className="font-mono font-semibold text-slate-700 block">
+                                ₹{row.defaultFee.toLocaleString('en-IN')}
+                              </span>
+                              {row.previousMonthFee !== null && row.previousMonthFee !== undefined ? (
+                                <span className="block text-[10px] text-indigo-600 font-medium font-mono mt-0.5">
+                                  Prev ({row.previousMonth || 'Prev'}): ₹{Number(row.previousMonthFee).toLocaleString('en-IN')}
+                                </span>
+                              ) : (
+                                <span className="block text-[10px] text-slate-400 font-mono mt-0.5">
+                                  Prev: N/A
+                                </span>
+                              )}
                             </td>
 
                             {/* Applied Fee Input (Editable) */}
