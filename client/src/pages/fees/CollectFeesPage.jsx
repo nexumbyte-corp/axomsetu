@@ -6,7 +6,7 @@ import { PaymentSummaryCard } from '../../components/fees/PaymentSummaryCard.jsx
 import { PaymentForm } from '../../components/fees/PaymentForm.jsx';
 import { PaymentConfirmModal } from '../../components/fees/PaymentConfirmModal.jsx';
 import { ReceiptSuccessModal } from '../../components/fees/ReceiptSuccessModal.jsx';
-import { useStudentOutstanding, useCollectPayment, useDeleteUnpaidFeeCharge } from '../../hooks/usePaymentEngine.js';
+import { useStudentOutstanding, useCollectPayment, useDeleteUnpaidFeeCharge, useUpdateUnpaidFeeCharge } from '../../hooks/usePaymentEngine.js';
 import { toast } from '../../components/ui/Toast.jsx';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
@@ -52,6 +52,7 @@ export const CollectFeesPage = () => {
 
   const collectPaymentMutation = useCollectPayment();
   const deleteChargeMutation = useDeleteUnpaidFeeCharge();
+  const updateChargeMutation = useUpdateUnpaidFeeCharge();
 
   const charges = outstandingRes?.data?.charges || outstandingRes?.charges || [];
   const outstandingSummary = outstandingRes?.data?.summary || outstandingRes?.summary || {};
@@ -309,6 +310,26 @@ export const CollectFeesPage = () => {
     }
   };
 
+  const handleUpdateChargeAmount = async (charge, newAmount) => {
+    try {
+      await updateChargeMutation.mutateAsync({
+        chargeId: charge.id,
+        amount: newAmount,
+        studentId: selectedStudent?.id,
+      });
+      toast.success(`Fee charge '${charge.title}' amount updated successfully.`);
+      setPaymentAmounts((prev) => {
+        if (prev[charge.id] !== undefined) {
+          return { ...prev, [charge.id]: Number(newAmount) };
+        }
+        return prev;
+      });
+      refetchOutstanding();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to update fee charge amount.');
+    }
+  };
+
   const handleCollectAnother = () => {
     setSuccessModalData(null);
     setSelectedChargeIds([]);
@@ -322,7 +343,7 @@ export const CollectFeesPage = () => {
       {!selectedStudent ? (
         <StudentPickerTable onSelectStudent={handleSelectStudent} />
       ) : (
-        <div className="h-full flex flex-col min-h-0 overflow-hidden space-y-2">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden space-y-2">
           {/* Student Profile Summary Header */}
           <div className="shrink-0">
             <StudentSummaryCard
@@ -347,9 +368,11 @@ export const CollectFeesPage = () => {
                 onToggleAll={handleToggleAll}
                 onUpdatePaymentAmount={handleUpdatePaymentAmount}
                 onDeleteCharge={handleDeleteCharge}
+                onUpdateChargeAmount={handleUpdateChargeAmount}
                 onShareWhatsApp={handleShareWhatsApp}
                 isSharingWhatsApp={isSharingWhatsApp}
                 isDeleting={deleteChargeMutation.isPending}
+                isUpdating={updateChargeMutation.isPending}
                 isLoading={isLoadingOutstanding}
               />
             </div>

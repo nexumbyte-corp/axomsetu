@@ -12,6 +12,7 @@ const PAYMENT_AUDIT_EVENTS = {
   VIEW_PAYMENT: 'VIEW_PAYMENT',
   REPRINT_RECEIPT: 'REPRINT_RECEIPT',
   DELETE_FEE_CHARGE: 'DELETE_FEE_CHARGE',
+  UPDATE_FEE_CHARGE: 'UPDATE_FEE_CHARGE',
 };
 
 /**
@@ -62,8 +63,8 @@ export const paymentService = {
       }
 
       const amtDecimal = new Prisma.Decimal(rawAmt);
-      if (amtDecimal.lessThanOrEqualTo(0)) {
-        throw new ApiError(400, 'Allocation amount for each charge must be greater than zero');
+      if (amtDecimal.lessThan(0)) {
+        throw new ApiError(400, 'Allocation amount for each charge must be non-negative');
       }
 
       if (allocationMap.has(chargeId)) {
@@ -83,8 +84,8 @@ export const paymentService = {
       throw new ApiError(400, `Total received amount (${totalReceivedDecimal}) must equal sum of charge allocations (${totalAllocatedDecimal})`);
     }
 
-    if (totalReceivedDecimal.lessThanOrEqualTo(0)) {
-      throw new ApiError(400, 'Payment amount must be greater than zero');
+    if (totalReceivedDecimal.lessThan(0)) {
+      throw new ApiError(400, 'Payment amount must be non-negative');
     }
 
     // 2. Fetch and validate all target charges
@@ -646,14 +647,14 @@ export const paymentService = {
 
     const studentObj = payment.student
       ? {
-          id: payment.student.id,
-          name: payment.student.name,
-          admissionNo: payment.student.admissionNo,
-          phone: payment.student.phone,
-          guardianName: payment.student.guardianName,
-          enrollment: enr || null,
-          enrollments: payment.student.enrollments || (enr ? [enr] : []),
-        }
+        id: payment.student.id,
+        name: payment.student.name,
+        admissionNo: payment.student.admissionNo,
+        phone: payment.student.phone,
+        guardianName: payment.student.guardianName,
+        enrollment: enr || null,
+        enrollments: payment.student.enrollments || (enr ? [enr] : []),
+      }
       : null;
 
     return {
@@ -1386,6 +1387,93 @@ export const paymentService = {
       return {
         success: true,
         message: `Unpaid fee charge '${charge.title}' deleted successfully`,
+      };
+    });
+  },
+
+  /**
+   * Update the amount of a particular unpaid fee charge.
+   * Permission restricted to School Admin / Owner only.
+   * Hard rule: Charge MUST be strictly UNPAID with 0 paidAmount and no active allocations.
+   *
+   * @param {string} schoolId
+   * @param {string} chargeId
+   * @param {number|string} newAmount
+   * @param {string} [userId]
+   */
+  async updateUnpaidFeeCharge(schoolId, chargeId, newAmount, userId) {
+    if (!schoolId || !chargeId) {
+      throw new ApiError(400, 'School ID and Charge ID are required');
+    }
+
+    const parsedAmount = Number(newAmount);
+    if (isNaN(parsedAmount) || parsedAmount < 0) {
+      throw new ApiError(400, 'A valid non-negative charge amount is required');
+    }
+
+    const charge = await prisma.studentFeeCharge.findFirst({
+      where: { id: chargeId, schoolId },
+      include: {
+        allocations: {
+          where: {
+            payment: {
+              status: { not: 'VOID' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!charge) {
+      throw new ApiError(404, 'Fee charge not found');
+    }
+
+    const paidAmt = new Prisma.Decimal(charge.paidAmount || 0);
+    if (charge.status !== 'UNPAID' || paidAmt.greaterThan(0) || charge.allocations.length > 0) {
+      throw new ApiError(
+        400,
+        `Cannot edit charge '${charge.title}' because it has partial or full payments. Only UNPAID charges with no payment history can be edited.`
+      );
+    }
+
+    return await prisma.$transaction(async (tx) => {
+      const newStatus = parsedAmount === 0 ? 'PAID' : 'UNPAID';
+      const updated = await tx.studentFeeCharge.update({
+        where: { id: chargeId },
+        data: {
+          amount: new Prisma.Decimal(parsedAmount),
+          status: newStatus,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: userId || null,
+          action: PAYMENT_AUDIT_EVENTS.UPDATE_FEE_CHARGE,
+          entityType: 'StudentFeeCharge',
+          entityId: chargeId,
+          oldValues: {
+            title: charge.title,
+            amount: charge.amount.toString(),
+            studentId: charge.studentId,
+            month: charge.month,
+            status: charge.status,
+          },
+          newValues: {
+            title: updated.title,
+            amount: updated.amount.toString(),
+            studentId: updated.studentId,
+            month: updated.month,
+            status: updated.status,
+          },
+        },
+      });
+
+      return {
+        success: true,
+        message: `Unpaid fee charge '${charge.title}' amount updated successfully`,
+        charge: updated,
       };
     });
   },

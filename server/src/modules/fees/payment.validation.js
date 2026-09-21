@@ -20,8 +20,8 @@ const FEE_MONTHS = [
 const chargeSelectionSchema = z
   .object({
     chargeId: z.string().uuid('Invalid charge ID'),
-    amount: z.number().positive('Allocated amount must be greater than zero').max(10000000, 'Amount must not exceed 10,000,000').optional(),
-    allocatedAmount: z.number().positive('Allocated amount must be greater than zero').max(10000000, 'Amount must not exceed 10,000,000').optional(),
+    amount: z.number().nonnegative('Allocated amount must be non-negative').max(10000000, 'Amount must not exceed 10,000,000').optional(),
+    allocatedAmount: z.number().nonnegative('Allocated amount must be non-negative').max(10000000, 'Amount must not exceed 10,000,000').optional(),
   })
   .refine((data) => data.amount !== undefined || data.allocatedAmount !== undefined, {
     message: 'Either amount or allocatedAmount must be provided for each charge',
@@ -37,7 +37,7 @@ export const createPaymentSchema = z
     remarks: z.string().trim().max(300, 'Remarks cannot exceed 300 characters').optional().nullable(),
     referenceNumber: z.string().trim().max(100, 'Reference number cannot exceed 100 characters').optional().nullable(),
     referenceNo: z.string().trim().max(100, 'Reference number cannot exceed 100 characters').optional().nullable(),
-    receivedAmount: z.number().positive('Received amount must be greater than zero').max(10000000, 'Received amount must not exceed 10,000,000').optional(),
+    receivedAmount: z.number().nonnegative('Received amount must be non-negative').max(10000000, 'Received amount must not exceed 10,000,000').optional(),
     charges: z.array(chargeSelectionSchema).max(100, 'Cannot include more than 100 charges in a single payment').optional(),
     allocations: z.array(chargeSelectionSchema).max(100, 'Cannot include more than 100 allocations in a single payment').optional(),
   })

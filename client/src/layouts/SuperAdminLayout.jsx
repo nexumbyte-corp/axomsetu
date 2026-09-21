@@ -196,21 +196,19 @@ export const SuperAdminLayout = () => {
                 to={item.path}
                 onClick={onItemClick}
                 className={({ isActive }) =>
-                  `flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-150 group ${
-                    isActive
-                      ? 'bg-indigo-600 text-white font-bold shadow-xs'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  `flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-150 group ${isActive
+                    ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
                     <div
-                      className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors shrink-0 ${
-                        isActive
+                      className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors shrink-0 ${isActive
                           ? 'bg-indigo-500/30 text-white'
                           : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-800'
-                      }`}
+                        }`}
                     >
                       <IconComp className="w-3.5 h-3.5" />
                     </div>

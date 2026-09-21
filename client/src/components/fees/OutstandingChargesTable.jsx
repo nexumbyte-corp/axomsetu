@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import { Checkbox } from '../ui/Checkbox.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.jsx';
+import { Modal } from '../ui/Modal.jsx';
 import { usePermission } from '../../hooks/usePermission.js';
 
 import { DocumentActions } from '../documents/DocumentActions.jsx';
@@ -24,14 +25,20 @@ export const OutstandingChargesTable = ({
   onToggleAll,
   onUpdatePaymentAmount,
   onDeleteCharge,
+  onUpdateChargeAmount,
   onShareWhatsApp,
   isSharingWhatsApp = false,
   isDeleting = false,
+  isUpdating = false,
   isLoading = false,
 }) => {
   const [chargeToDelete, setChargeToDelete] = useState(null);
+  const [chargeToEdit, setChargeToEdit] = useState(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editError, setEditError] = useState('');
   const { isOwner, isSchoolAdmin, hasFullAccess } = usePermission();
-  const canDeleteCharge = isOwner || isSchoolAdmin || hasFullAccess;
+  const canManageCharge = isOwner || isSchoolAdmin || hasFullAccess;
+  const canDeleteCharge = canManageCharge;
 
   const payableCharges = charges.filter(
     (c) => c.status === 'UNPAID' || c.status === 'PARTIAL'
@@ -62,6 +69,23 @@ export const OutstandingChargesTable = ({
       await onDeleteCharge(chargeToDelete);
     } finally {
       setChargeToDelete(null);
+    }
+  };
+
+  const handleConfirmEdit = async (e) => {
+    e?.preventDefault();
+    if (!chargeToEdit || !onUpdateChargeAmount) return;
+    const parsed = parseFloat(editAmount);
+    if (isNaN(parsed) || parsed < 0) {
+      setEditError('Please enter a valid non-negative amount.');
+      return;
+    }
+    setEditError('');
+    try {
+      await onUpdateChargeAmount(chargeToEdit, parsed);
+      setChargeToEdit(null);
+    } catch {
+      // toast error handled by caller
     }
   };
 
@@ -159,7 +183,7 @@ export const OutstandingChargesTable = ({
                 <th className="py-1.5 px-2.5 text-right">Bal</th>
                 <th className="py-1.5 px-2.5 text-right w-28">Pay (₹)</th>
                 <th className="py-1.5 px-2.5 text-center w-16">Status</th>
-                {canDeleteCharge && <th className="py-1.5 px-2.5 text-center w-10">Del</th>}
+                {canManageCharge && <th className="py-1.5 px-2.5 text-center w-14">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -176,18 +200,17 @@ export const OutstandingChargesTable = ({
                   : remainingBal;
 
                 const isOver = Number(currentPayVal) > remainingBal;
-                const isDeletable = canDeleteCharge && charge.status === 'UNPAID' && paidAmt === 0;
+                const isEditable = canManageCharge && charge.status === 'UNPAID' && paidAmt === 0;
 
                 return (
                   <tr
                     key={charge.id}
-                    className={`transition-colors ${
-                      isSelected
+                    className={`transition-colors ${isSelected
                         ? 'bg-indigo-50/40 font-medium'
                         : !isPayable
-                        ? 'bg-slate-50/50 opacity-60'
-                        : 'hover:bg-slate-50'
-                    }`}
+                          ? 'bg-slate-50/50 opacity-60'
+                          : 'hover:bg-slate-50'
+                      }`}
                   >
                     <td className="py-1.5 px-2 text-center">
                       <Checkbox
@@ -223,15 +246,14 @@ export const OutstandingChargesTable = ({
                             type="number"
                             autoComplete="off"
                             step="0.01"
-                            min="0.01"
+                            min="0"
                             max={remainingBal}
                             value={currentPayVal}
                             onChange={(e) => onUpdatePaymentAmount(charge.id, e.target.value)}
-                            className={`w-full text-right py-0.5 px-1.5 rounded-md border font-mono font-bold text-xs focus:outline-none transition-all ${
-                              isOver
+                            className={`w-full text-right py-0.5 px-1.5 rounded-md border font-mono font-bold text-xs focus:outline-none transition-all ${isOver
                                 ? 'border-rose-500 bg-rose-50 text-rose-700'
                                 : 'border-indigo-300 bg-white text-indigo-900 focus:ring-1 focus:ring-indigo-300'
-                            }`}
+                              }`}
                           />
                           {isOver && (
                             <span className="text-[8px] text-rose-600 block text-right font-semibold">
@@ -244,20 +266,35 @@ export const OutstandingChargesTable = ({
                       )}
                     </td>
                     <td className="py-1.5 px-2 text-center">{getStatusBadge(charge.status)}</td>
-                    {canDeleteCharge && (
+                    {canManageCharge && (
                       <td className="py-1.5 px-2 text-center">
-                        {isDeletable ? (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setChargeToDelete(charge);
-                            }}
-                            className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors inline-flex items-center justify-center"
-                            title="Delete Unpaid Fee Charge"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                        {isEditable ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setChargeToEdit(charge);
+                                setEditAmount(Number(charge.amount ?? charge.chargeAmount ?? 0).toString());
+                                setEditError('');
+                              }}
+                              className="p-1 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors inline-flex items-center justify-center cursor-pointer"
+                              title="Edit Fee Charge Amount"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setChargeToDelete(charge);
+                              }}
+                              className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors inline-flex items-center justify-center cursor-pointer"
+                              title="Delete Unpaid Fee Charge"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         ) : (
                           <span className="text-slate-300 text-[10px]">—</span>
                         )}
@@ -270,6 +307,64 @@ export const OutstandingChargesTable = ({
           </table>
         </div>
       </div>
+
+      {/* Edit Amount Dialog */}
+      {chargeToEdit && (
+        <Modal
+          isOpen={Boolean(chargeToEdit)}
+          onClose={() => setChargeToEdit(null)}
+          title="Edit Fee Charge Amount"
+          description={`Update the charge amount for '${chargeToEdit.title}' (${chargeToEdit.month}).`}
+          size="sm"
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setChargeToEdit(null)}
+                disabled={isUpdating}
+                className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800 rounded-lg transition-colors border border-slate-200 hover:bg-slate-100 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmEdit}
+                disabled={isUpdating}
+                className="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-2xs disabled:opacity-50 inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                {isUpdating ? 'Saving...' : 'Save Amount'}
+              </button>
+            </>
+          }
+        >
+          <form onSubmit={handleConfirmEdit} className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                New Charge Amount (₹)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                autoFocus
+                value={editAmount}
+                onChange={(e) => {
+                  setEditAmount(e.target.value);
+                  if (editError) setEditError('');
+                }}
+                className="w-full px-3 py-1.5 text-sm font-mono font-bold rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="0.00"
+              />
+              {editError && (
+                <p className="text-[11px] text-rose-600 font-semibold mt-1">{editError}</p>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Current Amount: <span className="font-mono font-bold text-slate-700">₹{Number(chargeToEdit.amount || chargeToEdit.chargeAmount || 0).toFixed(2)}</span>
+            </p>
+          </form>
+        </Modal>
+      )}
 
       {/* Delete Confirmation Dialog */}
       {chargeToDelete && (

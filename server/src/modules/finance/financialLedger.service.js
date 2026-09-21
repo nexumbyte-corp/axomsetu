@@ -37,8 +37,8 @@ export const financialLedgerService = {
     }
 
     const decimalAmount = new Prisma.Decimal(amount || 0);
-    if (decimalAmount.lessThanOrEqualTo(0)) {
-      throw ApiError.badRequest('Transaction amount must be greater than zero');
+    if (decimalAmount.lessThan(0)) {
+      throw ApiError.badRequest('Transaction amount must be non-negative');
     }
 
     // Idempotency check: If sourceId is provided and not a reversal, check for existing entry

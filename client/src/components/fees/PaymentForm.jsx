@@ -28,8 +28,8 @@ export const PaymentForm = ({
       return;
     }
 
-    if (totalSelectedAmount <= 0) {
-      setErrorMsg('Select at least one fee charge.');
+    if (totalSelectedAmount < 0) {
+      setErrorMsg('Selected amount cannot be negative.');
       return;
     }
 
@@ -130,7 +130,7 @@ export const PaymentForm = ({
           variant="primary"
           size="sm"
           fullWidth
-          disabled={isDisabled || isSubmitting || totalSelectedAmount <= 0}
+          disabled={isDisabled || isSubmitting || totalSelectedAmount < 0}
           isLoading={isSubmitting}
           loadingText="Collecting..."
           className="py-1 text-xs"

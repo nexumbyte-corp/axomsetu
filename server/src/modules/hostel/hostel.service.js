@@ -1460,14 +1460,14 @@ export const getEligibleHostelStudentsForBilling = async (schoolId, query) => {
     getWaivedStudentIdsForMonth(prisma, { schoolId, academicYearId, month }),
     previousMonth && studentIds.length > 0
       ? prisma.studentFeeCharge.findMany({
-          where: {
-            schoolId,
-            studentId: { in: studentIds },
-            feeTypeId: defaultMonthlyFeeType.id,
-            month: previousMonth,
-          },
-          orderBy: { createdAt: 'desc' },
-        })
+        where: {
+          schoolId,
+          studentId: { in: studentIds },
+          feeTypeId: defaultMonthlyFeeType.id,
+          month: previousMonth,
+        },
+        orderBy: { createdAt: 'desc' },
+      })
       : Promise.resolve([]),
   ]);
 

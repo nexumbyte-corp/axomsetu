@@ -278,11 +278,10 @@ export const SuperAdminDashboardPage = () => {
                       <td className="py-2.5 text-slate-600 text-xs truncate max-w-[120px]">{sch.ownerName || '-'}</td>
                       <td className="py-2.5 text-center">
                         <span
-                          className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase ${
-                            sch.status === 'ACTIVE'
+                          className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase ${sch.status === 'ACTIVE'
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                               : 'bg-rose-50 text-rose-700 border border-rose-200'
-                          }`}
+                            }`}
                         >
                           {sch.status}
                         </span>

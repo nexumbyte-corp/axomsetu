@@ -158,7 +158,7 @@ export const ensureFeeCharge = async (txOrPrisma, candidate) => {
         overriddenAt: finalOverriddenAt,
         paidAmount: new Prisma.Decimal(0),
         dueDate: dueDate ? new Date(dueDate) : null,
-        status: 'UNPAID',
+        status: finalAmt === 0 ? 'PAID' : 'UNPAID',
       },
     });
 
@@ -366,7 +366,7 @@ export const ensureFeeChargesBulk = async (txOrPrisma, payload) => {
       overriddenAt: c.overriddenAt || null,
       paidAmount: new Prisma.Decimal(0),
       dueDate: c.dueDate ? new Date(c.dueDate) : null,
-      status: 'UNPAID',
+      status: finalAmt === 0 ? 'PAID' : 'UNPAID',
     });
 
     // Add to in-memory set to prevent internal duplicates within the same candidate array

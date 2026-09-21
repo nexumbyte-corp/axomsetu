@@ -139,3 +139,15 @@ export const deleteUnpaidFeeCharge = asyncHandler(async (req, res) => {
     data,
   });
 });
+
+export const updateUnpaidFeeCharge = asyncHandler(async (req, res) => {
+  const { chargeId } = req.params;
+  const { amount } = req.body;
+  const data = await paymentService.updateUnpaidFeeCharge(req.schoolId, chargeId, amount, req.user?.id);
+
+  res.status(200).json({
+    success: true,
+    message: data.message || 'Unpaid fee charge amount updated successfully',
+    data,
+  });
+});

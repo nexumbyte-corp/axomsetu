@@ -120,3 +120,20 @@ export const useDeleteUnpaidFeeCharge = () => {
     },
   });
 };
+
+// 12. Mutation: Update Unpaid Fee Charge Amount (Admin Only)
+export const useUpdateUnpaidFeeCharge = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ chargeId, amount }) => paymentService.updateUnpaidFeeCharge(chargeId, amount),
+    onSuccess: (res, variables) => {
+      queryClient.invalidateQueries({ queryKey: PAYMENT_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: PAYMENT_KEYS.dashboard() });
+      if (variables?.studentId) {
+        queryClient.invalidateQueries({ queryKey: PAYMENT_KEYS.studentOutstanding(variables.studentId) });
+        queryClient.invalidateQueries({ queryKey: PAYMENT_KEYS.studentLedger(variables.studentId) });
+      }
+    },
+  });
+};

@@ -276,41 +276,37 @@ export const SuperAdminSchoolsPage = () => {
           <span className="text-slate-400 font-bold uppercase text-[10px] tracking-wider mr-1">Directory Overview:</span>
           <button
             onClick={() => { setStatusFilter(''); setTrialFilter(''); }}
-            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${
-              !statusFilter && !trialFilter
+            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${!statusFilter && !trialFilter
                 ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
                 : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-            }`}
+              }`}
           >
             All Schools ({pagination.total || schools.length})
           </button>
           <button
             onClick={() => { setStatusFilter('ACTIVE'); setTrialFilter(''); }}
-            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${
-              statusFilter === 'ACTIVE'
+            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${statusFilter === 'ACTIVE'
                 ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
                 : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-            }`}
+              }`}
           >
             Active Status
           </button>
           <button
             onClick={() => { setStatusFilter(''); setTrialFilter('TRIAL'); }}
-            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${
-              trialFilter === 'TRIAL'
+            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${trialFilter === 'TRIAL'
                 ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
                 : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
-            }`}
+              }`}
           >
             Trial Mode
           </button>
           <button
             onClick={() => { setStatusFilter('SUSPENDED'); setTrialFilter(''); }}
-            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${
-              statusFilter === 'SUSPENDED'
+            className={`px-2.5 py-1 rounded-lg border text-xs font-bold transition-colors ${statusFilter === 'SUSPENDED'
                 ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
                 : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
-            }`}
+              }`}
           >
             Suspended
           </button>
@@ -352,7 +348,7 @@ export const SuperAdminSchoolsPage = () => {
       ) : (
         <>
           <Table minWidth="min-w-[900px]">
-          <TableHeader>
+            <TableHeader>
               <TableRow>
                 <TableHead>School Name</TableHead>
                 <TableHead>Code / ID</TableHead>

@@ -6,6 +6,7 @@ import {
   Search,
   Loader2,
   Eye,
+  Scissors,
 } from 'lucide-react';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { studentService } from '../../services/student.service.js';
@@ -34,6 +35,7 @@ export const AdmitCardGenerationPage = () => {
   const [sections, setSections] = useState([]);
   const [mediums, setMediums] = useState([]);
   const [streams, setStreams] = useState([]);
+  const [loadingConfig, setLoadingConfig] = useState(false);
 
   // 2. Generation Inputs & Filters
   const [academicYearId, setAcademicYearId] = useState(selectedYearId || '');
@@ -489,13 +491,12 @@ export const AdmitCardGenerationPage = () => {
                             key={item.id}
                             onClick={() => handleToggleSelect(item.id)}
                             onMouseEnter={() => setActivePreviewStudentId(item.id)}
-                            className={`cursor-pointer transition-colors text-xs ${
-                              isPreviewActive
-                                ? 'bg-indigo-50/80 font-medium'
-                                : isSelected
+                            className={`cursor-pointer transition-colors text-xs ${isPreviewActive
+                              ? 'bg-indigo-50/80 font-medium'
+                              : isSelected
                                 ? 'bg-indigo-50/30 hover:bg-indigo-50/60'
                                 : 'hover:bg-slate-50'
-                            }`}
+                              }`}
                           >
                             <TableCell className="text-center py-1.5" onClick={(e) => e.stopPropagation()}>
                               <Checkbox
@@ -625,25 +626,40 @@ export const AdmitCardGenerationPage = () => {
             return (
               <div
                 key={pageIndex}
-                className="a4-print-page flex flex-col justify-start gap-4"
+                className="a4-print-page flex flex-col justify-between py-1"
                 style={{
+                  height: '272mm',
+                  maxHeight: '272mm',
                   pageBreakAfter: isLastPage ? 'auto' : 'always',
                   breakAfter: isLastPage ? 'auto' : 'page',
                   boxSizing: 'border-box',
                   padding: '0',
+                  overflow: 'hidden',
                 }}
               >
                 {pagePair.map((item, cardIdx) => (
-                  <div key={item?.id || cardIdx} className="w-full shrink-0">
-                    <AdmitCardTemplate
-                      school={school}
-                      academicYearName={currentYearObj?.name}
-                      examName={examName}
-                      student={item}
-                      enrollment={item?.enrollment}
-                      isPreview={false}
-                    />
-                  </div>
+                  <React.Fragment key={item?.id || cardIdx}>
+                    {cardIdx > 0 && (
+                      <div className="w-full my-1 flex items-center justify-center text-slate-600 font-serif text-[8.5px] uppercase tracking-widest select-none shrink-0 print:my-1">
+                        <div className="flex-1 border-b-2 border-dashed border-slate-700"></div>
+                        <span className="px-2 py-0.5 bg-white border border-slate-700 rounded-sm font-black flex items-center gap-1 shrink-0 text-slate-900 text-[9px]">
+                          <Scissors className="w-3 h-3 text-slate-900 transform -rotate-90 shrink-0" />
+                          <span>CUT HERE</span>
+                        </span>
+                        <div className="flex-1 border-b-2 border-dashed border-slate-700"></div>
+                      </div>
+                    )}
+                    <div className="w-full shrink-0">
+                      <AdmitCardTemplate
+                        school={school}
+                        academicYearName={currentYearObj?.name}
+                        examName={examName}
+                        student={item}
+                        enrollment={item?.enrollment}
+                        isPreview={false}
+                      />
+                    </div>
+                  </React.Fragment>
                 ))}
               </div>
             );
