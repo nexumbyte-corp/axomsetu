@@ -223,6 +223,14 @@ export const SuperAdminLayout = () => {
     </nav>
   );
 
+  const handleQuickAddSchool = () => {
+    if (location.pathname === '/admin/schools') {
+      window.dispatchEvent(new Event('open-create-school-modal'));
+    } else {
+      navigate('/admin/schools', { state: { openCreateModal: true } });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {toast && (
@@ -286,15 +294,16 @@ export const SuperAdminLayout = () => {
           <div className="flex items-center gap-2 shrink-0">
             {/* Quick Actions */}
             <div className="hidden sm:flex items-center gap-1.5">
-              <Link
-                to="/admin/schools"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-2xs transition-colors"
+              <button
+                type="button"
+                onClick={handleQuickAddSchool}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-2xs transition-colors cursor-pointer"
                 title="Register New Tenant School"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <Building2 className="w-3.5 h-3.5" />
                 <span className="hidden xl:inline">School</span>
-              </Link>
+              </button>
               <Link
                 to="/admin/plans/new"
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shadow-2xs transition-colors"

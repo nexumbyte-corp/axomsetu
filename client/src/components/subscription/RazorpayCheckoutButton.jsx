@@ -172,7 +172,6 @@ export const RazorpayCheckoutButton = ({
         <>
           <CreditCard className="w-4 h-4 shrink-0" />
           <span>{buttonText || defaultBtnText}</span>
-          <ShieldCheck className="w-3.5 h-3.5 opacity-80 shrink-0 ml-1" />
         </>
       )}
     </button>

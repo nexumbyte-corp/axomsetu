@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, RefreshCw, Copy, Users } from 'lucide-react';
+import { Plus, Edit2, Trash2, RefreshCw, Copy, Users, Power } from 'lucide-react';
 import { subscriptionService } from '../../services/subscriptionService.js';
+import { calculateMonthlyPrice } from '../../utils/subscriptionUtils.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
 import { Button } from '../../components/ui/Button.jsx';
@@ -113,9 +114,10 @@ export const SuperAdminPlansPage = () => {
       ) : (
         <>
           <Table minWidth="min-w-[850px]">
-          <TableHeader>
+            <TableHeader>
               <TableRow>
                 <TableHead>Plan Name</TableHead>
+                <TableHead className="text-center">Disp. Order</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Billing Cycle</TableHead>
                 <TableHead>Student Limit</TableHead>
@@ -127,7 +129,7 @@ export const SuperAdminPlansPage = () => {
             <TableBody>
               {plans.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-slate-500">
+                  <TableCell colSpan={8} className="text-center py-12 text-slate-500">
                     No plans found. Click "Create Plan" to define a subscription plan.
                   </TableCell>
                 </TableRow>
@@ -151,13 +153,22 @@ export const SuperAdminPlansPage = () => {
                       <span className="text-[10px] text-slate-400 font-mono block">{p.code}</span>
                     </TableCell>
 
+                    <TableCell className="text-center font-bold text-slate-700 font-mono text-xs">
+                      {p.displayOrder ?? 0}
+                    </TableCell>
+
                     <TableCell className="font-bold text-slate-900 font-mono text-xs">
-                      {formatCurrency(p.finalPrice)}
-                      {p.basePrice > p.finalPrice && (
-                        <span className="text-[10px] text-slate-400 line-through ml-1">
-                          {formatCurrency(p.basePrice)}
-                        </span>
-                      )}
+                      <div>
+                        {formatCurrency(p.finalPrice)}
+                        {p.basePrice > p.finalPrice && (
+                          <span className="text-[10px] text-slate-400 line-through ml-1">
+                            {formatCurrency(p.basePrice)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-indigo-600 font-sans font-medium mt-0.5">
+                        {formatCurrency(calculateMonthlyPrice(p))}/month
+                      </div>
                     </TableCell>
 
                     <TableCell className="text-slate-700 text-xs font-semibold">
@@ -190,16 +201,14 @@ export const SuperAdminPlansPage = () => {
                     </TableCell>
 
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-1">
                         <Button
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
                           icon={Copy}
                           onClick={() => navigate('/admin/plans/new', { state: { copyPlan: p } })}
-                          title="Copy Plan to Create New Variant with Student Limit"
-                        >
-                          Copy
-                        </Button>
+                          title="Copy Plan to Create New Variant"
+                        />
                         <Button
                           variant="ghost"
                           size="sm"
@@ -208,12 +217,13 @@ export const SuperAdminPlansPage = () => {
                           title="Edit Plan"
                         />
                         <Button
-                          variant={p.isActive ? 'outline' : 'primary'}
+                          variant="ghost"
                           size="sm"
+                          icon={Power}
+                          className={p.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-emerald-600 hover:bg-emerald-50'}
                           onClick={() => handleToggleStatus(p)}
-                        >
-                          {p.isActive ? 'Deactivate' : 'Activate'}
-                        </Button>
+                          title={p.isActive ? 'Deactivate Plan' : 'Activate Plan'}
+                        />
                         <Button
                           variant="ghost"
                           size="sm"

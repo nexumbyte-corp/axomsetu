@@ -144,16 +144,23 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
     const activeSub = await tx.schoolSubscription.findFirst({
       where: { schoolId, status: 'ACTIVE' },
       orderBy: { createdAt: 'desc' },
+      include: {
+        plan: {
+          select: { maxStudentLimit: true },
+        },
+      },
     });
 
-    if (activeSub && activeSub.maxStudentLimitSnapshot !== null && activeSub.maxStudentLimitSnapshot > 0) {
+    const studentLimit = activeSub?.maxStudentLimitSnapshot ?? activeSub?.plan?.maxStudentLimit ?? null;
+
+    if (activeSub && studentLimit !== null && studentLimit > 0) {
       const activeCount = await tx.student.count({
         where: { schoolId, status: 'ACTIVE' },
       });
 
-      if (activeCount >= activeSub.maxStudentLimitSnapshot) {
+      if (activeCount >= studentLimit) {
         throw ApiError.forbidden(
-          `Student limit reached. Your subscription plan '${activeSub.planNameSnapshot}' allows a maximum of ${activeSub.maxStudentLimitSnapshot} active students. Current active students: ${activeCount}. Please upgrade your subscription plan.`
+          `Student limit reached. Your subscription plan '${activeSub.planNameSnapshot}' allows a maximum of ${studentLimit} active students. Current active students: ${activeCount}. Please upgrade your subscription plan.`
         );
       }
     }
@@ -1020,6 +1027,33 @@ export const updateStudentStatus = async (schoolId, studentId, status, actorUser
 
   if (!student || student.schoolId !== schoolId) {
     throw ApiError.notFound('Student not found');
+  }
+
+  // Active Subscription Student Limit Check on reactivating a student
+  if (status === 'ACTIVE' && student.status !== 'ACTIVE') {
+    const activeSub = await prisma.schoolSubscription.findFirst({
+      where: { schoolId, status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        plan: {
+          select: { maxStudentLimit: true },
+        },
+      },
+    });
+
+    const studentLimit = activeSub?.maxStudentLimitSnapshot ?? activeSub?.plan?.maxStudentLimit ?? null;
+
+    if (activeSub && studentLimit !== null && studentLimit > 0) {
+      const activeCount = await prisma.student.count({
+        where: { schoolId, status: 'ACTIVE' },
+      });
+
+      if (activeCount >= studentLimit) {
+        throw ApiError.forbidden(
+          `Student limit reached. Your subscription plan '${activeSub.planNameSnapshot}' allows a maximum of ${studentLimit} active students. Current active students: ${activeCount}. Please upgrade your subscription plan.`
+        );
+      }
+    }
   }
 
   const updated = await prisma.student.update({

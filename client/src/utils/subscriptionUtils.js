@@ -29,7 +29,7 @@ export const parseStudentLimitError = (err, fallbackSubscription = null) => {
 
   const maxStudents = maxMatch
     ? parseInt(maxMatch[1], 10)
-    : fallbackSubscription?.maxStudentLimitSnapshot ?? 300;
+    : fallbackSubscription?.maxStudentLimitSnapshot ?? fallbackSubscription?.maxStudentLimit ?? 100;
 
   const currentStudents = currentMatch
     ? parseInt(currentMatch[1], 10)
@@ -42,3 +42,30 @@ export const parseStudentLimitError = (err, fallbackSubscription = null) => {
     rawMessage: msg,
   };
 };
+
+/**
+ * Calculates per month cost automatically based on finalPrice and plan duration.
+ * @param {Object} plan - Subscription plan object
+ * @returns {number} Calculated per month cost rounded to nearest integer
+ */
+export const calculateMonthlyPrice = (plan) => {
+  if (!plan) return 0;
+  const finalPrice = Number(plan.finalPrice ?? plan.basePrice ?? 0);
+  if (finalPrice <= 0) return 0;
+
+  const durationVal = Number(plan.durationValue) || 1;
+  const durationUnit = (plan.durationUnit || 'MONTH').toUpperCase();
+
+  let totalMonths = 1;
+  if (durationUnit === 'YEAR') {
+    totalMonths = durationVal * 12;
+  } else if (durationUnit === 'MONTH') {
+    totalMonths = durationVal;
+  } else if (durationUnit === 'DAY') {
+    totalMonths = durationVal / 30;
+  }
+
+  if (totalMonths <= 0) return finalPrice;
+  return Math.round(finalPrice / totalMonths);
+};
+

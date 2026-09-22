@@ -16,13 +16,13 @@ import {
   Headphones,
   MessageSquare,
   ShieldCheck,
-  FileText,
 } from 'lucide-react';
 import { subscriptionService } from '../services/subscriptionService.js';
 import { useSubscription } from '../hooks/useSubscription.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
 import { PAGE_SEO } from '../config/seoConfig.js';
 import { formatDate } from '../utils/formatters.js';
+import { calculateMonthlyPrice } from '../utils/subscriptionUtils.js';
 
 import { ModulePageHeader } from '../components/ui/ModulePageHeader.jsx';
 import { Toast, toast } from '../components/ui/Toast.jsx';
@@ -30,7 +30,6 @@ import { Button } from '../components/ui/Button.jsx';
 import { Badge } from '../components/ui/Badge.jsx';
 import { Card, CardContent } from '../components/ui/Card.jsx';
 import { Modal } from '../components/ui/Modal.jsx';
-import { Input } from '../components/ui/Input.jsx';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../components/ui/Table.jsx';
 import { TableSkeleton } from '../components/ui/Skeleton.jsx';
 import { RazorpayCheckoutButton } from '../components/subscription/RazorpayCheckoutButton.jsx';
@@ -51,9 +50,6 @@ export const SubscriptionPage = () => {
 
   // Purchase Modal State
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('RAZORPAY');
-  const [referenceNumber, setReferenceNumber] = useState('');
-  const [remarks, setRemarks] = useState('');
   const [noRefundAccepted, setNoRefundAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState('');
@@ -117,9 +113,6 @@ export const SubscriptionPage = () => {
       return;
     }
     setSelectedPlan(plan);
-    setPaymentMethod('RAZORPAY');
-    setReferenceNumber('');
-    setRemarks('');
     setNoRefundAccepted(false);
     setModalError('');
   }, [hasActiveSubscription, isCurrentEnterprise]);
@@ -134,62 +127,6 @@ export const SubscriptionPage = () => {
     setContactModalPlan(plan);
     setContactSupportModalOpen(true);
   }, []);
-
-  const handleSubmitPurchase = async (e) => {
-    e.preventDefault();
-    if (!selectedPlan) return;
-    setModalError('');
-
-    if (paymentMethod === 'UPI' && !referenceNumber.trim()) {
-      const msg = 'Please enter the 12-digit UPI transaction / reference number.';
-      setModalError(msg);
-      toast.error(msg);
-      return;
-    }
-
-    if (!noRefundAccepted) {
-      const msg = 'You must acknowledge and accept the non-refundable subscription policy before submitting.';
-      setModalError(msg);
-      toast.error(msg);
-      return;
-    }
-
-
-    setSubmitting(true);
-    try {
-      const res = await subscriptionService.submitPurchaseRequest({
-        planId: selectedPlan.id,
-        paymentMethod,
-        referenceNumber: referenceNumber.trim() || null,
-        remarks: remarks.trim() || null,
-        noRefundAccepted: true,
-      });
-
-      if (res && res.success) {
-        const successMsg = res.message || 'Payment request submitted successfully. Awaiting Super Admin approval.';
-        toast.success(successMsg);
-        setToastMessage({
-          type: 'success',
-          message: successMsg,
-        });
-        setSelectedPlan(null);
-        await Promise.all([
-          fetchSubscriptionDetails(),
-          refreshSubscription?.(),
-        ]);
-      } else {
-        const errorMsg = res?.message || 'Failed to submit payment request.';
-        setModalError(errorMsg);
-        toast.error(errorMsg);
-      }
-    } catch (err) {
-      const errorMsg = err.message || 'Failed to submit payment request. Please try again.';
-      setModalError(errorMsg);
-      toast.error(errorMsg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const formatCurrency = (val) =>
     new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
@@ -206,7 +143,7 @@ export const SubscriptionPage = () => {
       <ModulePageHeader
         icon={CreditCard}
         title="Subscription Management"
-        description="Monitor active school plan validity, capacity metrics, payment requests, and billing history."
+        description="Manage your school subscription, view plan tiers, and check billing history."
         actions={
           <Button variant="outline" size="sm" icon={RefreshCw} onClick={fetchSubscriptionDetails}>
             Refresh Status
@@ -326,37 +263,37 @@ export const SubscriptionPage = () => {
             </div>
 
             {/* Grid Metrics Strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 mt-6 pt-5 border-t border-slate-100 text-xs">
-              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                <span className="text-slate-400 font-bold uppercase text-[10px] block">Billing Cycle</span>
-                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">{sub?.duration || '-'}</span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-6 pt-5 border-t border-slate-100 text-xs">
+              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/60">
+                <span className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider block">Billing Cycle</span>
+                <span className="font-semibold text-slate-800 text-sm mt-0.5 block">{sub?.duration || '-'}</span>
               </div>
 
-              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                <span className="text-slate-400 font-bold uppercase text-[10px] block">Student Limit</span>
-                <span className="font-bold text-indigo-700 font-mono text-xs mt-0.5 block">
+              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/60">
+                <span className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider block">Student Limit</span>
+                <span className="font-semibold text-indigo-700 text-sm mt-0.5 block">
                   {currentSubData?.activeStudentCount ?? 0} / {sub?.maxStudentLimit ? `${sub.maxStudentLimit}` : 'Unlimited'}
                 </span>
               </div>
 
-              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                <span className="text-slate-400 font-bold uppercase text-[10px] block">Base Price</span>
-                <span className="font-semibold text-slate-800 text-xs mt-0.5 block">{formatCurrency(sub?.basePrice)}</span>
+              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/60">
+                <span className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider block">Base Price</span>
+                <span className="font-semibold text-slate-700 text-sm mt-0.5 block">{formatCurrency(sub?.basePrice)}</span>
               </div>
 
-              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                <span className="text-slate-400 font-bold uppercase text-[10px] block">Discount Savings</span>
-                <span className="font-semibold text-emerald-700 text-xs mt-0.5 block">{formatCurrency(sub?.discount)}</span>
+              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/60">
+                <span className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider block">Discount Savings</span>
+                <span className="font-semibold text-emerald-700 text-sm mt-0.5 block">{formatCurrency(sub?.discount)}</span>
               </div>
 
-              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                <span className="text-slate-400 font-bold uppercase text-[10px] block">Final Price</span>
-                <span className="font-bold text-slate-900 font-mono text-xs mt-0.5 block">{formatCurrency(sub?.finalPrice)}</span>
+              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/60">
+                <span className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider block">Final Price</span>
+                <span className="font-bold text-slate-900 text-sm mt-0.5 block">{formatCurrency(sub?.finalPrice)}</span>
               </div>
 
-              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                <span className="text-slate-400 font-bold uppercase text-[10px] block">Payment Status</span>
-                <span className="font-bold text-emerald-700 text-xs mt-0.5 block">{sub?.paymentStatus || 'PAID'}</span>
+              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/60">
+                <span className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider block">Payment Status</span>
+                <span className="font-semibold text-emerald-700 text-sm mt-0.5 block">{sub?.paymentStatus || 'PAID'}</span>
               </div>
             </div>
           </CardContent>
@@ -615,6 +552,11 @@ export const SubscriptionPage = () => {
                                 </span>
                               </div>
                             )}
+                            {!isEnterprisePlan && !isTrial && (
+                              <div className="mt-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50/70 border border-indigo-100 px-2 py-0.5 rounded inline-block">
+                                {formatCurrency(calculateMonthlyPrice(plan))} / month
+                              </div>
+                            )}
                           </div>
 
                           {/* Feature List */}
@@ -778,140 +720,83 @@ export const SubscriptionPage = () => {
         <Modal
           isOpen={Boolean(selectedPlan)}
           onClose={handleClosePurchaseModal}
-          size="lg"
+          size="sm"
           title={`Subscribe to ${selectedPlan.name.replace(/\s*plan$/i, '')}`}
+          description="Instant activation for your institution via secure payment"
         >
-          <form onSubmit={handleSubmitPurchase} autoComplete="off" className="space-y-4">
+          <div className="space-y-4">
             {/* Modal-level Error Banner */}
             {modalError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-medium text-rose-900 flex items-start gap-2">
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200/80 text-xs font-medium text-rose-800 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                 <div className="flex-1">{modalError}</div>
               </div>
             )}
 
-            {/* Plan Summary Card */}
-            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <div className="flex justify-between items-center text-sm font-bold text-slate-900">
-                <span>Selected Plan</span>
-                <span>{selectedPlan.name}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs text-slate-600 mt-1">
-                <span>Billing Duration</span>
-                <span>
-                  {selectedPlan.durationValue} {selectedPlan.durationUnit?.toLowerCase() || 'year'}{(selectedPlan.durationValue || 1) > 1 ? 's' : ''}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-sm font-extrabold text-indigo-700 mt-3 pt-3 border-t border-slate-200 font-mono">
-                <span>Total Amount Due</span>
-                <span>{formatCurrency(selectedPlan.finalPrice ?? selectedPlan.basePrice)}</span>
-              </div>
-            </div>
+            {/* Plan Summary Receipt Card */}
+            {(() => {
+              const finalPrice = selectedPlan.finalPrice ?? selectedPlan.basePrice ?? selectedPlan.price ?? 0;
+              const hasDiscount = (selectedPlan.discountAmount > 0 || (selectedPlan.basePrice && selectedPlan.basePrice > finalPrice));
+              const durationText = `${selectedPlan.durationValue || 1} ${selectedPlan.durationUnit?.toLowerCase() || 'year'}${(selectedPlan.durationValue || 1) > 1 ? 's' : ''}`;
 
-            {/* Payment Method Options (Razorpay Online & Hidden Cash Option) */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">Select Payment Method *</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPaymentMethod('RAZORPAY');
-                    if (modalError) setModalError('');
-                  }}
-                  className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${paymentMethod === 'RAZORPAY'
-                      ? 'border-indigo-600 bg-indigo-50/60 text-indigo-900 font-bold ring-1 ring-indigo-500 shadow-xs'
-                      : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                    }`}
-                >
-                  <div>
-                    <span className="text-xs block font-bold">Online Payment</span>
-                    <span className="text-[11px] text-indigo-600 font-medium">Instant Automatic Activation</span>
+              return (
+                <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-slate-900 text-sm">{selectedPlan.name}</span>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white text-slate-700 border border-slate-200 shadow-2xs">
+                          {durationText}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {selectedPlan.maxStudentLimit
+                          ? `Up to ${Number(selectedPlan.maxStudentLimit).toLocaleString('en-IN')} active students`
+                          : 'Unlimited active students'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-slate-900 tracking-tight">
+                        {formatCurrency(finalPrice)}
+                      </div>
+                      <span className="text-[11px] text-slate-400 font-medium">total due</span>
+                    </div>
                   </div>
-                  <CreditCard className="w-5 h-5 text-indigo-600 shrink-0" />
-                </button>
 
-                {/* Cash option hidden from UI */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPaymentMethod('CASH');
-                    if (modalError) setModalError('');
-                  }}
-                  className={`hidden p-3.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${paymentMethod === 'CASH'
-                      ? 'border-indigo-600 bg-indigo-50/60 text-indigo-900 font-bold ring-1 ring-indigo-500 shadow-xs'
-                      : 'border-slate-200 hover:bg-slate-50 text-slate-700'
-                    }`}
-                >
-                  <div>
-                    <span className="text-xs block font-bold">Cash / Direct</span>
-                    <span className="text-[11px] text-slate-500">Requires Admin Approval</span>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Payment Method Details */}
-            {paymentMethod === 'CASH' && (
-              <div className="space-y-2">
-                <Input
-                  label="Reference / Receipt Number (Optional)"
-                  placeholder="Cash receipt or transaction note..."
-                  value={referenceNumber}
-                  onChange={(e) => {
-                    setReferenceNumber(e.target.value);
-                    if (modalError) setModalError('');
-                  }}
-                />
-              </div>
-            )}
-
-            {paymentMethod === 'RAZORPAY' && (
-              <div className="bg-indigo-50/80 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-900">
-                <p className="font-bold">⚡ Instant Activation:</p>
-                <p className="text-[11px] text-indigo-800 mt-0.5">
-                  Upon completing Razorpay payment, your subscription will be activated automatically with immediate access.
-                </p>
-              </div>
-            )}
-
-            <Input
-              label="Remarks / Notes (Optional)"
-              placeholder="Add optional payment details..."
-              value={remarks}
-              onChange={(e) => {
-                setRemarks(e.target.value);
-                if (modalError) setModalError('');
-              }}
-            />
-
-            {/* Razorpay Merchant Compliance & Policy Links */}
-            <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 text-[11px] space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 text-slate-700 font-bold">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>Secured by Razorpay • 256-Bit SSL Encrypted</span>
+                  {hasDiscount && (
+                    <div className="pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-xs text-slate-500">
+                      <span>Standard price</span>
+                      <div className="flex items-center gap-2">
+                        <span className="line-through text-slate-400">{formatCurrency(selectedPlan.basePrice)}</span>
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded">
+                          Save {formatCurrency(selectedPlan.discountAmount || (selectedPlan.basePrice - finalPrice))}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setTermsModalOpen(true)}
-                  className="text-indigo-600 hover:text-indigo-800 underline font-extrabold cursor-pointer flex items-center gap-1"
-                >
-                  <FileText className="w-3 h-3" />
-                  <span>Terms & Privacy Policy</span>
-                </button>
-              </div>
+              );
+            })()}
 
-              <div className="text-[10px] text-slate-500 leading-snug">
-                Digital SaaS Fulfillment: Subscription plan features are activated instantly upon successful payment. All prices are in INR (₹).
+            {/* Streamlined Payment Method Bar */}
+            <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200/80 bg-white text-xs">
+              <div className="flex items-center gap-2.5 text-slate-700">
+                <div className="p-1.5 rounded-lg bg-slate-100 text-slate-600">
+                  <CreditCard className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <span className="text-slate-900 font-semibold block text-xs">Razorpay Secure Checkout</span>
+                  <span className="text-[11px] text-slate-500">UPI, Credit/Debit Cards, NetBanking</span>
+                </div>
               </div>
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/50 px-2 py-0.5 rounded-full shrink-0">
+                <Zap className="w-3 h-3 text-emerald-600" /> Instant
+              </span>
             </div>
 
-            {/* Mandatory Refund Confirmation */}
-            <div className={`rounded-xl p-3 space-y-1 border transition-all ${!noRefundAccepted && modalError
-                ? 'bg-rose-100/70 border-rose-400 ring-2 ring-rose-300'
-                : 'bg-rose-50/80 border-rose-200'
-              }`}>
-              <label className="flex items-start gap-2.5 cursor-pointer select-none">
+            {/* Clean Terms & Non-Refundable Policy Checkbox */}
+            <div className="pt-1">
+              <label className="flex items-start gap-2.5 cursor-pointer select-none group">
                 <input
                   type="checkbox"
                   checked={noRefundAccepted}
@@ -919,65 +804,68 @@ export const SubscriptionPage = () => {
                     setNoRefundAccepted(e.target.checked);
                     if (modalError) setModalError('');
                   }}
-                  className="mt-0.5 h-4 w-4 rounded border-rose-300 text-rose-600 focus:ring-rose-500 cursor-pointer shrink-0"
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 cursor-pointer shrink-0"
                 />
-                <span className="text-xs font-bold text-rose-950">
-                  I agree to the Terms of Service & understand subscription purchases are non-refundable after activation. <span className="text-rose-600 font-black">*</span>
+                <span className="text-xs text-slate-600 group-hover:text-slate-900 transition-colors leading-relaxed">
+                  I agree to the{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setTermsModalOpen(true);
+                    }}
+                    className="text-indigo-600 hover:text-indigo-800 underline font-medium cursor-pointer"
+                  >
+                    Terms of Service
+                  </button>{' '}
+                  and understand subscription purchases are non-refundable after activation.
                 </span>
               </label>
             </div>
 
-            {/* Footer Buttons */}
-            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
-              <Button type="button" variant="outline" onClick={handleClosePurchaseModal} disabled={submitting}>
-                Cancel
-              </Button>
-              {paymentMethod === 'RAZORPAY' ? (
-                <RazorpayCheckoutButton
-                  amountInRupees={selectedPlan?.finalPrice ?? selectedPlan?.basePrice ?? selectedPlan?.price ?? 0}
-                  name={`AxomSetu - ${selectedPlan?.name || 'Subscription'}`}
-                  description={`Subscription Purchase (${selectedPlan?.name || ''})`}
-                  disabled={submitting || !noRefundAccepted}
-                  buttonText={`Pay ₹${(selectedPlan?.finalPrice ?? selectedPlan?.basePrice ?? selectedPlan?.price ?? 0).toLocaleString('en-IN')} & Activate Now`}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs transition-all cursor-pointer"
-                  onSuccess={async (paymentRes) => {
-                    const refNo = paymentRes.payment_id || paymentRes.response?.razorpay_payment_id;
-                    try {
-                      setSubmitting(true);
-                      const res = await subscriptionService.submitPurchaseRequest({
-                        planId: selectedPlan.id,
-                        paymentMethod: 'RAZORPAY',
-                        referenceNumber: refNo,
-                        remarks: remarks.trim() ? `${remarks.trim()} | Razorpay Order: ${paymentRes.order_id}` : `Razorpay Order: ${paymentRes.order_id}`,
-                        noRefundAccepted: true,
-                      });
+            {/* Checkout Action CTA & Subtle Security Guarantee */}
+            <div className="pt-2 space-y-3">
+              <RazorpayCheckoutButton
+                amountInRupees={selectedPlan?.finalPrice ?? selectedPlan?.basePrice ?? selectedPlan?.price ?? 0}
+                name={`AxomSetu - ${selectedPlan?.name || 'Subscription'}`}
+                description={`Subscription Plan: ${selectedPlan?.name || ''}`}
+                disabled={submitting || !noRefundAccepted}
+                buttonText={`Pay ${formatCurrency(selectedPlan?.finalPrice ?? selectedPlan?.basePrice ?? selectedPlan?.price ?? 0)} & Activate`}
+                className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-40 disabled:cursor-not-allowed shadow-xs transition-all cursor-pointer"
+                onSuccess={async (paymentRes) => {
+                  const refNo = paymentRes.payment_id || paymentRes.response?.razorpay_payment_id;
+                  try {
+                    setSubmitting(true);
+                    const res = await subscriptionService.submitPurchaseRequest({
+                      planId: selectedPlan.id,
+                      paymentMethod: 'RAZORPAY',
+                      referenceNumber: refNo,
+                      remarks: `Razorpay Order: ${paymentRes.order_id}`,
+                      noRefundAccepted: true,
+                    });
 
-                      if (res && res.success) {
-                        toast.success('🎉 Payment verified! Your subscription has been activated immediately.');
-                        setSelectedPlan(null);
-                        await Promise.all([fetchSubscriptionDetails(), refreshSubscription?.()]);
-                      } else {
-                        toast.error(res?.message || 'Failed processing subscription activation');
-                      }
-                    } catch (err) {
-                      toast.error(err.message || 'Failed processing subscription activation');
-                    } finally {
-                      setSubmitting(false);
+                    if (res && res.success) {
+                      toast.success('🎉 Payment verified! Your subscription has been activated immediately.');
+                      setSelectedPlan(null);
+                      await Promise.all([fetchSubscriptionDetails(), refreshSubscription?.()]);
+                    } else {
+                      toast.error(res?.message || 'Failed processing subscription activation');
                     }
-                  }}
-                />
-              ) : (
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={submitting}
-                  loading={submitting}
-                  loadingText="Submitting Request..."
-                >
-                </Button>
-              )}
+                  } catch (err) {
+                    toast.error(err.message || 'Failed processing subscription activation');
+                  } finally {
+                    setSubmitting(false);
+                  }
+                }}
+              />
+
+              <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400">
+                <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+                <span>256-bit SSL Encrypted • Powered by Razorpay</span>
+              </div>
             </div>
-          </form>
+          </div>
         </Modal>
       )}
 

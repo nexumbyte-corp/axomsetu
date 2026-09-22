@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Building2, User, Mail, Lock, Phone, MapPin, Eye, EyeOff, ArrowRight, ArrowLeft, ShieldCheck, CheckCircle, School } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
+import { subscriptionService } from '../services/subscriptionService.js';
 import { Button } from '../components/ui/Button.jsx';
 import { Input } from '../components/ui/Input.jsx';
 import { Alert } from '../components/ui/Alert.jsx';
@@ -40,6 +41,24 @@ export const RegisterPage = () => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+  const [trialStudentLimit, setTrialStudentLimit] = useState(100);
+
+  useEffect(() => {
+    const fetchTrialLimit = async () => {
+      try {
+        const res = await subscriptionService.getPublicLandingPlans();
+        if (res.success && Array.isArray(res.data)) {
+          const tPlan = res.data.find((p) => p.isTrial || p.code === 'TRIAL');
+          if (tPlan?.maxStudentLimit) {
+            setTrialStudentLimit(tPlan.maxStudentLimit);
+          }
+        }
+      } catch (err) {
+        // Fallback to default
+      }
+    };
+    fetchTrialLimit();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -200,7 +219,7 @@ export const RegisterPage = () => {
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold backdrop-blur-md">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>30-Day Free Trial</span>
+            <span>30-Day Free Trial ({trialStudentLimit} Students)</span>
           </div>
         </div>
 
@@ -226,7 +245,7 @@ export const RegisterPage = () => {
             </div>
             <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/10 p-3 rounded-xl">
               <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="text-xs text-white font-medium">Student Profiles, Academic Records & Admissions</span>
+              <span className="text-xs text-white font-medium">Up to {trialStudentLimit} Active Students Capacity & Full Module Access</span>
             </div>
             <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/10 p-3 rounded-xl">
               <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -283,11 +302,11 @@ export const RegisterPage = () => {
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
               <div>
                 <h2 className="text-xl font-bold text-slate-900 tracking-tight">Register Your School</h2>
-                <p className="text-[11px] text-slate-500">Fill in details to set up your school environment.</p>
+                <p className="text-[11px] text-slate-500">Fill in details to set up your school. Includes up to {trialStudentLimit} students.</p>
               </div>
               <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold uppercase tracking-wider">
                 <ShieldCheck className="w-3 h-3" />
-                <span>30-Day Trial</span>
+                <span>30-Day Trial ({trialStudentLimit} Students)</span>
               </div>
             </div>
 

@@ -50,6 +50,7 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null, 
     termsAccepted,
     acceptedTermsVersion = CURRENT_TERMS_VERSION,
     privacyPolicyVersion = CURRENT_PRIVACY_POLICY_VERSION,
+    maxStudentLimit,
   } = data;
 
   const isSuperAdminCreation = Boolean(creatorUserId);
@@ -165,6 +166,7 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null, 
             offerTitle: '1 Month Free',
             offerDescription: 'Try AxomSetu completely free with full access for 1 month.',
             badge: 'FREE TRIAL',
+            maxStudentLimit: 100,
             isTrial: true,
             isActive: true,
             displayOrder: 0,
@@ -186,6 +188,20 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null, 
         });
       }
 
+      // Dynamic limit strictly as per the Trial plan in DB:
+      // If superadmin explicitly passed a custom limit, respect that; otherwise dynamically apply trialPlan.maxStudentLimit
+      let studentLimit = null;
+      if (
+        maxStudentLimit !== undefined &&
+        maxStudentLimit !== null &&
+        maxStudentLimit !== '' &&
+        Number(maxStudentLimit) > 0
+      ) {
+        studentLimit = parseInt(maxStudentLimit, 10);
+      } else if (trialPlan.maxStudentLimit !== undefined && trialPlan.maxStudentLimit !== null) {
+        studentLimit = Number(trialPlan.maxStudentLimit) > 0 ? parseInt(trialPlan.maxStudentLimit, 10) : null;
+      }
+
       const startDate = new Date();
       const endDate = calculateSubscriptionEndDate(startDate, trialPlan.durationUnit, trialPlan.durationValue);
       const unitLabel = trialPlan.durationUnit.toLowerCase();
@@ -200,6 +216,8 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null, 
           basePriceSnapshot: trialPlan.basePrice,
           discountSnapshot: trialPlan.discountAmount,
           finalPriceSnapshot: trialPlan.finalPrice,
+          maxStudentLimitSnapshot: studentLimit,
+          isEnterpriseSnapshot: trialPlan.isEnterprise || false,
           status: 'ACTIVE',
           startDate,
           endDate,
@@ -348,6 +366,9 @@ export const listSchools = async ({ page = 1, limit = 20, search, status }) => {
               select: {
                 id: true,
                 name: true,
+                code: true,
+                isTrial: true,
+                maxStudentLimit: true,
               },
             },
           },
@@ -378,6 +399,9 @@ export const listSchools = async ({ page = 1, limit = 20, search, status }) => {
           status: latestSubscription.status,
           startDate: latestSubscription.startDate,
           endDate: latestSubscription.endDate,
+          planNameSnapshot: latestSubscription.planNameSnapshot,
+          maxStudentLimitSnapshot: latestSubscription.maxStudentLimitSnapshot ?? latestSubscription.plan?.maxStudentLimit ?? null,
+          isEnterpriseSnapshot: latestSubscription.isEnterpriseSnapshot,
           plan: latestSubscription.plan,
         }
         : null,
@@ -496,7 +520,7 @@ export const getSchoolById = async (schoolId) => {
         finalPriceSnapshot: latestSubscription.finalPriceSnapshot,
         basePriceSnapshot: latestSubscription.basePriceSnapshot,
         discountSnapshot: latestSubscription.discountSnapshot,
-        maxStudentLimitSnapshot: latestSubscription.maxStudentLimitSnapshot,
+        maxStudentLimitSnapshot: latestSubscription.maxStudentLimitSnapshot ?? latestSubscription.plan?.maxStudentLimit ?? null,
         isEnterpriseSnapshot: latestSubscription.isEnterpriseSnapshot,
         planNameSnapshot: latestSubscription.planNameSnapshot,
         paymentMethod: latestSubscription.paymentMethod,
@@ -512,7 +536,7 @@ export const getSchoolById = async (schoolId) => {
       endDate: s.endDate,
       finalPriceSnapshot: s.finalPriceSnapshot,
       basePriceSnapshot: s.basePriceSnapshot,
-      maxStudentLimitSnapshot: s.maxStudentLimitSnapshot,
+      maxStudentLimitSnapshot: s.maxStudentLimitSnapshot ?? s.plan?.maxStudentLimit ?? null,
       isEnterpriseSnapshot: s.isEnterpriseSnapshot,
       planNameSnapshot: s.planNameSnapshot,
       plan: s.plan,

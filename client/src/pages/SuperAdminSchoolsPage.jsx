@@ -1,6 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Search, Plus, CheckCircle2, ShieldAlert, XCircle, Eye, ExternalLink, Power, MoreVertical, UserCheck, CreditCard, Trash2 } from 'lucide-react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import {
+  Search,
+  Plus,
+  CheckCircle2,
+  ShieldAlert,
+  XCircle,
+  Eye,
+  EyeOff,
+  ExternalLink,
+  Power,
+  MoreVertical,
+  UserCheck,
+  CreditCard,
+  Trash2,
+  Building2,
+  Mail,
+  Phone,
+  MapPin,
+  User,
+  Lock,
+  KeyRound,
+} from 'lucide-react';
 import { adminService } from '../services/adminService.js';
 import { subscriptionService } from '../services/subscriptionService.js';
 import { storage } from '../utils/storage.js';
@@ -24,8 +45,9 @@ export const SuperAdminSchoolsPage = () => {
   const [pagination, setPagination] = useState({ page: 1, limit: 15, total: 0 });
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [planFilter] = useState('');
+  const [planFilter, setPlanFilter] = useState('');
   const [trialFilter, setTrialFilter] = useState('');
+  const [plansList, setPlansList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
 
@@ -49,7 +71,44 @@ export const SuperAdminSchoolsPage = () => {
     adminName: '',
     adminEmail: '',
     adminPassword: '',
+    maxStudentLimit: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
+
+  const trialPlan = plansList.find((p) => p.isTrial || p.code === 'TRIAL');
+  const trialStudentLimit = trialPlan?.maxStudentLimit || 100;
+
+  const generateRandomPassword = () => {
+    const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijkmnopqrstuvwxyz';
+    const numbers = '23456789';
+    const special = '@#$%!*';
+    const all = uppercase + lowercase + numbers + special;
+
+    let generated = '';
+    generated += uppercase.charAt(Math.floor(Math.random() * uppercase.length));
+    generated += lowercase.charAt(Math.floor(Math.random() * lowercase.length));
+    generated += numbers.charAt(Math.floor(Math.random() * numbers.length));
+    generated += special.charAt(Math.floor(Math.random() * special.length));
+
+    for (let i = 4; i < 12; i++) {
+      generated += all.charAt(Math.floor(Math.random() * all.length));
+    }
+    generated = generated
+      .split('')
+      .sort(() => 0.5 - Math.random())
+      .join('');
+
+    setCreateForm((prev) => ({
+      ...prev,
+      adminPassword: generated,
+      password: generated,
+    }));
+    setShowPassword(true);
+    if (createErrors.adminPassword) {
+      setCreateErrors((prev) => ({ ...prev, adminPassword: null }));
+    }
+  };
 
   const validateCreateSchool = () => {
     const errors = {};
@@ -121,9 +180,9 @@ export const SuperAdminSchoolsPage = () => {
 
           // Apply client-side filters for Trial & Plan if selected
           if (trialFilter === 'TRIAL') {
-            list = list.filter((s) => s.subscription?.plan?.isTrial || s.subscription?.plan?.code === 'TRIAL');
+            list = list.filter((s) => s.subscription?.plan?.isTrial || s.subscription?.plan?.code === 'TRIAL' || s.subscription?.planNameSnapshot?.toLowerCase().includes('trial'));
           } else if (trialFilter === 'NON_TRIAL') {
-            list = list.filter((s) => !s.subscription?.plan?.isTrial && s.subscription?.plan?.code !== 'TRIAL');
+            list = list.filter((s) => !s.subscription?.plan?.isTrial && s.subscription?.plan?.code !== 'TRIAL' && !s.subscription?.planNameSnapshot?.toLowerCase().includes('trial'));
           }
 
           if (planFilter) {
@@ -160,6 +219,17 @@ export const SuperAdminSchoolsPage = () => {
     loadPlans();
   }, []);
 
+  useEffect(() => {
+    if (location.state?.openCreateModal) {
+      setIsCreateModalOpen(true);
+      window.history.replaceState({}, document.title);
+    }
+
+    const handleOpenModal = () => setIsCreateModalOpen(true);
+    window.addEventListener('open-create-school-modal', handleOpenModal);
+    return () => window.removeEventListener('open-create-school-modal', handleOpenModal);
+  }, [location.state]);
+
   const handleOpenSchoolContext = (school) => {
     storage.setSchoolContext({
       id: school.id,
@@ -180,12 +250,22 @@ export const SuperAdminSchoolsPage = () => {
 
     setSubmitting(true);
     try {
-      await adminService.createSchool({
-        ...createForm,
-        ownerName: createForm.adminName || createForm.ownerName,
+      const payload = {
+        name: createForm.name.trim(),
+        schoolName: createForm.name.trim(),
+        email: createForm.email.trim(),
+        phone: createForm.phone.trim(),
+        address: createForm.address?.trim() || '',
+        ownerName: (createForm.adminName || createForm.ownerName || '').trim(),
+        adminName: (createForm.adminName || createForm.ownerName || '').trim(),
         password: createForm.adminPassword || createForm.password,
+        adminPassword: createForm.adminPassword || createForm.password,
+        ...(createForm.maxStudentLimit && Number(createForm.maxStudentLimit) > 0
+          ? { maxStudentLimit: parseInt(createForm.maxStudentLimit, 10) }
+          : {}),
         termsAccepted: true,
-      });
+      };
+      await adminService.createSchool(payload);
       setToast({ type: 'success', message: `School ${createForm.name} registered successfully!` });
       setIsCreateModalOpen(false);
       setCreateForm({
@@ -197,6 +277,7 @@ export const SuperAdminSchoolsPage = () => {
         adminName: '',
         adminEmail: '',
         adminPassword: '',
+        maxStudentLimit: '',
       });
       setCreateErrors({});
       fetchSchools(1);
@@ -206,8 +287,9 @@ export const SuperAdminSchoolsPage = () => {
         const mapped = {};
         rawErrors.forEach((eItem) => {
           const key = eItem.field || (eItem.path && eItem.path[0]);
-          if (key === 'ownerName') mapped.adminName = eItem.message;
-          else if (key === 'password') mapped.adminPassword = eItem.message;
+          if (key === 'ownerName' || key === 'adminName') mapped.adminName = eItem.message;
+          else if (key === 'password' || key === 'adminPassword') mapped.adminPassword = eItem.message;
+          else if (key === 'name' || key === 'schoolName') mapped.name = eItem.message;
           else if (key) mapped[key] = eItem.message;
         });
         setCreateErrors(mapped);
@@ -370,7 +452,7 @@ export const SuperAdminSchoolsPage = () => {
               ) : (
                 schools.map((sch) => {
                   const sub = sch.subscription;
-                  const isTrialPlan = sub?.plan?.isTrial || sub?.plan?.code === 'TRIAL';
+                  const isTrialPlan = sub?.plan?.isTrial || sub?.plan?.code === 'TRIAL' || sub?.planNameSnapshot?.toLowerCase().includes('trial');
                   const expiryDate = sub?.endDate ? new Date(sub.endDate) : null;
                   const isExpired = expiryDate && expiryDate < new Date();
 
@@ -405,6 +487,17 @@ export const SuperAdminSchoolsPage = () => {
 
                       <TableCell className="text-xs font-semibold text-slate-800">
                         {sub?.plan?.name || sub?.planNameSnapshot || 'No Plan'}
+                        {sub && (
+                          <span className="text-[10px] text-slate-400 block font-normal mt-0.5">
+                            {sub?.maxStudentLimitSnapshot
+                              ? `${sub.maxStudentLimitSnapshot} Students Limit`
+                              : sub?.plan?.maxStudentLimit
+                              ? `${sub.plan.maxStudentLimit} Students Limit`
+                              : isTrialPlan
+                              ? `${trialStudentLimit} Students Limit`
+                              : 'Unlimited Students'}
+                          </span>
+                        )}
                       </TableCell>
 
                       <TableCell>
@@ -516,16 +609,19 @@ export const SuperAdminSchoolsPage = () => {
         onClose={() => {
           setIsCreateModalOpen(false);
           setCreateErrors({});
+          setShowPassword(false);
         }}
-        title="Register School Tenant"
+        size="lg"
+        title="Register School"
       >
         <form onSubmit={handleCreateSubmit} autoComplete="off" className="space-y-4">
           <Input
             label="School Name *"
+            icon={Building2}
             required
             minLength={2}
             maxLength={100}
-            placeholder="School Name"
+            placeholder="Enter School Name"
             value={createForm.name}
             onChange={(e) => {
               setCreateForm({ ...createForm, name: e.target.value });
@@ -536,11 +632,12 @@ export const SuperAdminSchoolsPage = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Primary Contact Email *"
+              label="Email Address *"
+              icon={Mail}
               type="email"
               required
               maxLength={100}
-              placeholder="Email Address"
+              placeholder="Enter Email Address"
               value={createForm.email}
               onChange={(e) => {
                 setCreateForm({ ...createForm, email: e.target.value });
@@ -550,9 +647,10 @@ export const SuperAdminSchoolsPage = () => {
             />
             <Input
               label="Phone Number *"
+              icon={Phone}
               required
               maxLength={10}
-              placeholder="10-digit phone number"
+              placeholder="Enter Phone Number"
               value={createForm.phone}
               onChange={(e) => {
                 setCreateForm({ ...createForm, phone: e.target.value });
@@ -563,10 +661,11 @@ export const SuperAdminSchoolsPage = () => {
           </div>
 
           <Input
-            label="School Address"
+            label="Address"
+            icon={MapPin}
             minLength={3}
             maxLength={300}
-            placeholder="School Address"
+            placeholder="Enter Address"
             value={createForm.address}
             onChange={(e) => {
               setCreateForm({ ...createForm, address: e.target.value });
@@ -575,48 +674,113 @@ export const SuperAdminSchoolsPage = () => {
             error={createErrors.address}
           />
 
-          <Input
-            label="School Owner Name *"
-            required
-            minLength={2}
-            maxLength={100}
-            placeholder="Owner Full Name"
-            value={createForm.adminName}
-            onChange={(e) => {
-              setCreateForm({ ...createForm, adminName: e.target.value, ownerName: e.target.value });
-              if (createErrors.adminName) setCreateErrors({ ...createErrors, adminName: null });
-            }}
-            error={createErrors.adminName}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Owner Name *"
+              icon={User}
+              required
+              minLength={2}
+              maxLength={100}
+              placeholder="Enter Owner Name"
+              value={createForm.adminName}
+              onChange={(e) => {
+                setCreateForm({ ...createForm, adminName: e.target.value, ownerName: e.target.value });
+                if (createErrors.adminName) setCreateErrors({ ...createErrors, adminName: null });
+              }}
+              error={createErrors.adminName}
+            />
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+                  Password <span className="text-rose-500">*</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={generateRandomPassword}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer"
+                >
+                  <KeyRound className="w-3 h-3" />
+                  Generate
+                </button>
+              </div>
+
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                required
+                minLength={8}
+                maxLength={100}
+                icon={Lock}
+                placeholder="Enter Password"
+                value={createForm.adminPassword}
+                onChange={(e) => {
+                  setCreateForm({ ...createForm, adminPassword: e.target.value, password: e.target.value });
+                  if (createErrors.adminPassword) setCreateErrors({ ...createErrors, adminPassword: null });
+                }}
+                error={createErrors.adminPassword}
+                endElement={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-1 rounded text-slate-400 hover:text-slate-600 focus:outline-none transition-colors cursor-pointer"
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                }
+              />
+            </div>
+          </div>
+
+          {/* Automatic Free Trial & Student Limit Banner */}
+          <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl flex items-start gap-2.5 text-xs text-amber-900">
+            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-amber-950">Free Trial Plan Automatically Applied</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200/80 text-amber-900 border border-amber-300/60">
+                  {trialPlan?.maxStudentLimit ? `${trialPlan.maxStudentLimit} Students Limit` : 'Dynamic Trial Limit'}
+                </span>
+              </div>
+              <p className="text-amber-800/90 text-[11px] mt-0.5">
+                New school will automatically receive a 30-Day Free Trial with an active student capacity of {trialStudentLimit} students as per the Trial plan. You can optionally override this limit below.
+              </p>
+            </div>
+          </div>
 
           <Input
-            label="Initial Owner Password *"
-            type="password"
-            required
-            minLength={8}
-            maxLength={100}
-            placeholder="Password"
-            value={createForm.adminPassword}
-            onChange={(e) => {
-              setCreateForm({ ...createForm, adminPassword: e.target.value, password: e.target.value });
-              if (createErrors.adminPassword) setCreateErrors({ ...createErrors, adminPassword: null });
-            }}
-            error={createErrors.adminPassword}
+            label={`Custom Student Limit (Optional - defaults to Trial plan: ${trialStudentLimit})`}
+            type="number"
+            min={1}
+            max={50000}
+            placeholder={`Auto: ${trialStudentLimit} students`}
+            value={createForm.maxStudentLimit}
+            onChange={(e) => setCreateForm({ ...createForm, maxStudentLimit: e.target.value })}
+            helperText="Leave empty to automatically apply the active Trial plan student limit."
           />
 
-          <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
             <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => {
                 setIsCreateModalOpen(false);
                 setCreateErrors({});
+                setShowPassword(false);
               }}
               disabled={submitting}
             >
               Cancel
             </Button>
-            <Button type="submit" variant="primary" size="sm" loading={submitting} loadingText="Registering...">
+            <Button
+              type="submit"
+              variant="primary"
+              size="sm"
+              loading={submitting}
+              loadingText="Registering..."
+            >
               Register School
             </Button>
           </div>
@@ -644,7 +808,7 @@ export const SuperAdminSchoolsPage = () => {
           />
 
           <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <Button variant="outline" size="sm" onClick={() => setIsSuspendModalOpen(false)} disabled={submitting}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setIsSuspendModalOpen(false)} disabled={submitting}>
               Cancel
             </Button>
             <Button type="submit" variant="danger" size="sm" loading={submitting} loadingText="Suspending...">
@@ -666,7 +830,7 @@ export const SuperAdminSchoolsPage = () => {
           </p>
 
           <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <Button variant="outline" size="sm" onClick={() => setIsActivateModalOpen(false)} disabled={submitting}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setIsActivateModalOpen(false)} disabled={submitting}>
               Cancel
             </Button>
             <Button

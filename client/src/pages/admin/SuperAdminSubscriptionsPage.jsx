@@ -4,6 +4,7 @@ import { Search, RefreshCw, Plus, Calendar, AlertTriangle, Edit2, Printer } from
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { adminService } from '../../services/adminService.js';
 import { formatDate } from '../../utils/formatters.js';
+import { calculateMonthlyPrice } from '../../utils/subscriptionUtils.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
 import { Button } from '../../components/ui/Button.jsx';
@@ -745,11 +746,14 @@ export const SuperAdminSubscriptionsPage = () => {
                 }}
               >
                 <option value="">-- Custom / Enterprise Plan --</option>
-                {plans.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({formatCurrency(p.finalPrice)})
-                  </option>
-                ))}
+                {plans.map((p) => {
+                  const mPrice = calculateMonthlyPrice(p);
+                  return (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({formatCurrency(p.finalPrice)}{mPrice > 0 ? ` - ${formatCurrency(mPrice)}/mo` : ''})
+                    </option>
+                  );
+                })}
               </Select>
 
               <Select

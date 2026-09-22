@@ -50,6 +50,7 @@ export const registerSchoolSchema = {
         }),
       acceptedTermsVersion: z.string().optional(),
       privacyPolicyVersion: z.string().optional(),
+      maxStudentLimit: z.union([z.number().int().positive(), z.string(), z.null()]).optional(),
     })
     .refine((data) => data.password === data.confirmPassword, {
       message: 'Passwords do not match',
@@ -121,6 +122,7 @@ export const createSchoolSchema = {
         .min(8, 'Password must be at least 8 characters long')
         .max(100, 'Password must not exceed 100 characters')
         .optional(),
+      maxStudentLimit: z.union([z.number().int().positive(), z.string(), z.null()]).optional(),
     })
     .refine((data) => Boolean(data.name || data.schoolName), {
       message: 'School name is required',

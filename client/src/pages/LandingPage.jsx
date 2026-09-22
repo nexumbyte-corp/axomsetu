@@ -18,6 +18,7 @@ import {
 import { Button } from '../components/ui/Button.jsx';
 import { Drawer } from '../components/ui/Drawer.jsx';
 import { subscriptionService } from '../services/subscriptionService.js';
+import { calculateMonthlyPrice } from '../utils/subscriptionUtils.js';
 
 import { BRAND_CONFIG } from '../config/brandConfig.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
@@ -798,6 +799,11 @@ export const LandingPage = () => {
                                   ? `${plan.discountPercentage}% OFF`
                                   : `Save ${formatCurrency(plan.discountAmount)}`}
                               </span>
+                            </div>
+                          )}
+                          {!isEnterprise && !isTrial && plan.finalPrice > 0 && (
+                            <div className="mt-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50/70 border border-indigo-100 px-2 py-0.5 rounded inline-block">
+                              {formatCurrency(calculateMonthlyPrice(plan))} / month
                             </div>
                           )}
                         </div>

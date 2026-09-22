@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Building2, Plus, ArrowLeft, Key, Edit2, AlertTriangle, Printer, Trash2 } from 'lucide-react';
 import { adminService } from '../../services/adminService.js';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
 import { formatDate } from '../../utils/formatters.js';
+import { calculateMonthlyPrice } from '../../utils/subscriptionUtils.js';
 import { Input } from '../../components/ui/Input.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
@@ -16,6 +17,7 @@ import { Modal } from '../../components/ui/Modal.jsx';
 import { HardDeleteSchoolModal } from '../../components/admin/HardDeleteSchoolModal.jsx';
 
 export const SchoolDetailsPage = () => {
+  const navigate = useNavigate();
   const { schoolId } = useParams();
   const [searchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') || 'info';
@@ -537,7 +539,7 @@ export const SchoolDetailsPage = () => {
                       variant="outline"
                       size="sm"
                       icon={Printer}
-                      onClick={() => _navigate(`/admin/subscriptions/${subscription.id}/invoice`)}
+                      onClick={() => navigate(`/admin/subscriptions/${subscription.id}/invoice`)}
                       title="View & Print Official B2B Business Invoice"
                     >
                       View Invoice
@@ -579,32 +581,32 @@ export const SchoolDetailsPage = () => {
 
             {subscription ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                <div className="p-3.5 bg-indigo-50/50 rounded-lg border border-indigo-100">
-                  <span className="text-indigo-700 font-bold block uppercase text-[10px]">Current Plan</span>
+                <div className="p-3.5 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                  <span className="text-indigo-700 font-semibold block uppercase text-[10px]">Current Plan</span>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-lg font-extrabold text-slate-900 block">
+                    <span className="text-base font-bold text-slate-900 block">
                       {subscription.planNameSnapshot || subscription.plan?.name}
                     </span>
                     {(subscription.isEnterpriseSnapshot || subscription.plan?.isEnterprise) && (
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-purple-100 text-purple-800 border border-purple-200">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
                         ENTERPRISE
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80">
                   <span className="text-slate-400 font-semibold block text-[10px] uppercase">Student Capacity Limit</span>
-                  <span className="text-lg font-bold text-slate-900 font-mono mt-1 block">
+                  <span className="text-base font-semibold text-slate-900 mt-1 block">
                     {subscription.maxStudentLimitSnapshot ? (
-                      <span className="text-indigo-700 font-extrabold">{subscription.maxStudentLimitSnapshot} Active Students</span>
+                      <span>{Number(subscription.maxStudentLimitSnapshot).toLocaleString('en-IN')} Active Students</span>
                     ) : (
                       'Unlimited Students'
                     )}
                   </span>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80">
                   <span className="text-slate-400 font-semibold block text-[10px] uppercase">Subscription Status</span>
                   <span className="mt-1.5 block">
                     <Badge variant={subscription.status === 'ACTIVE' ? 'success' : subscription.status === 'SUSPENDED' ? 'warning' : 'danger'}>
@@ -613,30 +615,30 @@ export const SchoolDetailsPage = () => {
                   </span>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80">
                   <span className="text-slate-400 font-semibold block text-[10px] uppercase">Subscription Amount</span>
-                  <span className="text-lg font-bold text-emerald-600 font-mono mt-1 block">
+                  <span className="text-base font-bold text-slate-900 mt-1 block">
                     {formatCurrency(subscription.finalPriceSnapshot ?? subscription.plan?.finalPrice ?? 0)}
                   </span>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80">
                   <span className="text-slate-400 font-semibold block text-[10px] uppercase">Start Date</span>
-                  <span className="font-bold text-slate-900 font-mono mt-1 block">
+                  <span className="font-semibold text-slate-800 mt-1 block">
                     {formatDate(subscription.startDate)}
                   </span>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80">
                   <span className="text-slate-400 font-semibold block text-[10px] uppercase">Expiry Date</span>
-                  <span className="font-bold text-slate-900 font-mono mt-1 block">
+                  <span className="font-semibold text-slate-800 mt-1 block">
                     {formatDate(subscription.endDate, 'N/A (Expired)')}
                   </span>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 sm:col-span-2">
+                <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80 sm:col-span-2">
                   <span className="text-slate-400 font-semibold block text-[10px] uppercase">Days Remaining</span>
-                  <span className={`text-lg font-bold font-mono mt-1 block ${daysRemaining !== null && daysRemaining <= 7 ? 'text-rose-600' : 'text-slate-900'}`}>
+                  <span className={`text-base font-semibold mt-1 block ${daysRemaining !== null && daysRemaining <= 7 ? 'text-rose-600' : 'text-slate-900'}`}>
                     {daysRemaining !== null ? `${daysRemaining} days remaining` : '0 days'}
                   </span>
                 </div>
@@ -664,8 +666,8 @@ export const SchoolDetailsPage = () => {
                   {subscriptionsHistory.map((sub) => (
                     <tr key={sub.id} className="hover:bg-slate-50/50">
                       <td className="py-2.5 font-bold text-slate-900">{sub.planNameSnapshot || sub.plan?.name}</td>
-                      <td className="py-2.5 font-mono text-slate-600">{formatDate(sub.startDate)}</td>
-                      <td className="py-2.5 font-mono text-slate-600">
+                      <td className="py-2.5 text-slate-600">{formatDate(sub.startDate)}</td>
+                      <td className="py-2.5 text-slate-600">
                         {formatDate(sub.endDate, 'N/A (Expired)')}
                       </td>
                       <td className="py-2.5">
@@ -676,7 +678,7 @@ export const SchoolDetailsPage = () => {
                           variant="ghost"
                           size="sm"
                           icon={Printer}
-                          onClick={() => _navigate(`/admin/subscriptions/${sub.id}/invoice`)}
+                          onClick={() => navigate(`/admin/subscriptions/${sub.id}/invoice`)}
                           title="View & Print Subscription Invoice"
                         />
                       </td>
@@ -1033,11 +1035,14 @@ export const SchoolDetailsPage = () => {
                 }}
               >
                 <option value="">-- Custom / Enterprise Plan --</option>
-                {assignPlans.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({formatCurrency(p.finalPrice)})
-                  </option>
-                ))}
+                {assignPlans.map((p) => {
+                  const mPrice = calculateMonthlyPrice(p);
+                  return (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({formatCurrency(p.finalPrice)}{mPrice > 0 ? ` - ${formatCurrency(mPrice)}/mo` : ''})
+                    </option>
+                  );
+                })}
               </Select>
 
               <Select
@@ -1184,7 +1189,7 @@ export const SchoolDetailsPage = () => {
         onClose={() => setIsHardDeleteModalOpen(false)}
         school={school}
         onSuccess={() => {
-          _navigate('/admin/schools');
+          navigate('/admin/schools');
         }}
       />
     </div>
