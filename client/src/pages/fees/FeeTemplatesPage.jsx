@@ -70,6 +70,7 @@ export const FeeTemplatesPage = () => {
     heads: [],
   });
   const [formError, setFormError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   // Delete state
   const [deletingTemplate, setDeletingTemplate] = useState(null);
@@ -193,12 +194,90 @@ export const FeeTemplatesPage = () => {
     toast.success(`Fee heads copied from '${source.class?.name}'. Modify amounts if needed.`);
   };
 
+  const handleAddHeadRow = () => {
+    const unusedType = feeTypes.find(
+      (ft) => !formData.heads.some((h) => h.feeTypeId === ft.id)
+    );
+    const feeTypeId = unusedType ? unusedType.id : feeTypes[0]?.id || '';
+    setFormData((prev) => ({
+      ...prev,
+      heads: [...prev.heads, { feeTypeId, amount: 0, isActive: true }],
+    }));
+  };
+
+  const handleRemoveHeadRow = (index) => {
+    setFormData((prev) => {
+      const updated = [...prev.heads];
+      updated.splice(index, 1);
+      return { ...prev, heads: updated };
+    });
+  };
+
   const handleHeadChange = (index, field, value) => {
     setFormData((prev) => {
       const updated = [...prev.heads];
       updated[index] = { ...updated[index], [field]: value };
       return { ...prev, heads: updated };
     });
+  };
+
+  const handleSubmit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setFormError('');
+
+    if (!formData.classId || !formData.mediumId) {
+      setFormError('Class and Medium are required');
+      return;
+    }
+
+    if (selectedClassObj?.hasStream && !formData.streamId) {
+      setFormError(`Stream is required for class '${selectedClassObj.name}'`);
+      return;
+    }
+
+    if (formData.heads.length === 0) {
+      setFormError('At least one fee head is required');
+      return;
+    }
+
+    const headTypeIds = formData.heads.map((h) => h.feeTypeId);
+    if (new Set(headTypeIds).size !== headTypeIds.length) {
+      setFormError('Duplicate fee items are not allowed within the same fee template');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        academicYearId: formData.academicYearId || selectedYearId,
+        classId: formData.classId,
+        mediumId: formData.mediumId,
+        streamId: selectedClassObj?.hasStream ? formData.streamId : null,
+        isActive: formData.isActive,
+        heads: formData.heads.map((h) => ({
+          feeTypeId: h.feeTypeId,
+          amount: parseFloat(h.amount) || 0,
+          isActive: h.isActive ?? true,
+        })),
+      };
+
+      if (editingTemplate) {
+        await feeService.updateFeeStructure(editingTemplate.id, payload);
+        toast.success('Fee template updated successfully');
+      } else {
+        await feeService.createFeeStructure(payload);
+        toast.success('Fee template created successfully');
+      }
+
+      setIsDrawerOpen(false);
+      fetchTemplates();
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to save fee template';
+      setFormError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDeleteStructure = async () => {
@@ -248,6 +327,14 @@ export const FeeTemplatesPage = () => {
     setIsBulkCopyModalOpen(true);
   };
 
+  const handleSourceYearChange = (newSourceId) => {
+    setBulkSourceYearId(newSourceId);
+    if (newSourceId === bulkTargetYearId) {
+      const other = academicYears.find((y) => y.id !== newSourceId);
+      if (other) setBulkTargetYearId(other.id);
+    }
+  };
+
   useEffect(() => {
     if (isBulkCopyModalOpen && bulkSourceYearId) {
       const fetchSourceTemplates = async () => {
@@ -266,6 +353,15 @@ export const FeeTemplatesPage = () => {
             const existsInTarget = currentClassMediumMap.has(key);
             return {
               ...st,
+              className: st.class?.name || '',
+              mediumName: st.medium?.name || '',
+              streamName: st.stream?.name || '',
+              heads: (st.heads || []).map((h) => ({
+                feeTypeId: h.feeTypeId,
+                feeTypeName: h.feeType?.name || '',
+                amount: parseFloat(h.amount) || 0,
+                isActive: h.isActive ?? true,
+              })),
               selected: !existsInTarget,
               existsInTarget,
             };
@@ -282,7 +378,46 @@ export const FeeTemplatesPage = () => {
     }
   }, [isBulkCopyModalOpen, bulkSourceYearId, templates]);
 
+  const handleToggleStageSelect = (idx) => {
+    setStagedTemplates((prev) => {
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], selected: !copy[idx].selected };
+      return copy;
+    });
+  };
 
+  const handleStageHeadChange = (templateIdx, headIdx, field, value) => {
+    setStagedTemplates((prev) => {
+      const copy = [...prev];
+      const heads = [...copy[templateIdx].heads];
+      heads[headIdx] = { ...heads[headIdx], [field]: value };
+      copy[templateIdx] = { ...copy[templateIdx], heads };
+      return copy;
+    });
+  };
+
+  const handleAddStageHeadRow = (templateIdx) => {
+    setStagedTemplates((prev) => {
+      const copy = [...prev];
+      const unusedType = feeTypes.find(
+        (ft) => !(copy[templateIdx].heads || []).some((h) => h.feeTypeId === ft.id)
+      );
+      const feeTypeId = unusedType ? unusedType.id : feeTypes[0]?.id || '';
+      const heads = [...(copy[templateIdx].heads || []), { feeTypeId, amount: 0, isActive: true }];
+      copy[templateIdx] = { ...copy[templateIdx], heads };
+      return copy;
+    });
+  };
+
+  const handleRemoveStageHeadRow = (templateIdx, headIdx) => {
+    setStagedTemplates((prev) => {
+      const copy = [...prev];
+      const heads = [...copy[templateIdx].heads];
+      heads.splice(headIdx, 1);
+      copy[templateIdx] = { ...copy[templateIdx], heads };
+      return copy;
+    });
+  };
 
   const handleExecuteBulkCopy = async () => {
     const selectedToSave = stagedTemplates.filter((t) => t.selected);
@@ -291,11 +426,29 @@ export const FeeTemplatesPage = () => {
       return;
     }
 
+    if (!bulkTargetYearId) {
+      setBulkError('Please select a target academic year.');
+      return;
+    }
+
+    // Validate heads
+    for (const item of selectedToSave) {
+      if (!item.heads || item.heads.length === 0) {
+        setBulkError(`Class '${item.className || item.class?.name}' must have at least one fee head.`);
+        return;
+      }
+      const typeIds = item.heads.map((h) => h.feeTypeId);
+      if (new Set(typeIds).size !== typeIds.length) {
+        setBulkError(`Class '${item.className || item.class?.name}' has duplicate fee items.`);
+        return;
+      }
+    }
+
     setBulkSaving(true);
     setBulkError('');
     try {
       const payload = {
-        academicYearId: bulkTargetYearId,
+        targetAcademicYearId: bulkTargetYearId,
         structures: selectedToSave.map((t) => ({
           classId: t.classId,
           mediumId: t.mediumId,
@@ -303,8 +456,8 @@ export const FeeTemplatesPage = () => {
           isActive: true,
           heads: (t.heads || []).map((h) => ({
             feeTypeId: h.feeTypeId,
-            amount: Number(h.amount),
-            isOptional: Boolean(h.isOptional),
+            amount: parseFloat(h.amount) || 0,
+            isActive: h.isActive ?? true,
           })),
         })),
       };
