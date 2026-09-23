@@ -12,9 +12,11 @@ import {
   RefreshCw,
   Sparkles,
   DoorOpen,
+  Edit2,
 } from 'lucide-react';
 import { hostelService } from '../../services/hostel.service.js';
 import { useAcademicYear } from '../../context/AcademicYearContext.jsx';
+import { usePermission } from '../../hooks/usePermission.js';
 import { Card } from '../../components/ui/Card.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
@@ -28,14 +30,18 @@ import { exportToCSV } from '../../utils/exportUtils.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { StudentDetailsCell } from '../../components/hostel/StudentDetailsCell.jsx';
 import { StudentPhotoModal } from '../../components/hostel/StudentPhotoModal.jsx';
+import { UpdateHostelAdmissionDateModal } from '../../components/hostel/UpdateHostelAdmissionDateModal.jsx';
 
 export const HostelReportsPage = () => {
   const { currentAcademicYear, academicYears } = useAcademicYear();
+  const { can } = usePermission();
 
   const [reportType, setReportType] = useState('residents'); // 'residents' | 'occupancy' | 'availability' | 'admissions' | 'transfers' | 'exits' | 'fees'
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
   const [selectedPhotoStudent, setSelectedPhotoStudent] = useState(null);
+  const [updateDateModalOpen, setUpdateDateModalOpen] = useState(false);
+  const [selectedResidentForDateUpdate, setSelectedResidentForDateUpdate] = useState(null);
 
   // Filters
   const [selectedAcademicYearId, setSelectedAcademicYearId] = useState('');
@@ -699,6 +705,7 @@ export const HostelReportsPage = () => {
                       <th className="px-4 py-2.5 text-left">Class & Section</th>
                       <th className="px-4 py-2.5 text-left">Hostel</th>
                       <th className="px-4 py-2.5 text-left">Room & Bed</th>
+                      {can('HOSTEL_ADMIT') && <th className="px-4 py-2.5 text-right">Actions</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
@@ -715,6 +722,31 @@ export const HostelReportsPage = () => {
                         <td className="px-4 py-2.5 text-indigo-600 font-bold">
                           Room {a.roomNumber || a.room?.roomNumber} ({a.bedNumber || a.bed?.bedNumber})
                         </td>
+                        {can('HOSTEL_ADMIT') && (
+                          <td className="px-4 py-2.5 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs text-indigo-600 hover:bg-indigo-50"
+                              onClick={() => {
+                                setSelectedResidentForDateUpdate({
+                                  id: a.id,
+                                  studentName: a.student?.name,
+                                  admissionNo: a.student?.admissionNo,
+                                  hostelName: a.hostelName || a.hostel?.name,
+                                  roomNumber: a.roomNumber || a.room?.roomNumber,
+                                  bedNumber: a.bedNumber || a.bed?.bedNumber,
+                                  startDate: a.startDate,
+                                  status: 'ACTIVE',
+                                });
+                                setUpdateDateModalOpen(true);
+                              }}
+                            >
+                              <Edit2 className="w-3.5 h-3.5 mr-1" />
+                              Edit Date
+                            </Button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -893,6 +925,14 @@ export const HostelReportsPage = () => {
         isOpen={Boolean(selectedPhotoStudent)}
         onClose={() => setSelectedPhotoStudent(null)}
         student={selectedPhotoStudent}
+      />
+
+      {/* ── UPDATE HOSTEL ADMISSION DATE MODAL ── */}
+      <UpdateHostelAdmissionDateModal
+        isOpen={updateDateModalOpen}
+        onClose={() => setUpdateDateModalOpen(false)}
+        resident={selectedResidentForDateUpdate}
+        onSuccess={fetchReport}
       />
     </div>
   );

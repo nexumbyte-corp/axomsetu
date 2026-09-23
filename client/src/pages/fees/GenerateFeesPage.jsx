@@ -14,7 +14,7 @@ import { Skeleton } from '../../components/ui/Skeleton.jsx';
 import { EmptyState } from '../../components/ui/EmptyState.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { SearchableStudentSelect } from '../../components/fees/SearchableStudentSelect.jsx';
-import { getAcademicMonthOptions } from '../../utils/formatters.js';
+import { getAcademicMonthOptions, formatDate } from '../../utils/formatters.js';
 
 export const GenerateFeesPage = () => {
   const navigate = useNavigate();
@@ -27,6 +27,28 @@ export const GenerateFeesPage = () => {
       'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
     ];
     return MONTH_NAMES[new Date().getMonth()];
+  };
+
+  const isStudentAdmissionAfterBillingMonth = (student, month, year) => {
+    if (!student?.admissionDate || !month || !year?.startDate) return false;
+    const MONTH_INDEX = {
+      JANUARY: 0, FEBRUARY: 1, MARCH: 2, APRIL: 3, MAY: 4, JUNE: 5,
+      JULY: 6, AUGUST: 7, SEPTEMBER: 8, OCTOBER: 9, NOVEMBER: 10, DECEMBER: 11
+    };
+    const d = new Date(student.admissionDate);
+    if (isNaN(d.getTime())) return false;
+
+    const admYear = d.getFullYear();
+    const admMonth = d.getMonth();
+    const admKey = admYear * 12 + admMonth;
+
+    const startYear = new Date(year.startDate).getFullYear();
+    const startMonth = new Date(year.startDate).getMonth();
+    const targetMonthIdx = MONTH_INDEX[month] ?? 3;
+    const targetYear = targetMonthIdx >= startMonth ? startYear : startYear + 1;
+    const targetKey = targetYear * 12 + targetMonthIdx;
+
+    return admKey > targetKey;
   };
 
   // Wizard Step: 1 = Selection, 2 = Review Fee Sheet, 3 = Preview, 4 = Success
@@ -113,13 +135,22 @@ export const GenerateFeesPage = () => {
     if (generationMode === 'BY_STUDENT' && selectedYearId) {
       const loadStudents = async () => {
         try {
-          const res = await studentService.getStudents({ academicYearId: selectedYearId, limit: 100 });
+          const res = await studentService.getStudents({ academicYearId: selectedYearId, limit: 300 });
           const list = Array.isArray(res.data) ? res.data : (res.data?.data || res || []);
-          setStudentsList(list);
+          setStudentsList((prev) => {
+            // Keep any already selected student if not present in the new list
+            if (selectedStudentId) {
+              const current = prev.find((s) => s.id === selectedStudentId);
+              if (current && !list.some((s) => s.id === selectedStudentId)) {
+                return [current, ...list];
+              }
+            }
+            return list;
+          });
           if (list.length > 0) {
-            setSelectedStudentId(list[0].id);
+            setSelectedStudentId((prev) => (prev && list.some((s) => s.id === prev) ? prev : (prev || list[0].id)));
           } else {
-            setSelectedStudentId('');
+            setSelectedStudentId((prev) => prev || '');
           }
         } catch {
           toast.error('Failed to load students list');
@@ -258,7 +289,7 @@ export const GenerateFeesPage = () => {
         let activeEnr = selectedStudent?.enrollment;
 
         if (!activeEnr) {
-          const studentRes = await studentService.getStudent(selectedStudentId);
+          const studentRes = await studentService.getStudent(selectedStudentId, selectedYearId);
           studentObj = studentRes.data || studentRes;
           activeEnr = studentObj?.enrollment || studentObj?.enrollments?.find(
             (e) => (e.academicYearId === selectedYearId || e.academicYear?.id === selectedYearId) && e.status === 'ACTIVE'
@@ -272,8 +303,10 @@ export const GenerateFeesPage = () => {
         }
 
         setSelectedStudentInfo({
+          id: studentObj.id,
           name: studentObj.name,
           admissionNo: studentObj.admissionNo,
+          admissionDate: studentObj.admissionDate,
           className: activeEnr.class?.name,
           mediumName: activeEnr.medium?.name,
           streamName: activeEnr.stream?.name,
@@ -321,7 +354,11 @@ export const GenerateFeesPage = () => {
       toast.error('Please select a Class');
       return;
     }
-    if (generationMode === 'BY_STUDENT' && selectedStudentId) {
+    if (generationMode === 'BY_STUDENT') {
+      if (!selectedStudentId) {
+        toast.error('Please select a student');
+        return;
+      }
       const selectedStudent = studentsList.find((s) => s.id === selectedStudentId);
       if (selectedStudent && selectedStudent.status !== 'ACTIVE') {
         toast.error(`This student is not active (${selectedStudent.status}). Fee generation is not allowed.`);
@@ -674,12 +711,36 @@ export const GenerateFeesPage = () => {
           )}
 
           {generationMode === 'BY_STUDENT' && (
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
               <SearchableStudentSelect
                 students={studentsList}
                 selectedStudentId={selectedStudentId}
-                onSelectStudent={(st) => setSelectedStudentId(st?.id || '')}
+                academicYearId={selectedYearId}
+                onSelectStudent={(st) => {
+                  setSelectedStudentId(st?.id || '');
+                  if (st) {
+                    setStudentsList((prev) => (prev.some((s) => s.id === st.id) ? prev : [st, ...prev]));
+                  }
+                }}
               />
+
+              {(() => {
+                const sel = studentsList.find((s) => s.id === selectedStudentId);
+                if (sel && isStudentAdmissionAfterBillingMonth(sel, selectedMonth, selectedYear)) {
+                  return (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2.5 animate-in fade-in">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold">Admission Date is After Selected Month ({selectedMonth})</p>
+                        <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
+                          Student <strong>{sel.name}</strong> was admitted on <strong>{formatDate(sel.admissionDate)}</strong>. Monthly fee charges prior to this admission date will be automatically skipped during fee generation.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
           )}
 

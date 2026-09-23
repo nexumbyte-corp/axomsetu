@@ -227,6 +227,18 @@ export const admitStudent = async (req, res, next) => {
   }
 };
 
+export const updateHostelAdmissionDate = async (req, res, next) => {
+  try {
+    const schoolId = getSchoolId(req);
+    const payload = schemas.updateHostelAdmissionDateSchema.parse(req.body);
+    const data = await hostelService.updateHostelAdmissionDate(schoolId, req.params.id, payload, getActorId(req));
+    res.status(200).json({ success: true, message: 'Hostel admission date updated successfully', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 // Residents Directory & Details
 export const listResidents = async (req, res, next) => {
   try {

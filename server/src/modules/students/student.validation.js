@@ -121,6 +121,11 @@ export const updateStudentStatusSchema = z.object({
   }),
 });
 
+export const updateStudentAdmissionDateSchema = z.object({
+  admissionDate: z.string({ required_error: 'Admission date is required' }).min(1, 'Admission date cannot be empty'),
+  reason: z.string().trim().max(300, 'Reason must not exceed 300 characters').optional().nullable(),
+});
+
 export const updateEnrollmentSchema = z.object({
   classId: z.string({ required_error: 'Class ID is required' }).uuid('Invalid Class ID'),
   sectionId: z.string().uuid('Invalid Section ID').optional().nullable(),

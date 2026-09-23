@@ -625,6 +625,7 @@ export const listStudents = async (schoolId, query) => {
             address: true,
             photoUrl: true,
             status: true,
+            admissionDate: true,
             createdAt: true,
             activeHostelEnrollments: {
               where: { status: 'ACTIVE' },
@@ -682,6 +683,7 @@ export const listStudents = async (schoolId, query) => {
       address: e.student.address,
       photoUrl: e.student.photoUrl,
       status: e.student.status,
+      admissionDate: e.student.admissionDate,
       pendingFee,
       createdAt: e.student.createdAt,
       hostel: activeHostel
@@ -743,6 +745,11 @@ export const getStudentById = async (schoolId, studentId, targetAcademicYearId =
           medium: { select: { id: true, name: true } },
           stream: { select: { id: true, name: true } },
         },
+      },
+      transferHistories: {
+        orderBy: { transferDate: 'asc' },
+        take: 1,
+        select: { transferDate: true },
       },
     },
   });
@@ -874,6 +881,7 @@ export const getStudentById = async (schoolId, studentId, targetAcademicYearId =
     id: student.id,
     admissionNo: student.admissionNo,
     admissionDate: student.admissionDate,
+    earliestTransferDate: student.transferHistories?.[0]?.transferDate || null,
     name: student.name,
     guardianName: student.guardianName,
     phone: student.phone,
@@ -884,6 +892,7 @@ export const getStudentById = async (schoolId, studentId, targetAcademicYearId =
     status: student.status,
     hostel: activeHostel
       ? {
+        id: activeHostel.id,
         enrolled: true,
         status: 'ACTIVE',
         hostelId: activeHostel.hostelId,
@@ -895,6 +904,7 @@ export const getStudentById = async (schoolId, studentId, targetAcademicYearId =
       }
       : exitedHostel
         ? {
+          id: exitedHostel.id,
           enrolled: false,
           status: 'EXITED',
           hostelId: exitedHostel.hostelId,
@@ -939,6 +949,99 @@ export const getStudentById = async (schoolId, studentId, targetAcademicYearId =
 
 
 /**
+ * Helper to validate business guardrails on student school admission date.
+ */
+export const validateStudentAdmissionDateConstraints = async (tx, studentId, newAdmissionDate) => {
+  if (isNaN(newAdmissionDate.getTime())) {
+    throw ApiError.badRequest('Invalid admission date provided');
+  }
+
+  // 1. Guardrail against mid-session class/medium/stream transfer date
+  const earliestTransfer = await tx.studentTransferHistory.findFirst({
+    where: { studentId },
+    orderBy: { transferDate: 'asc' },
+  });
+  if (earliestTransfer) {
+    const transferDate = new Date(earliestTransfer.transferDate);
+    transferDate.setHours(0, 0, 0, 0);
+    if (newAdmissionDate > transferDate) {
+      const formattedTransfer = transferDate.toISOString().split('T')[0];
+      throw ApiError.badRequest(`Admission date cannot be after the earliest mid-session transfer date (${formattedTransfer})`);
+    }
+  }
+
+  // 2. Guardrail against hostel admission date
+  const earliestHostel = await tx.hostelEnrollment.findFirst({
+    where: { studentId },
+    orderBy: { startDate: 'asc' },
+  });
+  if (earliestHostel) {
+    const hostelStart = new Date(earliestHostel.startDate);
+    hostelStart.setHours(0, 0, 0, 0);
+    if (newAdmissionDate > hostelStart) {
+      const formattedHostel = hostelStart.toISOString().split('T')[0];
+      throw ApiError.badRequest(`Admission date cannot be after the student's hostel admission date (${formattedHostel})`);
+    }
+  }
+};
+
+/**
+ * Dedicated service to update a student's school admission date with business guardrails and audit logging.
+ */
+export const updateStudentAdmissionDate = async (schoolId, studentId, payload, actorUserId) => {
+  const { admissionDate, reason } = payload;
+  const newAdmissionDate = new Date(admissionDate);
+  if (isNaN(newAdmissionDate.getTime())) {
+    throw ApiError.badRequest('Invalid admission date provided');
+  }
+  newAdmissionDate.setHours(0, 0, 0, 0);
+
+  return await prisma.$transaction(async (tx) => {
+    const student = await tx.student.findUnique({
+      where: { id: studentId },
+    });
+
+    if (!student || student.schoolId !== schoolId) {
+      throw ApiError.notFound('Student not found');
+    }
+
+    await validateStudentAdmissionDateConstraints(tx, studentId, newAdmissionDate);
+
+    const oldAdmissionDate = student.admissionDate;
+
+    const updatedStudent = await tx.student.update({
+      where: { id: studentId },
+      data: {
+        admissionDate: newAdmissionDate,
+      },
+      select: {
+        id: true,
+        admissionNo: true,
+        name: true,
+        admissionDate: true,
+        status: true,
+      },
+    });
+
+    if (actorUserId) {
+      await tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: actorUserId,
+          action: 'UPDATE_STUDENT_ADMISSION_DATE',
+          entityType: 'Student',
+          entityId: studentId,
+          oldValues: { admissionDate: oldAdmissionDate },
+          newValues: { admissionDate: newAdmissionDate, reason: reason || 'School admission date update' },
+        },
+      });
+    }
+
+    return updatedStudent;
+  });
+};
+
+/**
  * Update student master profile information (does NOT update academic enrollment details).
  */
 export const updateStudentProfile = async (schoolId, studentId, data, actorUserId) => {
@@ -958,6 +1061,8 @@ export const updateStudentProfile = async (schoolId, studentId, data, actorUserI
     } else {
       const parsedDate = new Date(data.admissionDate);
       if (!isNaN(parsedDate.getTime())) {
+        parsedDate.setHours(0, 0, 0, 0);
+        await validateStudentAdmissionDateConstraints(prisma, studentId, parsedDate);
         updateData.admissionDate = parsedDate;
       }
     }
@@ -1009,8 +1114,18 @@ export const updateStudentProfile = async (schoolId, studentId, data, actorUserI
       action: 'UPDATE_STUDENT',
       entityType: 'Student',
       entityId: studentId,
-      oldValues: { name: student.name, guardianName: student.guardianName, phone: student.phone },
-      newValues: { name: updatedStudent.name, guardianName: updatedStudent.guardianName, phone: updatedStudent.phone },
+      oldValues: {
+        name: student.name,
+        guardianName: student.guardianName,
+        phone: student.phone,
+        admissionDate: student.admissionDate,
+      },
+      newValues: {
+        name: updatedStudent.name,
+        guardianName: updatedStudent.guardianName,
+        phone: updatedStudent.phone,
+        admissionDate: updatedStudent.admissionDate,
+      },
     },
   });
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Users, Search, Eye, ArrowLeftRight, LogOut, UserPlus } from 'lucide-react';
+import { Users, Search, Eye, ArrowLeftRight, LogOut, UserPlus, Calendar, Edit2 } from 'lucide-react';
 import { hostelService } from '../../services/hostel.service.js';
 import { useAcademicYear } from '../../context/AcademicYearContext.jsx';
+import { usePermission } from '../../hooks/usePermission.js';
 import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { Select } from '../../components/ui/Select.jsx';
@@ -15,6 +16,7 @@ import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
 import { formatDate } from '../../utils/formatters.js';
 import { HostelTransferModal } from '../../components/hostel/HostelTransferModal.jsx';
 import { HostelExitModal } from '../../components/hostel/HostelExitModal.jsx';
+import { UpdateHostelAdmissionDateModal } from '../../components/hostel/UpdateHostelAdmissionDateModal.jsx';
 import { StudentDetailsCell } from '../../components/hostel/StudentDetailsCell.jsx';
 import { StudentPhotoModal } from '../../components/hostel/StudentPhotoModal.jsx';
 
@@ -22,6 +24,7 @@ export const HostelResidentsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentAcademicYear } = useAcademicYear();
+  const { can } = usePermission();
 
   const [loading, setLoading] = useState(true);
   const [residents, setResidents] = useState([]);
@@ -40,6 +43,7 @@ export const HostelResidentsPage = () => {
   // Modals
   const [transferModalOpen, setTransferModalOpen] = useState(false);
   const [exitModalOpen, setExitModalOpen] = useState(false);
+  const [updateDateModalOpen, setUpdateDateModalOpen] = useState(false);
 
   useEffect(() => {
     fetchHostels();
@@ -217,6 +221,21 @@ export const HostelResidentsPage = () => {
                       <Eye className="w-3.5 h-3.5 mr-1" />
                       Details
                     </Button>
+                    {can('HOSTEL_ADMIT') && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-slate-500 hover:text-indigo-600 hover:bg-slate-100"
+                        title="Edit Admission Date"
+                        onClick={() => {
+                          setSelectedResident(r);
+                          setUpdateDateModalOpen(true);
+                        }}
+                      >
+                        <Calendar className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                        Edit Date
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -262,9 +281,21 @@ export const HostelResidentsPage = () => {
                 </div>
                 <div>
                   <span className="block text-slate-500 text-[11px]">Hostel Start Date:</span>
-                  <span className="font-semibold text-slate-800 font-mono">
-                    {formatDate(selectedResident.startDate)}
-                  </span>
+                  <div className="flex items-center gap-1.5 pt-0.5">
+                    <span className="font-semibold text-slate-800 font-mono">
+                      {formatDate(selectedResident.startDate)}
+                    </span>
+                    {can('HOSTEL_ADMIT') && (
+                      <button
+                        type="button"
+                        onClick={() => setUpdateDateModalOpen(true)}
+                        className="text-indigo-600 hover:text-indigo-800 inline-flex items-center text-[10px] font-semibold hover:underline cursor-pointer"
+                        title="Edit Admission Date"
+                      >
+                        <Edit2 className="w-3 h-3 mr-0.5" /> Edit
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <span className="block text-slate-500 text-[11px]">Enrollment Status:</span>
@@ -292,35 +323,51 @@ export const HostelResidentsPage = () => {
             </div>
 
             {/* Quick Action Buttons embedded in Resident Details */}
-            {selectedResident.status === 'ACTIVE' && (
-              <div className="grid grid-cols-2 gap-2.5 pt-1">
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              {can('HOSTEL_ADMIT') && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setDrawerOpen(false);
-                    handleTriggerTransfer(selectedResident);
+                    setUpdateDateModalOpen(true);
                   }}
-                  className="bg-white hover:bg-slate-50 border-slate-300 text-indigo-700"
+                  className={`bg-white hover:bg-slate-50 border-slate-300 text-slate-700 ${selectedResident.status !== 'ACTIVE' ? 'col-span-2' : ''}`}
                 >
-                  <ArrowLeftRight className="w-3.5 h-3.5 mr-1.5" />
-                  Transfer Resident
+                  <Calendar className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
+                  Edit Admission Date
                 </Button>
+              )}
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setDrawerOpen(false);
-                    handleTriggerExit(selectedResident);
-                  }}
-                  className="bg-white hover:bg-rose-50 border-rose-200 text-rose-600"
-                >
-                  <LogOut className="w-3.5 h-3.5 mr-1.5" />
-                  Hostel Exit
-                </Button>
-              </div>
-            )}
+              {selectedResident.status === 'ACTIVE' && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      handleTriggerTransfer(selectedResident);
+                    }}
+                    className="bg-white hover:bg-slate-50 border-slate-300 text-indigo-700"
+                  >
+                    <ArrowLeftRight className="w-3.5 h-3.5 mr-1.5" />
+                    Transfer Resident
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      handleTriggerExit(selectedResident);
+                    }}
+                    className="bg-white hover:bg-rose-50 border-rose-200 text-rose-600 col-span-2"
+                  >
+                    <LogOut className="w-3.5 h-3.5 mr-1.5" />
+                    Hostel Exit
+                  </Button>
+                </>
+              )}
+            </div>
 
             {/* Transfer History Log if any */}
             {selectedResident.transferHistory?.length > 0 && (
@@ -356,6 +403,26 @@ export const HostelResidentsPage = () => {
         onClose={() => setExitModalOpen(false)}
         resident={selectedResident}
         onSuccess={fetchResidents}
+      />
+
+      <UpdateHostelAdmissionDateModal
+        isOpen={updateDateModalOpen}
+        onClose={() => setUpdateDateModalOpen(false)}
+        resident={selectedResident}
+        onSuccess={() => {
+          fetchResidents();
+          if (drawerOpen && selectedResident?.id) {
+            hostelService.getResidentDetails(selectedResident.id).then((res) => {
+              if (res.data) {
+                setSelectedResident((prev) => ({
+                  ...prev,
+                  ...res.data,
+                  startDate: res.data.startDate,
+                }));
+              }
+            }).catch(() => {});
+          }
+        }}
       />
 
       {/* ── STUDENT PHOTO PREVIEW MODAL ── */}

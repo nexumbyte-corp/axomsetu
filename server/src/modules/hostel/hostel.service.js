@@ -2040,6 +2040,90 @@ export const exitStudent = async (schoolId, payload, actorUserId) => {
 };
 
 // ==========================================
+// UPDATE HOSTEL ADMISSION DATE
+// ==========================================
+
+export const updateHostelAdmissionDate = async (schoolId, enrollmentId, payload, actorUserId) => {
+  const { startDate, reason } = payload;
+  const newStartDate = new Date(startDate);
+  if (isNaN(newStartDate.getTime())) {
+    throw ApiError.badRequest('Invalid hostel admission date provided');
+  }
+  newStartDate.setHours(0, 0, 0, 0);
+
+  return await prisma.$transaction(async (tx) => {
+    const enrollment = await tx.hostelEnrollment.findUnique({
+      where: { id: enrollmentId },
+      include: {
+        student: true,
+        hostel: true,
+        room: true,
+        bed: true,
+        transfers: {
+          orderBy: { transferDate: 'asc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!enrollment || enrollment.schoolId !== schoolId) {
+      throw ApiError.notFound('Hostel enrollment record not found');
+    }
+
+    // Guardrail against exit date if student has already exited
+    if (enrollment.endDate) {
+      const exitDate = new Date(enrollment.endDate);
+      exitDate.setHours(0, 0, 0, 0);
+      if (newStartDate > exitDate) {
+        const formattedExit = exitDate.toISOString().split('T')[0];
+        throw ApiError.badRequest(`Hostel admission date cannot be after the exit date (${formattedExit})`);
+      }
+    }
+
+    // Guardrail against first transfer date if student was transferred
+    if (enrollment.transfers && enrollment.transfers.length > 0) {
+      const firstTransferDate = new Date(enrollment.transfers[0].transferDate);
+      firstTransferDate.setHours(0, 0, 0, 0);
+      if (newStartDate > firstTransferDate) {
+        const formattedTransfer = firstTransferDate.toISOString().split('T')[0];
+        throw ApiError.badRequest(`Hostel admission date cannot be after the first transfer date (${formattedTransfer})`);
+      }
+    }
+
+    const oldStartDate = enrollment.startDate;
+
+    const updated = await tx.hostelEnrollment.update({
+      where: { id: enrollment.id },
+      data: {
+        startDate: newStartDate,
+      },
+      include: {
+        student: { select: { id: true, name: true, admissionNo: true } },
+        hostel: { select: { id: true, name: true } },
+        room: { select: { id: true, roomNumber: true } },
+        bed: { select: { id: true, bedNumber: true } },
+      },
+    });
+
+    if (actorUserId) {
+      await tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: actorUserId,
+          action: 'UPDATE_HOSTEL_ADMISSION_DATE',
+          entityType: 'HostelEnrollment',
+          entityId: enrollment.id,
+          oldValues: { startDate: oldStartDate },
+          newValues: { startDate: newStartDate, reason: reason || 'Hostel admission date update' },
+        },
+      });
+    }
+
+    return updated;
+  });
+};
+
+// ==========================================
 // HOSTEL REPORTS
 // ==========================================
 

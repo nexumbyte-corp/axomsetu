@@ -25,6 +25,11 @@ export const studentService = {
     return await api.patch(`/students/${studentId}`, data);
   },
 
+  // 4b. Update Student Admission Date
+  updateAdmissionDate: async (studentId, data) => {
+    return await api.patch(`/students/${studentId}/admission-date`, data);
+  },
+
   // 5. Update Student Status
   updateStudentStatus: async (studentId, status) => {
     return await api.patch(`/students/${studentId}/status`, { status });

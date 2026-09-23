@@ -35,6 +35,8 @@ router.get('/:studentId/outstanding', requirePermission(PERMISSIONS.FEES_VIEW), 
 // 4. Individual Student Master & Status Operations
 router.get('/:studentId', requirePermission(PERMISSIONS.STUDENTS_VIEW), studentController.getStudentDetails);
 router.patch('/:studentId', requirePermission(PERMISSIONS.STUDENTS_EDIT), studentController.updateStudentProfile);
+router.patch('/:studentId/admission-date', requirePermission(PERMISSIONS.STUDENTS_EDIT), studentController.updateStudentAdmissionDate);
+router.patch('/:studentId/date', requirePermission(PERMISSIONS.STUDENTS_EDIT), studentController.updateStudentAdmissionDate);
 router.patch('/:studentId/status', requirePermission(PERMISSIONS.STUDENTS_EDIT), studentController.updateStudentStatus);
 router.delete('/:studentId', requirePermission(PERMISSIONS.STUDENTS_DELETE), studentController.deleteStudentHard);
 

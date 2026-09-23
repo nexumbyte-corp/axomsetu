@@ -120,3 +120,9 @@ export const generateHostelFeesSchema = z.object({
   students: z.array(studentFeeItemSchema).max(500, 'Cannot generate fees for more than 500 students at once').optional().default([]),
 });
 
+export const updateHostelAdmissionDateSchema = z.object({
+  startDate: z.string().min(1, 'Hostel admission date is required'),
+  reason: z.string().trim().max(300, 'Reason must not exceed 300 characters').optional().nullable(),
+});
+
+

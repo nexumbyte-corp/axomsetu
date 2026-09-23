@@ -31,6 +31,8 @@ export const hostelService = {
 
   // Admission
   admitStudent: (data) => api.post('/hostel/admissions', data),
+  updateAdmissionDate: (id, data) => api.patch(`/hostel/admissions/${id}/date`, data),
+
 
   // Residents
   listResidents: (params) => api.get('/hostel/residents', { params }),

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, MoreVertical, Lock, Edit, Eye, Sparkles, UserCheck, UserX, Trash2, Receipt, Building } from 'lucide-react';
+import { Users, Plus, MoreVertical, Lock, Edit, Eye, Sparkles, UserCheck, UserX, Trash2, Receipt, Building, Calendar } from 'lucide-react';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
@@ -22,6 +22,7 @@ import { StudentFiltersDrawer } from '../../components/students/StudentFiltersDr
 import { IndividualPromotionModal } from '../../components/students/IndividualPromotionModal.jsx';
 import { EditEnrollmentModal } from '../../components/students/EditEnrollmentModal.jsx';
 import { PhotoPreviewModal } from '../../components/students/PhotoPreviewModal.jsx';
+import { UpdateStudentAdmissionDateModal } from '../../components/students/UpdateStudentAdmissionDateModal.jsx';
 
 const STUDENT_FILTERS_STORAGE_KEY = 'student_list_filters';
 
@@ -466,6 +467,17 @@ export const StudentsListPage = () => {
                           <DropdownItem icon={Edit} onClick={() => navigate(`/app/students/${item.id}/edit`)}>
                             Edit Student
                           </DropdownItem>
+                          {can('STUDENTS_EDIT') && (
+                            <DropdownItem
+                              icon={Calendar}
+                              onClick={() => {
+                                setSelectedStudentForAction(item);
+                                setActiveModal('EDIT_ADMISSION_DATE');
+                              }}
+                            >
+                              Edit Admission Date
+                            </DropdownItem>
+                          )}
                           <DropdownItem icon={Receipt} onClick={() => navigate(`/app/students/${item.id}/ledger`)}>
                             Manage Fees
                           </DropdownItem>
@@ -603,6 +615,17 @@ export const StudentsListPage = () => {
                         <DropdownItem icon={Edit} onClick={() => navigate(`/app/students/${item.id}/edit`)}>
                           Edit Student
                         </DropdownItem>
+                        {can('STUDENTS_EDIT') && (
+                          <DropdownItem
+                            icon={Calendar}
+                            onClick={() => {
+                              setSelectedStudentForAction(item);
+                              setActiveModal('EDIT_ADMISSION_DATE');
+                            }}
+                          >
+                            Edit Admission Date
+                          </DropdownItem>
+                        )}
                         <DropdownItem icon={Receipt} onClick={() => navigate(`/app/students/${item.id}/ledger`)}>
                           Manage Fees
                         </DropdownItem>
@@ -758,6 +781,24 @@ export const StudentsListPage = () => {
         name={previewPhoto?.name}
         admissionNo={previewPhoto?.admissionNo}
       />
+
+      {/* Update School Admission Date Modal */}
+      {activeModal === 'EDIT_ADMISSION_DATE' && selectedStudentForAction && (
+        <UpdateStudentAdmissionDateModal
+          isOpen={true}
+          onClose={() => {
+            setActiveModal(null);
+            setSelectedStudentForAction(null);
+          }}
+          student={{
+            ...selectedStudentForAction,
+            className: selectedStudentForAction.enrollment?.class?.name,
+            sectionName: selectedStudentForAction.enrollment?.section?.name,
+            academic: selectedStudentForAction.enrollment,
+          }}
+          onSuccess={fetchStudents}
+        />
+      )}
     </div>
   );
 };

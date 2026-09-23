@@ -35,6 +35,9 @@ router.post('/fees/generate', requirePermission('HOSTEL_SETUP'), hostelControlle
 
 // Admission
 router.post('/admissions', requirePermission('HOSTEL_ADMIT'), hostelController.admitStudent);
+router.patch('/admissions/:id/date', requirePermission('HOSTEL_ADMIT'), hostelController.updateHostelAdmissionDate);
+router.patch('/enrollments/:id/admission-date', requirePermission('HOSTEL_ADMIT'), hostelController.updateHostelAdmissionDate);
+
 
 // Residents Directory
 router.get('/residents', requirePermission('HOSTEL_VIEW'), hostelController.listResidents);

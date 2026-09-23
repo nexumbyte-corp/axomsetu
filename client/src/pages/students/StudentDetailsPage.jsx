@@ -24,8 +24,12 @@ import {
   CheckCircle2,
   DollarSign,
   ChevronRight,
+  Edit2,
+  Calendar,
 } from 'lucide-react';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
+import { UpdateHostelAdmissionDateModal } from '../../components/hostel/UpdateHostelAdmissionDateModal.jsx';
+import { UpdateStudentAdmissionDateModal } from '../../components/students/UpdateStudentAdmissionDateModal.jsx';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { usePermission } from '../../hooks/usePermission.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -98,6 +102,8 @@ export const StudentDetailsPage = () => {
   const [selectedEnrollmentForEdit, setSelectedEnrollmentForEdit] = useState(null);
   const [targetStatus, setTargetStatus] = useState(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [hostelDateModalOpen, setHostelDateModalOpen] = useState(false);
+  const [admissionDateModalOpen, setAdmissionDateModalOpen] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState(null);
 
   // 1. Load Academic Setup Options & School Profile
@@ -361,6 +367,15 @@ export const StudentDetailsPage = () => {
                   </>
                 )}
 
+                {can('STUDENTS_EDIT') && (
+                  <DropdownItem
+                    icon={Calendar}
+                    onClick={() => setAdmissionDateModalOpen(true)}
+                  >
+                    Edit Admission Date
+                  </DropdownItem>
+                )}
+
                 {student.status === 'ACTIVE' && (
                   <DropdownItem
                     icon={UserX}
@@ -586,7 +601,19 @@ export const StudentDetailsPage = () => {
                         )}
 
                         <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                          <span className="text-slate-400 font-bold uppercase text-[10px] block">Admission Date</span>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 font-bold uppercase text-[10px] block">Admission Date</span>
+                            {can('STUDENTS_EDIT') && (
+                              <button
+                                type="button"
+                                onClick={() => setAdmissionDateModalOpen(true)}
+                                className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors cursor-pointer"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                                Edit
+                              </button>
+                            )}
+                          </div>
                           <span className="font-semibold text-slate-800 text-xs mt-0.5 block">
                             {formatDate(student.admissionDate || student.createdAt)}
                           </span>
@@ -686,9 +713,23 @@ export const StudentDetailsPage = () => {
                         </div>
                       </div>
                       {student.hostel.startDate && (
-                        <div>
-                          <span className="text-slate-400 font-bold uppercase text-[10px] block">Hostel Admission Date</span>
-                          <span className="font-semibold text-slate-700">{formatDate(student.hostel.startDate)}</span>
+                        <div className="flex items-center justify-between pt-1">
+                          <div>
+                            <span className="text-slate-400 font-bold uppercase text-[10px] block">Hostel Admission Date</span>
+                            <span className="font-semibold text-slate-700">{formatDate(student.hostel.startDate)}</span>
+                          </div>
+                          {can('HOSTEL_ADMIT') && student.hostel?.id && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-[11px] text-purple-700 hover:bg-purple-100 font-medium"
+                              onClick={() => setHostelDateModalOpen(true)}
+                              title="Edit Hostel Admission Date"
+                            >
+                              <Edit2 className="w-3 h-3 mr-1" />
+                              Edit Date
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1180,6 +1221,37 @@ export const StudentDetailsPage = () => {
         photoUrl={previewPhoto}
         name={student?.name}
         admissionNo={student?.admissionNo}
+      />
+
+      {/* Update Hostel Admission Date Modal */}
+      {student?.hostel?.id && (
+        <UpdateHostelAdmissionDateModal
+          isOpen={hostelDateModalOpen}
+          onClose={() => setHostelDateModalOpen(false)}
+          resident={{
+            id: student.hostel.id,
+            studentName: student.name,
+            admissionNo: student.admissionNo,
+            hostelName: student.hostel.hostelName,
+            roomNumber: student.hostel.roomNumber,
+            bedNumber: student.hostel.bedNumber,
+            startDate: student.hostel.startDate,
+            endDate: student.hostel.endDate,
+            status: student.hostel.status,
+          }}
+          onSuccess={fetchStudentData}
+        />
+      )}
+
+      {/* Update Student Admission Date Modal */}
+      <UpdateStudentAdmissionDateModal
+        isOpen={admissionDateModalOpen}
+        onClose={() => setAdmissionDateModalOpen(false)}
+        student={{
+          ...student,
+          academic: currentAcademic,
+        }}
+        onSuccess={fetchStudentData}
       />
     </>
   );

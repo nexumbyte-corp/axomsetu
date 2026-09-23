@@ -9,6 +9,7 @@ import {
   promoteStudentSchema,
   transferStudentSchema,
   updateEnrollmentSchema,
+  updateStudentAdmissionDateSchema,
   updateStudentProfileSchema,
   updateStudentStatusSchema,
 } from './student.validation.js';
@@ -70,6 +71,22 @@ export const updateStudentProfile = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Student profile updated successfully',
+    data: result,
+  });
+});
+
+export const updateStudentAdmissionDate = asyncHandler(async (req, res) => {
+  const validatedBody = updateStudentAdmissionDateSchema.parse(req.body);
+  const result = await studentService.updateStudentAdmissionDate(
+    req.schoolId,
+    req.params.studentId,
+    validatedBody,
+    req.user?.id
+  );
+
+  res.status(200).json({
+    success: true,
+    message: 'Student admission date updated successfully',
     data: result,
   });
 });
