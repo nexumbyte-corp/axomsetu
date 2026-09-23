@@ -268,6 +268,7 @@ export const ReportsPage = () => {
       columns = [
         { key: 'admissionNo', label: 'Admission No' },
         { key: 'studentName', label: 'Student Name' },
+        { key: 'guardianName', label: 'Guardian Name' },
         { key: 'phone', label: 'Contact Phone' },
         { key: 'className', label: 'Class & Sec' },
         { key: 'mediumName', label: 'Medium' },
@@ -886,7 +887,7 @@ export const ReportsPage = () => {
           ) : (
             <Table minWidth="min-w-full">
               <TableHeader>
-                <TableRow className="bg-slate-100/90 text-slate-700 text-[10px] font-extrabold uppercase tracking-wider border-y border-slate-200 print:bg-slate-200 print:text-black">
+                <TableRow className="bg-slate-100/90 text-slate-700 text-[10px] font-extrabold uppercase tracking-wider border-y border-black print:bg-slate-200 print:text-black print:border-y print:border-black">
                   {/* TAB 1: STUDENT LIST COLUMNS */}
                   {activeTab === 'student-list' && (
                     <>
@@ -920,17 +921,17 @@ export const ReportsPage = () => {
                       <TableHead>Student Name & Adm No</TableHead>
                       <TableHead>Guardian & Phone</TableHead>
                       <TableHead>Class & Sec</TableHead>
-                      <TableHead className="text-right">Total Charged</TableHead>
-                      <TableHead className="text-right">Amount Paid</TableHead>
+                      <TableHead className="text-right print:hidden">Total Charged</TableHead>
+                      <TableHead className="text-right print:hidden">Amount Paid</TableHead>
                       <TableHead className="text-right">Outstanding Dues</TableHead>
                       <TableHead className="text-center">Dues Status</TableHead>
                     </>
                   )}
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="divide-y divide-black">
                 {reportData.map((row, idx) => (
-                  <TableRow key={row.id || row.studentId || idx} className="hover:bg-slate-50/80 transition-colors border-b border-slate-100 print:hover:bg-transparent">
+                  <TableRow key={row.id || row.studentId || idx} className="hover:bg-slate-50/80 transition-colors border-b border-black print:hover:bg-transparent print:border-b print:border-black">
                     {/* TAB 1: STUDENT LIST ROWS */}
                     {activeTab === 'student-list' && (
                       <>
@@ -1000,12 +1001,12 @@ export const ReportsPage = () => {
                           <div className="text-[10px] font-mono text-indigo-600 font-semibold print:text-black">{row.admissionNo}</div>
                         </TableCell>
                         <TableCell className="py-2 px-3">
-                          <div className="text-xs font-semibold text-slate-800">{row.studentName ? 'Guardian' : '—'}</div>
+                          <div className="text-xs font-semibold text-slate-800">{row.guardianName || '—'}</div>
                           <div className="text-[10px] font-mono text-slate-500">{row.phone || '—'}</div>
                         </TableCell>
                         <TableCell className="py-2 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
-                        <TableCell className="py-2 px-3 text-right font-mono text-slate-700 text-xs">{formatCurrency(row.totalCharged)}</TableCell>
-                        <TableCell className="py-2 px-3 text-right font-mono text-emerald-600 font-semibold text-xs">{formatCurrency(row.paidAmount)}</TableCell>
+                        <TableCell className="py-2 px-3 text-right font-mono text-slate-700 text-xs print:hidden">{formatCurrency(row.totalCharged)}</TableCell>
+                        <TableCell className="py-2 px-3 text-right font-mono text-emerald-600 font-semibold text-xs print:hidden">{formatCurrency(row.paidAmount)}</TableCell>
                         <TableCell className="py-2 px-3 text-right font-mono font-black text-rose-600 text-xs print:text-black">
                           {formatCurrency(row.balance)}
                         </TableCell>
@@ -1025,7 +1026,7 @@ export const ReportsPage = () => {
 
               {/* Table Footer Total Summary */}
               <tfoot>
-                <tr className="bg-slate-100/90 font-bold border-t-2 border-slate-300 text-slate-900 text-xs print:bg-slate-200">
+                <tr className="bg-slate-100/90 font-bold border-t border-b border-black text-slate-900 text-xs print:bg-slate-200 print:border-t print:border-b print:border-black">
                   {activeTab === 'student-list' && (
                     <td colSpan={6} className="py-2.5 px-3 text-right">
                       Total Filtered Enrolled Students: <span className="text-indigo-700 font-black text-xs">{reportData.length}</span>
@@ -1048,10 +1049,10 @@ export const ReportsPage = () => {
                       <td colSpan={4} className="py-2.5 px-3 text-right font-black uppercase text-[11px]">
                         Grand Totals:
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800 text-xs">
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800 text-xs print:hidden">
                         {formatCurrency(reportData.reduce((acc, r) => acc + (r.totalCharged || 0), 0))}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-xs">
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-xs print:hidden">
                         {formatCurrency(reportData.reduce((acc, r) => acc + (r.paidAmount || 0), 0))}
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono font-black text-rose-700 text-xs print:text-black">

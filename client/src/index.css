@@ -203,6 +203,34 @@
     box-shadow: none !important;
   }
 
+  #printable-report-area .table-responsive-wrapper {
+    overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  #printable-report-area table {
+    width: 100% !important;
+    min-width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  #printable-report-area thead th,
+  #printable-report-area thead tr {
+    border-bottom: 1px solid #000000 !important;
+  }
+
+  #printable-report-area tbody tr,
+  #printable-report-area tbody td {
+    border-bottom: 1px solid #000000 !important;
+  }
+
+  #printable-report-area tfoot tr,
+  #printable-report-area tfoot td {
+    border-top: 1px solid #000000 !important;
+    border-bottom: 1px solid #000000 !important;
+  }
+
   /* Printable Admit Cards Rules - Positioned to prevent layout shift & right border clipping */
   .printable-admit-cards-area {
     display: block !important;

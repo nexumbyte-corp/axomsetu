@@ -197,7 +197,7 @@ export const feeReportsService = {
     const charges = await prisma.studentFeeCharge.findMany({
       where: chargeWhere,
       include: {
-        student: { select: { id: true, name: true, admissionNo: true, phone: true } },
+        student: { select: { id: true, name: true, admissionNo: true, phone: true, guardianName: true } },
         feeType: { select: { name: true } },
         studentEnrollment: {
           include: {
@@ -230,6 +230,7 @@ export const feeReportsService = {
           studentId: sId,
           studentName: c.student?.name || '-',
           admissionNo: c.student?.admissionNo || '-',
+          guardianName: c.student?.guardianName || '-',
           phone: c.student?.phone || '-',
           className: fullClass,
           sectionName: secName || '-',
@@ -259,6 +260,7 @@ export const feeReportsService = {
         studentId: item.studentId,
         studentName: item.studentName,
         admissionNo: item.admissionNo,
+        guardianName: item.guardianName,
         phone: item.phone,
         className: item.className,
         sectionName: item.sectionName,
@@ -303,7 +305,7 @@ export const feeReportsService = {
 
     const student = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { id: true, name: true, admissionNo: true, phone: true },
+      select: { id: true, name: true, admissionNo: true, phone: true, guardianName: true },
     });
 
     const [charges, payments] = await Promise.all([
