@@ -45,6 +45,7 @@ export const createStudent = asyncHandler(async (req, res) => {
 export const listStudents = asyncHandler(async (req, res) => {
   const result = await studentService.listStudents(req.schoolId, req.query);
 
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.status(200).json({
     success: true,
     message: 'Students retrieved successfully',

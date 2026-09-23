@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, User, Upload, CheckCircle2, Trash2, Phone, ShieldCheck, Camera, X, Calendar } from 'lucide-react';
+import { ArrowLeft, Save, User, Upload, CheckCircle2, Trash2, Phone, ShieldCheck, Camera, X } from 'lucide-react';
 import { studentService } from '../../services/student.service.js';
 import { Button } from '../../components/ui/Button.jsx';
 import { Input } from '../../components/ui/Input.jsx';
@@ -15,7 +15,8 @@ import { PassportPhotoCropModal } from '../../components/students/PassportPhotoC
 import { CameraCaptureModal } from '../../components/students/CameraCaptureModal.jsx';
 import { StudentAvatar } from '../../components/students/StudentAvatar.jsx';
 import { StudentStatusBadge } from '../../components/students/StudentStatusBadge.jsx';
-import { UpdateStudentAdmissionDateModal } from '../../components/students/UpdateStudentAdmissionDateModal.jsx';
+import { useAcademicYear } from '../../hooks/useAcademicYear.js';
+import { formatDate, formatDateForInput } from '../../utils/formatters.js';
 import { getFormErrors } from '../../utils/errorUtils.js';
 
 const CASTE_OPTIONS = [
@@ -37,7 +38,6 @@ export const EditStudentProfilePage = () => {
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [dateModalOpen, setDateModalOpen] = useState(false);
   
   // Student Raw Record for comparison & Academic Summary
   const [studentRecord, setStudentRecord] = useState(null);
@@ -82,7 +82,7 @@ export const EditStudentProfilePage = () => {
           }
 
           const formattedAdmDate = s.admissionDate
-            ? new Date(s.admissionDate).toISOString().split('T')[0]
+            ? formatDateForInput(s.admissionDate)
             : '';
 
           setFormData({
@@ -164,6 +164,19 @@ export const EditStudentProfilePage = () => {
       newErrors.guardianName = 'Guardian name is required';
     }
 
+    // Admission Date validation: required and within academic year constraints
+    if (!formData.admissionDate) {
+      newErrors.admissionDate = 'Admission date is required';
+    } else {
+      if (minAdmissionDate && formData.admissionDate < minAdmissionDate) {
+        newErrors.admissionDate = `Back date before ${formatDate(minAdmissionDate)} is not allowed for ${activeAcademicYear?.name || 'this Academic Year'}`;
+      } else if (todayStr && formData.admissionDate > todayStr) {
+        newErrors.admissionDate = 'Future date is not allowed for admission date';
+      } else if (maxAdmDate && formData.admissionDate > maxAdmDate) {
+        newErrors.admissionDate = `Date after ${formatDate(maxAdmDate)} is not allowed (${maxReason})`;
+      }
+    }
+
     // Phone validation: mandatory 10 digits
     const trimmedPhone = formData.phone.trim();
     if (!trimmedPhone) {
@@ -224,22 +237,37 @@ export const EditStudentProfilePage = () => {
     );
   }
 
+  const { selectedYear, academicYears } = useAcademicYear();
+
+  const todayStr = formatDateForInput(new Date());
+
   const currentAcademic = studentRecord?.academic;
+  const activeAcademicYear = currentAcademic?.academicYear || selectedYear || academicYears?.find((y) => y.isCurrent) || null;
+
+  const minAdmissionDate = activeAcademicYear?.startDate
+    ? formatDateForInput(activeAcademicYear.startDate)
+    : `${new Date().getFullYear()}-04-01`;
 
   const earliestTransferDate = studentRecord?.earliestTransferDate
-    ? new Date(studentRecord.earliestTransferDate).toISOString().split('T')[0]
-    : '';
+    ? formatDateForInput(studentRecord.earliestTransferDate)
+    : (studentRecord?.transferHistory?.length > 0 ? formatDateForInput(studentRecord.transferHistory[0].transferDate) : '');
+
   const hostelStartDate = studentRecord?.hostel?.startDate
-    ? new Date(studentRecord.hostel.startDate).toISOString().split('T')[0]
+    ? formatDateForInput(studentRecord.hostel.startDate)
     : '';
-  let maxAdmDate = '';
-  if (earliestTransferDate && hostelStartDate) {
-    maxAdmDate = earliestTransferDate < hostelStartDate ? earliestTransferDate : hostelStartDate;
-  } else if (earliestTransferDate) {
-    maxAdmDate = earliestTransferDate;
-  } else if (hostelStartDate) {
-    maxAdmDate = hostelStartDate;
-  }
+
+  // Calculate most restrictive maximum date: capped at today (no future dates) and earlier events (transfer/hostel)
+  let maxAdmDate = todayStr;
+  let maxReason = 'Current Date';
+  const dateCandidates = [
+    { date: todayStr, reason: 'Current Date' },
+  ];
+  if (earliestTransferDate) dateCandidates.push({ date: earliestTransferDate, reason: 'Earliest Transfer Date' });
+  if (hostelStartDate) dateCandidates.push({ date: hostelStartDate, reason: 'Hostel Admission Date' });
+
+  dateCandidates.sort((a, b) => a.date.localeCompare(b.date));
+  maxAdmDate = dateCandidates[0].date;
+  maxReason = dateCandidates[0].reason;
 
   return (
     <div className="w-full space-y-5 pb-20 sm:pb-6">
@@ -578,20 +606,9 @@ export const EditStudentProfilePage = () => {
 
                   {/* Admission Date */}
                   <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-xs font-bold text-slate-700">
-                        Admission Date
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setDateModalOpen(true)}
-                        className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors cursor-pointer"
-                        title="Open Quick Edit Modal"
-                      >
-                        <Calendar className="w-3 h-3" />
-                        Quick Edit
-                      </button>
-                    </div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Admission Date <span className="text-rose-500">*</span>
+                    </label>
                     <DatePicker
                       value={formData.admissionDate}
                       onChange={(val) => {
@@ -599,15 +616,11 @@ export const EditStudentProfilePage = () => {
                         setFormData((prev) => ({ ...prev, admissionDate: dateStr || '' }));
                         if (errors.admissionDate) setErrors((prev) => ({ ...prev, admissionDate: null }));
                       }}
+                      minDate={minAdmissionDate || undefined}
                       maxDate={maxAdmDate || undefined}
                       error={errors.admissionDate}
                       placeholder="DD-MM-YYYY"
                     />
-                    {maxAdmDate && (
-                      <p className="text-[11px] text-amber-600 mt-1">
-                        Max allowable date: <strong>{maxAdmDate}</strong>
-                      </p>
-                    )}
                   </div>
                 </div>
 
@@ -742,30 +755,6 @@ export const EditStudentProfilePage = () => {
           </Button>
         </div>
       </form>
-
-      {/* Update Student Admission Date Modal */}
-      <UpdateStudentAdmissionDateModal
-        isOpen={dateModalOpen}
-        onClose={() => setDateModalOpen(false)}
-        student={{
-          ...studentRecord,
-          admissionDate: formData.admissionDate || studentRecord?.admissionDate,
-        }}
-        onSuccess={async () => {
-          try {
-            const res = await studentService.getStudent(studentId);
-            if (res.success && res.data) {
-              setStudentRecord(res.data);
-              if (res.data.admissionDate) {
-                const formatted = new Date(res.data.admissionDate).toISOString().split('T')[0];
-                setFormData((prev) => ({ ...prev, admissionDate: formatted }));
-              }
-            }
-          } catch (err) {
-            console.error('Failed refreshing student record:', err);
-          }
-        }}
-      />
     </div>
   );
 };

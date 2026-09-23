@@ -17,7 +17,10 @@ export const SubscriptionExpiryBanner = ({ thresholdDays = 7 }) => {
   if (!isExpiringSoon) return null;
 
   return (
-    <div className="bg-amber-500 text-white px-3 sm:px-6 py-2 text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-inner border-t border-amber-400/40 select-none">
+    <div
+      data-subscription-banner
+      className="print:hidden bg-amber-500 text-white px-3 sm:px-6 py-2 text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-inner border-t border-amber-400/40 select-none"
+    >
       <AlertTriangle className="w-4 h-4 shrink-0 text-amber-100 animate-pulse" />
       <div className="text-center sm:text-left flex flex-wrap items-center justify-center gap-1">
         <span>Your subscription is set to expire in {remainingDays} day(s). Renew now to avoid any interruption in service.</span>

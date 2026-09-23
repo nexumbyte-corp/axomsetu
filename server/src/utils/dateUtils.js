@@ -2,17 +2,35 @@
  * Indian Standard Time (IST: UTC+05:30) date & time utilities.
  * Ensures consistent timezone handling across all server modules, DB queries, and report aggregations.
  */
-
 const IST_TIMEZONE = 'Asia/Kolkata';
 
+const enCAFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: IST_TIMEZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+const enINPartsFormatter = new Intl.DateTimeFormat('en-IN', {
+  timeZone: IST_TIMEZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+});
+
 /**
- * Returns current Date object in IST timezone context.
+ * Safely parses any date input (string, number, or Date) into a valid Date object.
+ * Defaults to current Date if input is missing or invalid.
  * @param {Date|string|number} [date]
  * @returns {Date}
  */
 export const getISTDate = (date = new Date()) => {
   if (!date) return new Date();
-  const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
+  const d = date instanceof Date ? date : new Date(date);
   return isNaN(d.getTime()) ? new Date() : d;
 };
 
@@ -22,23 +40,11 @@ export const getISTDate = (date = new Date()) => {
  * @returns {{ year: number, month: number, day: number, hours: number, minutes: number, seconds: number }}
  */
 export const getISTDateParts = (date = new Date()) => {
-  const d = getISTDate(date);
-  const formatter = new Intl.DateTimeFormat('en-IN', {
-    timeZone: IST_TIMEZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
-
-  const parts = formatter.formatToParts(d);
+  const parts = enINPartsFormatter.formatToParts(getISTDate(date));
   const map = {};
-  parts.forEach((p) => {
-    map[p.type] = p.value;
-  });
+  for (const { type, value } of parts) {
+    map[type] = value;
+  }
 
   const hourVal = parseInt(map.hour, 10);
 
@@ -61,14 +67,7 @@ export const getISTDateString = (date = new Date()) => {
   if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date.trim())) {
     return date.trim();
   }
-  const d = getISTDate(date);
-  const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: IST_TIMEZONE,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-  return formatter.format(d);
+  return enCAFormatter.format(getISTDate(date));
 };
 
 /**
@@ -77,24 +76,12 @@ export const getISTDateString = (date = new Date()) => {
  * @returns {{ startOfDay: Date, endOfDay: Date, dateStr: string }}
  */
 export const getISTDayBounds = (date) => {
-  let dateStr;
-  if (!date) {
-    dateStr = getISTDateString();
-  } else if (typeof date === 'string') {
-    const trimmed = date.trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      dateStr = trimmed;
-    } else {
-      dateStr = getISTDateString(date);
-    }
-  } else {
-    dateStr = getISTDateString(date);
-  }
-
-  const startOfDay = new Date(`${dateStr}T00:00:00.000+05:30`);
-  const endOfDay = new Date(`${dateStr}T23:59:59.999+05:30`);
-
-  return { startOfDay, endOfDay, dateStr };
+  const dateStr = getISTDateString(date);
+  return {
+    startOfDay: new Date(`${dateStr}T00:00:00.000+05:30`),
+    endOfDay: new Date(`${dateStr}T23:59:59.999+05:30`),
+    dateStr,
+  };
 };
 
 /**
@@ -105,24 +92,25 @@ export const getISTDayBounds = (date) => {
  */
 export const getISTMonthBounds = (yearOrDate, month1Indexed) => {
   let year, month;
-  if (typeof yearOrDate === 'number' && typeof month1Indexed === 'number') {
-    year = yearOrDate;
-    month = month1Indexed;
+  if (yearOrDate !== undefined && month1Indexed !== undefined && !isNaN(Number(yearOrDate)) && !isNaN(Number(month1Indexed))) {
+    year = Number(yearOrDate);
+    month = Number(month1Indexed);
   } else {
-    const d = getISTDate(yearOrDate);
-    const dateParts = getISTDateParts(d);
-    year = dateParts.year;
-    month = dateParts.month;
+    const parts = getISTDateParts(yearOrDate);
+    year = parts.year;
+    month = parts.month;
   }
 
   const mStr = String(month).padStart(2, '0');
   const lastDayNum = new Date(year, month, 0).getDate();
   const lastDayStr = String(lastDayNum).padStart(2, '0');
 
-  const startOfMonth = new Date(`${year}-${mStr}-01T00:00:00.000+05:30`);
-  const endOfMonth = new Date(`${year}-${mStr}-${lastDayStr}T23:59:59.999+05:30`);
-
-  return { startOfMonth, endOfMonth, year, month };
+  return {
+    startOfMonth: new Date(`${year}-${mStr}-01T00:00:00.000+05:30`),
+    endOfMonth: new Date(`${year}-${mStr}-${lastDayStr}T23:59:59.999+05:30`),
+    year,
+    month,
+  };
 };
 
 /**
@@ -137,14 +125,37 @@ export const getISTYearBounds = (yearOrDate) => {
   } else if (typeof yearOrDate === 'string' && /^\d{4}$/.test(yearOrDate.trim())) {
     year = parseInt(yearOrDate.trim(), 10);
   } else {
-    const parts = getISTDateParts(yearOrDate);
-    year = parts.year;
+    year = getISTDateParts(yearOrDate).year;
   }
 
-  const startOfYear = new Date(`${year}-01-01T00:00:00.000+05:30`);
-  const endOfYear = new Date(`${year}-12-31T23:59:59.999+05:30`);
+  return {
+    startOfYear: new Date(`${year}-01-01T00:00:00.000+05:30`),
+    endOfYear: new Date(`${year}-12-31T23:59:59.999+05:30`),
+    year,
+  };
+};
 
-  return { startOfYear, endOfYear, year };
+/**
+ * Parse date string or Date to UTC Date object representing 00:00:00.000Z on that calendar date.
+ * Crucial for PostgreSQL @db.Date columns to avoid 1-day subtraction due to local timezone offset.
+ * @param {string|Date|number} dateVal
+ * @returns {Date|null}
+ */
+export const parseDateOnlyToUtc = (dateVal) => {
+  if (!dateVal) return null;
+  if (typeof dateVal === 'string') {
+    const match = dateVal.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 0, 0, 0, 0));
+    }
+  }
+  const d = dateVal instanceof Date ? dateVal : new Date(dateVal);
+  if (isNaN(d.getTime())) return null;
+  if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0 && d.getUTCMilliseconds() === 0) {
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0));
+  }
+  const [year, month, day] = enCAFormatter.format(d).split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
 };
 
 export default {
@@ -154,5 +165,6 @@ export default {
   getISTDayBounds,
   getISTMonthBounds,
   getISTYearBounds,
+  parseDateOnlyToUtc,
 };
 

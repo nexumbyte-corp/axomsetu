@@ -59,6 +59,8 @@ export const ExpensesPage = () => {
       const params = {
         page,
         limit: 20,
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
         ...(selectedYearId && { academicYearId: selectedYearId }),
         ...(search && { search }),
         ...(categoryId !== 'ALL' && { categoryId }),

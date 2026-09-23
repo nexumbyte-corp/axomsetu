@@ -1,6 +1,19 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Users, Plus, MoreVertical, Lock, Edit, Eye, Sparkles, UserCheck, UserX, Trash2, Receipt, Building, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  Users,
+  Plus,
+  MoreVertical,
+  Lock,
+  Edit,
+  Sparkles,
+  UserCheck,
+  UserX,
+  Trash2,
+  Receipt,
+  Building,
+  RefreshCw,
+} from 'lucide-react';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
@@ -20,34 +33,43 @@ import { StudentAvatar } from '../../components/students/StudentAvatar.jsx';
 import { StudentStatusBadge } from '../../components/students/StudentStatusBadge.jsx';
 import { StudentFiltersDrawer } from '../../components/students/StudentFiltersDrawer.jsx';
 import { IndividualPromotionModal } from '../../components/students/IndividualPromotionModal.jsx';
-import { EditEnrollmentModal } from '../../components/students/EditEnrollmentModal.jsx';
 import { PhotoPreviewModal } from '../../components/students/PhotoPreviewModal.jsx';
-import { UpdateStudentAdmissionDateModal } from '../../components/students/UpdateStudentAdmissionDateModal.jsx';
 
 const STUDENT_FILTERS_STORAGE_KEY = 'student_list_filters';
+
+const EMPTY_FILTERS = {
+  classId: '',
+  sectionId: '',
+  mediumId: '',
+  streamId: '',
+  residenceType: '',
+  status: '',
+};
 
 const loadSavedStudentFilters = () => {
   try {
     const saved = localStorage.getItem(STUDENT_FILTERS_STORAGE_KEY);
-    if (saved) {
-      return JSON.parse(saved);
-    }
+    return saved ? JSON.parse(saved) : null;
   } catch (err) {
     console.error('Failed loading saved student list filters:', err);
+    return null;
   }
-  return null;
 };
 
 export const StudentsListPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { selectedYear, selectedYearId, academicYears } = useAcademicYear();
   const { can } = usePermission();
   const { setHeaderInfo } = usePageHeader();
+
+  const isLocked = Boolean(selectedYear?.isLocked);
 
   // Data States
   const [students, setStudents] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
   const [loading, setLoading] = useState(true);
+  const [highlightedStudentId, setHighlightedStudentId] = useState(null);
 
   // Setup Options
   const [classes, setClasses] = useState([]);
@@ -55,10 +77,8 @@ export const StudentsListPage = () => {
   const [mediums, setMediums] = useState([]);
   const [streams, setStreams] = useState([]);
 
-  // Load continuous filters saved in localStorage
-  const savedFilterState = useMemo(() => loadSavedStudentFilters(), []);
-
-  // Search & Filter States
+  // Search & Filter States (restored from localStorage if available)
+  const savedFilterState = useMemo(loadSavedStudentFilters, []);
   const [searchTerm, setSearchTerm] = useState(() => savedFilterState?.searchTerm || '');
   const [debouncedSearch, setDebouncedSearch] = useState(() => savedFilterState?.searchTerm || '');
   const [filters, setFilters] = useState(() => ({
@@ -74,20 +94,177 @@ export const StudentsListPage = () => {
 
   // Modal States
   const [selectedStudentForAction, setSelectedStudentForAction] = useState(null);
-  const [activeModal, setActiveModal] = useState(null); // 'PROMOTE' | 'EDIT_ENROLLMENT' | 'STATUS_CONFIRM' | 'DELETE_HARD'
+  const [activeModal, setActiveModal] = useState(null); // 'PROMOTE' | 'STATUS_CONFIRM' | 'DELETE_HARD'
   const [targetStatus, setTargetStatus] = useState(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState(null);
 
-  const isLocked = Boolean(selectedYear?.isLocked);
+  // Stable Refresh Signal
+  const [refreshKey, setRefreshKey] = useState(0);
+  const refreshStudents = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
 
-  // Synchronize global top header title ("Students") and page actions
+  const closeModal = useCallback(() => {
+    setActiveModal(null);
+    setSelectedStudentForAction(null);
+    setTargetStatus(null);
+  }, []);
+
+  // 1. Fetch Academic Setup Options Once on Mount
+  useEffect(() => {
+    Promise.allSettled([
+      academicService.getClasses(),
+      academicService.getSections(),
+      academicService.getMediums(),
+      academicService.getStreams(),
+    ])
+      .then(([clsRes, secRes, medRes, strRes]) => {
+        if (clsRes.status === 'fulfilled' && clsRes.value?.success) setClasses(clsRes.value.data || []);
+        if (secRes.status === 'fulfilled' && secRes.value?.success) setSections(secRes.value.data || []);
+        if (medRes.status === 'fulfilled' && medRes.value?.success) setMediums(medRes.value.data || []);
+        if (strRes.status === 'fulfilled' && strRes.value?.success) setStreams(strRes.value.data || []);
+      })
+      .catch((err) => {
+        console.error('Failed loading academic setup options', err);
+      });
+  }, []);
+
+  // 2. Debounce Search Input (350ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // 3. Continuously persist active filters, search, and page to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STUDENT_FILTERS_STORAGE_KEY,
+        JSON.stringify({ filters, searchTerm, page })
+      );
+    } catch (err) {
+      console.error('Failed saving student list filters:', err);
+    }
+  }, [filters, searchTerm, page]);
+
+  // 4. Fetch Students from Backend when parameters or refreshKey change
+  useEffect(() => {
+    if (!selectedYearId) return;
+    let isCancelled = false;
+    setLoading(true);
+
+    const queryParams = {
+      academicYearId: selectedYearId,
+      page,
+      limit: 20,
+      search: debouncedSearch || undefined,
+      classId: filters.classId || undefined,
+      sectionId: filters.sectionId || undefined,
+      mediumId: filters.mediumId || undefined,
+      streamId: filters.streamId || undefined,
+      residenceType: filters.residenceType || undefined,
+      status: filters.status || undefined,
+    };
+
+    studentService
+      .getStudents(queryParams)
+      .then((res) => {
+        if (!isCancelled && res?.success) {
+          setStudents(res.data || []);
+          if (res.pagination) {
+            setPagination(res.pagination);
+          }
+        }
+      })
+      .catch((err) => {
+        if (!isCancelled) {
+          toast.error(err?.message || 'Failed loading students list');
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedYearId, page, debouncedSearch, filters, refreshKey]);
+
+  // 5. Handle new student navigation signal from AddStudentPage (runs once per added student)
+  const handledNewStudentSignalRef = useRef(null);
+  useEffect(() => {
+    if (location.state?.newStudentAdded) {
+      const signalKey = location.state.timestamp || location.state.createdStudentId || 'added';
+      if (handledNewStudentSignalRef.current === signalKey) return;
+      handledNewStudentSignalRef.current = signalKey;
+
+      const createdId = location.state.createdStudentId;
+      if (createdId) {
+        setHighlightedStudentId(createdId);
+        const timer = setTimeout(() => {
+          setHighlightedStudentId(null);
+        }, 8000);
+        return () => clearTimeout(timer);
+      }
+
+      try {
+        localStorage.removeItem(STUDENT_FILTERS_STORAGE_KEY);
+      } catch (err) {
+        console.error('Failed clearing student list filters:', err);
+      }
+
+      setFilters(EMPTY_FILTERS);
+      setSearchTerm('');
+      setDebouncedSearch('');
+      setPage(1);
+      setRefreshKey((k) => k + 1);
+
+      try {
+        window.history.replaceState({}, document.title);
+      } catch {
+        // Safe fallback
+      }
+    }
+  }, [location.state]);
+
+  // 6. Auto-refresh when tab gains focus or becomes visible
+  useEffect(() => {
+    const handleFocus = () => refreshStudents();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshStudents();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [refreshStudents]);
+
+  // 7. Synchronize global top header actions (stable dependencies avoid context re-render loops)
   useEffect(() => {
     setHeaderInfo({
       title: 'Students',
       icon: Users,
       actions: (
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshStudents}
+            icon={RefreshCw}
+            className="h-8 text-xs px-2.5"
+            title="Refresh student list"
+          >
+            Refresh
+          </Button>
           {can('STUDENTS_PROMOTE') && (
             <Button
               variant="outline"
@@ -117,98 +294,16 @@ export const StudentsListPage = () => {
     });
 
     return () => setHeaderInfo(null);
-  }, [setHeaderInfo, navigate, can, isLocked]);
+  }, [setHeaderInfo, navigate, can, isLocked, refreshStudents]);
 
-  // 1. Fetch Academic Setup Options Once
-  useEffect(() => {
-    const fetchSetupData = async () => {
-      try {
-        const [clsRes, secRes, medRes, strRes] = await Promise.allSettled([
-          academicService.getClasses(),
-          academicService.getSections(),
-          academicService.getMediums(),
-          academicService.getStreams(),
-        ]);
-        if (clsRes.status === 'fulfilled' && clsRes.value?.success) setClasses(clsRes.value.data || []);
-        if (secRes.status === 'fulfilled' && secRes.value?.success) setSections(secRes.value.data || []);
-        if (medRes.status === 'fulfilled' && medRes.value?.success) setMediums(medRes.value.data || []);
-        if (strRes.status === 'fulfilled' && strRes.value?.success) setStreams(strRes.value.data || []);
-      } catch (err) {
-        console.error('Failed loading academic setup options', err);
-      }
-    };
-    fetchSetupData();
-  }, []);
-
-  // 2. Debounce Search Input (350ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 350);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  // 2.1 Continuously save filters, search term, and page state to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        STUDENT_FILTERS_STORAGE_KEY,
-        JSON.stringify({
-          filters,
-          searchTerm,
-          page,
-        })
-      );
-    } catch (err) {
-      console.error('Failed saving student list filters:', err);
-    }
-  }, [filters, searchTerm, page]);
-
-  // 3. Fetch Students from Backend when filters / academic year / page changes
-  const fetchStudents = useCallback(async () => {
-    if (!selectedYearId) return;
-    setLoading(true);
-    try {
-      const queryParams = {
-        academicYearId: selectedYearId,
-        page,
-        limit: 20,
-        search: debouncedSearch || undefined,
-        classId: filters.classId || undefined,
-        sectionId: filters.sectionId || undefined,
-        mediumId: filters.mediumId || undefined,
-        streamId: filters.streamId || undefined,
-        residenceType: filters.residenceType || undefined,
-        status: filters.status || undefined,
-      };
-
-      const res = await studentService.getStudents(queryParams);
-      if (res.success) {
-        setStudents(res.data || []);
-        if (res.pagination) {
-          setPagination(res.pagination);
-        }
-      }
-    } catch (err) {
-      toast.error(err.message || 'Failed loading students list');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedYearId, page, debouncedSearch, filters]);
-
-  useEffect(() => {
-    fetchStudents();
-  }, [fetchStudents]);
-
-  // Reset pagination to page 1 on filter change
+  // Filter & Pagination Handlers
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPage(1);
   };
 
   const handleResetFilters = () => {
-    const emptyFilters = { classId: '', sectionId: '', mediumId: '', streamId: '', residenceType: '', status: '' };
-    setFilters(emptyFilters);
+    setFilters(EMPTY_FILTERS);
     setSearchTerm('');
     setDebouncedSearch('');
     setPage(1);
@@ -219,10 +314,12 @@ export const StudentsListPage = () => {
     }
   };
 
-  const activeFilterCount = useMemo(() => {
-    return Object.values(filters).filter(Boolean).length;
-  }, [filters]);
+  const activeFilterCount = useMemo(
+    () => Object.values(filters).filter(Boolean).length,
+    [filters]
+  );
 
+  // Status & Hard Delete Confirmation Handlers
   const handleStatusChangeClick = (student, newStatus) => {
     setSelectedStudentForAction(student);
     setTargetStatus(newStatus);
@@ -235,14 +332,12 @@ export const StudentsListPage = () => {
     try {
       await studentService.updateStudentStatus(selectedStudentForAction.id, targetStatus);
       toast.success(`Student status updated to ${targetStatus}`);
-      fetchStudents();
+      refreshStudents();
     } catch (err) {
-      toast.error(err.message || 'Failed updating status');
+      toast.error(err?.message || 'Failed updating status');
     } finally {
       setStatusUpdating(false);
-      setActiveModal(null);
-      setSelectedStudentForAction(null);
-      setTargetStatus(null);
+      closeModal();
     }
   };
 
@@ -251,15 +346,114 @@ export const StudentsListPage = () => {
     setStatusUpdating(true);
     try {
       const res = await studentService.deleteStudentHard(selectedStudentForAction.id);
-      toast.success(res.message || `Student '${selectedStudentForAction.name}' deleted successfully.`);
-      fetchStudents();
+      toast.success(res?.message || `Student '${selectedStudentForAction.name}' deleted successfully.`);
+      refreshStudents();
     } catch (err) {
-      toast.error(err.message || 'Failed to delete student.');
+      toast.error(err?.message || 'Failed to delete student.');
     } finally {
       setStatusUpdating(false);
-      setActiveModal(null);
-      setSelectedStudentForAction(null);
+      closeModal();
     }
+  };
+
+  const handlePhotoPreview = (e, student) => {
+    if (student.photoUrl) {
+      e.stopPropagation();
+      setPreviewPhoto({
+        photoUrl: student.photoUrl,
+        name: student.name,
+        admissionNo: student.admissionNo,
+      });
+    }
+  };
+
+  // Reusable Single-Source Student Actions Dropdown (shared across Desktop Table & Mobile Cards)
+  const renderStudentActions = (item) => {
+    const isEnrolledHostel = item.hostel?.enrolled;
+
+    return (
+      <Dropdown
+        align="right"
+        trigger={
+          <button
+            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+            aria-label="Student options"
+          >
+            <MoreVertical className="w-4 h-4" />
+          </button>
+        }
+      >
+        <DropdownItem icon={Edit} onClick={() => navigate(`/app/students/${item.id}/edit`)}>
+          Edit Student
+        </DropdownItem>
+        <DropdownItem icon={Receipt} onClick={() => navigate(`/app/students/${item.id}/ledger`)}>
+          Manage Fees
+        </DropdownItem>
+        {isEnrolledHostel && (
+          <DropdownItem icon={Building} onClick={() => navigate(`/app/students/${item.id}?tab=hostel`)}>
+            Hostel Details
+          </DropdownItem>
+        )}
+        {!isLocked && (
+          <>
+            {item.status !== 'GRADUATED' && item.status !== 'LEFT' && (
+              <DropdownItem
+                icon={Sparkles}
+                onClick={() => {
+                  setSelectedStudentForAction(item);
+                  setActiveModal('PROMOTE');
+                }}
+              >
+                Promote
+              </DropdownItem>
+            )}
+
+            <DropdownDivider />
+
+            {item.status === 'ACTIVE' && (
+              <>
+                <DropdownItem
+                  icon={UserX}
+                  danger
+                  onClick={() => handleStatusChangeClick(item, 'LEFT')}
+                >
+                  Mark as LEFT
+                </DropdownItem>
+                <DropdownItem
+                  icon={UserCheck}
+                  onClick={() => handleStatusChangeClick(item, 'GRADUATED')}
+                >
+                  Mark as GRADUATED
+                </DropdownItem>
+              </>
+            )}
+            {item.status !== 'ACTIVE' && (
+              <DropdownItem
+                icon={UserCheck}
+                onClick={() => handleStatusChangeClick(item, 'ACTIVE')}
+              >
+                Reactivate Student
+              </DropdownItem>
+            )}
+            {can('STUDENTS_DELETE') && (
+              <>
+                <DropdownDivider />
+                <DropdownItem
+                  icon={Trash2}
+                  danger
+                  onClick={() => {
+                    setSelectedStudentForAction(item);
+                    setActiveModal('DELETE_HARD');
+                  }}
+                >
+                  Delete
+                </DropdownItem>
+              </>
+            )}
+          </>
+        )}
+      </Dropdown>
+    );
   };
 
   return (
@@ -271,7 +465,7 @@ export const StudentsListPage = () => {
         </Alert>
       )}
 
-      {/* Unified Single-Row Search & Filter Toolbar */}
+      {/* Unified Search & Filter Toolbar */}
       <StudentFiltersDrawer
         isOpen={isFilterDrawerOpen}
         onClose={() => setIsFilterDrawerOpen(false)}
@@ -313,7 +507,7 @@ export const StudentsListPage = () => {
           ) : (
             <EmptyState
               icon={Users}
-              title={`No students enrolled in ${selectedYear?.name}`}
+              title={`No students enrolled in ${selectedYear?.name || 'this academic year'}`}
               description={
                 isLocked
                   ? 'No records exist for this locked year.'
@@ -359,15 +553,20 @@ export const StudentsListPage = () => {
                   const e = item.enrollment || {};
                   const fatherName = item.fatherName || item.guardianName || '—';
                   const className = e.class?.name ? `Class ${e.class.name}` : 'Class N/A';
-                  const sectionName = e.section ? `(${e.section.name})` : '';
+                  const sectionName = e.section?.name ? `(${e.section.name})` : '';
                   const streamName = e.stream?.name || null;
                   const mediumName = e.medium?.name || '—';
                   const hostelInfo = item.hostel;
+                  const isHighlighted = item.id === highlightedStudentId;
 
                   return (
                     <TableRow
                       key={item.id}
-                      className="cursor-pointer hover:bg-slate-50/80 transition-colors border-b border-slate-100"
+                      className={`cursor-pointer transition-colors border-b border-slate-100 ${
+                        isHighlighted
+                          ? 'bg-emerald-50/80 hover:bg-emerald-100/70 ring-2 ring-emerald-500/50'
+                          : 'hover:bg-slate-50/80'
+                      }`}
                       onClick={() => navigate(`/app/students/${item.id}`)}
                     >
                       {/* STUDENT */}
@@ -377,20 +576,18 @@ export const StudentsListPage = () => {
                             name={item.name}
                             photoUrl={item.photoUrl}
                             size="sm"
-                            onClick={(e) => {
-                              if (item.photoUrl) {
-                                e.stopPropagation();
-                                setPreviewPhoto({
-                                  photoUrl: item.photoUrl,
-                                  name: item.name,
-                                  admissionNo: item.admissionNo,
-                                });
-                              }
-                            }}
+                            onClick={(ev) => handlePhotoPreview(ev, item)}
                           />
                           <div className="min-w-0">
-                            <div className="font-semibold text-slate-900 text-xs sm:text-sm hover:text-indigo-600 transition-colors truncate">
-                              {item.name}
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-semibold text-slate-900 text-xs sm:text-sm hover:text-indigo-600 transition-colors truncate">
+                                {item.name}
+                              </span>
+                              {isHighlighted && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white tracking-wide uppercase animate-pulse">
+                                  New
+                                </span>
+                              )}
                             </div>
                             <div className="text-[11px] text-slate-500 font-mono tracking-tight">
                               {item.admissionNo}
@@ -404,13 +601,9 @@ export const StudentsListPage = () => {
                         <div className="text-xs font-medium text-slate-900 truncate">
                           {fatherName}
                         </div>
-                        {item.phone ? (
-                          <div className="text-[11px] text-slate-500 font-mono">
-                            {item.phone}
-                          </div>
-                        ) : (
-                          <div className="text-[11px] text-slate-400 font-mono">—</div>
-                        )}
+                        <div className="text-[11px] text-slate-500 font-mono">
+                          {item.phone || '—'}
+                        </div>
                       </TableCell>
 
                       {/* CLASS */}
@@ -452,109 +645,8 @@ export const StudentsListPage = () => {
                       </TableCell>
 
                       {/* ACTION */}
-                      <TableCell className="py-2.5 px-3.5 text-right" onClick={(e) => e.stopPropagation()}>
-                        <Dropdown
-                          align="right"
-                          trigger={
-                            <button className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                          }
-                        >
-                          <DropdownItem icon={Eye} onClick={() => navigate(`/app/students/${item.id}`)}>
-                            View Profile
-                          </DropdownItem>
-                          <DropdownItem icon={Edit} onClick={() => navigate(`/app/students/${item.id}/edit`)}>
-                            Edit Student
-                          </DropdownItem>
-                          {can('STUDENTS_EDIT') && (
-                            <DropdownItem
-                              icon={Calendar}
-                              onClick={() => {
-                                setSelectedStudentForAction(item);
-                                setActiveModal('EDIT_ADMISSION_DATE');
-                              }}
-                            >
-                              Edit Admission Date
-                            </DropdownItem>
-                          )}
-                          <DropdownItem icon={Receipt} onClick={() => navigate(`/app/students/${item.id}/ledger`)}>
-                            Manage Fees
-                          </DropdownItem>
-                          {hostelInfo?.enrolled && (
-                            <DropdownItem icon={Building} onClick={() => navigate(`/app/students/${item.id}?tab=hostel`)}>
-                              Hostel Details
-                            </DropdownItem>
-                          )}
-                          {!isLocked && (
-                            <>
-                              <DropdownItem
-                                icon={Edit}
-                                onClick={() => {
-                                  setSelectedStudentForAction(item);
-                                  setActiveModal('EDIT_ENROLLMENT');
-                                }}
-                              >
-                                Edit Enrollment
-                              </DropdownItem>
-
-                              {item.status !== 'GRADUATED' && item.status !== 'LEFT' && (
-                                <DropdownItem
-                                  icon={Sparkles}
-                                  onClick={() => {
-                                    setSelectedStudentForAction(item);
-                                    setActiveModal('PROMOTE');
-                                  }}
-                                >
-                                  Promote
-                                </DropdownItem>
-                              )}
-
-                              <DropdownDivider />
-
-                              {item.status === 'ACTIVE' && (
-                                <DropdownItem
-                                  icon={UserX}
-                                  danger
-                                  onClick={() => handleStatusChangeClick(item, 'LEFT')}
-                                >
-                                  Mark as LEFT
-                                </DropdownItem>
-                              )}
-                              {item.status === 'ACTIVE' && (
-                                <DropdownItem
-                                  icon={UserCheck}
-                                  onClick={() => handleStatusChangeClick(item, 'GRADUATED')}
-                                >
-                                  Mark as GRADUATED
-                                </DropdownItem>
-                              )}
-                              {item.status !== 'ACTIVE' && (
-                                <DropdownItem
-                                  icon={UserCheck}
-                                  onClick={() => handleStatusChangeClick(item, 'ACTIVE')}
-                                >
-                                  Reactivate Student
-                                </DropdownItem>
-                              )}
-                              {can('STUDENTS_DELETE') && (
-                                <>
-                                  <DropdownDivider />
-                                  <DropdownItem
-                                    icon={Trash2}
-                                    danger
-                                    onClick={() => {
-                                      setSelectedStudentForAction(item);
-                                      setActiveModal('DELETE_HARD');
-                                    }}
-                                  >
-                                    Delete
-                                  </DropdownItem>
-                                </>
-                              )}
-                            </>
-                          )}
-                        </Dropdown>
+                      <TableCell className="py-2.5 px-3.5 text-right" onClick={(ev) => ev.stopPropagation()}>
+                        {renderStudentActions(item)}
                       </TableCell>
                     </TableRow>
                   );
@@ -569,10 +661,16 @@ export const StudentsListPage = () => {
               const e = item.enrollment || {};
               const fatherName = item.fatherName || item.guardianName || '—';
               const hostelInfo = item.hostel;
+              const isHighlighted = item.id === highlightedStudentId;
+
               return (
                 <div
                   key={item.id}
-                  className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs space-y-2.5 cursor-pointer hover:border-indigo-200 transition-colors"
+                  className={`bg-white p-3.5 rounded-xl border shadow-2xs space-y-2.5 cursor-pointer transition-colors ${
+                    isHighlighted
+                      ? 'border-emerald-400 bg-emerald-50/40 ring-2 ring-emerald-500/40'
+                      : 'border-slate-200 hover:border-indigo-200'
+                  }`}
                   onClick={() => navigate(`/app/students/${item.id}`)}
                 >
                   <div className="flex items-center justify-between gap-2.5">
@@ -581,82 +679,25 @@ export const StudentsListPage = () => {
                         name={item.name}
                         photoUrl={item.photoUrl}
                         size="sm"
-                        onClick={(e) => {
-                          if (item.photoUrl) {
-                            e.stopPropagation();
-                            setPreviewPhoto({
-                              photoUrl: item.photoUrl,
-                              name: item.name,
-                              admissionNo: item.admissionNo,
-                            });
-                          }
-                        }}
+                        onClick={(ev) => handlePhotoPreview(ev, item)}
                       />
                       <div className="min-w-0">
-                        <span className="font-semibold text-slate-900 text-xs sm:text-sm truncate block">
-                          {item.name}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-slate-900 text-xs sm:text-sm truncate block">
+                            {item.name}
+                          </span>
+                          {isHighlighted && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white tracking-wide uppercase animate-pulse">
+                              New
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-slate-500 font-mono">{item.admissionNo}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1.5 shrink-0" onClick={(ev) => ev.stopPropagation()}>
                       <StudentStatusBadge status={item.status} size="sm" />
-                      <Dropdown
-                        align="right"
-                        trigger={
-                          <button className="p-1 rounded-md text-slate-400 hover:text-slate-600">
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                        }
-                      >
-                        <DropdownItem icon={Eye} onClick={() => navigate(`/app/students/${item.id}`)}>
-                          View Profile
-                        </DropdownItem>
-                        <DropdownItem icon={Edit} onClick={() => navigate(`/app/students/${item.id}/edit`)}>
-                          Edit Student
-                        </DropdownItem>
-                        {can('STUDENTS_EDIT') && (
-                          <DropdownItem
-                            icon={Calendar}
-                            onClick={() => {
-                              setSelectedStudentForAction(item);
-                              setActiveModal('EDIT_ADMISSION_DATE');
-                            }}
-                          >
-                            Edit Admission Date
-                          </DropdownItem>
-                        )}
-                        <DropdownItem icon={Receipt} onClick={() => navigate(`/app/students/${item.id}/ledger`)}>
-                          Manage Fees
-                        </DropdownItem>
-                        {hostelInfo?.enrolled && (
-                          <DropdownItem icon={Building} onClick={() => navigate(`/app/students/${item.id}?tab=hostel`)}>
-                            Hostel Details
-                          </DropdownItem>
-                        )}
-                        {!isLocked && (
-                          <>
-                            <DropdownItem
-                              onClick={() => {
-                                setSelectedStudentForAction(item);
-                                setActiveModal('EDIT_ENROLLMENT');
-                              }}
-                            >
-                              Edit Enrollment
-                            </DropdownItem>
-                            {item.status !== 'GRADUATED' && item.status !== 'LEFT' && (
-                              <DropdownItem
-                                onClick={() => {
-                                  setSelectedStudentForAction(item);
-                                  setActiveModal('PROMOTE');
-                                }}
-                              >
-                                Promote
-                              </DropdownItem>
-                            )}
-                          </>
-                        )}
-                      </Dropdown>
+                      {renderStudentActions(item)}
                     </div>
                   </div>
 
@@ -668,7 +709,7 @@ export const StudentsListPage = () => {
                     <div>
                       <span className="text-slate-400 block text-[10px] uppercase font-bold">Class</span>
                       <span className="font-semibold text-slate-800 text-[11px]">
-                        Class {e.class?.name || '—'} {e.section ? `(${e.section.name})` : ''}
+                        Class {e.class?.name || '—'} {e.section?.name ? `(${e.section.name})` : ''}
                       </span>
                     </div>
                     <div>
@@ -708,10 +749,7 @@ export const StudentsListPage = () => {
       {selectedStudentForAction && activeModal === 'PROMOTE' && (
         <IndividualPromotionModal
           isOpen={true}
-          onClose={() => {
-            setActiveModal(null);
-            setSelectedStudentForAction(null);
-          }}
+          onClose={closeModal}
           student={selectedStudentForAction}
           sourceEnrollment={selectedStudentForAction.enrollment}
           academicYears={academicYears}
@@ -719,37 +757,16 @@ export const StudentsListPage = () => {
           mediums={mediums}
           sections={sections}
           streams={streams}
-          onSuccess={fetchStudents}
-        />
-      )}
-
-      {/* Edit Enrollment Modal */}
-      {selectedStudentForAction && activeModal === 'EDIT_ENROLLMENT' && (
-        <EditEnrollmentModal
-          isOpen={true}
-          onClose={() => {
-            setActiveModal(null);
-            setSelectedStudentForAction(null);
-          }}
-          student={selectedStudentForAction}
-          enrollment={selectedStudentForAction.enrollment}
-          classes={classes}
-          mediums={mediums}
-          sections={sections}
-          streams={streams}
-          onSuccess={fetchStudents}
+          onSuccess={refreshStudents}
         />
       )}
 
       {/* Status Confirmation Dialog */}
       <ConfirmDialog
         isOpen={activeModal === 'STATUS_CONFIRM'}
-        onClose={() => {
-          setActiveModal(null);
-          setSelectedStudentForAction(null);
-        }}
+        onClose={closeModal}
         onConfirm={handleConfirmStatusChange}
-        title={`Change Student Status`}
+        title="Change Student Status"
         message={`Are you sure you want to change status of ${selectedStudentForAction?.name} to ${targetStatus}?`}
         confirmText="Update Status"
         loading={statusUpdating}
@@ -759,10 +776,7 @@ export const StudentsListPage = () => {
       {/* Hard Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={activeModal === 'DELETE_HARD'}
-        onClose={() => {
-          setActiveModal(null);
-          setSelectedStudentForAction(null);
-        }}
+        onClose={closeModal}
         onConfirm={handleDeleteStudentHard}
         title={`Hard Delete Student (${selectedStudentForAction?.name})`}
         message={`Are you sure you want to permanently hard-delete '${selectedStudentForAction?.name}' (Adm No: ${selectedStudentForAction?.admissionNo})? All initial registration records will be completely removed from the database.`}
@@ -781,25 +795,8 @@ export const StudentsListPage = () => {
         name={previewPhoto?.name}
         admissionNo={previewPhoto?.admissionNo}
       />
-
-      {/* Update School Admission Date Modal */}
-      {activeModal === 'EDIT_ADMISSION_DATE' && selectedStudentForAction && (
-        <UpdateStudentAdmissionDateModal
-          isOpen={true}
-          onClose={() => {
-            setActiveModal(null);
-            setSelectedStudentForAction(null);
-          }}
-          student={{
-            ...selectedStudentForAction,
-            className: selectedStudentForAction.enrollment?.class?.name,
-            sectionName: selectedStudentForAction.enrollment?.section?.name,
-            academic: selectedStudentForAction.enrollment,
-          }}
-          onSuccess={fetchStudents}
-        />
-      )}
     </div>
   );
 };
 
+export default StudentsListPage;

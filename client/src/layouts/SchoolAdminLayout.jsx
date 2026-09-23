@@ -489,7 +489,9 @@ const getPageTitle = (locationPath, headerTitle) => {
 
         {/* Content Column with Warning Banner */}
         <div className="flex-1 flex flex-col min-w-0">
-          <SubscriptionExpiryBanner />
+          <div className="print:hidden">
+            <SubscriptionExpiryBanner />
+          </div>
 
           {/* Page Content Outlet */}
           <main className="flex-1 p-3.5 sm:p-6 lg:p-8 w-full max-w-full overflow-x-hidden space-y-4">

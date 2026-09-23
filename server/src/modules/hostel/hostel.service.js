@@ -3,6 +3,7 @@ import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { isEffectiveForMonth } from '../fees/fee-generation.service.js';
 import { ensureFeeCharge } from '../fees/fee-creation.service.js';
+import { parseDateOnlyToUtc } from '../../utils/dateUtils.js';
 
 export const ensureHostelFeeType = async (schoolId, systemCode, tx = prisma) => {
   let feeType = await tx.feeType.findUnique({
@@ -2045,11 +2046,10 @@ export const exitStudent = async (schoolId, payload, actorUserId) => {
 
 export const updateHostelAdmissionDate = async (schoolId, enrollmentId, payload, actorUserId) => {
   const { startDate, reason } = payload;
-  const newStartDate = new Date(startDate);
-  if (isNaN(newStartDate.getTime())) {
+  const newStartDate = parseDateOnlyToUtc(startDate);
+  if (!newStartDate) {
     throw ApiError.badRequest('Invalid hostel admission date provided');
   }
-  newStartDate.setHours(0, 0, 0, 0);
 
   return await prisma.$transaction(async (tx) => {
     const enrollment = await tx.hostelEnrollment.findUnique({
@@ -2072,9 +2072,8 @@ export const updateHostelAdmissionDate = async (schoolId, enrollmentId, payload,
 
     // Guardrail against exit date if student has already exited
     if (enrollment.endDate) {
-      const exitDate = new Date(enrollment.endDate);
-      exitDate.setHours(0, 0, 0, 0);
-      if (newStartDate > exitDate) {
+      const exitDate = parseDateOnlyToUtc(enrollment.endDate);
+      if (exitDate && newStartDate > exitDate) {
         const formattedExit = exitDate.toISOString().split('T')[0];
         throw ApiError.badRequest(`Hostel admission date cannot be after the exit date (${formattedExit})`);
       }
@@ -2082,9 +2081,8 @@ export const updateHostelAdmissionDate = async (schoolId, enrollmentId, payload,
 
     // Guardrail against first transfer date if student was transferred
     if (enrollment.transfers && enrollment.transfers.length > 0) {
-      const firstTransferDate = new Date(enrollment.transfers[0].transferDate);
-      firstTransferDate.setHours(0, 0, 0, 0);
-      if (newStartDate > firstTransferDate) {
+      const firstTransferDate = parseDateOnlyToUtc(enrollment.transfers[0].transferDate);
+      if (firstTransferDate && newStartDate > firstTransferDate) {
         const formattedTransfer = firstTransferDate.toISOString().split('T')[0];
         throw ApiError.badRequest(`Hostel admission date cannot be after the first transfer date (${formattedTransfer})`);
       }

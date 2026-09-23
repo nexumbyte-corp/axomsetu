@@ -409,9 +409,20 @@ export const AddStudentPage = () => {
         feeOverrides: feeOverridesPayload.length > 0 ? feeOverridesPayload : null,
       };
 
-      await studentService.createStudent(payload);
+      const createdRes = await studentService.createStudent(payload);
       toast.success('Student registered successfully and initial fee charges generated!');
-      navigate('/app/students');
+      try {
+        localStorage.removeItem('student_list_filters');
+      } catch (storageErr) {
+        console.error('Failed clearing saved student list filters:', storageErr);
+      }
+      navigate('/app/students', {
+        state: {
+          newStudentAdded: true,
+          createdStudentId: createdRes?.data?.id,
+          timestamp: Date.now(),
+        },
+      });
     } catch (err) {
       if (isStudentLimitError(err)) {
         showStudentLimitModal(parseStudentLimitError(err, subscription));

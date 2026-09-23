@@ -194,6 +194,8 @@ export const expenseService = {
       search,
       page = 1,
       limit = 20,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
     } = query;
 
     const pageNum = Math.max(1, parseInt(page, 10));
@@ -223,6 +225,10 @@ export const expenseService = {
       ];
     }
 
+    const validSortFields = ['createdAt', 'expenseDate', 'amount'];
+    const orderField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    const orderDirection = sortOrder?.toLowerCase() === 'asc' ? 'asc' : 'desc';
+
     const [total, expenses] = await Promise.all([
       prisma.expense.count({ where }),
       prisma.expense.findMany({
@@ -232,7 +238,10 @@ export const expenseService = {
           academicYear: { select: { id: true, name: true } },
           createdBy: { select: { id: true, name: true } },
         },
-        orderBy: { expenseDate: 'desc' },
+        orderBy: [
+          { [orderField]: orderDirection },
+          ...(orderField !== 'createdAt' ? [{ createdAt: 'desc' }] : []),
+        ],
         skip,
         take: limitNum,
       }),

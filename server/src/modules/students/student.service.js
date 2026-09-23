@@ -5,6 +5,8 @@ import { generateNextDocumentNumber } from '../../utils/documentSequence.js';
 import { assertAcademicYearWritable, ensureCurrentAcademicYear } from '../academic-years/academicYear.service.js';
 import { deleteCloudinaryImage } from '../../services/cloudinary.service.js';
 import { ensureFeeCharge } from '../fees/fee-creation.service.js';
+import { memoryCache } from '../../utils/cache.js';
+import { parseDateOnlyToUtc } from '../../utils/dateUtils.js';
 
 /**
  * Generic helper to determine if a student is operationally active.
@@ -139,7 +141,7 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
     }
   }
 
-  return await prisma.$transaction(async (tx) => {
+  const createdResult = await prisma.$transaction(async (tx) => {
     // 0. Active Subscription Student Limit Check
     const activeSub = await tx.schoolSubscription.findFirst({
       where: { schoolId, status: 'ACTIVE' },
@@ -178,18 +180,10 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
     });
 
     // 1b. Admission Date handling & Academic Year back-date validation
-    let admissionDateObj = data.admissionDate ? new Date(data.admissionDate) : new Date();
-    if (isNaN(admissionDateObj.getTime())) {
-      admissionDateObj = new Date();
-    }
+    const admissionDateObj = parseDateOnlyToUtc(data.admissionDate) || parseDateOnlyToUtc(new Date());
+    const ayStartDate = parseDateOnlyToUtc(academicYear.startDate);
 
-    const ayStartDate = new Date(academicYear.startDate);
-    ayStartDate.setHours(0, 0, 0, 0);
-
-    const admDateNormalized = new Date(admissionDateObj);
-    admDateNormalized.setHours(0, 0, 0, 0);
-
-    if (admDateNormalized < ayStartDate) {
+    if (ayStartDate && admissionDateObj < ayStartDate) {
       const formattedStart = ayStartDate.toISOString().split('T')[0];
       throw ApiError.badRequest(`Admission date cannot be earlier than academic year start date (${formattedStart})`);
     }
@@ -495,6 +489,15 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
       },
     };
   });
+
+  // Invalidate any dashboard / reporting caches for this school
+  try {
+    memoryCache.invalidatePrefix(`dashboard:${schoolId}`);
+  } catch (cacheErr) {
+    // Non-fatal
+  }
+
+  return createdResult;
 };
 
 /**
@@ -603,6 +606,7 @@ export const listStudents = async (schoolId, query) => {
       take: limit,
       orderBy: [
         { createdAt: 'desc' },
+        { id: 'desc' },
       ],
       select: {
         id: true,
@@ -952,33 +956,55 @@ export const getStudentById = async (schoolId, studentId, targetAcademicYearId =
  * Helper to validate business guardrails on student school admission date.
  */
 export const validateStudentAdmissionDateConstraints = async (tx, studentId, newAdmissionDate) => {
-  if (isNaN(newAdmissionDate.getTime())) {
+  if (!newAdmissionDate || isNaN(newAdmissionDate.getTime())) {
     throw ApiError.badRequest('Invalid admission date provided');
   }
 
-  // 1. Guardrail against mid-session class/medium/stream transfer date
+  // 0. Guardrail against future date (max date is current date / today)
+  const todayUtc = parseDateOnlyToUtc(new Date());
+  if (todayUtc && newAdmissionDate > todayUtc) {
+    throw ApiError.badRequest('Admission date cannot be a future date');
+  }
+
+  // 1. Guardrail against current / active academic year start date (prevent back-dates before academic year start e.g. April)
+  const enrollment = await tx.studentEnrollment.findFirst({
+    where: { studentId, academicYear: { isCurrent: true } },
+    include: { academicYear: true },
+  }) || await tx.studentEnrollment.findFirst({
+    where: { studentId },
+    orderBy: { academicYear: { startDate: 'desc' } },
+    include: { academicYear: true },
+  });
+
+  if (enrollment?.academicYear?.startDate) {
+    const ayStart = parseDateOnlyToUtc(enrollment.academicYear.startDate);
+    if (ayStart && newAdmissionDate < ayStart) {
+      const formattedStart = ayStart.toISOString().split('T')[0];
+      throw ApiError.badRequest(`Admission date cannot be earlier than academic year start date (${formattedStart}) for ${enrollment.academicYear.name}`);
+    }
+  }
+
+  // 2. Guardrail against mid-session class/medium/stream transfer date
   const earliestTransfer = await tx.studentTransferHistory.findFirst({
     where: { studentId },
     orderBy: { transferDate: 'asc' },
   });
   if (earliestTransfer) {
-    const transferDate = new Date(earliestTransfer.transferDate);
-    transferDate.setHours(0, 0, 0, 0);
-    if (newAdmissionDate > transferDate) {
+    const transferDate = parseDateOnlyToUtc(earliestTransfer.transferDate);
+    if (transferDate && newAdmissionDate > transferDate) {
       const formattedTransfer = transferDate.toISOString().split('T')[0];
       throw ApiError.badRequest(`Admission date cannot be after the earliest mid-session transfer date (${formattedTransfer})`);
     }
   }
 
-  // 2. Guardrail against hostel admission date
+  // 3. Guardrail against hostel admission date
   const earliestHostel = await tx.hostelEnrollment.findFirst({
     where: { studentId },
     orderBy: { startDate: 'asc' },
   });
   if (earliestHostel) {
-    const hostelStart = new Date(earliestHostel.startDate);
-    hostelStart.setHours(0, 0, 0, 0);
-    if (newAdmissionDate > hostelStart) {
+    const hostelStart = parseDateOnlyToUtc(earliestHostel.startDate);
+    if (hostelStart && newAdmissionDate > hostelStart) {
       const formattedHostel = hostelStart.toISOString().split('T')[0];
       throw ApiError.badRequest(`Admission date cannot be after the student's hostel admission date (${formattedHostel})`);
     }
@@ -990,11 +1016,10 @@ export const validateStudentAdmissionDateConstraints = async (tx, studentId, new
  */
 export const updateStudentAdmissionDate = async (schoolId, studentId, payload, actorUserId) => {
   const { admissionDate, reason } = payload;
-  const newAdmissionDate = new Date(admissionDate);
-  if (isNaN(newAdmissionDate.getTime())) {
+  const newAdmissionDate = parseDateOnlyToUtc(admissionDate);
+  if (!newAdmissionDate) {
     throw ApiError.badRequest('Invalid admission date provided');
   }
-  newAdmissionDate.setHours(0, 0, 0, 0);
 
   return await prisma.$transaction(async (tx) => {
     const student = await tx.student.findUnique({
@@ -1059,12 +1084,12 @@ export const updateStudentProfile = async (schoolId, studentId, data, actorUserI
     if (data.admissionDate === null || data.admissionDate === '') {
       updateData.admissionDate = null;
     } else {
-      const parsedDate = new Date(data.admissionDate);
-      if (!isNaN(parsedDate.getTime())) {
-        parsedDate.setHours(0, 0, 0, 0);
-        await validateStudentAdmissionDateConstraints(prisma, studentId, parsedDate);
-        updateData.admissionDate = parsedDate;
+      const parsedDate = parseDateOnlyToUtc(data.admissionDate);
+      if (!parsedDate) {
+        throw ApiError.badRequest('Invalid admission date provided');
       }
+      await validateStudentAdmissionDateConstraints(prisma, studentId, parsedDate);
+      updateData.admissionDate = parsedDate;
     }
   }
 

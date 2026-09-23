@@ -155,7 +155,9 @@
   aside,
   nav,
   button,
-  .print\:hidden {
+  .print\:hidden,
+  [data-subscription-banner],
+  .subscription-banner {
     display: none !important;
   }
 
