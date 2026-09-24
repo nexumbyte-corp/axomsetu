@@ -11,15 +11,25 @@ export const buildExpenseVoucherData = (rawData = {}) => {
   const school = getSchoolBranding(expense.schoolHeader || rawData.schoolHeader || expense.school || rawData.school);
   const amount = Number(expense.amount || 0);
 
+  const categoryName = typeof expense.category === 'object' && expense.category !== null
+    ? (expense.category.name || 'Uncategorized')
+    : (expense.category || 'Uncategorized');
+
+  const approvedBy = typeof expense.createdBy === 'object' && expense.createdBy !== null
+    ? (expense.createdBy.name || 'Authorized Signatory')
+    : (typeof expense.createdBy === 'string' && expense.createdBy
+      ? expense.createdBy
+      : (expense.approvedBy || expense.creatorName || 'Authorized Signatory'));
+
   return {
-    voucherNo: sanitizeDocText(expense.expenseNo || expense.id, 'EXP-VOUCHER'),
+    voucherNo: sanitizeDocText(expense.expenseNo || expense.referenceNo || expense.id, 'EXP-VOUCHER'),
     expenseDate: formatDocDate(expense.expenseDate || expense.createdAt),
-    category: sanitizeDocText(expense.category?.name || expense.category, 'Uncategorized'),
+    category: sanitizeDocText(categoryName, 'Uncategorized'),
     description: sanitizeDocText(expense.description || expense.title, 'General Expense'),
     paymentMode: sanitizeDocText(expense.paymentMode || expense.paymentMethod, 'CASH'),
-    referenceNo: sanitizeDocText(expense.referenceNo || expense.refNo, 'N/A'),
-    approvedBy: sanitizeDocText(expense.createdBy?.name || expense.approvedBy || expense.creatorName, 'Authorized Signatory'),
-    remarks: sanitizeDocText(expense.remarks, ''),
+    referenceNo: sanitizeDocText(expense.referenceNo || expense.referenceNumber || expense.refNo, 'N/A'),
+    approvedBy: sanitizeDocText(approvedBy, 'Authorized Signatory'),
+    remarks: sanitizeDocText(expense.remarks || '', ''),
     status: expense.status || 'ACTIVE',
     amount,
     amountFormatted: formatDocCurrency(amount),
@@ -39,6 +49,7 @@ export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
     documentTitle: 'EXPENSE VOUCHER',
     documentNumber: data.voucherNo,
     status: data.status,
+    options: settings,
   });
 
   const content = [...headerContent];
@@ -86,10 +97,15 @@ export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
   });
 
   // Description & Details Table
+  const descStack = [{ text: data.description, fontSize: 9.5, bold: true, color: '#0f172a' }];
+  if (data.remarks && data.remarks !== '-') {
+    descStack.push({ text: `Note: ${data.remarks}`, fontSize: 8, color: '#64748b', margin: [0, 2, 0, 0] });
+  }
+
   content.push({
     table: {
       headerRows: 1,
-      widths: ['*', '130'],
+      widths: ['*', 130],
       body: [
         [
           { text: 'Particulars / Description', fontSize: 9, bold: true, fillColor: '#f1f5f9', color: '#0f172a' },
@@ -97,10 +113,7 @@ export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
         ],
         [
           {
-            stack: [
-              { text: data.description, fontSize: 9.5, bold: true, color: '#0f172a' },
-              data.remarks ? { text: `Note: ${data.remarks}`, fontSize: 8, color: '#64748b', margin: [0, 2, 0, 0] } : {},
-            ].filter(Boolean),
+            stack: descStack,
             margin: [0, 4, 0, 4],
           },
           { text: data.amountFormatted, fontSize: 10, bold: true, alignment: 'right', color: '#b91c1c', margin: [0, 4, 0, 4] },
@@ -114,7 +127,7 @@ export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
   // Amount in Words & Total Box
   content.push({
     table: {
-      widths: ['*', '170'],
+      widths: ['*', 170],
       body: [
         [
           {
@@ -144,7 +157,10 @@ export const buildExpenseVoucherTemplate = (data = {}, settings = {}) => {
   });
 
   // Signatures
-  content.push(createPDFSignatureBlock(settings));
+  const signatureBlock = createPDFSignatureBlock(settings);
+  if (signatureBlock) {
+    content.push(signatureBlock);
+  }
 
   return {
     content,

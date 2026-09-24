@@ -42,7 +42,17 @@ export const DocumentActions = ({
   const handlePrint = async (e) => {
     if (e) e.stopPropagation();
     if (onPrint) {
-      onPrint();
+      setIsGenerating(true);
+      setActionType('print');
+      try {
+        await onPrint();
+      } catch (err) {
+        console.error('Failed to print document:', err);
+        toast.error('Unable to open print dialog. Please try again.');
+      } finally {
+        setIsGenerating(false);
+        setActionType(null);
+      }
       return;
     }
     if (!validateData()) return;
@@ -67,7 +77,17 @@ export const DocumentActions = ({
   const handleDownload = async (e) => {
     if (e) e.stopPropagation();
     if (onDownload) {
-      onDownload();
+      setIsGenerating(true);
+      setActionType('download');
+      try {
+        await onDownload();
+      } catch (err) {
+        console.error('Failed to download PDF document:', err);
+        toast.error('Unable to generate the PDF. Please try again.');
+      } finally {
+        setIsGenerating(false);
+        setActionType(null);
+      }
       return;
     }
     if (!validateData()) return;

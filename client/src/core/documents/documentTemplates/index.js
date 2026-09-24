@@ -86,9 +86,9 @@ const TEMPLATE_REGISTRY = {
     builder: buildExpenseVoucherData,
     template: buildExpenseVoucherTemplate,
     defaultOptions: {
-      pageSize: 'A5',
+      pageSize: 'A4',
       pageOrientation: 'portrait',
-      pageMargins: [25, 20, 25, 25],
+      pageMargins: [30, 25, 30, 30],
     },
   },
   expenseReport: {

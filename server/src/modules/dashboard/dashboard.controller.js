@@ -20,3 +20,12 @@ export const getDailyCollection = asyncHandler(async (req, res) => {
   );
 });
 
+export const getDailyExpenses = asyncHandler(async (req, res) => {
+  const schoolId = req.schoolId;
+  const expenses = await dashboardService.getDailyExpenses(schoolId, req.query);
+
+  res.status(200).json(
+    new ApiResponse(200, expenses, 'Daily expenses details fetched successfully')
+  );
+});
+

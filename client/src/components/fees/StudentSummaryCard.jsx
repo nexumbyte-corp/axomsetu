@@ -110,37 +110,35 @@ export const StudentSummaryCard = ({ student, outstandingSummary, onClearStudent
         </div>
 
         {/* Right: Financial Dues Summary & Ledger Action */}
-        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-          <div className="flex items-center gap-1.5">
-            <div className="text-right bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg">
-              <span className="text-[8px] uppercase font-bold text-slate-400 block tracking-wider">Charges</span>
-              <span className="text-xs font-bold font-mono text-slate-900">
-                ₹{totalCharges.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </span>
-            </div>
+        <div className="grid grid-cols-4 sm:flex sm:items-center sm:justify-end gap-1.5 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100 w-full sm:w-auto">
+          <div className="text-center sm:text-right bg-slate-50 border border-slate-200 px-1.5 sm:px-2.5 py-1 rounded-lg min-w-0">
+            <span className="text-[8px] uppercase font-bold text-slate-400 block tracking-wider truncate">Charges</span>
+            <span className="text-[11px] sm:text-xs font-bold font-mono text-slate-900 block truncate">
+              ₹{totalCharges.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+            </span>
+          </div>
 
-            <div className="text-right bg-emerald-50/70 border border-emerald-200/70 px-2.5 py-1 rounded-lg">
-              <span className="text-[8px] uppercase font-bold text-emerald-600 block tracking-wider">Paid</span>
-              <span className="text-xs font-bold font-mono text-emerald-700">
-                ₹{totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </span>
-            </div>
+          <div className="text-center sm:text-right bg-emerald-50/70 border border-emerald-200/70 px-1.5 sm:px-2.5 py-1 rounded-lg min-w-0">
+            <span className="text-[8px] uppercase font-bold text-emerald-600 block tracking-wider truncate">Paid</span>
+            <span className="text-[11px] sm:text-xs font-bold font-mono text-emerald-700 block truncate">
+              ₹{totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+            </span>
+          </div>
 
-            <div className="text-right bg-rose-50/70 border border-rose-200/70 px-2.5 py-1 rounded-lg">
-              <span className="text-[8px] uppercase font-bold text-rose-500 block tracking-wider">Dues</span>
-              <span className={`text-xs font-extrabold font-mono ${totalOutstanding > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
-                ₹{totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </span>
-            </div>
+          <div className="text-center sm:text-right bg-rose-50/70 border border-rose-200/70 px-1.5 sm:px-2.5 py-1 rounded-lg min-w-0">
+            <span className="text-[8px] uppercase font-bold text-rose-500 block tracking-wider truncate">Dues</span>
+            <span className={`text-[11px] sm:text-xs font-extrabold font-mono block truncate ${totalOutstanding > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
+              ₹{totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+            </span>
           </div>
 
           <button
             type="button"
             onClick={() => navigate(`/app/students/${student.id}/ledger`)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 transition-colors shadow-2xs shrink-0 cursor-pointer"
+            className="flex items-center justify-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 transition-colors shadow-2xs shrink-0 cursor-pointer min-w-0"
           >
-            <FileText className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Ledger</span>
+            <FileText className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+            <span className="truncate">Ledger</span>
           </button>
         </div>
       </div>

@@ -27,7 +27,7 @@ const STAFF_ROLES = [
 
 const STAFF_STATUSES = ['ACTIVE', 'INACTIVE', 'RESIGNED', 'ON_LEAVE'];
 
-const PAYMENT_MODES = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT'];
+const PAYMENT_MODES = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT', 'POS', 'OTHER'];
 
 const phoneRegex = /^[0-9+\-\s()]{7,15}$/;
 

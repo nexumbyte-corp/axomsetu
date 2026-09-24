@@ -471,6 +471,8 @@ export const dashboardService = {
       };
     });
 
+    const expenses = await this.getDailyExpenses(schoolId, query);
+
     return {
       date: formattedDateString,
       totalAmount,
@@ -478,6 +480,87 @@ export const dashboardService = {
       studentCount,
       modeBreakdown,
       payments,
+      expenses,
+    };
+  },
+
+  /**
+   * Fetch daily expenses summary and vouchers list for a specific date
+   * @param {string} schoolId
+   * @param {object} query - { date, academicYearId }
+   */
+  async getDailyExpenses(schoolId, query = {}) {
+    const { academicYearId, date } = query;
+    const { startOfDay, endOfDay, dateStr: formattedDateString } = getISTDayBounds(date);
+
+    const expenseWhere = {
+      schoolId,
+      status: 'ACTIVE',
+      expenseDate: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+      ...(academicYearId && { academicYearId }),
+    };
+
+    const [totalAggregate, modeGroup, categoryGroup, expensesList] = await Promise.all([
+      prisma.expense.aggregate({
+        where: expenseWhere,
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
+
+      prisma.expense.groupBy({
+        by: ['paymentMode'],
+        where: expenseWhere,
+        _sum: { amount: true },
+        _count: { id: true },
+      }),
+
+      prisma.expense.groupBy({
+        by: ['categoryId'],
+        where: expenseWhere,
+      }),
+
+      prisma.expense.findMany({
+        where: expenseWhere,
+        include: {
+          category: { select: { id: true, name: true } },
+          createdBy: { select: { id: true, name: true } },
+        },
+        orderBy: { expenseDate: 'desc' },
+        take: 50,
+      }),
+    ]);
+
+    const totalAmount = Number(totalAggregate._sum.amount || 0);
+    const expenseCount = totalAggregate._count.id || 0;
+    const categoryCount = categoryGroup.length;
+
+    const modeBreakdown = modeGroup.map((mg) => ({
+      mode: mg.paymentMode,
+      amount: Number(mg._sum.amount || 0),
+      count: mg._count.id,
+    }));
+
+    const expenses = expensesList.map((e) => ({
+      id: e.id,
+      expenseDate: e.expenseDate,
+      amount: Number(e.amount),
+      paymentMode: e.paymentMode,
+      categoryName: e.category?.name || 'General',
+      referenceNo: e.referenceNo || '-',
+      description: e.description || '',
+      createdByName: e.createdBy?.name || 'System',
+    }));
+
+    return {
+      date: formattedDateString,
+      totalAmount,
+      expenseCount,
+      categoryCount,
+      modeBreakdown,
+      expenses,
     };
   },
 

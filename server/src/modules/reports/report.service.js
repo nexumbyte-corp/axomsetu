@@ -42,7 +42,7 @@ export const reportService = {
       },
     });
 
-    const defaultModes = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT'];
+    const defaultModes = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT', 'POS', 'OTHER'];
     const modeBreakdown = {};
     let grandTotalDecimal = new Prisma.Decimal(0);
     let totalReceiptCount = 0;
@@ -120,7 +120,7 @@ export const reportService = {
       monthName: name,
       receiptCount: 0,
       totalCollection: 0,
-      modeBreakdown: { CASH: 0, UPI: 0, BANK_TRANSFER: 0, CHEQUE: 0, DEMAND_DRAFT: 0 },
+      modeBreakdown: { CASH: 0, UPI: 0, BANK_TRANSFER: 0, CHEQUE: 0, DEMAND_DRAFT: 0, POS: 0, OTHER: 0 },
     }));
 
     let annualTotalDecimal = new Prisma.Decimal(0);

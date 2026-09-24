@@ -15,6 +15,7 @@ import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { formatDate } from '../../utils/formatters.js';
+import { downloadPdfDocument, printPdfDocument } from '../../core/documents/documentEngine.js';
 import { Plus, Search, FileSpreadsheet, Settings, AlertTriangle } from 'lucide-react';
 
 export const ExpensesPage = () => {
@@ -172,7 +173,52 @@ export const ExpensesPage = () => {
   };
 
   const { user } = useAuth();
-  const schoolHeader = user?.schoolAdmins?.[0]?.school || {};
+  const schoolHeader = user?.schoolAdmins?.[0]?.school || user?.school || {};
+
+  const fetchAllMatchingExpenses = async () => {
+    if (pagination.total <= expenses.length) {
+      return expenses;
+    }
+    try {
+      const params = {
+        page: 1,
+        limit: Math.max(pagination.total, 100),
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+        ...(selectedYearId && { academicYearId: selectedYearId }),
+        ...(search && { search }),
+        ...(categoryId !== 'ALL' && { categoryId }),
+        ...(paymentMode !== 'ALL' && { paymentMode }),
+        ...(startDate && { startDate }),
+        ...(endDate && { endDate }),
+      };
+      const res = await financeService.getExpenses(params);
+      return res.data?.expenses || expenses;
+    } catch (err) {
+      console.error('Failed to fetch all matching expenses for report:', err);
+      return expenses;
+    }
+  };
+
+  const handlePrintReport = async () => {
+    const allExpenses = await fetchAllMatchingExpenses();
+    await printPdfDocument({
+      templateId: 'expenseReport',
+      data: { schoolHeader, expenses: allExpenses },
+      options: { title: 'School Expenditure Report' },
+    });
+  };
+
+  const handleDownloadReport = async () => {
+    const allExpenses = await fetchAllMatchingExpenses();
+    const dateStr = new Date().toISOString().split('T')[0];
+    await downloadPdfDocument({
+      templateId: 'expenseReport',
+      data: { schoolHeader, expenses: allExpenses },
+      filename: `School_Expense_Report_${dateStr}.pdf`,
+      options: { title: 'School Expenditure Report' },
+    });
+  };
 
   const activeCategories = categories.filter((c) => c.isActive);
 
@@ -188,9 +234,11 @@ export const ExpensesPage = () => {
         <div className="flex items-center gap-2.5">
           <DocumentActions
             templateId="expenseReport"
-            data={{ schoolHeader, expenses }}
-            filename="School_Expense_Report.pdf"
+            onPrint={handlePrintReport}
+            onDownload={handleDownloadReport}
+            filename={`School_Expense_Report_${new Date().toISOString().split('T')[0]}.pdf`}
             title="School Expenditure Report"
+            disabled={loading}
           />
           <Button
             variant="outline"
@@ -324,8 +372,8 @@ export const ExpensesPage = () => {
                           variant="minimal"
                           templateId="expenseVoucher"
                           data={{ expense: exp, schoolHeader }}
-                          filename={`Expense_Voucher_${exp.expenseNo || exp.id}.pdf`}
-                          title={`Expense Voucher #${exp.expenseNo || exp.id}`}
+                          filename={`Expense_Voucher_${exp.referenceNo || exp.expenseNo || exp.id}.pdf`}
+                          title={`Expense Voucher #${exp.referenceNo || exp.expenseNo || exp.id}`}
                         />
                         {exp.status === 'ACTIVE' && (
                           <button

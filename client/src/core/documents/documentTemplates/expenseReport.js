@@ -31,28 +31,35 @@ export const buildExpenseReportData = (rawData = {}) => {
     reportDate: formatDocDate(new Date()),
     totalAmount,
     totalCount: expenses.length,
-    expenses: expenses.map((e) => ({
-      category: e.category?.name || 'Uncategorized',
-      date: formatDocDate(e.expenseDate),
-      description: e.description || '-',
-      paymentMode: e.paymentMode || 'CASH',
-      referenceNo: e.referenceNo || '-',
-      amount: Number(e.amount || 0),
-      status: e.status || 'ACTIVE',
-    })),
+    expenses: expenses.map((e) => {
+      const categoryName = typeof e.category === 'object' && e.category !== null
+        ? (e.category.name || 'Uncategorized')
+        : (e.category || 'Uncategorized');
+
+      return {
+        category: categoryName,
+        date: formatDocDate(e.expenseDate || e.createdAt),
+        description: e.description || '-',
+        paymentMode: e.paymentMode || 'CASH',
+        referenceNo: e.referenceNo || e.referenceNumber || '-',
+        amount: Number(e.amount || 0),
+        status: e.status || 'ACTIVE',
+      };
+    }),
   };
 };
 
 /**
  * pdfMake Template Builder for School Expense Report
  */
-export const buildExpenseReportTemplate = (data, _settings = {}) => {
+export const buildExpenseReportTemplate = (data, settings = {}) => {
   const formatCurrency = (val) =>
     `₹${Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
   const headerStack = createPDFHeader({
     school: data.school,
     documentTitle: 'SCHOOL EXPENDITURE REPORT',
+    options: settings,
   });
 
   const content = [...headerStack];
@@ -69,16 +76,31 @@ export const buildExpenseReportTemplate = (data, _settings = {}) => {
     ],
   ];
 
-  data.expenses.forEach((e) => {
+  if (!data.expenses || data.expenses.length === 0) {
     tableRows.push([
-      { text: e.category, fontSize: 9, bold: true, color: '#0f172a' },
-      { text: e.date, fontSize: 9, color: '#334155' },
-      { text: e.status === 'CANCELLED' ? `${e.description} (CANCELLED)` : e.description, fontSize: 9, color: e.status === 'CANCELLED' ? '#94a3b8' : '#334155' },
-      { text: e.paymentMode, fontSize: 9, color: '#475569' },
-      { text: e.referenceNo, fontSize: 9, color: '#475569' },
-      { text: formatCurrency(e.amount), fontSize: 9, alignment: 'right', bold: true, color: e.status === 'CANCELLED' ? '#94a3b8' : '#dc2626' },
+      {
+        text: 'No expense records found matching current criteria.',
+        colSpan: 6,
+        fontSize: 9,
+        italics: true,
+        alignment: 'center',
+        color: '#64748b',
+        margin: [0, 8, 0, 8],
+      },
+      {}, {}, {}, {}, {},
     ]);
-  });
+  } else {
+    data.expenses.forEach((e) => {
+      tableRows.push([
+        { text: e.category, fontSize: 9, bold: true, color: '#0f172a' },
+        { text: e.date, fontSize: 9, color: '#334155' },
+        { text: e.status === 'CANCELLED' ? `${e.description} (CANCELLED)` : e.description, fontSize: 9, color: e.status === 'CANCELLED' ? '#94a3b8' : '#334155' },
+        { text: e.paymentMode, fontSize: 9, color: '#475569' },
+        { text: e.referenceNo, fontSize: 9, color: '#475569' },
+        { text: formatCurrency(e.amount), fontSize: 9, alignment: 'right', bold: true, color: e.status === 'CANCELLED' ? '#94a3b8' : '#dc2626' },
+      ]);
+    });
+  }
 
   // Summary Row
   tableRows.push([

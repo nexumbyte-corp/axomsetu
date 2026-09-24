@@ -23,8 +23,19 @@ export const PaymentForm = ({
     setErrorMsg('');
 
     if (!isCash && (!referenceNumber || referenceNumber.trim() === '')) {
-      const modeLabel = paymentMode === 'UPI' ? 'UPI UTR / Ref' : paymentMode === 'CHEQUE' ? 'Cheque No.' : 'Ref No.';
-      setErrorMsg(`${modeLabel} required for ${paymentMode}.`);
+      const modeLabel =
+        paymentMode === 'UPI'
+          ? 'UPI UTR / Reference ID'
+          : paymentMode === 'CHEQUE'
+          ? 'Cheque Number'
+          : paymentMode === 'DEMAND_DRAFT'
+          ? 'Demand Draft Number'
+          : paymentMode === 'POS'
+          ? 'Card Approval / Txn Code'
+          : paymentMode === 'BANK_TRANSFER'
+          ? 'Bank Transfer / UTR Number'
+          : 'Reference Number';
+      setErrorMsg(`${modeLabel} is required for ${paymentMode.replace(/_/g, ' ')} payment.`);
       return;
     }
 
@@ -39,6 +50,42 @@ export const PaymentForm = ({
       referenceNumber: referenceNumber.trim() || null,
       remarks: remarks.trim() || null,
     });
+  };
+
+  const getRefLabel = () => {
+    switch (paymentMode) {
+      case 'UPI':
+        return 'UPI UTR / Ref';
+      case 'CHEQUE':
+        return 'Cheque No.';
+      case 'DEMAND_DRAFT':
+        return 'DD Number';
+      case 'POS':
+        return 'Card Txn / Approval';
+      case 'BANK_TRANSFER':
+        return 'Bank UTR / Txn';
+      default:
+        return 'Ref / Txn No.';
+    }
+  };
+
+  const getRefPlaceholder = () => {
+    switch (paymentMode) {
+      case 'CASH':
+        return 'Optional note/voucher';
+      case 'UPI':
+        return '12-digit UTR / UPI Ref';
+      case 'CHEQUE':
+        return '6-digit Cheque No.';
+      case 'DEMAND_DRAFT':
+        return 'DD Serial Number';
+      case 'POS':
+        return 'Card Auth / Ref No.';
+      case 'BANK_TRANSFER':
+        return 'NEFT / RTGS Ref No.';
+      default:
+        return 'Reference / Txn No.';
+    }
   };
 
   return (
@@ -78,13 +125,13 @@ export const PaymentForm = ({
               setPaymentMode(e.target.value);
               setErrorMsg('');
             }}
-            className="w-full py-1 px-1.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold text-slate-900"
+            className="w-full py-1.5 px-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold text-slate-900"
           >
             <option value="CASH">Cash</option>
-            <option value="ONLINE">Online / UPI</option>
+            <option value="UPI">Online / UPI</option>
             <option value="BANK_TRANSFER">Bank Transfer / NEFT</option>
             <option value="CHEQUE">Cheque</option>
-            <option value="DD">Demand Draft</option>
+            <option value="DEMAND_DRAFT">Demand Draft</option>
             <option value="POS">POS Card</option>
           </select>
         </div>
@@ -93,7 +140,7 @@ export const PaymentForm = ({
       {/* Reference Number */}
       <div>
         <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
-          Ref / Txn No. {!isCash && <span className="text-rose-500">*</span>}
+          {getRefLabel()} {!isCash && <span className="text-rose-500">*</span>}
         </label>
         <input
           type="text"
@@ -103,8 +150,8 @@ export const PaymentForm = ({
             setReferenceNumber(e.target.value);
             if (errorMsg) setErrorMsg('');
           }}
-          placeholder={isCash ? 'Optional' : 'UTR / Cheque No / Ref'}
-          className={`w-full py-1 px-2 text-xs bg-white border rounded-lg focus:outline-none font-mono text-slate-900 ${
+          placeholder={getRefPlaceholder()}
+          className={`w-full py-1.5 px-2.5 text-xs bg-white border rounded-lg focus:outline-none font-mono text-slate-900 ${
             !isCash && !referenceNumber ? 'border-amber-400 bg-amber-50/40' : 'border-slate-300'
           }`}
         />
@@ -119,23 +166,23 @@ export const PaymentForm = ({
           value={remarks}
           onChange={(e) => setRemarks(e.target.value)}
           placeholder="Optional note..."
-          className="w-full py-1 px-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none text-slate-900"
+          className="w-full py-1.5 px-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none text-slate-900"
         />
       </div>
 
       {/* Submit Button */}
-      <div className="pt-0.5">
+      <div className="pt-1">
         <Button
           type="submit"
           variant="primary"
-          size="sm"
+          size="md"
           fullWidth
           disabled={isDisabled || isSubmitting || totalSelectedAmount < 0}
           isLoading={isSubmitting}
           loadingText="Collecting..."
-          className="py-1 text-xs"
+          className="py-2 text-xs sm:text-sm font-bold shadow-xs hover:shadow-sm"
         >
-          <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+          <CheckCircle2 className="w-4 h-4 mr-1.5" />
           Collect ₹{totalSelectedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
         </Button>
       </div>

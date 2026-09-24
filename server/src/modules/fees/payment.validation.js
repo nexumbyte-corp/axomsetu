@@ -1,6 +1,39 @@
 import { z } from 'zod';
 
-const PAYMENT_MODES = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT'];
+export const PAYMENT_MODES = [
+  'CASH',
+  'UPI',
+  'BANK_TRANSFER',
+  'CHEQUE',
+  'DEMAND_DRAFT',
+  'POS',
+  'OTHER',
+];
+
+const normalizePaymentMode = (val) => {
+  if (val === '' || val === null || val === undefined) return undefined;
+  if (typeof val !== 'string') return val;
+  const upper = val.trim().toUpperCase();
+  if (!upper) return undefined;
+  if (upper === 'ONLINE' || upper === 'GPAY' || upper === 'PHONEPE' || upper === 'PAYTM' || upper === 'BHIM') return 'UPI';
+  if (upper === 'DD') return 'DEMAND_DRAFT';
+  if (upper === 'CARD' || upper === 'POS_CARD' || upper === 'CREDIT_CARD' || upper === 'DEBIT_CARD' || upper === 'SWIPE') return 'POS';
+  return upper;
+};
+
+export const paymentModeSchema = z.preprocess(
+  normalizePaymentMode,
+  z.enum(PAYMENT_MODES, {
+    errorMap: () => ({ message: 'Invalid payment mode selected' }),
+  })
+);
+
+export const optionalPaymentModeSchema = z.preprocess(
+  normalizePaymentMode,
+  z.enum(PAYMENT_MODES, {
+    errorMap: () => ({ message: 'Invalid payment mode selected' }),
+  }).optional()
+);
 
 const FEE_MONTHS = [
   'JANUARY',
@@ -30,9 +63,7 @@ const chargeSelectionSchema = z
 export const createPaymentSchema = z
   .object({
     studentId: z.string().uuid('Invalid student ID'),
-    paymentMode: z.enum(PAYMENT_MODES, {
-      errorMap: () => ({ message: 'Invalid payment mode selected' }),
-    }),
+    paymentMode: paymentModeSchema,
     paymentDate: z.string().datetime({ offset: true }).or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
     remarks: z.string().trim().max(300, 'Remarks cannot exceed 300 characters').optional().nullable(),
     referenceNumber: z.string().trim().max(100, 'Reference number cannot exceed 100 characters').optional().nullable(),
@@ -79,7 +110,7 @@ export const queryPaymentSchema = z.object({
   studentId: z.string().uuid('Invalid student ID').optional(),
   academicYearId: z.string().uuid('Invalid academic year ID').optional(),
   month: z.enum(FEE_MONTHS).optional(),
-  paymentMode: z.enum(PAYMENT_MODES).optional(),
+  paymentMode: optionalPaymentModeSchema,
   status: z.enum(['SUCCESS', 'VOID']).optional(),
   classId: z.string().uuid('Invalid class ID').optional(),
   sectionId: z.string().uuid('Invalid section ID').optional(),

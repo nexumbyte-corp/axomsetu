@@ -98,6 +98,7 @@ export const feeReportsService = {
       BANK_TRANSFER: 0,
       CHEQUE: 0,
       DEMAND_DRAFT: 0,
+      POS: 0,
       OTHER: 0,
     };
     let totalCollectionDecimal = new Prisma.Decimal(0);

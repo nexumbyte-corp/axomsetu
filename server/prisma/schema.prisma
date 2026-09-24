@@ -91,6 +91,7 @@ enum PaymentMode {
   BANK_TRANSFER
   CHEQUE
   DEMAND_DRAFT
+  POS
   OTHER
 }
 

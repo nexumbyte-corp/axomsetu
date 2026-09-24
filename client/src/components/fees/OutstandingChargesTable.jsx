@@ -171,7 +171,153 @@ export const OutstandingChargesTable = ({
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto min-h-0">
+        {/* Mobile Fee Dues Cards (< 768px) */}
+        <div className="md:hidden divide-y divide-slate-100 overflow-y-auto max-h-[380px]">
+          {charges.map((charge) => {
+            const isPayable = charge.status === 'UNPAID' || charge.status === 'PARTIAL';
+            const isSelected = selectedChargeIds.includes(charge.id);
+            const totalAmt = Number(charge.chargeAmount ?? charge.amount ?? 0);
+            const paidAmt = Number(charge.paidAmount ?? 0);
+            const remainingBal = charge.balance !== undefined && charge.balance !== null
+              ? Number(charge.balance)
+              : Math.max(0, totalAmt - paidAmt);
+            const currentPayVal = paymentAmounts[charge.id] !== undefined
+              ? paymentAmounts[charge.id]
+              : remainingBal;
+
+            const isOver = Number(currentPayVal) > remainingBal;
+            const isEditable = canManageCharge && charge.status === 'UNPAID' && paidAmt === 0;
+
+            return (
+              <div
+                key={charge.id}
+                onClick={() => {
+                  if (isPayable) onToggleCharge(charge.id, remainingBal);
+                }}
+                className={`p-3 transition-colors ${
+                  isSelected
+                    ? 'bg-indigo-50/50'
+                    : !isPayable
+                    ? 'bg-slate-50/60 opacity-60'
+                    : 'hover:bg-slate-50/80 cursor-pointer'
+                }`}
+              >
+                {/* Top: Checkbox, Title, Month & Status */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                    <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={isSelected}
+                        disabled={!isPayable}
+                        onChange={() => onToggleCharge(charge.id, remainingBal)}
+                        id={`mobile-charge-${charge.id}`}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                          {charge.title}
+                        </span>
+                        {charge.feeType?.name && (
+                          <span className="text-[10px] text-slate-500 font-normal">
+                            ({charge.feeType.name})
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500 font-medium">
+                        <span>{charge.month}{charge.year ? ` ${charge.year}` : ''}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    {getStatusBadge(charge.status)}
+
+                    {isEditable && (
+                      <div className="flex items-center gap-1 ml-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setChargeToEdit(charge);
+                            setEditAmount(Number(charge.amount ?? charge.chargeAmount ?? 0).toString());
+                            setEditError('');
+                          }}
+                          className="p-1 rounded text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                          title="Edit Amount"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setChargeToDelete(charge)}
+                          className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          title="Delete Charge"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Middle: 3-Column Financial Breakdown */}
+                <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-slate-100/80 text-xs">
+                  <div className="bg-white/80 border border-slate-100 rounded-lg p-1.5 text-center">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Total</span>
+                    <span className="font-mono font-semibold text-slate-700 text-xs">₹{totalAmt.toFixed(2)}</span>
+                  </div>
+
+                  <div className="bg-white/80 border border-slate-100 rounded-lg p-1.5 text-center">
+                    <span className="text-[9px] uppercase font-bold text-emerald-600 block tracking-wider">Paid</span>
+                    <span className="font-mono font-semibold text-emerald-600 text-xs">₹{paidAmt.toFixed(2)}</span>
+                  </div>
+
+                  <div className="bg-white/80 border border-slate-100 rounded-lg p-1.5 text-center">
+                    <span className="text-[9px] uppercase font-bold text-rose-500 block tracking-wider">Due Bal</span>
+                    <span className="font-mono font-bold text-rose-700 text-xs">₹{remainingBal.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* Bottom: Paying Amount Input (When Selected) */}
+                {isSelected && (
+                  <div
+                    className="mt-2.5 pt-2 border-t border-indigo-200/60 flex items-center justify-between gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <label htmlFor={`pay-input-${charge.id}`} className="text-xs font-bold text-indigo-900 shrink-0">
+                      Paying Now:
+                    </label>
+                    <div className="flex-1 max-w-[160px] relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 font-mono font-bold text-slate-400 text-xs">₹</span>
+                      <input
+                        id={`pay-input-${charge.id}`}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max={remainingBal}
+                        value={currentPayVal}
+                        onChange={(e) => onUpdatePaymentAmount(charge.id, e.target.value)}
+                        className={`w-full text-right py-1 pl-6 pr-2 rounded-lg border font-mono font-bold text-xs focus:outline-none transition-all ${
+                          isOver
+                            ? 'border-rose-500 bg-rose-50 text-rose-700'
+                            : 'border-indigo-300 bg-white text-indigo-900 focus:ring-2 focus:ring-indigo-400'
+                        }`}
+                      />
+                      {isOver && (
+                        <span className="text-[8px] text-rose-600 block text-right font-semibold mt-0.5">
+                          Exceeds balance
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop Table View (>= 768px) */}
+        <div className="hidden md:block flex-1 overflow-auto min-h-0">
           <table className="w-full text-left text-xs">
             <thead className="sticky top-0 z-10 bg-slate-100/90 backdrop-blur-xs text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
               <tr>

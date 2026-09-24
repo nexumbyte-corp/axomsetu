@@ -6,6 +6,9 @@ import {
   RotateCcw,
   Receipt,
   Plus,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { DashboardCards } from '../../components/fees/DashboardCards.jsx';
 import { ReceiptTable } from '../../components/fees/ReceiptTable.jsx';
@@ -145,6 +148,19 @@ export const ReceiptsListPage = () => {
     return { totalAmount, modeCounts };
   }, [payments]);
 
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (selectedClassId) count++;
+    if (selectedMediumId) count++;
+    if (paymentMode) count++;
+    if (status) count++;
+    if (startDate) count++;
+    if (endDate) count++;
+    return count;
+  }, [selectedClassId, selectedMediumId, paymentMode, status, startDate, endDate]);
+
   const hasActiveFilters = Boolean(
     searchTerm || selectedClassId || selectedMediumId || paymentMode || status || startDate || endDate
   );
@@ -192,10 +208,12 @@ export const ReceiptsListPage = () => {
   const PAYMENT_MODE_OPTIONS = [
     { value: '', label: 'All Payment Modes' },
     { value: 'CASH', label: 'Cash' },
-    { value: 'UPI', label: 'UPI / QR' },
+    { value: 'UPI', label: 'UPI / Online' },
     { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
     { value: 'CHEQUE', label: 'Cheque' },
     { value: 'DEMAND_DRAFT', label: 'Demand Draft' },
+    { value: 'POS', label: 'POS Card' },
+    { value: 'OTHER', label: 'Other' },
   ];
 
   const STATUS_OPTIONS = [
@@ -205,7 +223,7 @@ export const ReceiptsListPage = () => {
   ];
 
   return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden space-y-2 w-full">
+    <div className="min-h-full flex flex-col space-y-2 sm:space-y-2.5 w-full pb-6 md:pb-0 md:h-full md:overflow-hidden">
       {/* Top Financial Dashboard Overview Cards */}
       <div className="shrink-0">
         <DashboardCards summary={dashboardSummary} isLoading={isLoadingDashboard} />
@@ -214,34 +232,36 @@ export const ReceiptsListPage = () => {
       {/* Main Business Filter Toolbar Card */}
       <Card className="shrink-0 p-3 sm:p-3.5 bg-white border border-slate-200 shadow-2xs space-y-2.5">
         {/* Header Row: Title, Inline Metrics & Primary Action */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-100 pb-2">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold shadow-2xs shrink-0">
               <Receipt className="w-4 h-4" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-sm font-extrabold text-slate-900">Receipts & Search Register</h2>
-                <Badge variant="indigo" size="sm" className="font-mono text-[9px]">
-                  {formatNumber(pagination.total)} Records
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h2 className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">
+                  Receipts & Search Register
+                </h2>
+                <Badge variant="indigo" size="sm" className="font-mono text-[9px] shrink-0">
+                  {formatNumber(pagination.total)}
                 </Badge>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">
+              <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate hidden sm:block">
                 Comprehensive cashier ledger, receipt search, and audit control
               </p>
             </div>
           </div>
 
           {/* Quick Actions Header Toolbar */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Button
               variant="primary"
               size="sm"
               icon={Plus}
               onClick={() => navigate('/app/fees/collect')}
-              className="text-xs font-bold"
+              className="text-xs font-bold py-1 px-2.5 sm:px-3"
             >
-              Collect Fee
+              <span>Collect Fee</span>
             </Button>
 
             <Button
@@ -251,12 +271,128 @@ export const ReceiptsListPage = () => {
               loading={isLoadingPayments}
               onClick={() => refetch()}
               title="Refresh dataset"
+              className="p-1.5"
             />
           </div>
         </div>
 
-        {/* Dense Multi-Filter Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2">
+        {/* Mobile Search & Filter Toggle Bar (< md) */}
+        <div className="md:hidden flex items-center gap-2">
+          <div className="flex-1">
+            <Input
+              placeholder="Search receipt #, student..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              icon={Search}
+              className="text-xs py-1"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsMobileFiltersOpen((prev) => !prev)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 h-[34px] rounded-lg border text-xs font-bold transition-all shrink-0 ${
+              isMobileFiltersOpen || activeFilterCount > 0
+                ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[9px] flex items-center justify-center font-mono font-bold">
+                {activeFilterCount}
+              </span>
+            )}
+            {isMobileFiltersOpen ? (
+              <ChevronUp className="w-3 h-3 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-3 h-3 text-slate-400" />
+            )}
+          </button>
+        </div>
+
+        {/* Mobile Collapsible Filters Grid */}
+        {isMobileFiltersOpen && (
+          <div className="md:hidden grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+            {/* Class Filter */}
+            <Select
+              value={selectedClassId}
+              onChange={(e) => {
+                setSelectedClassId(e.target.value);
+                setPage(1);
+              }}
+              options={[
+                { label: 'All Classes', value: '' },
+                ...classes.map((cls) => ({ label: `Class ${cls.name}`, value: cls.id })),
+              ]}
+              className="text-xs py-1"
+            />
+
+            {/* Medium Filter */}
+            <Select
+              value={selectedMediumId}
+              onChange={(e) => {
+                setSelectedMediumId(e.target.value);
+                setPage(1);
+              }}
+              options={[
+                { label: 'All Medium', value: '' },
+                ...mediums.map((med) => ({
+                  label: med.name ? med.name.replace(/\s*medium$/i, '').trim() : '',
+                  value: med.id,
+                })),
+              ]}
+              className="text-xs py-1"
+            />
+
+            {/* Payment Mode */}
+            <Select
+              value={paymentMode}
+              onChange={(e) => {
+                setPaymentMode(e.target.value);
+                setPage(1);
+              }}
+              options={PAYMENT_MODE_OPTIONS}
+              className="text-xs py-1"
+            />
+
+            {/* Status */}
+            <Select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              options={STATUS_OPTIONS}
+              className="text-xs py-1"
+            />
+
+            {/* Date Range Pickers */}
+            <DatePicker
+              value={startDate}
+              onChange={(val) => {
+                setStartDate(val);
+                setPage(1);
+              }}
+              placeholder="From Date"
+              className="text-xs py-1"
+            />
+
+            <DatePicker
+              value={endDate}
+              onChange={(val) => {
+                setEndDate(val);
+                setPage(1);
+              }}
+              placeholder="To Date"
+              className="text-xs py-1"
+            />
+          </div>
+        )}
+
+        {/* Desktop Multi-Filter Grid (>= md) */}
+        <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-7 gap-2">
           {/* Search Input */}
           <div className="lg:col-span-1">
             <Input
@@ -344,10 +480,10 @@ export const ReceiptsListPage = () => {
         </div>
 
         {/* Quick Date Range Bar & Filter Summary Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-100 bg-slate-50/60 -mx-3.5 -mb-3.5 p-2.5 rounded-b-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-100 bg-slate-50/60 -mx-3 -mb-3 sm:-mx-3.5 sm:-mb-3.5 p-2 sm:p-2.5 rounded-b-xl">
           {/* Preset Buttons */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">Presets:</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-0.5">Presets:</span>
             <button
               type="button"
               onClick={handleSetToday}
@@ -378,18 +514,18 @@ export const ReceiptsListPage = () => {
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="px-2 py-0.5 text-[11px] font-bold rounded-md text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors flex items-center gap-1 ml-1"
+                className="px-2 py-0.5 text-[11px] font-bold rounded-md text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors flex items-center gap-1"
               >
                 <RotateCcw className="w-3 h-3" />
-                Reset Filters
+                <span>Reset</span>
               </button>
             )}
           </div>
 
           {/* Current Page Revenue Summary Indicator */}
           {payments.length > 0 && (
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 shrink-0">
-              <span className="text-[10px] text-slate-500 font-medium">Page Revenue Total:</span>
+            <div className="flex items-center justify-between sm:justify-end gap-2 text-xs font-semibold text-slate-700 shrink-0">
+              <span className="text-[10px] text-slate-500 font-medium">Page Total:</span>
               <span className="font-mono font-extrabold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs text-xs">
                 {formatCurrency(currentViewStats.totalAmount)}
               </span>
@@ -398,22 +534,21 @@ export const ReceiptsListPage = () => {
         </div>
       </Card>
 
-      {/* High-Density Compact Receipt Table */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* High-Density Compact Receipt Table & Mobile Cards */}
+      <div className="flex-1 flex flex-col min-h-0 md:overflow-hidden">
         <ReceiptTable payments={payments} isLoading={isLoadingPayments} />
       </div>
 
       {/* Compact Pagination Bar */}
       {pagination.totalPages > 1 && (
-        <div className="shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-2xs text-xs">
-          <div className="text-slate-500 font-medium font-mono text-[10px]">
-            Showing {(pagination.page - 1) * pagination.limit + 1}–
-            {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} receipts
-          </div>
+        <div className="shrink-0">
           <Pagination
             currentPage={pagination.page}
             totalPages={pagination.totalPages}
+            totalItems={pagination.total}
+            itemsPerPage={pagination.limit}
             onPageChange={(p) => setPage(p)}
+            className="rounded-xl border border-slate-200 shadow-2xs"
           />
         </div>
       )}

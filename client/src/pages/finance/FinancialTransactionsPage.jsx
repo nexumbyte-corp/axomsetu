@@ -13,10 +13,11 @@ import { DocumentActions } from '../../components/documents/DocumentActions.jsx'
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { formatDate } from '../../utils/formatters.js';
 import { Search, FileText } from 'lucide-react';
+import { downloadPdfDocument, printPdfDocument } from '../../core/documents/documentEngine.js';
 
 export const FinancialTransactionsPage = () => {
   const { user } = useAuth();
-  const schoolHeader = user?.schoolAdmins?.[0]?.school || {};
+  const schoolHeader = user?.schoolAdmins?.[0]?.school || user?.school || {};
   const { selectedYearId } = useAcademicYear();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
@@ -82,6 +83,66 @@ export const FinancialTransactionsPage = () => {
     return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  const fetchAllMatchingTransactions = async () => {
+    if (pagination.total <= transactions.length) {
+      return transactions;
+    }
+    try {
+      const params = {
+        page: 1,
+        limit: Math.max(pagination.total, 1000),
+        ...(selectedYearId && { academicYearId: selectedYearId }),
+        ...(search && { search }),
+        ...(type !== 'ALL' && { type }),
+        ...(sourceType !== 'ALL' && { sourceType }),
+        ...(paymentMode !== 'ALL' && { paymentMode }),
+        ...(startDate && { startDate }),
+        ...(endDate && { endDate }),
+      };
+      const res = await financeService.getTransactions(params);
+      return res.data?.transactions || res.transactions || transactions;
+    } catch (err) {
+      console.error('Failed to fetch all matching transactions for document:', err);
+      return transactions;
+    }
+  };
+
+  const handlePrint = async () => {
+    const allTxns = await fetchAllMatchingTransactions();
+    const totalCredit = allTxns.reduce((sum, t) => (t.type === 'CREDIT' ? sum + Math.abs(Number(t.amount || 0)) : sum), 0);
+    const totalDebit = allTxns.reduce((sum, t) => (t.type === 'DEBIT' ? sum + Math.abs(Number(t.amount || 0)) : sum), 0);
+    await printPdfDocument({
+      templateId: 'financialLedger',
+      data: {
+        schoolHeader,
+        transactions: allTxns,
+        totalCredit,
+        totalDebit,
+        currentBalance: totalCredit - totalDebit,
+      },
+      options: { title: 'Financial Ledger Statement' },
+    });
+  };
+
+  const handleDownload = async () => {
+    const allTxns = await fetchAllMatchingTransactions();
+    const totalCredit = allTxns.reduce((sum, t) => (t.type === 'CREDIT' ? sum + Math.abs(Number(t.amount || 0)) : sum), 0);
+    const totalDebit = allTxns.reduce((sum, t) => (t.type === 'DEBIT' ? sum + Math.abs(Number(t.amount || 0)) : sum), 0);
+    const dateStr = new Date().toISOString().split('T')[0];
+    await downloadPdfDocument({
+      templateId: 'financialLedger',
+      data: {
+        schoolHeader,
+        transactions: allTxns,
+        totalCredit,
+        totalDebit,
+        currentBalance: totalCredit - totalDebit,
+      },
+      filename: `Financial_Ledger_Statement_${dateStr}.pdf`,
+      options: { title: 'Financial Ledger Statement' },
+    });
+  };
+
   const sourceTypes = [
     { label: 'All Sources', value: 'ALL' },
     { label: 'Fee Collection', value: 'FEE_COLLECTION' },
@@ -118,9 +179,17 @@ export const FinancialTransactionsPage = () => {
           <div className="flex items-center gap-2">
             <DocumentActions
               templateId="financialLedger"
-              data={{ schoolHeader, transactions }}
-              filename="Financial_Ledger_Statement.pdf"
+              data={{
+                schoolHeader,
+                transactions,
+                totalCredit: transactions.reduce((sum, t) => (t.type === 'CREDIT' ? sum + Math.abs(Number(t.amount || 0)) : sum), 0),
+                totalDebit: transactions.reduce((sum, t) => (t.type === 'DEBIT' ? sum + Math.abs(Number(t.amount || 0)) : sum), 0),
+              }}
+              onPrint={handlePrint}
+              onDownload={handleDownload}
+              filename={`Financial_Ledger_Statement_${new Date().toISOString().split('T')[0]}.pdf`}
               title="Financial Ledger Statement"
+              disabled={loading || transactions.length === 0}
             />
             <form onSubmit={handleSearchSubmit} autoComplete="off" className="flex items-center gap-2">
               <div className="w-full sm:w-64">

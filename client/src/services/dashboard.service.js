@@ -18,5 +18,14 @@ export const dashboardService = {
     const response = await api.get('/dashboard/daily-collection', { params });
     return response;
   },
+
+  /**
+   * Get daily expenses metrics and records for a specific date
+   * @param {object} params - { date, academicYearId }
+   */
+  async getDailyExpenses(params = {}) {
+    const response = await api.get('/dashboard/daily-expenses', { params });
+    return response;
+  },
 };
 

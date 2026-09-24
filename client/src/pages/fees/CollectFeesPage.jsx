@@ -290,7 +290,17 @@ export const CollectFeesPage = () => {
       setSuccessModalData(res.data || res);
       refetchOutstanding();
     } catch (err) {
-      toast.error(err.message || 'Unable to collect payment.');
+      const errorMsg =
+        (err?.errors && Array.isArray(err.errors) && err.errors.length > 0
+          ? err.errors.map((e) => e.message).join(' | ')
+          : null) ||
+        (err?.fieldErrors && Object.values(err.fieldErrors).length > 0
+          ? Object.values(err.fieldErrors).join(', ')
+          : null) ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Unable to collect payment.';
+      toast.error(errorMsg);
     }
   };
 
@@ -338,12 +348,12 @@ export const CollectFeesPage = () => {
   };
 
   return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden space-y-2">
+    <div className="min-h-full flex flex-col space-y-2.5 pb-6 lg:pb-0 lg:h-full lg:overflow-hidden">
       {/* Main Cashier Workspace */}
       {!selectedStudent ? (
         <StudentPickerTable onSelectStudent={handleSelectStudent} />
       ) : (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden space-y-2">
+        <div className="flex-1 flex flex-col min-h-0 lg:overflow-hidden space-y-2.5">
           {/* Student Profile Summary Header */}
           <div className="shrink-0">
             <StudentSummaryCard
@@ -354,9 +364,9 @@ export const CollectFeesPage = () => {
           </div>
 
           {/* Charges & Payment Form Grid */}
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-2.5 min-h-0 overflow-hidden">
-            {/* Left 2 Columns: Outstanding Charges Business Table */}
-            <div className="lg:col-span-2 flex flex-col h-full min-h-0 overflow-hidden">
+          <div className="flex-1 flex flex-col lg:grid lg:grid-cols-3 gap-2.5 min-h-0 lg:overflow-hidden">
+            {/* Left 2 Columns on Desktop: Charges Table & Mobile Cards */}
+            <div className="lg:col-span-2 flex flex-col min-h-0 lg:h-full lg:overflow-hidden">
               <OutstandingChargesTable
                 student={selectedStudent}
                 schoolHeader={schoolHeader}
@@ -377,8 +387,8 @@ export const CollectFeesPage = () => {
               />
             </div>
 
-            {/* Right 1 Column: Summary & Payment Form Panel */}
-            <div className="lg:col-span-1 flex flex-col gap-2 overflow-y-auto max-h-full pr-0.5">
+            {/* Right 1 Column on Desktop: Summary & Payment Form Panel */}
+            <div className="lg:col-span-1 flex flex-col gap-2.5 lg:overflow-y-auto lg:max-h-full">
               <PaymentSummaryCard
                 selectedCount={selectedChargeIds.length}
                 selectedTotalBalance={selectedTotalBalance}
