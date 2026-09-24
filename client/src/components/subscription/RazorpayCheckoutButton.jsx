@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CreditCard, Loader2, ShieldCheck } from 'lucide-react';
+import { CreditCard, Loader2 } from 'lucide-react';
 import { loadRazorpayScript } from '../../utils/loadRazorpayScript.js';
 import { createRazorpayOrder, verifyRazorpayPayment } from '../../services/razorpay.service.js';
 import { toast } from '../ui/Toast.jsx';

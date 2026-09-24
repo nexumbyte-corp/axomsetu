@@ -31,6 +31,7 @@ const CASTE_OPTIONS = [
 export const EditStudentProfilePage = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
+  const { selectedYear, academicYears } = useAcademicYear();
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
@@ -237,7 +238,6 @@ export const EditStudentProfilePage = () => {
     );
   }
 
-  const { selectedYear, academicYears } = useAcademicYear();
 
   const todayStr = formatDateForInput(new Date());
 

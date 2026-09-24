@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, ArrowLeft, User, Phone, Home } from 'lucide-react';
+import { FileText, ArrowLeft } from 'lucide-react';
 import { Badge } from '../ui/Badge.jsx';
 import { StudentAvatar } from '../students/StudentAvatar.jsx';
 

@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  DollarSign,
-  Receipt,
-  Users,
-  CreditCard,
   RefreshCw,
   TrendingUp,
   TrendingDown,
@@ -14,10 +10,6 @@ import {
   ArrowRightLeft,
   ArrowUpRight,
   ArrowDownRight,
-  Tag,
-  Building2,
-  CheckCircle2,
-  AlertTriangle,
 } from 'lucide-react';
 import { dashboardService } from '../../services/dashboard.service.js';
 import { DatePicker } from '../ui/DatePicker.jsx';
@@ -143,16 +135,6 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
   const cashExpenses = getModeAmt(expenseModes, 'CASH');
   const cashInHand = cashCollection - cashExpenses;
 
-  // UPI In Hand
-  const upiCollection = getModeAmt(collectionModes, 'UPI');
-  const upiExpenses = getModeAmt(expenseModes, 'UPI');
-  const upiInHand = upiCollection - upiExpenses;
-
-  // Bank Transfer In Hand
-  const bankCollection = getModeAmt(collectionModes, 'BANK_TRANSFER');
-  const bankExpenses = getModeAmt(expenseModes, 'BANK_TRANSFER');
-  const bankInHand = bankCollection - bankExpenses;
-
   // All Digital & Other Non-Cash In Hand
   const digitalCollection = collectionModes
     .filter((m) => m.mode !== 'CASH')
@@ -169,7 +151,7 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
       ...expenseModes.map((m) => m.mode),
     ]);
     return Array.from(modesSet).filter(Boolean);
-  }, [collectionModes, expenseModes]);
+  }, [collectionData, expenseData]);
 
   const getModeBadgeVariant = (mode) => {
     switch (mode) {

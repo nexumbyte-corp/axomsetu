@@ -38,7 +38,6 @@ export const OutstandingChargesTable = ({
   const [editError, setEditError] = useState('');
   const { isOwner, isSchoolAdmin, hasFullAccess } = usePermission();
   const canManageCharge = isOwner || isSchoolAdmin || hasFullAccess;
-  const canDeleteCharge = canManageCharge;
 
   const payableCharges = charges.filter(
     (c) => c.status === 'UNPAID' || c.status === 'PARTIAL'
