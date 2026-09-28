@@ -14,7 +14,7 @@ import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
-import { formatDate } from '../../utils/formatters.js';
+import { formatDate, getISTTodayString } from '../../utils/formatters.js';
 import { downloadPdfDocument, printPdfDocument } from '../../core/documents/documentEngine.js';
 import { Plus, Search, FileSpreadsheet, Settings, AlertTriangle } from 'lucide-react';
 
@@ -38,10 +38,23 @@ export const ExpensesPage = () => {
   const [cancelModalExpense, setCancelModalExpense] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
 
+  const handleOpenAddModal = () => {
+    setExpenseForm({
+      categoryId: '',
+      expenseDate: getISTTodayString(),
+      amount: '',
+      paymentMode: 'BANK_TRANSFER',
+      referenceNumber: '',
+      description: '',
+    });
+    setFormError('');
+    setIsAddModalOpen(true);
+  };
+
   // Add Expense Form State
   const [expenseForm, setExpenseForm] = useState({
     categoryId: '',
-    expenseDate: new Date().toISOString().split('T')[0],
+    expenseDate: getISTTodayString(),
     amount: '',
     paymentMode: 'BANK_TRANSFER',
     referenceNumber: '',
@@ -112,7 +125,7 @@ export const ExpensesPage = () => {
       setIsAddModalOpen(false);
       setExpenseForm({
         categoryId: '',
-        expenseDate: new Date().toISOString().split('T')[0],
+        expenseDate: getISTTodayString(),
         amount: '',
         paymentMode: 'BANK_TRANSFER',
         referenceNumber: '',
@@ -211,7 +224,7 @@ export const ExpensesPage = () => {
 
   const handleDownloadReport = async () => {
     const allExpenses = await fetchAllMatchingExpenses();
-    const dateStr = new Date().toISOString().split('T')[0];
+    const dateStr = getISTTodayString();
     await downloadPdfDocument({
       templateId: 'expenseReport',
       data: { schoolHeader, expenses: allExpenses },
@@ -251,7 +264,7 @@ export const ExpensesPage = () => {
           <Button
             variant="primary"
             size="sm"
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={handleOpenAddModal}
             icon={Plus}
           >
             + Add Expense

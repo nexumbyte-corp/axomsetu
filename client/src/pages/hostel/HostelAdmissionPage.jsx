@@ -16,6 +16,7 @@ import { Alert } from '../../components/ui/Alert.jsx';
 import { StudentAvatar } from '../../components/students/StudentAvatar.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
 import { StudentPhotoModal } from '../../components/hostel/StudentPhotoModal.jsx';
+import { getISTTodayString } from '../../utils/formatters.js';
 
 export const HostelAdmissionPage = () => {
   const location = useLocation();
@@ -42,7 +43,7 @@ export const HostelAdmissionPage = () => {
   const [selectedBed, setSelectedBed] = useState(null);
 
   // Step 4: Admission Date & Fee Preview & Overrides
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(getISTTodayString());
   const [feeConfig, setFeeConfig] = useState(null);
   const [admissionFeeOverride, setAdmissionFeeOverride] = useState('');
   const [monthlyFeeOverride, setMonthlyFeeOverride] = useState('');
@@ -52,6 +53,7 @@ export const HostelAdmissionPage = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    setStartDate(getISTTodayString());
     fetchHostels();
     fetchInitialActiveStudents();
   }, [activeAcademicYearId]);

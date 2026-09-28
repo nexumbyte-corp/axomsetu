@@ -21,6 +21,7 @@ import { usePageHeader } from '../../context/PageHeaderContext.jsx';
 import { useSubscription } from '../../context/SubscriptionContext.jsx';
 import { getFormErrors } from '../../utils/errorUtils.js';
 import { isStudentLimitError, parseStudentLimitError } from '../../utils/subscriptionUtils.js';
+import { getISTTodayString, formatDateForInput } from '../../utils/formatters.js';
 
 const MONTH_NAMES = [
   'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
@@ -62,12 +63,12 @@ export const AddStudentPage = () => {
   const [streams, setStreams] = useState([]);
   const [loadingSetup, setLoadingSetup] = useState(true);
 
-  const todayDateStr = new Date().toISOString().split('T')[0];
+  const todayDateStr = getISTTodayString();
   const minAdmissionDate = selectedYear?.startDate
-    ? new Date(selectedYear.startDate).toISOString().split('T')[0]
+    ? formatDateForInput(selectedYear.startDate)
     : '';
   const maxAdmissionDate = selectedYear?.endDate
-    ? new Date(selectedYear.endDate).toISOString().split('T')[0]
+    ? formatDateForInput(selectedYear.endDate)
     : '';
 
   // Form State
@@ -107,6 +108,13 @@ export const AddStudentPage = () => {
   const [errors, setErrors] = useState({});
 
   const currentFeeMonth = getCurrentFeeMonth();
+
+  useEffect(() => {
+    setStudentInfo((prev) => ({
+      ...prev,
+      admissionDate: getISTTodayString(),
+    }));
+  }, []);
 
   useEffect(() => {
     const fetchOptions = async () => {

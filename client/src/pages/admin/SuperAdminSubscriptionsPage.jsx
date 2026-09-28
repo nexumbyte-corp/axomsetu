@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, RefreshCw, Plus, Calendar, AlertTriangle, Edit2, Printer } from 'lucide-react';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { adminService } from '../../services/adminService.js';
-import { formatDate } from '../../utils/formatters.js';
+import { formatDate, getISTTodayString } from '../../utils/formatters.js';
 import { calculateMonthlyPrice } from '../../utils/subscriptionUtils.js';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
@@ -127,7 +127,7 @@ export const SuperAdminSubscriptionsPage = () => {
       schoolId: '',
       planId: '',
       durationMonths: '12',
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: getISTTodayString(),
       endDate: '',
       amount: '',
       maxStudentLimit: '',

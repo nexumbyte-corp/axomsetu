@@ -8,7 +8,7 @@ import * as feeTypeController from './fee-type.controller.js';
 import * as feeStructureController from './fee-structure.controller.js';
 import * as feeOverrideController from './fee-override.controller.js';
 import * as feeGenerationController from './fee-generation.controller.js';
-import { deleteUnpaidFeeCharge } from './payment.controller.js';
+import { deleteUnpaidFeeCharge, updateUnpaidFeeCharge } from './payment.controller.js';
 
 export const feesRouter = Router();
 
@@ -19,6 +19,7 @@ feesRouter.use(authenticate, resolveSchool);
 // Fee Charges Management Routes
 // ------------------------------------------
 feesRouter.delete('/charges/:chargeId', requireOwnerOrSchoolAdmin('Only School Admin or Owner can delete unpaid fee charges'), deleteUnpaidFeeCharge);
+feesRouter.patch('/charges/:chargeId', requireOwnerOrSchoolAdmin('Only School Admin or Owner can edit fee charges'), updateUnpaidFeeCharge);
 
 // ------------------------------------------
 // Fee Types Routes

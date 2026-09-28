@@ -45,23 +45,23 @@ export const parseDateSafe = (value) => {
   const str = String(value).trim();
   if (!str) return null;
 
-  // DD-MM-YYYY format
+  // DD-MM-YYYY format (anchor to midday IST: UTC+05:30 to prevent timezone day-shift)
   const ddmmyyyyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
   if (ddmmyyyyMatch) {
-    const day = parseInt(ddmmyyyyMatch[1], 10);
-    const month = parseInt(ddmmyyyyMatch[2], 10) - 1;
-    const year = parseInt(ddmmyyyyMatch[3], 10);
-    const date = new Date(year, month, day);
-    return date.getDate() === day && date.getMonth() === month && date.getFullYear() === year ? date : null;
+    const day = String(parseInt(ddmmyyyyMatch[1], 10)).padStart(2, '0');
+    const month = String(parseInt(ddmmyyyyMatch[2], 10)).padStart(2, '0');
+    const year = ddmmyyyyMatch[3];
+    const date = new Date(`${year}-${month}-${day}T12:00:00.000+05:30`);
+    return isNaN(date.getTime()) ? null : date;
   }
 
-  // YYYY-MM-DD format (date-only)
+  // YYYY-MM-DD format (anchor to midday IST: UTC+05:30 to prevent timezone day-shift)
   const yyyymmddMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
   if (yyyymmddMatch) {
-    const year = parseInt(yyyymmddMatch[1], 10);
-    const month = parseInt(yyyymmddMatch[2], 10) - 1;
-    const day = parseInt(yyyymmddMatch[3], 10);
-    const date = new Date(year, month, day);
+    const year = yyyymmddMatch[1];
+    const month = String(parseInt(yyyymmddMatch[2], 10)).padStart(2, '0');
+    const day = String(parseInt(yyyymmddMatch[3], 10)).padStart(2, '0');
+    const date = new Date(`${year}-${month}-${day}T12:00:00.000+05:30`);
     return isNaN(date.getTime()) ? null : date;
   }
 
@@ -204,9 +204,37 @@ export const formatDateForInput = (date) => {
   } catch {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
   }
+};
+
+/**
+ * Returns today's date in YYYY-MM-DD format strictly based on Indian Standard Time (IST: Asia/Kolkata).
+ * A calendar day is considered 12:00 AM to 11:59 PM IST.
+ * Ensures consistent automatic date selection across all transactions (Fee collection, Expenses, Staff advances, Funds, etc.).
+ * @returns {string} e.g. "2026-09-28"
+ */
+export const getISTTodayString = () => {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: TIMEZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    return formatter.format(new Date());
+  } catch {
+    return formatDateForInput(new Date());
+  }
+};
+
+/**
+ * Alias for getISTTodayString or formats a given Date to YYYY-MM-DD in IST.
+ * @param {Date|string} [date]
+ * @returns {string}
+ */
+export const getISTDateString = (date = new Date()) => {
+  return formatDateForInput(date);
 };
 
 const BASE_ACADEMIC_MONTHS = [
@@ -269,6 +297,8 @@ export default {
   formatDate,
   formatDateTime,
   formatDateForInput,
+  getISTTodayString,
+  getISTDateString,
   parseDateSafe,
   getAcademicMonthOptions,
 };

@@ -9,6 +9,7 @@ import { Select } from '../ui/Select.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { toast } from '../ui/Toast.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
+import { getISTTodayString } from '../../utils/formatters.js';
 
 export const HostelTransferModal = ({ isOpen, onClose, resident, onSuccess }) => {
   const [hostels, setHostels] = useState([]);
@@ -17,7 +18,7 @@ export const HostelTransferModal = ({ isOpen, onClose, resident, onSuccess }) =>
   const [toRoomId, setToRoomId] = useState('');
   const [toBeds, setToBeds] = useState([]);
   const [selectedToBed, setSelectedToBed] = useState(null);
-  const [transferDate, setTransferDate] = useState(new Date().toISOString().split('T')[0]);
+  const [transferDate, setTransferDate] = useState(getISTTodayString());
   const [transferReason, setTransferReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,7 +30,7 @@ export const HostelTransferModal = ({ isOpen, onClose, resident, onSuccess }) =>
       setToRoomId('');
       setSelectedToBed(null);
       setTransferReason('');
-      setTransferDate(new Date().toISOString().split('T')[0]);
+      setTransferDate(getISTTodayString());
     }
   }, [isOpen]);
 

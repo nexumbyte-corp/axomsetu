@@ -158,6 +158,35 @@ export const parseDateOnlyToUtc = (dateVal) => {
   return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
 };
 
+/**
+ * Parse an incoming transaction date (e.g. fee payment, expense, salary) into an IST-aware Date object.
+ * Day is considered 12:00:00 AM to 11:59:59 PM in IST (UTC+05:30).
+ * - If no date is provided: defaults to current instant (new Date()).
+ * - If YYYY-MM-DD matches today's IST date: uses current instant to preserve the real time of transaction.
+ * - If YYYY-MM-DD is another day: sets time to midday (12:00:00.000+05:30) so it's squarely inside that IST day.
+ * - Otherwise parses using standard Date.
+ * @param {string|Date|number} [dateInput]
+ * @returns {Date}
+ */
+export const parseTransactionDateIST = (dateInput) => {
+  if (!dateInput) return new Date();
+
+  if (typeof dateInput === 'string') {
+    const trimmed = dateInput.trim();
+    const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) {
+      const todayStr = getISTDateString();
+      if (trimmed === todayStr) {
+        return new Date();
+      }
+      return new Date(`${trimmed}T12:00:00.000+05:30`);
+    }
+  }
+
+  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  return isNaN(d.getTime()) ? new Date() : d;
+};
+
 export default {
   getISTDate,
   getISTDateParts,
@@ -166,5 +195,6 @@ export default {
   getISTMonthBounds,
   getISTYearBounds,
   parseDateOnlyToUtc,
+  parseTransactionDateIST,
 };
 

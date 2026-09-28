@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Input } from '../../components/ui/Input.jsx';
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
@@ -7,6 +7,7 @@ import { Textarea } from '../../components/ui/Textarea.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { financeService } from '../../services/financeService.js';
 import { Landmark, ArrowUpRight } from 'lucide-react';
+import { getISTTodayString } from '../../utils/formatters.js';
 
 export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess, academicYearId }) => {
   const [formData, setFormData] = useState({
@@ -14,10 +15,23 @@ export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess, academicYearId
     paymentMode: 'BANK_TRANSFER',
     referenceNumber: '',
     remarks: '',
-    transactionDate: new Date().toISOString().split('T')[0],
+    transactionDate: getISTTodayString(),
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        amount: '',
+        paymentMode: 'BANK_TRANSFER',
+        referenceNumber: '',
+        remarks: '',
+        transactionDate: getISTTodayString(),
+      });
+      setError('');
+    }
+  }, [isOpen]);
 
   const paymentModes = [
     { label: 'Bank Account', value: 'BANK_TRANSFER' },
@@ -97,7 +111,7 @@ export const OpeningBalanceModal = ({ isOpen, onClose, onSuccess, academicYearId
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <DatePicker
-            label="Transaction Date *"
+            label="Transaction Date"
             size="sm"
             value={formData.transactionDate}
             onChange={(val) => setFormData({ ...formData, transactionDate: val })}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Input } from '../../components/ui/Input.jsx';
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
@@ -6,6 +6,7 @@ import { Select } from '../../components/ui/Select.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { staffService } from '../../services/staff.service.js';
 import { AlertCircle } from 'lucide-react';
+import { getISTTodayString } from '../../utils/formatters.js';
 
 const PAYMENT_MODES = [
   { value: 'CASH', label: 'Cash' },
@@ -16,13 +17,24 @@ const PAYMENT_MODES = [
 
 export const DisburseAdvanceModal = ({ isOpen, onClose, staff, onSuccess }) => {
   const [amount, setAmount] = useState('');
-  const [advanceDate, setAdvanceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [advanceDate, setAdvanceDate] = useState(getISTTodayString());
   const [paymentMode, setPaymentMode] = useState('CASH');
   const [referenceNo, setReferenceNo] = useState('');
   const [remarks, setRemarks] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setAdvanceDate(getISTTodayString());
+      setAmount('');
+      setPaymentMode('CASH');
+      setReferenceNo('');
+      setRemarks('');
+      setError(null);
+    }
+  }, [isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,7 +110,7 @@ export const DisburseAdvanceModal = ({ isOpen, onClose, staff, onSuccess }) => {
 
         <DatePicker
           size="sm"
-          label="Disbursement Date *"
+          label="Disbursement Date"
           value={advanceDate}
           onChange={(val) => setAdvanceDate(val)}
           required

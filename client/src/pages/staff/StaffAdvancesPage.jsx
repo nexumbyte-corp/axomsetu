@@ -12,6 +12,7 @@ import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { StaffSubNav } from './StaffSubNav.jsx';
 import { IndividualStaffAdvanceReportModal } from './IndividualStaffAdvanceReportModal.jsx';
 import { HandCoins, Plus, Search, FileText } from 'lucide-react';
+import { getISTTodayString } from '../../utils/formatters.js';
 
 
 export const StaffAdvancesPage = () => {
@@ -21,7 +22,7 @@ export const StaffAdvancesPage = () => {
 
   const [isGiveModalOpen, setIsGiveModalOpen] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState('');
-  const [advanceDate, setAdvanceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [advanceDate, setAdvanceDate] = useState(getISTTodayString());
   const [amount, setAmount] = useState('');
   const [paymentMode, setPaymentMode] = useState('CASH');
   const [referenceNo, setReferenceNo] = useState('');
@@ -35,6 +36,17 @@ export const StaffAdvancesPage = () => {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+
+  const handleOpenGiveModal = (staffId = '') => {
+    setSelectedStaffId(staffId);
+    setAdvanceDate(getISTTodayString());
+    setAmount('');
+    setPaymentMode('CASH');
+    setReferenceNo('');
+    setRemarks('');
+    setError(null);
+    setIsGiveModalOpen(true);
+  };
 
   const fetchAdvancesData = async () => {
     setLoading(true);
@@ -78,6 +90,7 @@ export const StaffAdvancesPage = () => {
 
       setIsGiveModalOpen(false);
       setSelectedStaffId('');
+      setAdvanceDate(getISTTodayString());
       setAmount('');
       setReferenceNo('');
       setRemarks('');
@@ -120,7 +133,7 @@ export const StaffAdvancesPage = () => {
         title="Staff Advances"
         description="Disburse cash advances to active staff members and track outstanding recovery balances."
         actions={
-          <Button variant="primary" size="sm" icon={Plus} onClick={() => setIsGiveModalOpen(true)}>
+          <Button variant="primary" size="sm" icon={Plus} onClick={() => handleOpenGiveModal()}>
             Give Advance
           </Button>
         }
@@ -246,10 +259,7 @@ export const StaffAdvancesPage = () => {
                             size="sm"
                             disabled={!isOperational}
                             title={!isOperational ? 'Cannot disburse advance to inactive staff' : ''}
-                            onClick={() => {
-                              setSelectedStaffId(st.id);
-                              setIsGiveModalOpen(true);
-                            }}
+                            onClick={() => handleOpenGiveModal(st.id)}
                           >
                             Give Advance
                           </Button>
@@ -290,7 +300,7 @@ export const StaffAdvancesPage = () => {
           <div className="grid grid-cols-2 gap-3">
             <DatePicker
               size="sm"
-              label="Advance Date *"
+              label="Advance Date"
               value={advanceDate}
               onChange={(val) => setAdvanceDate(val)}
               required

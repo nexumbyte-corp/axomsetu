@@ -3,6 +3,7 @@ import { ApiError } from '../../utils/ApiError.js';
 import { generateNextDocumentNumber } from '../../utils/documentSequence.js';
 import { isStaffEligibleForMonth } from '../../utils/staffHelpers.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
+import { parseTransactionDateIST } from '../../utils/dateUtils.js';
 
 export const payrollService = {
   /**
@@ -789,7 +790,7 @@ export const payrollService = {
           staffId,
           academicYearId: academicYearId || firstPayroll.academicYearId || null,
           paymentNumber,
-          paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+          paymentDate: parseTransactionDateIST(paymentDate),
           months: monthsPaid,
           year: firstPayroll.year,
           baseSalary: targetPayrolls.reduce((sum, p) => sum + Number(p.baseSalary), 0),
@@ -906,7 +907,7 @@ export const payrollService = {
       await financialLedgerService.createTransaction(tx, {
         schoolId,
         academicYearId: academicYearId || firstPayroll.academicYearId || null,
-        transactionDate: paymentDate ? new Date(paymentDate) : new Date(),
+        transactionDate: parseTransactionDateIST(paymentDate),
         type: 'DEBIT',
         sourceType: 'SALARY_PAYMENT',
         sourceId: salaryPayment.id,
@@ -922,7 +923,7 @@ export const payrollService = {
         await financialLedgerService.createTransaction(tx, {
           schoolId,
           academicYearId: academicYearId || firstPayroll.academicYearId || null,
-          transactionDate: paymentDate ? new Date(paymentDate) : new Date(),
+          transactionDate: parseTransactionDateIST(paymentDate),
           type: 'CREDIT',
           sourceType: 'ADVANCE_RECOVERY',
           sourceId: salaryPayment.id,

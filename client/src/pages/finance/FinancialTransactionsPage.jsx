@@ -11,7 +11,7 @@ import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
-import { formatDate } from '../../utils/formatters.js';
+import { formatDate, getISTTodayString } from '../../utils/formatters.js';
 import { Search, FileText } from 'lucide-react';
 import { downloadPdfDocument, printPdfDocument } from '../../core/documents/documentEngine.js';
 
@@ -128,7 +128,7 @@ export const FinancialTransactionsPage = () => {
     const allTxns = await fetchAllMatchingTransactions();
     const totalCredit = allTxns.reduce((sum, t) => (t.type === 'CREDIT' ? sum + Math.abs(Number(t.amount || 0)) : sum), 0);
     const totalDebit = allTxns.reduce((sum, t) => (t.type === 'DEBIT' ? sum + Math.abs(Number(t.amount || 0)) : sum), 0);
-    const dateStr = new Date().toISOString().split('T')[0];
+    const dateStr = getISTTodayString();
     await downloadPdfDocument({
       templateId: 'financialLedger',
       data: {
@@ -187,7 +187,7 @@ export const FinancialTransactionsPage = () => {
               }}
               onPrint={handlePrint}
               onDownload={handleDownload}
-              filename={`Financial_Ledger_Statement_${new Date().toISOString().split('T')[0]}.pdf`}
+              filename={`Financial_Ledger_Statement_${getISTTodayString()}.pdf`}
               title="Financial Ledger Statement"
               disabled={loading || transactions.length === 0}
             />

@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
-import { getISTDayBounds, getISTMonthBounds } from '../../utils/dateUtils.js';
+import { getISTDayBounds, getISTMonthBounds, parseTransactionDateIST } from '../../utils/dateUtils.js';
 import receiptService from './receipt.service.js';
 import { getTargetYearForFeeMonth } from './fee-generation.service.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
@@ -181,7 +181,7 @@ export const paymentService = {
           academicYearId: firstAcademicYearId,
           studentId,
           receiptNumber,
-          paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+          paymentDate: parseTransactionDateIST(paymentDate),
           paymentMode,
           referenceNumber: refNumber,
           receivedAmount: totalReceivedDecimal,
@@ -230,7 +230,7 @@ export const paymentService = {
       await financialLedgerService.createTransaction(tx, {
         schoolId,
         academicYearId: firstAcademicYearId,
-        transactionDate: paymentDate ? new Date(paymentDate) : new Date(),
+        transactionDate: parseTransactionDateIST(paymentDate),
         type: 'CREDIT',
         sourceType: 'FEE_COLLECTION',
         sourceId: payment.id,
@@ -1392,9 +1392,9 @@ export const paymentService = {
   },
 
   /**
-   * Update the amount of a particular unpaid fee charge.
+   * Update the amount of a particular fee charge (UNPAID or PARTIAL charges).
    * Permission restricted to School Admin / Owner only.
-   * Hard rule: Charge MUST be strictly UNPAID with 0 paidAmount and no active allocations.
+   * Hard rule: Charge MUST be UNPAID or PARTIAL, and new amount cannot be less than already paid amount.
    *
    * @param {string} schoolId
    * @param {string} chargeId
@@ -1428,22 +1428,66 @@ export const paymentService = {
       throw new ApiError(404, 'Fee charge not found');
     }
 
-    const paidAmt = new Prisma.Decimal(charge.paidAmount || 0);
-    if (charge.status !== 'UNPAID' || paidAmt.greaterThan(0) || charge.allocations.length > 0) {
+    // Only UNPAID or PARTIAL charges can be edited
+    if (charge.status !== 'UNPAID' && charge.status !== 'PARTIAL') {
       throw new ApiError(
         400,
-        `Cannot edit charge '${charge.title}' because it has partial or full payments. Only UNPAID charges with no payment history can be edited.`
+        `Cannot edit charge '${charge.title}' with status '${charge.status}'. Only UNPAID or PARTIALLY paid charges can be edited.`
+      );
+    }
+
+    // Calculate effective paid amount from active (non-VOID) allocations and charge.paidAmount
+    const paidAmtAllocations = charge.allocations.reduce(
+      (sum, a) => sum.plus(new Prisma.Decimal(a.allocatedAmount || 0)),
+      new Prisma.Decimal(0)
+    );
+    const recordedPaidAmt = new Prisma.Decimal(charge.paidAmount || 0);
+    const paidAmt = Prisma.Decimal.max(paidAmtAllocations, recordedPaidAmt);
+
+    const newAmountDecimal = new Prisma.Decimal(parsedAmount);
+
+    // If new amount is less than what has already been collected, block with a clear error
+    if (paidAmt.greaterThan(newAmountDecimal)) {
+      throw new ApiError(
+        400,
+        `Cannot reduce charge amount to ₹${newAmountDecimal.toFixed(2)} because ₹${paidAmt.toFixed(2)} has already been collected. The new charge amount must be at least ₹${paidAmt.toFixed(2)}.`
       );
     }
 
     return await prisma.$transaction(async (tx) => {
-      const newStatus = parsedAmount === 0 ? 'PAID' : 'UNPAID';
+      const remaining = newAmountDecimal.minus(paidAmt);
+
+      let newStatus = 'UNPAID';
+      if (remaining.equals(0)) {
+        newStatus = 'PAID';
+      } else if (paidAmt.greaterThan(0)) {
+        newStatus = 'PARTIAL';
+      } else {
+        newStatus = 'UNPAID';
+      }
+
+      const updateData = {
+        amount: newAmountDecimal,
+        status: newStatus,
+        isOverridden: true,
+        overriddenById: userId || null,
+        overriddenAt: new Date(),
+      };
+
+      if (charge.originalAmount === null || charge.originalAmount === undefined) {
+        updateData.originalAmount = charge.amount;
+      }
+
+      const templateAmount = Number(
+        charge.originalAmount !== null && charge.originalAmount !== undefined
+          ? charge.originalAmount
+          : charge.amount
+      );
+      updateData.discountAmount = new Prisma.Decimal(Math.max(0, templateAmount - parsedAmount));
+
       const updated = await tx.studentFeeCharge.update({
         where: { id: chargeId },
-        data: {
-          amount: new Prisma.Decimal(parsedAmount),
-          status: newStatus,
-        },
+        data: updateData,
       });
 
       await tx.auditLog.create({
@@ -1456,6 +1500,7 @@ export const paymentService = {
           oldValues: {
             title: charge.title,
             amount: charge.amount.toString(),
+            paidAmount: charge.paidAmount ? charge.paidAmount.toString() : '0',
             studentId: charge.studentId,
             month: charge.month,
             status: charge.status,
@@ -1463,6 +1508,7 @@ export const paymentService = {
           newValues: {
             title: updated.title,
             amount: updated.amount.toString(),
+            paidAmount: updated.paidAmount ? updated.paidAmount.toString() : '0',
             studentId: updated.studentId,
             month: updated.month,
             status: updated.status,
@@ -1472,7 +1518,7 @@ export const paymentService = {
 
       return {
         success: true,
-        message: `Unpaid fee charge '${charge.title}' amount updated successfully`,
+        message: `Fee charge '${charge.title}' amount updated successfully`,
         charge: updated,
       };
     });

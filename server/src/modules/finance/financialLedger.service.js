@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
-import { getISTMonthBounds } from '../../utils/dateUtils.js';
+import { getISTMonthBounds, parseDateOnlyToUtc, getISTDateString } from '../../utils/dateUtils.js';
 
 export const financialLedgerService = {
   /**
@@ -57,7 +57,7 @@ export const financialLedgerService = {
       }
     }
 
-    const dateVal = transactionDate ? new Date(transactionDate) : new Date();
+    const dateVal = parseDateOnlyToUtc(transactionDate) || parseDateOnlyToUtc(getISTDateString());
 
     const transaction = await client.financialTransaction.create({
       data: {
@@ -385,7 +385,7 @@ export const financialLedgerService = {
     const txn = await this.createTransaction(prisma, {
       schoolId,
       academicYearId: targetAcademicYearId,
-      transactionDate: transactionDate ? new Date(transactionDate) : new Date(),
+      transactionDate: parseDateOnlyToUtc(transactionDate) || parseDateOnlyToUtc(getISTDateString()),
       type: 'CREDIT',
       sourceType: 'OPENING_BALANCE',
       amount: decimalAmt,

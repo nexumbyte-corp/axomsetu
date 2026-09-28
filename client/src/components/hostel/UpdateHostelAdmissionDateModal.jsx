@@ -8,7 +8,7 @@ import { DatePicker } from '../ui/DatePicker.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { toast } from '../ui/Toast.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
-import { formatDate } from '../../utils/formatters.js';
+import { formatDate, getISTTodayString, formatDateForInput } from '../../utils/formatters.js';
 
 export const UpdateHostelAdmissionDateModal = ({ isOpen, onClose, resident, onSuccess }) => {
   const [startDate, setStartDate] = useState('');
@@ -17,11 +17,11 @@ export const UpdateHostelAdmissionDateModal = ({ isOpen, onClose, resident, onSu
 
   // Maximum allowable date constraints
   const maxExitDate = resident?.endDate
-    ? new Date(resident.endDate).toISOString().split('T')[0]
+    ? formatDateForInput(resident.endDate)
     : '';
 
   const earliestTransferDate = resident?.transferHistory?.length > 0
-    ? new Date(resident.transferHistory[resident.transferHistory.length - 1].transferDate || resident.transferHistory[0].transferDate).toISOString().split('T')[0]
+    ? formatDateForInput(resident.transferHistory[resident.transferHistory.length - 1].transferDate || resident.transferHistory[0].transferDate)
     : '';
 
   // Calculate most restrictive max date
@@ -37,8 +37,8 @@ export const UpdateHostelAdmissionDateModal = ({ isOpen, onClose, resident, onSu
   useEffect(() => {
     if (isOpen && resident) {
       const currentStart = resident.startDate
-        ? new Date(resident.startDate).toISOString().split('T')[0]
-        : new Date().toISOString().split('T')[0];
+        ? formatDateForInput(resident.startDate)
+        : getISTTodayString();
       setStartDate(currentStart);
       setReason('');
     }

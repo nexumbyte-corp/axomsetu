@@ -8,7 +8,7 @@ import {
   ChevronsRight,
   X,
 } from 'lucide-react';
-import { formatDate, parseDateSafe, formatDateForInput } from '../../utils/formatters.js';
+import { formatDate, parseDateSafe, formatDateForInput, getISTTodayString } from '../../utils/formatters.js';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -56,7 +56,7 @@ export const DatePicker = ({
 
   // Parse current value
   const parsedValue = parseDateSafe(value);
-  const displayValue = parsedValue ? formatDate(parsedValue) : '';
+  const displayValue = value ? formatDate(value) : '';
 
   // Internal input text state for controlled manual typing
   const [inputText, setInputText] = useState(displayValue);
@@ -65,7 +65,7 @@ export const DatePicker = ({
   const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
 
   // View state for calendar (month & year being viewed)
-  const today = new Date();
+  const today = parseDateSafe(getISTTodayString()) || new Date();
   const initialViewDate = parsedValue || (isDob ? new Date(today.getFullYear() - 15, today.getMonth(), 1) : today);
   const [viewYear, setViewYear] = useState(initialViewDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(initialViewDate.getMonth());
@@ -97,6 +97,15 @@ export const DatePicker = ({
   useEffect(() => {
     if (isOpen) {
       updatePosition();
+      // Dynamically re-align calendar view whenever opened
+      const currentToday = parseDateSafe(getISTTodayString()) || new Date();
+      const targetDate = parsedValue || (isDob ? new Date(currentToday.getFullYear() - 15, currentToday.getMonth(), 1) : currentToday);
+      if (targetDate) {
+        setViewYear(targetDate.getFullYear());
+        setViewMonth(targetDate.getMonth());
+        setYearGridStart(Math.floor(targetDate.getFullYear() / 12) * 12);
+      }
+
       const handleScrollOrResize = () => updatePosition();
       window.addEventListener('resize', handleScrollOrResize);
       window.addEventListener('scroll', handleScrollOrResize, true);
@@ -109,11 +118,14 @@ export const DatePicker = ({
 
   // Sync display text when value prop changes
   useEffect(() => {
-    if (parsedValue) {
-      setInputText(formatDate(parsedValue));
-      setViewYear(parsedValue.getFullYear());
-      setViewMonth(parsedValue.getMonth());
-      setYearGridStart(Math.floor(parsedValue.getFullYear() / 12) * 12);
+    if (value) {
+      setInputText(formatDate(value));
+      const pVal = parseDateSafe(value);
+      if (pVal) {
+        setViewYear(pVal.getFullYear());
+        setViewMonth(pVal.getMonth());
+        setYearGridStart(Math.floor(pVal.getFullYear() / 12) * 12);
+      }
     } else {
       setInputText('');
     }
@@ -166,7 +178,10 @@ export const DatePicker = ({
 
   const handleSelectDate = (date) => {
     if (isDateDisabled(date)) return;
-    const isoString = formatDateForInput(date);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const isoString = `${y}-${m}-${d}`;
     if (onChange) {
       onChange({ target: { name, value: isoString } }, isoString, date);
       if (typeof onChange === 'function' && onChange.length <= 1) {
@@ -177,7 +192,7 @@ export const DatePicker = ({
         }
       }
     }
-    setInputText(formatDate(date));
+    setInputText(`${d}-${m}-${y}`);
     setIsOpen(false);
     setViewMode('days');
   };
@@ -201,8 +216,9 @@ export const DatePicker = ({
 
   const handleToday = (e) => {
     e?.stopPropagation();
-    if (isDateDisabled(today)) return;
-    handleSelectDate(today);
+    const currentToday = parseDateSafe(getISTTodayString()) || new Date();
+    if (isDateDisabled(currentToday)) return;
+    handleSelectDate(currentToday);
   };
 
   // Controlled manual input handling with DD-MM-YYYY mask
@@ -501,7 +517,7 @@ export const DatePicker = ({
               {/* Days Grid */}
               <div className="grid grid-cols-7 gap-1">
                 {allCalendarDays.map((item, idx) => {
-                  const itemDate = new Date(item.year, item.month, item.day);
+                  const itemDate = new Date(item.year, item.month, item.day, 12, 0, 0);
                   const isCurrent =
                     today.getDate() === item.day &&
                     today.getMonth() === item.month &&

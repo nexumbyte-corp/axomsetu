@@ -6,6 +6,7 @@ import { Alert } from '../ui/Alert.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { studentService } from '../../services/student.service.js';
 import { toast } from '../ui/Toast.jsx';
+import { getISTTodayString } from '../../utils/formatters.js';
 import {
   ArrowRight,
   AlertCircle,
@@ -34,7 +35,7 @@ export const StudentTransferModal = ({
   streams = [],
   onSuccess,
 }) => {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getISTTodayString();
 
   const [transferDate, setTransferDate] = useState(todayStr);
   const [targetMediumId, setTargetMediumId] = useState('');
@@ -51,7 +52,7 @@ export const StudentTransferModal = ({
   // Initialize fields from current enrollment
   useEffect(() => {
     if (isOpen && currentEnrollment) {
-      setTransferDate(todayStr);
+      setTransferDate(getISTTodayString());
       setTargetMediumId(currentEnrollment.medium?.id || currentEnrollment.mediumId || '');
       setTargetStreamId(currentEnrollment.stream?.id || currentEnrollment.streamId || '');
       setReason('');
@@ -59,7 +60,7 @@ export const StudentTransferModal = ({
       setPreviewError(null);
       setConfirmStep(false);
     }
-  }, [isOpen, currentEnrollment, todayStr]);
+  }, [isOpen, currentEnrollment]);
 
   const cls = currentEnrollment?.class;
   const hasStream = Boolean(cls?.hasStream);

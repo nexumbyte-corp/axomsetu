@@ -31,7 +31,7 @@ export const CollectFeesPage = () => {
       .then((res) => {
         if (res?.success) setSchoolProfile(res.data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const schoolHeader =
@@ -328,12 +328,26 @@ export const CollectFeesPage = () => {
         studentId: selectedStudent?.id,
       });
       toast.success(`Fee charge '${charge.title}' amount updated successfully.`);
+
+      const paidAmt = Number(charge.paidAmount || 0);
+      const newRemainingBal = Math.max(0, Number(newAmount) - paidAmt);
+
       setPaymentAmounts((prev) => {
         if (prev[charge.id] !== undefined) {
-          return { ...prev, [charge.id]: Number(newAmount) };
+          if (newRemainingBal === 0) {
+            const copy = { ...prev };
+            delete copy[charge.id];
+            return copy;
+          }
+          return { ...prev, [charge.id]: newRemainingBal };
         }
         return prev;
       });
+
+      if (newRemainingBal === 0) {
+        setSelectedChargeIds((prev) => prev.filter((id) => id !== charge.id));
+      }
+
       refetchOutstanding();
     } catch (err) {
       toast.error(err?.response?.data?.message || err?.message || 'Failed to update fee charge amount.');

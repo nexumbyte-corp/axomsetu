@@ -10,6 +10,7 @@ import { Badge } from '../../components/ui/Badge.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { StaffSubNav } from './StaffSubNav.jsx';
+import { getISTTodayString } from '../../utils/formatters.js';
 import {
   DollarSign,
   Copy,
@@ -21,14 +22,6 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
-const getTodayFormatted = () => {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
 export const SalarySetupPage = () => {
   const { academicYears, selectedYearId } = useAcademicYear();
 
@@ -37,12 +30,16 @@ export const SalarySetupPage = () => {
   const [copying, setCopying] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [effectiveFrom, setEffectiveFrom] = useState(getTodayFormatted());
+  const [effectiveFrom, setEffectiveFrom] = useState(getISTTodayString());
   const [rows, setRows] = useState([]);
   const [previousYearInfo, setPreviousYearInfo] = useState(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [message, setMessage] = useState(null); // { type: 'success'|'error', text: '' }
+
+  useEffect(() => {
+    setEffectiveFrom(getISTTodayString());
+  }, []);
 
   useEffect(() => {
     if (selectedYearId && !targetYearId) {
@@ -231,9 +228,9 @@ export const SalarySetupPage = () => {
           <DatePicker
             size="sm"
             value={effectiveFrom}
-            minDate={getTodayFormatted()}
+            minDate={getISTTodayString()}
             onChange={(val) => {
-              const todayStr = getTodayFormatted();
+              const todayStr = getISTTodayString();
               if (val && val < todayStr) {
                 setMessage({ type: 'error', text: 'Effective Date cannot be a back-date. Please select today or a future date.' });
                 setEffectiveFrom(todayStr);

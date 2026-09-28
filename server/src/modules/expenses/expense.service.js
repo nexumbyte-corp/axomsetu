@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
-import { getISTDayBounds } from '../../utils/dateUtils.js';
+import { getISTDayBounds, parseDateOnlyToUtc, getISTDateString } from '../../utils/dateUtils.js';
 
 export const expenseService = {
   /**
@@ -45,7 +45,7 @@ export const expenseService = {
     }
 
     const decimalAmount = new Prisma.Decimal(amount);
-    const dateVal = new Date(expenseDate);
+    const dateVal = parseDateOnlyToUtc(expenseDate) || parseDateOnlyToUtc(getISTDateString());
 
     return await prisma.$transaction(async (tx) => {
       // 1. Create Expense record

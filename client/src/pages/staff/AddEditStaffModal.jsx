@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/Button.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
 import { staffService } from '../../services/staff.service.js';
 import { getFormErrors } from '../../utils/errorUtils.js';
+import { getISTTodayString, formatDateForInput } from '../../utils/formatters.js';
 
 const ROLE_OPTIONS = [
   { value: 'TEACHER', label: 'Teacher' },
@@ -37,7 +38,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
     role: 'TEACHER',
     department: 'Teaching',
     designation: 'Teacher',
-    joiningDate: new Date().toISOString().split('T')[0],
+    joiningDate: getISTTodayString(),
     baseSalary: '',
     bankName: '',
     bankAccountNo: '',
@@ -59,7 +60,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
         role: staff.role || 'TEACHER',
         department: staff.department || '',
         designation: staff.designation || '',
-        joiningDate: staff.joiningDate ? new Date(staff.joiningDate).toISOString().split('T')[0] : '',
+        joiningDate: staff.joiningDate ? formatDateForInput(staff.joiningDate) : '',
         baseSalary: staff.baseSalary !== undefined && staff.baseSalary !== null ? String(staff.baseSalary) : '',
         bankName: staff.bankName || '',
         bankAccountNo: staff.bankAccountNo || '',
@@ -75,7 +76,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
         role: 'TEACHER',
         department: 'Teaching',
         designation: 'Teacher',
-        joiningDate: new Date().toISOString().split('T')[0],
+        joiningDate: getISTTodayString(),
         baseSalary: '',
         bankName: '',
         bankAccountNo: '',

@@ -1,7 +1,7 @@
 import { prisma } from '../../config/prisma.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
 import { memoryCache } from '../../utils/cache.js';
-import { getISTDayBounds } from '../../utils/dateUtils.js';
+import { getISTDayBounds, parseDateOnlyToUtc } from '../../utils/dateUtils.js';
 
 export const dashboardService = {
   /**
@@ -492,14 +492,20 @@ export const dashboardService = {
   async getDailyExpenses(schoolId, query = {}) {
     const { academicYearId, date } = query;
     const { startOfDay, endOfDay, dateStr: formattedDateString } = getISTDayBounds(date);
+    const targetDateUtc = parseDateOnlyToUtc(formattedDateString);
 
     const expenseWhere = {
       schoolId,
       status: 'ACTIVE',
-      expenseDate: {
-        gte: startOfDay,
-        lte: endOfDay,
-      },
+      OR: [
+        {
+          expenseDate: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+        ...(targetDateUtc ? [{ expenseDate: targetDateUtc }] : []),
+      ],
       ...(academicYearId && { academicYearId }),
     };
 

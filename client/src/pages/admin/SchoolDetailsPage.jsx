@@ -5,7 +5,7 @@ import { adminService } from '../../services/adminService.js';
 import { subscriptionService } from '../../services/subscriptionService.js';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
-import { formatDate } from '../../utils/formatters.js';
+import { formatDate, getISTTodayString } from '../../utils/formatters.js';
 import { calculateMonthlyPrice } from '../../utils/subscriptionUtils.js';
 import { Input } from '../../components/ui/Input.jsx';
 import { Select } from '../../components/ui/Select.jsx';
@@ -68,7 +68,7 @@ export const SchoolDetailsPage = () => {
   const [assignForm, setAssignForm] = useState({
     planId: '',
     durationMonths: '12',
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: getISTTodayString(),
     amount: '',
     maxStudentLimit: '',
     isEnterprise: false,
@@ -233,7 +233,7 @@ export const SchoolDetailsPage = () => {
     setAssignForm({
       planId: '',
       durationMonths: '12',
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: getISTTodayString(),
       amount: '',
       maxStudentLimit: '',
       isEnterprise: false,

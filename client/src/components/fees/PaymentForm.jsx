@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CreditCard, CheckCircle2 } from 'lucide-react';
 import { Button } from '../ui/Button.jsx';
 import { DatePicker } from '../ui/DatePicker.jsx';
+import { getISTTodayString } from '../../utils/formatters.js';
 
 export const PaymentForm = ({
   onSubmit,
@@ -9,12 +10,15 @@ export const PaymentForm = ({
   isDisabled = false,
   totalSelectedAmount = 0,
 }) => {
-  const todayStr = new Date().toISOString().split('T')[0];
-  const [paymentDate, setPaymentDate] = useState(todayStr);
+  const [paymentDate, setPaymentDate] = useState(getISTTodayString);
   const [paymentMode, setPaymentMode] = useState('CASH');
   const [referenceNumber, setReferenceNumber] = useState('');
   const [remarks, setRemarks] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    setPaymentDate(getISTTodayString());
+  }, []);
 
   const isCash = paymentMode === 'CASH';
 

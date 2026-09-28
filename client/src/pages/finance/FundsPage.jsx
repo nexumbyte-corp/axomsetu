@@ -13,11 +13,37 @@ import { useAuth } from '../../hooks/useAuth.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
-import { formatDate } from '../../utils/formatters.js';
+import { formatDate, getISTTodayString } from '../../utils/formatters.js';
 import { Plus, Search, PiggyBank, Settings, AlertTriangle } from 'lucide-react';
+
+const PAYMENT_MODES = [
+  { label: 'Bank Transfer', value: 'BANK_TRANSFER' },
+  { label: 'Cash', value: 'CASH' },
+  { label: 'UPI', value: 'UPI' },
+  { label: 'Cheque', value: 'CHEQUE' },
+  { label: 'Demand Draft', value: 'DEMAND_DRAFT' },
+  { label: 'Other', value: 'OTHER' },
+];
+
+const FILTER_PAYMENT_MODES = [
+  { label: 'All Modes', value: 'ALL' },
+  ...PAYMENT_MODES,
+];
+
+const getInitialFundForm = () => ({
+  fundSourceId: '',
+  transactionDate: getISTTodayString(),
+  amount: '',
+  paymentMode: 'BANK_TRANSFER',
+  referenceNumber: '',
+  remarks: '',
+});
 
 export const FundsPage = () => {
   const { selectedYearId } = useAcademicYear();
+  const { user } = useAuth();
+  const schoolHeader = user?.schoolAdmins?.[0]?.school || {};
+
   const [loading, setLoading] = useState(true);
   const [funds, setFunds] = useState([]);
   const [sources, setSources] = useState([]);
@@ -37,20 +63,24 @@ export const FundsPage = () => {
   const [cancelReason, setCancelReason] = useState('');
 
   // Add Fund Form State
-  const [fundForm, setFundForm] = useState({
-    fundSourceId: '',
-    transactionDate: new Date().toISOString().split('T')[0],
-    amount: '',
-    paymentMode: 'BANK_TRANSFER',
-    referenceNumber: '',
-    remarks: '',
-  });
+  const [fundForm, setFundForm] = useState(getInitialFundForm);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
 
   // Manage Source Form State
   const [sourceForm, setSourceForm] = useState({ name: '', description: '' });
   const [srcLoading, setSrcLoading] = useState(false);
+
+  const handleOpenAddModal = () => {
+    setFundForm(getInitialFundForm());
+    setFormError('');
+    setIsAddModalOpen(true);
+  };
+
+  const refreshSources = async () => {
+    const srcRes = await financeService.getFundSources({ includeInactive: 'true' });
+    setSources(srcRes.data || []);
+  };
 
   const fetchFunds = async (page = 1) => {
     setLoading(true);
@@ -106,14 +136,7 @@ export const FundsPage = () => {
         ...(selectedYearId && { academicYearId: selectedYearId }),
       });
       setIsAddModalOpen(false);
-      setFundForm({
-        fundSourceId: '',
-        transactionDate: new Date().toISOString().split('T')[0],
-        amount: '',
-        paymentMode: 'BANK_TRANSFER',
-        referenceNumber: '',
-        remarks: '',
-      });
+      setFundForm(getInitialFundForm());
       fetchFunds(1);
     } catch (err) {
       setFormError(err.response?.data?.message || err.message || 'Failed to add fund');
@@ -144,8 +167,7 @@ export const FundsPage = () => {
     try {
       await financeService.createFundSource(sourceForm);
       setSourceForm({ name: '', description: '' });
-      const srcRes = await financeService.getFundSources({ includeInactive: 'true' });
-      setSources(srcRes.data || []);
+      await refreshSources();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to create fund source');
     } finally {
@@ -156,8 +178,7 @@ export const FundsPage = () => {
   const handleToggleSrcStatus = async (srcId, currentStatus) => {
     try {
       await financeService.toggleFundSourceStatus(srcId, !currentStatus);
-      const srcRes = await financeService.getFundSources({ includeInactive: 'true' });
-      setSources(srcRes.data || []);
+      await refreshSources();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update source status');
     }
@@ -167,9 +188,6 @@ export const FundsPage = () => {
     const num = Number(val || 0);
     return `₹${num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
-
-  const { user } = useAuth();
-  const schoolHeader = user?.schoolAdmins?.[0]?.school || {};
 
   const activeSources = sources.filter((s) => s.isActive);
 
@@ -200,10 +218,10 @@ export const FundsPage = () => {
           <Button
             variant="primary"
             size="sm"
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={handleOpenAddModal}
             icon={Plus}
           >
-            + Add Fund
+            Add Fund
           </Button>
         </div>
       </div>
@@ -226,29 +244,21 @@ export const FundsPage = () => {
           size="sm"
           value={paymentMode}
           onChange={(e) => setPaymentMode(e.target.value)}
-          options={[
-            { label: 'All Modes', value: 'ALL' },
-            { label: 'Bank Transfer', value: 'BANK_TRANSFER' },
-            { label: 'Cash', value: 'CASH' },
-            { label: 'UPI', value: 'UPI' },
-            { label: 'Cheque', value: 'CHEQUE' },
-            { label: 'Demand Draft', value: 'DEMAND_DRAFT' },
-            { label: 'Other', value: 'OTHER' },
-          ]}
+          options={FILTER_PAYMENT_MODES}
         />
 
         <DatePicker
           label="From Date"
           size="sm"
           value={startDate}
-          onChange={(val) => setStartDate(val)}
+          onChange={setStartDate}
         />
 
         <DatePicker
           label="To Date"
           size="sm"
           value={endDate}
-          onChange={(val) => setEndDate(val)}
+          onChange={setEndDate}
         />
 
         <div className="flex items-end">
@@ -354,32 +364,32 @@ export const FundsPage = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <DatePicker
-              label="Date *"
+              label="Date"
               size="sm"
               value={fundForm.transactionDate}
-              onChange={(val) => setFundForm({ ...fundForm, transactionDate: val })}
+              onChange={(val) => setFundForm((prev) => ({ ...prev, transactionDate: val }))}
               required
             />
 
             <Input
-              label="Amount (₹) *"
+              label="Amount (₹)"
               size="sm"
               type="number"
               min="1"
               step="any"
               placeholder="e.g. 100000"
               value={fundForm.amount}
-              onChange={(e) => setFundForm({ ...fundForm, amount: e.target.value })}
+              onChange={(e) => setFundForm((prev) => ({ ...prev, amount: e.target.value }))}
               required
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
-              label="Fund Source *"
+              label="Fund Source"
               size="sm"
               value={fundForm.fundSourceId}
-              onChange={(e) => setFundForm({ ...fundForm, fundSourceId: e.target.value })}
+              onChange={(e) => setFundForm((prev) => ({ ...prev, fundSourceId: e.target.value }))}
               options={[
                 { label: '-- Select Fund Source --', value: '' },
                 ...activeSources.map((s) => ({ label: s.name, value: s.id })),
@@ -388,18 +398,11 @@ export const FundsPage = () => {
             />
 
             <Select
-              label="Payment Mode *"
+              label="Payment Mode"
               size="sm"
               value={fundForm.paymentMode}
-              onChange={(e) => setFundForm({ ...fundForm, paymentMode: e.target.value })}
-              options={[
-                { label: 'Bank Transfer', value: 'BANK_TRANSFER' },
-                { label: 'Cash', value: 'CASH' },
-                { label: 'UPI', value: 'UPI' },
-                { label: 'Cheque', value: 'CHEQUE' },
-                { label: 'Demand Draft', value: 'DEMAND_DRAFT' },
-                { label: 'Other', value: 'OTHER' },
-              ]}
+              onChange={(e) => setFundForm((prev) => ({ ...prev, paymentMode: e.target.value }))}
+              options={PAYMENT_MODES}
               required
             />
           </div>
@@ -504,7 +507,7 @@ export const FundsPage = () => {
           )}
 
           <Textarea
-            label="Reason for Cancellation *"
+            label="Reason for Cancellation"
             size="sm"
             placeholder="e.g. Incorrect amount entered or bank transaction failed"
             rows={2}

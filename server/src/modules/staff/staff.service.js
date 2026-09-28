@@ -4,6 +4,7 @@ import { generateNextDocumentNumber } from '../../utils/documentSequence.js';
 import { isStaffOperationallyActive } from '../../utils/staffHelpers.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
 import { ensureCurrentAcademicYear } from '../academic-years/academicYear.service.js';
+import { parseDateOnlyToUtc, getISTDateString } from '../../utils/dateUtils.js';
 
 export const staffService = {
   // -------------------------------------------------------------
@@ -279,6 +280,8 @@ export const staffService = {
     }
 
     return await prisma.$transaction(async (tx) => {
+      const advanceDateVal = parseDateOnlyToUtc(data.advanceDate) || parseDateOnlyToUtc(getISTDateString());
+
       // 1. Create StaffAdvance record
       const advance = await tx.staffAdvance.create({
         data: {
@@ -286,7 +289,7 @@ export const staffService = {
           staffId,
           amount,
           recovered: 0,
-          advanceDate: new Date(data.advanceDate),
+          advanceDate: advanceDateVal,
           paymentMode: data.paymentMode || 'CASH',
           referenceNo: data.referenceNo || null,
           remarks: data.remarks || null,
@@ -307,7 +310,7 @@ export const staffService = {
       await financialLedgerService.createTransaction(tx, {
         schoolId,
         academicYearId: academicYearId || null,
-        transactionDate: new Date(data.advanceDate),
+        transactionDate: advanceDateVal,
         type: 'DEBIT',
         sourceType: 'STAFF_ADVANCE',
         sourceId: advance.id,

@@ -8,20 +8,20 @@ import { DatePicker } from '../ui/DatePicker.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { toast } from '../ui/Toast.jsx';
 import { formatStudentClassInfo } from '../../utils/hostelUtils.js';
-import { formatDate } from '../../utils/formatters.js';
+import { formatDate, getISTTodayString, formatDateForInput } from '../../utils/formatters.js';
 
 export const HostelExitModal = ({ isOpen, onClose, resident, onSuccess }) => {
-  const [exitDate, setExitDate] = useState(new Date().toISOString().split('T')[0]);
+  const [exitDate, setExitDate] = useState(getISTTodayString());
   const [exitReason, setExitReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const minExitDate = resident?.startDate
-    ? new Date(resident.startDate).toISOString().split('T')[0]
+    ? formatDateForInput(resident.startDate)
     : '';
 
   useEffect(() => {
     if (isOpen) {
-      setExitDate(new Date().toISOString().split('T')[0]);
+      setExitDate(getISTTodayString());
       setExitReason('');
     }
   }, [isOpen]);
