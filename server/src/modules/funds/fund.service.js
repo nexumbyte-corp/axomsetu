@@ -1,8 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
-import { financialLedgerService } from '../finance/financialLedger.service.js';
-import { getISTDayBounds } from '../../utils/dateUtils.js';
+import { getISTDayBounds, parseDateOnlyToUtc } from '../../utils/dateUtils.js';
 
 export const fundService = {
   /**
@@ -204,10 +203,14 @@ export const fundService = {
     if (status) where.status = status;
 
     if (startDate || endDate) {
-      where.transactionDate = {
-        ...(startDate && { gte: getISTDayBounds(startDate).startOfDay }),
-        ...(endDate && { lte: getISTDayBounds(endDate).endOfDay }),
-      };
+      const parsedStart = startDate ? parseDateOnlyToUtc(startDate) : null;
+      const parsedEnd = endDate ? parseDateOnlyToUtc(endDate) : null;
+      if (parsedStart || parsedEnd) {
+        where.transactionDate = {
+          ...(parsedStart && { gte: parsedStart }),
+          ...(parsedEnd && { lte: parsedEnd }),
+        };
+      }
     }
 
     if (search && search.trim() !== '') {

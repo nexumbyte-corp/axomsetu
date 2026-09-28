@@ -259,7 +259,7 @@ export const SalaryPaymentsPage = () => {
               value={selectedStaffId}
               onChange={(e) => setSelectedStaffId(e.target.value)}
               options={[{ value: '', label: '-- Select Staff Member to Pay --' }, ...staffSelectOptions]}
-              isDisabled={loadingStaff}
+              disabled={loadingStaff}
             />
           </div>
 

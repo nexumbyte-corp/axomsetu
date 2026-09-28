@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
-import { getISTDayBounds } from '../../utils/dateUtils.js';
+import { getISTDayBounds, parseDateOnlyToUtc } from '../../utils/dateUtils.js';
 
 const SOURCE_TYPE_LABELS = {
   FEE_COLLECTION: 'Fee Collection',
@@ -38,17 +38,14 @@ export const financeReportsService = {
       };
     }
 
-    const txns = await prisma.financialTransaction.findMany({
+    const groups = await prisma.financialTransaction.groupBy({
+      by: ['type', 'sourceType'],
       where: whereClause,
-      select: {
-        type: true,
-        sourceType: true,
-        amount: true,
-      },
+      _sum: { amount: true },
     });
 
-    let totalCredit = new Prisma.Decimal(0);
-    let totalDebit = new Prisma.Decimal(0);
+    let totalCredit = 0;
+    let totalDebit = 0;
 
     const creditBreakdown = {
       FEE_COLLECTION: 0,
@@ -66,33 +63,33 @@ export const financeReportsService = {
       OTHER: 0,
     };
 
-    for (const t of txns) {
-      const amt = new Prisma.Decimal(t.amount);
+    for (const g of groups) {
+      const amt = Number(g._sum.amount || 0);
 
-      if (t.type === 'CREDIT') {
-        totalCredit = totalCredit.plus(amt);
-        if (creditBreakdown[t.sourceType] !== undefined) {
-          creditBreakdown[t.sourceType] += Number(amt);
+      if (g.type === 'CREDIT') {
+        totalCredit += amt;
+        if (creditBreakdown[g.sourceType] !== undefined) {
+          creditBreakdown[g.sourceType] += amt;
         } else {
-          creditBreakdown.OTHER += Number(amt);
+          creditBreakdown.OTHER += amt;
         }
-      } else if (t.type === 'DEBIT') {
-        totalDebit = totalDebit.plus(amt);
-        if (debitBreakdown[t.sourceType] !== undefined) {
-          debitBreakdown[t.sourceType] += Number(amt);
+      } else if (g.type === 'DEBIT') {
+        totalDebit += amt;
+        if (debitBreakdown[g.sourceType] !== undefined) {
+          debitBreakdown[g.sourceType] += amt;
         } else {
-          debitBreakdown.OTHER += Number(amt);
+          debitBreakdown.OTHER += amt;
         }
       }
     }
 
-    const netBalance = totalCredit.minus(totalDebit);
+    const netBalance = totalCredit - totalDebit;
 
     return {
       summary: {
-        totalCredit: Number(totalCredit),
-        totalDebit: Number(totalDebit),
-        netBalance: Number(netBalance),
+        totalCredit,
+        totalDebit,
+        netBalance,
         creditBreakdown,
         debitBreakdown,
       },
@@ -176,10 +173,14 @@ export const financeReportsService = {
     };
 
     if (startDate || endDate) {
-      expenseWhere.expenseDate = {
-        ...(startDate && { gte: new Date(startDate) }),
-        ...(endDate && { lte: new Date(endDate) }),
-      };
+      const parsedStart = startDate ? parseDateOnlyToUtc(startDate) : null;
+      const parsedEnd = endDate ? parseDateOnlyToUtc(endDate) : null;
+      if (parsedStart || parsedEnd) {
+        expenseWhere.expenseDate = {
+          ...(parsedStart && { gte: parsedStart }),
+          ...(parsedEnd && { lte: parsedEnd }),
+        };
+      }
     }
 
     const expenses = await prisma.expense.findMany({

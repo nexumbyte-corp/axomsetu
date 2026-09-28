@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { getISTMonthBounds, parseDateOnlyToUtc, getISTDateString } from '../../utils/dateUtils.js';
+import { memoryCache } from '../../utils/cache.js';
 
 export const financialLedgerService = {
   /**
@@ -77,6 +78,10 @@ export const financialLedgerService = {
       },
     });
 
+    // Invalidate finance and dashboard caches for real-time reactivity
+    memoryCache.invalidatePrefix(`finance:overview:${schoolId}`);
+    memoryCache.invalidatePrefix(`dashboard:${schoolId}`);
+
     return transaction;
   },
 
@@ -87,7 +92,7 @@ export const financialLedgerService = {
     const client = txOrPrisma || prisma;
     const reversalType = originalTxn.type === 'CREDIT' ? 'DEBIT' : 'CREDIT';
 
-    return await client.financialTransaction.create({
+    const transaction = await client.financialTransaction.create({
       data: {
         schoolId: originalTxn.schoolId,
         academicYearId: originalTxn.academicYearId,
@@ -104,155 +109,169 @@ export const financialLedgerService = {
         createdById: userId || null,
       },
     });
+
+    memoryCache.invalidatePrefix(`finance:overview:${originalTxn.schoolId}`);
+    memoryCache.invalidatePrefix(`dashboard:${originalTxn.schoolId}`);
+
+    return transaction;
   },
 
   /**
    * Calculate total credit, debit, current balance, and category breakdowns for overview dashboard.
+   * High performance:
+   * - Redundant full-table aggregate scans eliminated (derived directly from sourceGroupAgg)
+   * - In-memory cached for 20 seconds for fast tab switching
    */
   async getOverview(schoolId, query = {}) {
     const { academicYearId, startDate, endDate } = query;
+    const cacheKey = `finance:overview:${schoolId}:${academicYearId || 'all'}:${startDate || ''}:${endDate || ''}`;
 
-    const where = { schoolId };
-    if (academicYearId) {
-      where.OR = [
-        { academicYearId },
-        { sourceType: 'OPENING_BALANCE' }
-      ];
-    }
-    if (startDate || endDate) {
-      where.transactionDate = {
-        ...(startDate && { gte: new Date(`${startDate}T00:00:00.000+05:30`) }),
-        ...(endDate && { lte: new Date(`${endDate}T23:59:59.999+05:30`) }),
+    return await memoryCache.getOrSet(cacheKey, async () => {
+      const where = { schoolId };
+      if (academicYearId) {
+        where.OR = [
+          { academicYearId },
+          { sourceType: 'OPENING_BALANCE' }
+        ];
+      }
+      if (startDate || endDate) {
+        const parsedStart = startDate ? parseDateOnlyToUtc(startDate) : null;
+        const parsedEnd = endDate ? parseDateOnlyToUtc(endDate) : null;
+        if (parsedStart || parsedEnd) {
+          where.transactionDate = {
+            ...(parsedStart && { gte: parsedStart }),
+            ...(parsedEnd && { lte: parsedEnd }),
+          };
+        }
+      }
+
+      const { startOfMonth, endOfMonth } = getISTMonthBounds();
+
+      // Only 2 queries needed: Source breakdown (all-time/filter) and current month breakdown
+      // Total credit and debit are derived directly from sourceGroupAgg, saving 2 full table scans
+      const [sourceGroupAgg, monthGroupAgg] = await Promise.all([
+        prisma.financialTransaction.groupBy({
+          by: ['sourceType', 'type'],
+          where,
+          _sum: { amount: true },
+        }),
+        prisma.financialTransaction.groupBy({
+          by: ['sourceType', 'type'],
+          where: {
+            schoolId,
+            transactionDate: { gte: startOfMonth, lte: endOfMonth },
+          },
+          _sum: { amount: true },
+        }),
+      ]);
+
+      let totalCredit = 0;
+      let totalDebit = 0;
+
+      // Map source breakdowns
+      const breakdown = {
+        feeCollection: 0,
+        fundAdded: 0,
+        advanceRecovery: 0,
+        openingBalance: 0,
+        otherCredit: 0,
+        salaryPayment: 0,
+        expense: 0,
+        staffAdvance: 0,
+        feeRefund: 0,
+        otherDebit: 0,
       };
-    }
 
-    const { startOfMonth, endOfMonth } = getISTMonthBounds();
+      for (const group of sourceGroupAgg) {
+        const sumVal = Number(group._sum.amount || 0);
+        if (group.type === 'CREDIT') totalCredit += sumVal;
+        else if (group.type === 'DEBIT') totalDebit += sumVal;
 
-    const [creditsAgg, debitsAgg, sourceGroupAgg, monthGroupAgg] = await Promise.all([
-      prisma.financialTransaction.aggregate({
-        where: { ...where, type: 'CREDIT' },
-        _sum: { amount: true },
-      }),
-      prisma.financialTransaction.aggregate({
-        where: { ...where, type: 'DEBIT' },
-        _sum: { amount: true },
-      }),
-      prisma.financialTransaction.groupBy({
-        by: ['sourceType', 'type'],
-        where,
-        _sum: { amount: true },
-      }),
-      prisma.financialTransaction.groupBy({
-        by: ['sourceType', 'type'],
-        where: {
-          schoolId,
-          transactionDate: { gte: startOfMonth, lte: endOfMonth },
-        },
-        _sum: { amount: true },
-      }),
-    ]);
-
-    const totalCredit = Number(creditsAgg._sum.amount || 0);
-    const totalDebit = Number(debitsAgg._sum.amount || 0);
-    const currentBalance = totalCredit - totalDebit;
-
-    // Map source breakdowns
-    const breakdown = {
-      feeCollection: 0,
-      fundAdded: 0,
-      advanceRecovery: 0,
-      openingBalance: 0,
-      otherCredit: 0,
-      salaryPayment: 0,
-      expense: 0,
-      staffAdvance: 0,
-      feeRefund: 0,
-      otherDebit: 0,
-    };
-
-    for (const group of sourceGroupAgg) {
-      const sumVal = Number(group._sum.amount || 0);
-      switch (group.sourceType) {
-        case 'FEE_COLLECTION':
-          breakdown.feeCollection += sumVal;
-          break;
-        case 'FUND_ADDED':
-          breakdown.fundAdded += sumVal;
-          break;
-        case 'ADVANCE_RECOVERY':
-          breakdown.advanceRecovery += sumVal;
-          break;
-        case 'OPENING_BALANCE':
-          breakdown.openingBalance += sumVal;
-          break;
-        case 'SALARY_PAYMENT':
-          breakdown.salaryPayment += sumVal;
-          break;
-        case 'EXPENSE':
-          breakdown.expense += sumVal;
-          break;
-        case 'STAFF_ADVANCE':
-          breakdown.staffAdvance += sumVal;
-          break;
-        case 'FEE_REFUND':
-          breakdown.feeRefund += sumVal;
-          break;
-        case 'OTHER':
-          if (group.type === 'CREDIT') breakdown.otherCredit += sumVal;
-          else breakdown.otherDebit += sumVal;
-          break;
+        switch (group.sourceType) {
+          case 'FEE_COLLECTION':
+            breakdown.feeCollection += sumVal;
+            break;
+          case 'FUND_ADDED':
+            breakdown.fundAdded += sumVal;
+            break;
+          case 'ADVANCE_RECOVERY':
+            breakdown.advanceRecovery += sumVal;
+            break;
+          case 'OPENING_BALANCE':
+            breakdown.openingBalance += sumVal;
+            break;
+          case 'SALARY_PAYMENT':
+            breakdown.salaryPayment += sumVal;
+            break;
+          case 'EXPENSE':
+            breakdown.expense += sumVal;
+            break;
+          case 'STAFF_ADVANCE':
+            breakdown.staffAdvance += sumVal;
+            break;
+          case 'FEE_REFUND':
+            breakdown.feeRefund += sumVal;
+            break;
+          case 'OTHER':
+            if (group.type === 'CREDIT') breakdown.otherCredit += sumVal;
+            else breakdown.otherDebit += sumVal;
+            break;
+        }
       }
-    }
 
-    const currentMonth = {
-      feeCollection: 0,
-      fundAdded: 0,
-      advanceRecovery: 0,
-      openingBalance: 0,
-      otherCredit: 0,
-      salaryPayment: 0,
-      expense: 0,
-      staffAdvance: 0,
-      feeRefund: 0,
-      otherDebit: 0,
-      totalCredit: 0,
-      totalDebit: 0,
-      netFlow: 0,
-    };
+      const currentBalance = totalCredit - totalDebit;
 
-    for (const group of monthGroupAgg) {
-      const sumVal = Number(group._sum.amount || 0);
-      if (group.type === 'CREDIT') currentMonth.totalCredit += sumVal;
-      if (group.type === 'DEBIT') currentMonth.totalDebit += sumVal;
+      const currentMonth = {
+        feeCollection: 0,
+        fundAdded: 0,
+        advanceRecovery: 0,
+        openingBalance: 0,
+        otherCredit: 0,
+        salaryPayment: 0,
+        expense: 0,
+        staffAdvance: 0,
+        feeRefund: 0,
+        otherDebit: 0,
+        totalCredit: 0,
+        totalDebit: 0,
+        netFlow: 0,
+      };
 
-      switch (group.sourceType) {
-        case 'FEE_COLLECTION': currentMonth.feeCollection += sumVal; break;
-        case 'FUND_ADDED': currentMonth.fundAdded += sumVal; break;
-        case 'ADVANCE_RECOVERY': currentMonth.advanceRecovery += sumVal; break;
-        case 'OPENING_BALANCE': currentMonth.openingBalance += sumVal; break;
-        case 'SALARY_PAYMENT': currentMonth.salaryPayment += sumVal; break;
-        case 'EXPENSE': currentMonth.expense += sumVal; break;
-        case 'STAFF_ADVANCE': currentMonth.staffAdvance += sumVal; break;
-        case 'FEE_REFUND': currentMonth.feeRefund += sumVal; break;
-        case 'OTHER':
-          if (group.type === 'CREDIT') currentMonth.otherCredit += sumVal;
-          else currentMonth.otherDebit += sumVal;
-          break;
+      for (const group of monthGroupAgg) {
+        const sumVal = Number(group._sum.amount || 0);
+        if (group.type === 'CREDIT') currentMonth.totalCredit += sumVal;
+        if (group.type === 'DEBIT') currentMonth.totalDebit += sumVal;
+
+        switch (group.sourceType) {
+          case 'FEE_COLLECTION': currentMonth.feeCollection += sumVal; break;
+          case 'FUND_ADDED': currentMonth.fundAdded += sumVal; break;
+          case 'ADVANCE_RECOVERY': currentMonth.advanceRecovery += sumVal; break;
+          case 'OPENING_BALANCE': currentMonth.openingBalance += sumVal; break;
+          case 'SALARY_PAYMENT': currentMonth.salaryPayment += sumVal; break;
+          case 'EXPENSE': currentMonth.expense += sumVal; break;
+          case 'STAFF_ADVANCE': currentMonth.staffAdvance += sumVal; break;
+          case 'FEE_REFUND': currentMonth.feeRefund += sumVal; break;
+          case 'OTHER':
+            if (group.type === 'CREDIT') currentMonth.otherCredit += sumVal;
+            else currentMonth.otherDebit += sumVal;
+            break;
+        }
       }
-    }
-    currentMonth.netFlow = currentMonth.totalCredit - currentMonth.totalDebit;
+      currentMonth.netFlow = currentMonth.totalCredit - currentMonth.totalDebit;
 
-    return {
-      totalCredit,
-      totalDebit,
-      currentBalance,
-      breakdown,
-      currentMonth,
-    };
+      return {
+        totalCredit,
+        totalDebit,
+        currentBalance,
+        breakdown,
+        currentMonth,
+      };
+    }, 20);
   },
 
   /**
    * Get paginated financial ledger transactions with multi-field search and filtering.
+   * Uses index-friendly sorting on transactionDate & createdAt.
    */
   async getTransactions(schoolId, query = {}) {
     const {
@@ -278,10 +297,14 @@ export const financialLedgerService = {
     if (paymentMode) where.paymentMode = paymentMode;
 
     if (startDate || endDate) {
-      where.transactionDate = {
-        ...(startDate && { gte: new Date(startDate) }),
-        ...(endDate && { lte: new Date(`${endDate}T23:59:59.999Z`) }),
-      };
+      const parsedStart = startDate ? parseDateOnlyToUtc(startDate) : null;
+      const parsedEnd = endDate ? parseDateOnlyToUtc(endDate) : null;
+      if (parsedStart || parsedEnd) {
+        where.transactionDate = {
+          ...(parsedStart && { gte: parsedStart }),
+          ...(parsedEnd && { lte: parsedEnd }),
+        };
+      }
     }
 
     if (search && search.trim() !== '') {
@@ -302,9 +325,8 @@ export const financialLedgerService = {
           createdBy: { select: { id: true, name: true } },
         },
         orderBy: [
-          { updatedAt: 'desc' },
-          { createdAt: 'desc' },
           { transactionDate: 'desc' },
+          { createdAt: 'desc' },
         ],
         skip,
         take: limitNum,

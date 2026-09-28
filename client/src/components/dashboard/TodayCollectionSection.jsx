@@ -80,42 +80,20 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
       setLoading(true);
       setError(null);
       try {
-        const [colRes, expRes] = await Promise.allSettled([
-          dashboardService.getDailyCollection({
-            date: dateValue,
-            academicYearId: selectedYearId || undefined,
-          }),
-          dashboardService.getDailyExpenses({
-            date: dateValue,
-            academicYearId: selectedYearId || undefined,
-          }),
-        ]);
+        const colRes = await dashboardService.getDailyCollection({
+          date: dateValue,
+          academicYearId: selectedYearId || undefined,
+        });
 
-        let colData = null;
-        let expData = null;
-
-        if (colRes.status === 'fulfilled' && colRes.value?.success && colRes.value?.data) {
-          colData = colRes.value.data;
-          // Fallback to attached expenses if separate endpoint is unavailable
-          if (colData.expenses && (!expRes.value || !expRes.value.success)) {
-            expData = colData.expenses;
-          }
+        if (colRes?.success && colRes?.data) {
+          const colData = colRes.data;
+          setCollectionData(colData);
+          setExpenseData(
+            colData.expenses || { totalAmount: 0, expenseCount: 0, categoryCount: 0, modeBreakdown: [] }
+          );
+        } else {
+          throw new Error(colRes?.message || 'Failed to fetch daily financial data');
         }
-
-        if (expRes.status === 'fulfilled' && expRes.value?.success && expRes.value?.data) {
-          expData = expRes.value.data;
-        }
-
-        if (!colData && !expData) {
-          throw new Error('Failed to fetch daily financial data');
-        }
-
-        setCollectionData(
-          colData || { totalAmount: 0, transactionCount: 0, studentCount: 0, modeBreakdown: [] }
-        );
-        setExpenseData(
-          expData || { totalAmount: 0, expenseCount: 0, categoryCount: 0, modeBreakdown: [] }
-        );
       } catch (err) {
         console.error('Error fetching daily finance data:', err);
         setError(err.message || 'Unable to load daily financial metrics');

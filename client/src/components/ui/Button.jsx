@@ -12,6 +12,7 @@ export const Button = React.forwardRef(
       isLoading = false,
       loadingText,
       disabled = false,
+      isDisabled = false,
       onClick,
       className = '',
       icon: Icon,
@@ -39,8 +40,11 @@ export const Button = React.forwardRef(
       lg: 'px-5 py-2.5 text-base gap-2.5 h-12',
     };
 
+    const isSpinnerLoading = Boolean(loading || isLoading);
+    const isButtonDisabled = Boolean(disabled || isDisabled || isSpinnerLoading);
+
     const handleClick = (e) => {
-      if (loading || isLoading || disabled) {
+      if (isButtonDisabled) {
         e.preventDefault();
         return;
       }
@@ -48,9 +52,6 @@ export const Button = React.forwardRef(
         onClick(e);
       }
     };
-
-    const isSpinnerLoading = Boolean(loading || isLoading);
-    const isButtonDisabled = disabled || isSpinnerLoading;
 
     return (
       <button

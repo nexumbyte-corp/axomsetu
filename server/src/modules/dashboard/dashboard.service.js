@@ -1,12 +1,16 @@
 import { prisma } from '../../config/prisma.js';
-import { financialLedgerService } from '../finance/financialLedger.service.js';
+import { Prisma } from '@prisma/client';
 import { memoryCache } from '../../utils/cache.js';
 import { getISTDayBounds, parseDateOnlyToUtc } from '../../utils/dateUtils.js';
 
 export const dashboardService = {
   /**
    * Calculate and aggregate all operational dashboard metrics for a school.
-   * Cached for 30 seconds to provide near-instant page loads under high multi-tenant traffic.
+   * High-performance implementation:
+   * - PostgreSQL aggregate grouping for monthly fees (12 rows vs full-table dump)
+   * - Single-query distinct count + dues calculation for pending fees & salaries
+   * - Direct SQL continuous ledger balance calculation
+   * - Cached for 30 seconds to provide lightning-fast concurrent page loads
    * @param {string} schoolId 
    * @param {object} query - { academicYearId }
    * @returns {object} Dashboard summary payload
@@ -43,34 +47,25 @@ export const dashboardService = {
         academicYearId = activeAcademicYear.id;
       }
 
-      // 2. Parallel aggregation queries
-      const chargeWhere = {
-        schoolId,
-        status: { in: ['UNPAID', 'PARTIAL'] },
-        ...(academicYearId && { academicYearId }),
-      };
+      // Dynamic Academic Year filters for raw queries
+      const ayFilterCharges = academicYearId ? Prisma.sql`AND academic_year_id = ${academicYearId}::uuid` : Prisma.empty;
+      const ayFilterPayroll = academicYearId ? Prisma.sql`AND academic_year_id = ${academicYearId}::uuid` : Prisma.empty;
+      const ayFilterPayments = academicYearId ? Prisma.sql`AND academic_year_id = ${academicYearId}::uuid` : Prisma.empty;
 
-      const payrollWhere = {
-        schoolId,
-        status: { in: ['UNPAID', 'PARTIAL'] },
-        ...(academicYearId && { academicYearId }),
-      };
-
+      // 2. Parallel optimized queries
       const [
         totalStudentsCount,
         activeEnrolledStudentsCount,
         activeStaffCount,
         teachingStaffCount,
-        pendingFeeChargesAgg,
-        pendingFeeStudentsGroup,
-        pendingPayrollAgg,
-        pendingPayrollStaffGroup,
-        ledgerOverview,
+        feeStatsResult,
+        payrollStatsResult,
+        ledgerStatsResult,
         recentFeePayments,
         recentExpenses,
         recentSalaryPayments,
         latestSubscription,
-        allFeePaymentsUpToNow,
+        monthlyAggregates,
       ] = await Promise.all([
         // Total active students in system
         prisma.student.count({ where: { schoolId, status: 'ACTIVE' } }),
@@ -90,32 +85,36 @@ export const dashboardService = {
         // Active teaching staff
         prisma.staff.count({ where: { schoolId, status: 'ACTIVE', role: 'TEACHER' } }),
 
-        // Pending Fee calculation
-        prisma.studentFeeCharge.aggregate({
-          where: chargeWhere,
-          _sum: { amount: true, paidAmount: true },
-        }),
+        // Pending Fee calculation (amount dues + distinct students in 1 fast query)
+        prisma.$queryRaw`
+          SELECT 
+            COALESCE(SUM(amount - paid_amount), 0)::FLOAT AS "pendingAmount",
+            COUNT(DISTINCT student_id)::INT AS "studentCount"
+          FROM student_fee_charges
+          WHERE school_id = ${schoolId}::uuid
+            AND status IN ('UNPAID', 'PARTIAL')
+            ${ayFilterCharges}
+        `,
 
-        // Unique students with fee dues
-        prisma.studentFeeCharge.groupBy({
-          by: ['studentId'],
-          where: chargeWhere,
-        }),
+        // Pending Salary calculation (net salary dues + distinct staff in 1 fast query)
+        prisma.$queryRaw`
+          SELECT 
+            COALESCE(SUM(net_salary - paid_amount), 0)::FLOAT AS "pendingAmount",
+            COUNT(DISTINCT staff_id)::INT AS "staffCount"
+          FROM monthly_payrolls
+          WHERE school_id = ${schoolId}::uuid
+            AND status IN ('UNPAID', 'PARTIAL')
+            ${ayFilterPayroll}
+        `,
 
-        // Pending Salary calculation
-        prisma.monthlyPayroll.aggregate({
-          where: payrollWhere,
-          _sum: { netSalary: true, paidAmount: true },
-        }),
-
-        // Unique staff with pending salary
-        prisma.monthlyPayroll.groupBy({
-          by: ['staffId'],
-          where: payrollWhere,
-        }),
-
-        // Unified Financial Ledger continuous overview
-        financialLedgerService.getOverview(schoolId),
+        // Continuous Financial Ledger balance (credit & debit in 1 fast query)
+        prisma.$queryRaw`
+          SELECT 
+            COALESCE(SUM(CASE WHEN type = 'CREDIT' THEN amount ELSE 0 END), 0)::FLOAT AS "totalCredit",
+            COALESCE(SUM(CASE WHEN type = 'DEBIT' THEN amount ELSE 0 END), 0)::FLOAT AS "totalDebit"
+          FROM financial_transactions
+          WHERE school_id = ${schoolId}::uuid
+        `,
 
         // Recent Fee Collections (5 latest)
         prisma.feePayment.findMany({
@@ -158,25 +157,25 @@ export const dashboardService = {
           take: 5,
         }),
 
-        // Latest School Subscription (13th query)
+        // Latest School Subscription
         prisma.schoolSubscription.findFirst({
           where: { schoolId },
           orderBy: { createdAt: 'desc' },
         }),
 
-        // Monthly fee payments up to current date (no future months) (14th query)
-        prisma.feePayment.findMany({
-          where: {
-            schoolId,
-            status: 'SUCCESS',
-            paymentDate: { lte: now },
-            ...(academicYearId && { academicYearId }),
-          },
-          select: {
-            paymentDate: true,
-            receivedAmount: true,
-          },
-        }),
+        // Monthly fee collections grouped directly in PostgreSQL (max 12 rows, zero memory bloat)
+        prisma.$queryRaw`
+          SELECT 
+            TO_CHAR(payment_date, 'YYYY-MM') AS "monthKey",
+            COALESCE(SUM(received_amount), 0)::FLOAT AS "totalAmount",
+            COUNT(id)::INT AS "count"
+          FROM fee_payments
+          WHERE school_id = ${schoolId}::uuid
+            AND status = 'SUCCESS'
+            AND payment_date <= ${now}
+            ${ayFilterPayments}
+          GROUP BY TO_CHAR(payment_date, 'YYYY-MM')
+        `,
       ]);
 
       const needsAttention = [];
@@ -222,18 +221,20 @@ export const dashboardService = {
       }
 
       // Format pending fees values
-      const pendingFeeAmount = Math.max(
-        0,
-        Number(pendingFeeChargesAgg._sum.amount || 0) - Number(pendingFeeChargesAgg._sum.paidAmount || 0)
-      );
-      const pendingFeeStudentCount = pendingFeeStudentsGroup.length;
+      const feeRow = feeStatsResult?.[0] || { pendingAmount: 0, studentCount: 0 };
+      const pendingFeeAmount = Math.max(0, Number(feeRow.pendingAmount || 0));
+      const pendingFeeStudentCount = Number(feeRow.studentCount || 0);
 
       // Format pending salary values
-      const pendingSalaryAmount = Math.max(
-        0,
-        Number(pendingPayrollAgg._sum.netSalary || 0) - Number(pendingPayrollAgg._sum.paidAmount || 0)
-      );
-      const pendingSalaryStaffCount = pendingPayrollStaffGroup.length;
+      const payrollRow = payrollStatsResult?.[0] || { pendingAmount: 0, staffCount: 0 };
+      const pendingSalaryAmount = Math.max(0, Number(payrollRow.pendingAmount || 0));
+      const pendingSalaryStaffCount = Number(payrollRow.staffCount || 0);
+
+      // Financial balance values
+      const ledgerRow = ledgerStatsResult?.[0] || { totalCredit: 0, totalDebit: 0 };
+      const totalCredit = Number(ledgerRow.totalCredit || 0);
+      const totalDebit = Number(ledgerRow.totalDebit || 0);
+      const currentBalance = totalCredit - totalDebit;
 
       // Non-teaching staff count
       const nonTeachingStaffCount = Math.max(0, activeStaffCount - teachingStaffCount);
@@ -292,19 +293,15 @@ export const dashboardService = {
         currentCursor.setMonth(currentCursor.getMonth() + 1);
       }
 
-      if (allFeePaymentsUpToNow && allFeePaymentsUpToNow.length > 0) {
+      // Map the PostgreSQL grouped monthly aggregates into slots in O(N) where N <= 12
+      if (monthlyAggregates && monthlyAggregates.length > 0) {
         const slotMap = new Map(monthlyCollectionSlots.map((s) => [s.key, s]));
 
-        for (const pay of allFeePaymentsUpToNow) {
-          if (!pay.paymentDate) continue;
-          const pDate = new Date(pay.paymentDate);
-          if (pDate > now) continue; // Skip future dates
-
-          const pKey = `${pDate.getFullYear()}-${String(pDate.getMonth() + 1).padStart(2, '0')}`;
-          const slot = slotMap.get(pKey);
+        for (const row of monthlyAggregates) {
+          const slot = slotMap.get(row.monthKey);
           if (slot) {
-            slot.totalAmount += Number(pay.receivedAmount || 0);
-            slot.count += 1;
+            slot.totalAmount = Number(row.totalAmount || 0);
+            slot.count = Number(row.count || 0);
           }
         }
       }
@@ -341,9 +338,9 @@ export const dashboardService = {
             staffCount: pendingSalaryStaffCount,
           },
           financialBalance: {
-            currentBalance: ledgerOverview.currentBalance,
-            totalCredit: ledgerOverview.totalCredit,
-            totalDebit: ledgerOverview.totalDebit,
+            currentBalance,
+            totalCredit,
+            totalDebit,
           },
         },
         needsAttention,
@@ -379,199 +376,201 @@ export const dashboardService = {
 
   /**
    * Fetch daily fee collection summary and transactions list for a specific date
+   * Cached for 15 seconds to eliminate repeated queries on date switching
    * @param {string} schoolId
    * @param {object} query - { date, academicYearId }
    */
   async getDailyCollection(schoolId, query = {}) {
     const { academicYearId, date } = query;
     const { startOfDay, endOfDay, dateStr: formattedDateString } = getISTDayBounds(date);
+    const cacheKey = `dashboard:daily-col:${schoolId}:${formattedDateString}:${academicYearId || 'default'}`;
 
-    const paymentWhere = {
-      schoolId,
-      status: 'SUCCESS',
-      paymentDate: {
-        gte: startOfDay,
-        lte: endOfDay,
-      },
-      ...(academicYearId && { academicYearId }),
-    };
+    return await memoryCache.getOrSet(cacheKey, async () => {
+      const paymentWhere = {
+        schoolId,
+        status: 'SUCCESS',
+        paymentDate: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        ...(academicYearId && { academicYearId }),
+      };
 
-    const [totalAggregate, modeGroup, studentGroup, paymentsList] = await Promise.all([
-      prisma.feePayment.aggregate({
-        where: paymentWhere,
-        _sum: { receivedAmount: true },
-        _count: { id: true },
-      }),
+      const [totalAggregate, modeGroup, studentGroup, paymentsList] = await Promise.all([
+        prisma.feePayment.aggregate({
+          where: paymentWhere,
+          _sum: { receivedAmount: true },
+          _count: { id: true },
+        }),
 
-      prisma.feePayment.groupBy({
-        by: ['paymentMode'],
-        where: paymentWhere,
-        _sum: { receivedAmount: true },
-        _count: { id: true },
-      }),
+        prisma.feePayment.groupBy({
+          by: ['paymentMode'],
+          where: paymentWhere,
+          _sum: { receivedAmount: true },
+          _count: { id: true },
+        }),
 
-      prisma.feePayment.groupBy({
-        by: ['studentId'],
-        where: paymentWhere,
-      }),
+        prisma.feePayment.groupBy({
+          by: ['studentId'],
+          where: paymentWhere,
+        }),
 
-      prisma.feePayment.findMany({
-        where: paymentWhere,
-        include: {
-          student: {
-            select: {
-              id: true,
-              name: true,
-              admissionNo: true,
-              enrollments: {
-                select: {
-                  class: { select: { name: true } },
-                  section: { select: { name: true } },
+        prisma.feePayment.findMany({
+          where: paymentWhere,
+          include: {
+            student: {
+              select: {
+                id: true,
+                name: true,
+                admissionNo: true,
+                enrollments: {
+                  select: {
+                    class: { select: { name: true } },
+                    section: { select: { name: true } },
+                  },
+                  orderBy: { createdAt: 'desc' },
+                  take: 1,
                 },
-                orderBy: { createdAt: 'desc' },
-                take: 1,
               },
             },
+            receivedBy: { select: { id: true, name: true } },
           },
-          receivedBy: { select: { id: true, name: true } },
-        },
-        orderBy: { paymentDate: 'desc' },
-        take: 50,
-      }),
-    ]);
+          orderBy: { paymentDate: 'desc' },
+          take: 50,
+        }),
+      ]);
 
-    const totalAmount = Number(totalAggregate._sum.receivedAmount || 0);
-    const transactionCount = totalAggregate._count.id || 0;
-    const studentCount = studentGroup.length;
+      const totalAmount = Number(totalAggregate._sum.receivedAmount || 0);
+      const transactionCount = totalAggregate._count.id || 0;
+      const studentCount = studentGroup.length;
 
-    const modeBreakdown = modeGroup.map((mg) => ({
-      mode: mg.paymentMode,
-      amount: Number(mg._sum.receivedAmount || 0),
-      count: mg._count.id,
-    }));
+      const modeBreakdown = modeGroup.map((mg) => ({
+        mode: mg.paymentMode,
+        amount: Number(mg._sum.receivedAmount || 0),
+        count: mg._count.id,
+      }));
 
-    const payments = paymentsList.map((p) => {
-      const enrollment = p.student?.enrollments?.[0];
-      const className = enrollment?.class?.name || '';
-      const sectionName = enrollment?.section?.name || '';
-      const classSection = className ? (sectionName ? `${className} - ${sectionName}` : className) : '-';
+      const payments = paymentsList.map((p) => {
+        const enrollment = p.student?.enrollments?.[0];
+        const className = enrollment?.class?.name || '';
+        const sectionName = enrollment?.section?.name || '';
+        const classSection = className ? (sectionName ? `${className} - ${sectionName}` : className) : '-';
+
+        return {
+          id: p.id,
+          receiptNumber: p.receiptNumber,
+          paymentDate: p.paymentDate,
+          receivedAmount: Number(p.receivedAmount),
+          paymentMode: p.paymentMode,
+          transactionId: p.transactionId,
+          remarks: p.remarks,
+          studentName: p.student?.name || 'Student',
+          admissionNo: p.student?.admissionNo || '-',
+          classSection,
+          receivedByName: p.receivedBy?.name || 'System',
+        };
+      });
+
+      const expenses = await this.getDailyExpenses(schoolId, query);
 
       return {
-        id: p.id,
-        receiptNumber: p.receiptNumber,
-        paymentDate: p.paymentDate,
-        receivedAmount: Number(p.receivedAmount),
-        paymentMode: p.paymentMode,
-        transactionId: p.transactionId,
-        remarks: p.remarks,
-        studentName: p.student?.name || 'Student',
-        admissionNo: p.student?.admissionNo || '-',
-        classSection,
-        receivedByName: p.receivedBy?.name || 'System',
+        date: formattedDateString,
+        totalAmount,
+        transactionCount,
+        studentCount,
+        modeBreakdown,
+        payments,
+        expenses,
       };
-    });
-
-    const expenses = await this.getDailyExpenses(schoolId, query);
-
-    return {
-      date: formattedDateString,
-      totalAmount,
-      transactionCount,
-      studentCount,
-      modeBreakdown,
-      payments,
-      expenses,
-    };
+    }, 15);
   },
 
   /**
    * Fetch daily expenses summary and vouchers list for a specific date
+   * Cached for 15 seconds to eliminate repeated queries
    * @param {string} schoolId
    * @param {object} query - { date, academicYearId }
    */
   async getDailyExpenses(schoolId, query = {}) {
     const { academicYearId, date } = query;
     const { startOfDay, endOfDay, dateStr: formattedDateString } = getISTDayBounds(date);
-    const targetDateUtc = parseDateOnlyToUtc(formattedDateString);
+    const cacheKey = `dashboard:daily-exp:${schoolId}:${formattedDateString}:${academicYearId || 'default'}`;
 
-    const expenseWhere = {
-      schoolId,
-      status: 'ACTIVE',
-      OR: [
-        {
-          expenseDate: {
-            gte: startOfDay,
-            lte: endOfDay,
+    return await memoryCache.getOrSet(cacheKey, async () => {
+      const targetDateUtc = parseDateOnlyToUtc(formattedDateString);
+
+      const expenseWhere = {
+        schoolId,
+        status: 'ACTIVE',
+        ...(targetDateUtc && { expenseDate: targetDateUtc }),
+        ...(academicYearId && { academicYearId }),
+      };
+
+      const [totalAggregate, modeGroup, categoryGroup, expensesList] = await Promise.all([
+        prisma.expense.aggregate({
+          where: expenseWhere,
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+
+        prisma.expense.groupBy({
+          by: ['paymentMode'],
+          where: expenseWhere,
+          _sum: { amount: true },
+          _count: { id: true },
+        }),
+
+        prisma.expense.groupBy({
+          by: ['categoryId'],
+          where: expenseWhere,
+        }),
+
+        prisma.expense.findMany({
+          where: expenseWhere,
+          include: {
+            category: { select: { id: true, name: true } },
+            createdBy: { select: { id: true, name: true } },
           },
-        },
-        ...(targetDateUtc ? [{ expenseDate: targetDateUtc }] : []),
-      ],
-      ...(academicYearId && { academicYearId }),
-    };
+          orderBy: { expenseDate: 'desc' },
+          take: 50,
+        }),
+      ]);
 
-    const [totalAggregate, modeGroup, categoryGroup, expensesList] = await Promise.all([
-      prisma.expense.aggregate({
-        where: expenseWhere,
-        _sum: { amount: true },
-        _count: { id: true },
-      }),
+      const totalAmount = Number(totalAggregate._sum.amount || 0);
+      const expenseCount = totalAggregate._count.id || 0;
+      const categoryCount = categoryGroup.length;
 
-      prisma.expense.groupBy({
-        by: ['paymentMode'],
-        where: expenseWhere,
-        _sum: { amount: true },
-        _count: { id: true },
-      }),
+      const modeBreakdown = modeGroup.map((mg) => ({
+        mode: mg.paymentMode,
+        amount: Number(mg._sum.amount || 0),
+        count: mg._count.id,
+      }));
 
-      prisma.expense.groupBy({
-        by: ['categoryId'],
-        where: expenseWhere,
-      }),
+      const expenses = expensesList.map((e) => ({
+        id: e.id,
+        expenseDate: e.expenseDate,
+        amount: Number(e.amount),
+        paymentMode: e.paymentMode,
+        categoryName: e.category?.name || 'General',
+        referenceNo: e.referenceNo || '-',
+        description: e.description || '',
+        createdByName: e.createdBy?.name || 'System',
+      }));
 
-      prisma.expense.findMany({
-        where: expenseWhere,
-        include: {
-          category: { select: { id: true, name: true } },
-          createdBy: { select: { id: true, name: true } },
-        },
-        orderBy: { expenseDate: 'desc' },
-        take: 50,
-      }),
-    ]);
-
-    const totalAmount = Number(totalAggregate._sum.amount || 0);
-    const expenseCount = totalAggregate._count.id || 0;
-    const categoryCount = categoryGroup.length;
-
-    const modeBreakdown = modeGroup.map((mg) => ({
-      mode: mg.paymentMode,
-      amount: Number(mg._sum.amount || 0),
-      count: mg._count.id,
-    }));
-
-    const expenses = expensesList.map((e) => ({
-      id: e.id,
-      expenseDate: e.expenseDate,
-      amount: Number(e.amount),
-      paymentMode: e.paymentMode,
-      categoryName: e.category?.name || 'General',
-      referenceNo: e.referenceNo || '-',
-      description: e.description || '',
-      createdByName: e.createdBy?.name || 'System',
-    }));
-
-    return {
-      date: formattedDateString,
-      totalAmount,
-      expenseCount,
-      categoryCount,
-      modeBreakdown,
-      expenses,
-    };
+      return {
+        date: formattedDateString,
+        totalAmount,
+        expenseCount,
+        categoryCount,
+        modeBreakdown,
+        expenses,
+      };
+    }, 15);
   },
 
   async getTodayCollection(schoolId, query = {}) {
     return this.getDailyCollection(schoolId, query);
   },
 };
+
 

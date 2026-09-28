@@ -267,7 +267,7 @@ export const ExpensesPage = () => {
             onClick={handleOpenAddModal}
             icon={Plus}
           >
-            + Add Expense
+            Add Expense
           </Button>
         </div>
       </div>
@@ -305,14 +305,14 @@ export const ExpensesPage = () => {
           label="From Date"
           size="sm"
           value={startDate}
-          onChange={(val) => setStartDate(val)}
+          onChange={(val) => setStartDate(val?.target ? val.target.value : (val || ''))}
         />
 
         <DatePicker
           label="To Date"
           size="sm"
           value={endDate}
-          onChange={(val) => setEndDate(val)}
+          onChange={(val) => setEndDate(val?.target ? val.target.value : (val || ''))}
         />
 
         <div className="flex items-end">
@@ -442,7 +442,7 @@ export const ExpensesPage = () => {
               label="Date *"
               size="sm"
               value={expenseForm.expenseDate}
-              onChange={(val) => setExpenseForm({ ...expenseForm, expenseDate: val })}
+              onChange={(val) => setExpenseForm({ ...expenseForm, expenseDate: val?.target ? val.target.value : (val || '') })}
               required
             />
 

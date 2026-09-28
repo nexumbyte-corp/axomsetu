@@ -242,6 +242,13 @@ export const DatePicker = ({
         const isoString = formatDateForInput(candidateDate);
         if (onChange) {
           onChange({ target: { name, value: isoString } }, isoString, candidateDate);
+          if (typeof onChange === 'function' && onChange.length <= 1) {
+            try {
+              onChange(isoString, candidateDate);
+            } catch {
+              // Handled
+            }
+          }
         }
         setViewYear(y);
         setViewMonth(m);
@@ -249,6 +256,13 @@ export const DatePicker = ({
     } else if (cleaned === '') {
       if (onChange) {
         onChange({ target: { name, value: '' } }, '', null);
+        if (typeof onChange === 'function' && onChange.length <= 1) {
+          try {
+            onChange('', null);
+          } catch {
+            // Handled
+          }
+        }
       }
     }
   };

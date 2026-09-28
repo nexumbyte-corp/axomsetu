@@ -210,10 +210,14 @@ export const expenseService = {
     if (status) where.status = status;
 
     if (startDate || endDate) {
-      where.expenseDate = {
-        ...(startDate && { gte: getISTDayBounds(startDate).startOfDay }),
-        ...(endDate && { lte: getISTDayBounds(endDate).endOfDay }),
-      };
+      const parsedStart = startDate ? parseDateOnlyToUtc(startDate) : null;
+      const parsedEnd = endDate ? parseDateOnlyToUtc(endDate) : null;
+      if (parsedStart || parsedEnd) {
+        where.expenseDate = {
+          ...(parsedStart && { gte: parsedStart }),
+          ...(parsedEnd && { lte: parsedEnd }),
+        };
+      }
     }
 
     if (search && search.trim() !== '') {

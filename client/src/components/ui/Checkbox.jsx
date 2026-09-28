@@ -1,8 +1,9 @@
 import React from 'react';
 
 export const Checkbox = React.forwardRef(
-  ({ label, description, className = '', id, name, disabled = false, checked, onChange, ...props }, ref) => {
+  ({ label, description, className = '', id, name, disabled = false, isDisabled = false, checked, onChange, ...props }, ref) => {
     const checkboxId = id || name || label?.toLowerCase().replace(/\s+/g, '-');
+    const isActuallyDisabled = Boolean(disabled || isDisabled);
 
     return (
       <div className="flex items-start">
@@ -14,7 +15,7 @@ export const Checkbox = React.forwardRef(
             type="checkbox"
             checked={checked}
             onChange={onChange}
-            disabled={disabled}
+            disabled={isActuallyDisabled}
             className={`w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
             {...props}
           />

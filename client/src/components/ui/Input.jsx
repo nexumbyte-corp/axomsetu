@@ -17,11 +17,13 @@ export const Input = React.forwardRef(
       icon: Icon,
       endElement,
       disabled = false,
+      isDisabled = false,
       autoComplete,
       ...props
     },
     ref
   ) => {
+    const isActuallyDisabled = Boolean(disabled || isDisabled);
     const inputId = id || name || label?.toLowerCase().replace(/\s+/g, '-');
     const computedAutoComplete = autoComplete || (type === 'password' ? 'new-password' : 'off');
 
@@ -69,7 +71,7 @@ export const Input = React.forwardRef(
             id={inputId}
             name={name}
             type={type}
-            disabled={disabled}
+            disabled={isActuallyDisabled}
             autoComplete={computedAutoComplete}
             onWheel={handleWheel}
             className={`w-full rounded-lg border transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:cursor-not-allowed ${

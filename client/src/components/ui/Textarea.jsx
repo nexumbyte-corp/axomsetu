@@ -2,11 +2,12 @@ import React from 'react';
 
 export const Textarea = React.forwardRef(
   (
-    { label, error, helperText, required = false, rows = 3, className = '', size = 'md', id, name, disabled = false, autoComplete = 'off', ...props },
+    { label, error, helperText, required = false, rows = 3, className = '', size = 'md', id, name, disabled = false, isDisabled = false, autoComplete = 'off', ...props },
     ref
   ) => {
     const textareaId = id || name || label?.toLowerCase().replace(/\s+/g, '-');
     const isSm = size === 'sm';
+    const isActuallyDisabled = Boolean(disabled || isDisabled);
 
     return (
       <div className="w-full">
@@ -22,7 +23,7 @@ export const Textarea = React.forwardRef(
             id={textareaId}
             name={name}
             rows={rows}
-            disabled={disabled}
+            disabled={isActuallyDisabled}
             autoComplete={autoComplete}
             className={`w-full rounded-lg border transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed ${
               isSm ? 'p-2 text-xs' : 'p-3 text-sm'
