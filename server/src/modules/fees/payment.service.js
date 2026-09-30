@@ -5,6 +5,7 @@ import { getISTDayBounds, getISTMonthBounds, parseTransactionDateIST } from '../
 import receiptService from './receipt.service.js';
 import { getTargetYearForFeeMonth } from './fee-generation.service.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
+import { memoryCache } from '../../utils/cache.js';
 
 const PAYMENT_AUDIT_EVENTS = {
   CREATE_PAYMENT: 'CREATE_PAYMENT',
@@ -271,6 +272,11 @@ export const paymentService = {
         paymentMode: payment.paymentMode,
       };
     });
+
+    memoryCache.delPattern(`fees:dashboard:${schoolId}`);
+    memoryCache.delPattern(`dashboard:${schoolId}`);
+
+    return paymentResult;
   },
 
   /**
@@ -410,6 +416,11 @@ export const paymentService = {
         message: 'Payment voided successfully and charge statuses restored',
       };
     });
+
+    memoryCache.delPattern(`fees:dashboard:${schoolId}`);
+    memoryCache.delPattern(`dashboard:${schoolId}`);
+
+    return voidResult;
   },
 
   /**
@@ -925,6 +936,7 @@ export const paymentService = {
               photoUrl: true,
               guardianName: true,
               enrollments: {
+                where: whereClause.academicYearId ? { academicYearId: whereClause.academicYearId } : undefined,
                 select: {
                   id: true,
                   academicYearId: true,
@@ -935,6 +947,7 @@ export const paymentService = {
                   stream: { select: { id: true, name: true } },
                 },
                 orderBy: { createdAt: 'desc' },
+                take: 1,
               },
             },
           },
@@ -1162,165 +1175,156 @@ export const paymentService = {
    */
   async getDashboardSummary(schoolId, query = {}) {
     const academicYearId = query.academicYearId;
-    const { startOfDay: startOfToday, endOfDay: endOfToday } = getISTDayBounds();
-    const { startOfMonth, endOfMonth } = getISTMonthBounds();
+    const cacheKey = `fees:dashboard:${schoolId}:${academicYearId || 'all'}`;
 
-    const paymentWhere = {
-      schoolId,
-      ...(academicYearId && { academicYearId }),
-    };
+    return await memoryCache.getOrSet(
+      cacheKey,
+      async () => {
+        const { startOfDay: startOfToday, endOfDay: endOfToday } = getISTDayBounds();
+        const { startOfMonth, endOfMonth } = getISTMonthBounds();
 
-    const chargeWhere = {
-      schoolId,
-      ...(academicYearId && { academicYearId }),
-    };
+        const paymentWhere = {
+          schoolId,
+          ...(academicYearId && { academicYearId }),
+        };
 
-    const [
-      todayAggregate,
-      monthAggregate,
-      totalReceiptsCount,
-      todayPaidStudentsGroup,
-      dueStudentsGroup,
-      outstandingCharges,
-      recentPayments,
-    ] = await Promise.all([
-      // Today Collection
-      prisma.feePayment.aggregate({
-        where: {
-          ...paymentWhere,
-          status: 'SUCCESS',
-          paymentDate: { gte: startOfToday, lte: endOfToday },
-        },
-        _sum: { receivedAmount: true },
-      }),
-      // Month Collection
-      prisma.feePayment.aggregate({
-        where: {
-          ...paymentWhere,
-          status: 'SUCCESS',
-          paymentDate: { gte: startOfMonth, lte: endOfMonth },
-        },
-        _sum: { receivedAmount: true },
-      }),
-      // Total Receipts
-      prisma.feePayment.count({
-        where: { ...paymentWhere, status: 'SUCCESS' },
-      }),
-      // Students Paid Today
-      prisma.feePayment.groupBy({
-        by: ['studentId'],
-        where: {
-          ...paymentWhere,
-          status: 'SUCCESS',
-          paymentDate: { gte: startOfToday, lte: endOfToday },
-        },
-      }),
-      // Students With Due
-      prisma.studentFeeCharge.groupBy({
-        by: ['studentId'],
-        where: {
-          ...chargeWhere,
-          status: { in: ['UNPAID', 'PARTIAL'] },
-        },
-      }),
-      // Outstanding Dues Aggregation
-      prisma.studentFeeCharge.findMany({
-        where: {
-          ...chargeWhere,
-          status: { in: ['UNPAID', 'PARTIAL'] },
-        },
-        select: {
-          amount: true,
-          paidAmount: true,
-        },
-      }),
-      // Top 10 Recent Payments
-      prisma.feePayment.findMany({
-        where: paymentWhere,
-        include: {
-          student: {
-            select: {
-              id: true,
-              name: true,
-              admissionNo: true,
-              phone: true,
-              guardianName: true,
-              enrollments: {
-                select: {
-                  id: true,
-                  academicYearId: true,
-                  status: true,
-                  class: { select: { id: true, name: true } },
-                  section: { select: { id: true, name: true } },
-                  medium: { select: { id: true, name: true } },
-                  stream: { select: { id: true, name: true } },
-                },
-                orderBy: { createdAt: 'desc' },
-                take: 1,
-              },
+        const [
+          todayAggregate,
+          monthAggregate,
+          totalReceiptsCount,
+          todayPaidStudentsCountResult,
+          outstandingSummaryResult,
+          recentPayments,
+        ] = await Promise.all([
+          // Today Collection
+          prisma.feePayment.aggregate({
+            where: {
+              ...paymentWhere,
+              status: 'SUCCESS',
+              paymentDate: { gte: startOfToday, lte: endOfToday },
             },
-          },
-          receivedBy: { select: { id: true, name: true } },
-          allocations: {
+            _sum: { receivedAmount: true },
+          }),
+          // Month Collection
+          prisma.feePayment.aggregate({
+            where: {
+              ...paymentWhere,
+              status: 'SUCCESS',
+              paymentDate: { gte: startOfMonth, lte: endOfMonth },
+            },
+            _sum: { receivedAmount: true },
+          }),
+          // Total Receipts
+          prisma.feePayment.count({
+            where: { ...paymentWhere, status: 'SUCCESS' },
+          }),
+          // Students Paid Today (Count distinct studentId directly in DB via SQL)
+          prisma.$queryRaw`
+            SELECT COUNT(DISTINCT student_id)::INT AS "count"
+            FROM fee_payments
+            WHERE school_id = ${schoolId}::uuid
+              AND status = 'SUCCESS'
+              AND payment_date >= ${startOfToday}
+              AND payment_date <= ${endOfToday}
+              ${academicYearId ? Prisma.sql`AND academic_year_id = ${academicYearId}::uuid` : Prisma.empty}
+          `,
+          // Outstanding Dues Aggregation + Unique Students with Due in 1 single fast DB query
+          prisma.$queryRaw`
+            SELECT
+              COALESCE(SUM(GREATEST(0, amount - paid_amount)), 0)::FLOAT AS "totalOutstanding",
+              COUNT(DISTINCT student_id)::INT AS "dueStudentsCount"
+            FROM student_fee_charges
+            WHERE school_id = ${schoolId}::uuid
+              AND status IN ('UNPAID', 'PARTIAL')
+              ${academicYearId ? Prisma.sql`AND academic_year_id = ${academicYearId}::uuid` : Prisma.empty}
+          `,
+          // Top 10 Recent Payments
+          prisma.feePayment.findMany({
+            where: paymentWhere,
             include: {
-              charge: {
+              student: {
                 select: {
                   id: true,
-                  studentEnrollment: {
+                  name: true,
+                  admissionNo: true,
+                  phone: true,
+                  guardianName: true,
+                  enrollments: {
+                    where: academicYearId ? { academicYearId } : undefined,
                     select: {
+                      id: true,
+                      academicYearId: true,
+                      status: true,
                       class: { select: { id: true, name: true } },
                       section: { select: { id: true, name: true } },
                       medium: { select: { id: true, name: true } },
                       stream: { select: { id: true, name: true } },
                     },
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                  },
+                },
+              },
+              receivedBy: { select: { id: true, name: true } },
+              allocations: {
+                include: {
+                  charge: {
+                    select: {
+                      id: true,
+                      studentEnrollment: {
+                        select: {
+                          class: { select: { id: true, name: true } },
+                          section: { select: { id: true, name: true } },
+                          medium: { select: { id: true, name: true } },
+                          stream: { select: { id: true, name: true } },
+                        },
+                      },
+                    },
                   },
                 },
               },
             },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 10,
-      }),
-    ]);
+            orderBy: { createdAt: 'desc' },
+            take: 10,
+          }),
+        ]);
 
-    const todayCollection = Number(todayAggregate._sum.receivedAmount || 0);
-    const monthCollection = Number(monthAggregate._sum.receivedAmount || 0);
+        const todayCollection = Number(todayAggregate._sum?.receivedAmount || 0);
+        const monthCollection = Number(monthAggregate._sum?.receivedAmount || 0);
+        const totalOutstanding = Number(outstandingSummaryResult?.[0]?.totalOutstanding || 0);
+        const studentsPaidToday = Number(todayPaidStudentsCountResult?.[0]?.count || 0);
+        const studentsWithDue = Number(outstandingSummaryResult?.[0]?.dueStudentsCount || 0);
 
-    let totalOutstanding = 0;
-    for (const c of outstandingCharges) {
-      const chargeAmt = Number(c.amount || 0);
-      const paidAmt = Number(c.paidAmount || 0);
-      totalOutstanding += Math.max(0, chargeAmt - paidAmt);
-    }
-
-    return {
-      todayCollection,
-      monthCollection,
-      outstanding: totalOutstanding,
-      totalReceipts: totalReceiptsCount,
-      studentsPaidToday: todayPaidStudentsGroup.length,
-      studentsWithDue: dueStudentsGroup.length,
-      recentPayments: recentPayments.map((p) => {
-        const classData = this._formatPaymentClassData(p);
         return {
-          id: p.id,
-          receiptNumber: p.receiptNumber,
-          studentName: p.student?.name,
-          admissionNo: p.student?.admissionNo,
-          amount: Number(p.receivedAmount),
-          paymentMode: p.paymentMode,
-          status: p.status,
-          paymentDate: p.paymentDate,
-          collectedBy: p.receivedBy?.name,
-          student: classData.student,
-          className: classData.className,
-          sectionName: classData.sectionName,
-          mediumName: classData.mediumName,
-          streamName: classData.streamName,
+          todayCollection,
+          monthCollection,
+          outstanding: totalOutstanding,
+          totalReceipts: totalReceiptsCount,
+          studentsPaidToday,
+          studentsWithDue,
+          recentPayments: recentPayments.map((p) => {
+            const classData = this._formatPaymentClassData(p);
+            return {
+              id: p.id,
+              receiptNumber: p.receiptNumber,
+              studentName: p.student?.name,
+              admissionNo: p.student?.admissionNo,
+              amount: Number(p.receivedAmount),
+              paymentMode: p.paymentMode,
+              status: p.status,
+              paymentDate: p.paymentDate,
+              collectedBy: p.receivedBy?.name,
+              student: classData.student,
+              className: classData.className,
+              sectionName: classData.sectionName,
+              mediumName: classData.mediumName,
+              streamName: classData.streamName,
+            };
+          }),
         };
-      }),
-    };
+      },
+      15
+    );
   },
 
   /**
@@ -1389,6 +1393,11 @@ export const paymentService = {
         message: `Unpaid fee charge '${charge.title}' deleted successfully`,
       };
     });
+
+    memoryCache.delPattern(`fees:dashboard:${schoolId}`);
+    memoryCache.delPattern(`dashboard:${schoolId}`);
+
+    return deleteResult;
   },
 
   /**
@@ -1522,6 +1531,11 @@ export const paymentService = {
         charge: updated,
       };
     });
+
+    memoryCache.delPattern(`fees:dashboard:${schoolId}`);
+    memoryCache.delPattern(`dashboard:${schoolId}`);
+
+    return updateResult;
   },
 };
 

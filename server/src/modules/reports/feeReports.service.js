@@ -54,7 +54,7 @@ export const feeReportsService = {
       };
     }
 
-    const [total, payments] = await Promise.all([
+    const [total, payments, modeAgg] = await Promise.all([
       prisma.feePayment.count({ where: paymentWhere }),
       prisma.feePayment.findMany({
         where: paymentWhere,
@@ -63,10 +63,10 @@ export const feeReportsService = {
           allocations: {
             include: {
               charge: {
-                include: {
+                select: {
                   feeType: { select: { name: true } },
                   studentEnrollment: {
-                    include: {
+                    select: {
                       class: { select: { name: true } },
                       section: { select: { name: true } },
                       medium: { select: { name: true } },
@@ -82,15 +82,13 @@ export const feeReportsService = {
         ...(skip !== undefined && { skip }),
         ...(!isUnlimited && { take: numLimit }),
       }),
+      prisma.feePayment.groupBy({
+        by: ['paymentMode'],
+        where: paymentWhere,
+        _sum: { receivedAmount: true },
+        _count: { id: true },
+      }),
     ]);
-
-    // Mode totals across filtered set (using aggregate)
-    const modeAgg = await prisma.feePayment.groupBy({
-      by: ['paymentMode'],
-      where: paymentWhere,
-      _sum: { receivedAmount: true },
-      _count: { id: true },
-    });
 
     const modeSummary = {
       CASH: 0,
@@ -195,93 +193,113 @@ export const feeReportsService = {
       };
     }
 
-    const charges = await prisma.studentFeeCharge.findMany({
+    // 1. Group by studentId directly in DB with aggregates
+    const groups = await prisma.studentFeeCharge.groupBy({
+      by: ['studentId'],
       where: chargeWhere,
-      include: {
-        student: { select: { id: true, name: true, admissionNo: true, phone: true, guardianName: true } },
-        feeType: { select: { name: true } },
-        studentEnrollment: {
-          include: {
-            class: { select: { name: true } },
-            section: { select: { name: true } },
-            medium: { select: { name: true } },
-            stream: { select: { name: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
+      _sum: { amount: true, paidAmount: true },
+      _count: { id: true },
     });
 
-    const studentMap = new Map();
+    let totalOutstanding = 0;
+    const allDues = [];
 
-    for (const c of charges) {
-      const sId = c.studentId;
-      if (!studentMap.has(sId)) {
-        const clsName = c.studentEnrollment?.class?.name || '-';
-        const secName = c.studentEnrollment?.section?.name;
-        const medName = c.studentEnrollment?.medium?.name;
-        const strmName = c.studentEnrollment?.stream?.name;
+    for (const g of groups) {
+      const charged = Number(g._sum.amount || 0);
+      const paid = Number(g._sum.paidAmount || 0);
+      const balance = Math.max(0, charged - paid);
+
+      if (status === 'PAID' || balance > 0) {
+        totalOutstanding += balance;
+        allDues.push({
+          studentId: g.studentId,
+          totalCharged: charged,
+          paidAmount: paid,
+          balance,
+          status: paid > 0 ? 'PARTIAL' : 'UNPAID',
+        });
+      }
+    }
+
+    // Order by highest outstanding balance first
+    allDues.sort((a, b) => b.balance - a.balance);
+
+    const totalStudents = allDues.length;
+    const paginatedDues = isUnlimited ? allDues : allDues.slice(skip, skip + numLimit);
+    const targetStudentIds = paginatedDues.map((d) => d.studentId);
+
+    // 2. Fetch student profile & active enrollment for ONLY the paginated slice
+    const studentInfoMap = new Map();
+    if (targetStudentIds.length > 0) {
+      const students = await prisma.student.findMany({
+        where: { id: { in: targetStudentIds } },
+        select: {
+          id: true,
+          name: true,
+          admissionNo: true,
+          phone: true,
+          guardianName: true,
+          enrollments: {
+            where: {
+              schoolId,
+              ...(academicYearId && { academicYearId }),
+              ...(classId && { classId }),
+              ...(sectionId && { sectionId }),
+            },
+            select: {
+              class: { select: { name: true } },
+              section: { select: { name: true } },
+              medium: { select: { name: true } },
+              stream: { select: { name: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      });
+
+      for (const s of students) {
+        const enr = s.enrollments?.[0];
+        const clsName = enr?.class?.name || '-';
+        const secName = enr?.section?.name;
+        const medName = enr?.medium?.name;
+        const strmName = enr?.stream?.name;
 
         let fullClass = clsName;
         if (secName && secName !== '-') fullClass += ` - ${secName}`;
         const extras = [medName, strmName].filter((x) => x && x !== '-').join(' / ');
         if (extras) fullClass += ` (${extras})`;
 
-        studentMap.set(sId, {
-          studentId: sId,
-          studentName: c.student?.name || '-',
-          admissionNo: c.student?.admissionNo || '-',
-          guardianName: c.student?.guardianName || '-',
-          phone: c.student?.phone || '-',
+        studentInfoMap.set(s.id, {
+          studentName: s.name || '-',
+          admissionNo: s.admissionNo || '-',
+          guardianName: s.guardianName || '-',
+          phone: s.phone || '-',
           className: fullClass,
           sectionName: secName || '-',
-          mediumName: medName || '-',
-          streamName: strmName || '-',
-          totalChargedDecimal: new Prisma.Decimal(0),
-          totalPaidDecimal: new Prisma.Decimal(0),
-          chargesCount: 0,
         });
       }
-
-      const item = studentMap.get(sId);
-      const amt = new Prisma.Decimal(c.amount);
-      const paid = new Prisma.Decimal(c.paidAmount || 0);
-
-      item.totalChargedDecimal = item.totalChargedDecimal.plus(amt);
-      item.totalPaidDecimal = item.totalPaidDecimal.plus(paid);
-      item.chargesCount += 1;
     }
 
-    const allDues = Array.from(studentMap.values()).map((item) => {
-      const balanceDecimal = Prisma.Decimal.max(
-        new Prisma.Decimal(0),
-        item.totalChargedDecimal.minus(item.totalPaidDecimal)
-      );
+    const finalData = paginatedDues.map((item) => {
+      const info = studentInfoMap.get(item.studentId) || {};
       return {
         studentId: item.studentId,
-        studentName: item.studentName,
-        admissionNo: item.admissionNo,
-        guardianName: item.guardianName,
-        phone: item.phone,
-        className: item.className,
-        sectionName: item.sectionName,
-        totalCharged: Number(item.totalChargedDecimal),
-        paidAmount: Number(item.totalPaidDecimal),
-        balance: Number(balanceDecimal),
-        status: item.totalPaidDecimal.gt(0) ? 'PARTIAL' : 'UNPAID',
+        studentName: info.studentName || '-',
+        admissionNo: info.admissionNo || '-',
+        guardianName: info.guardianName || '-',
+        phone: info.phone || '-',
+        className: info.className || '-',
+        sectionName: info.sectionName || '-',
+        totalCharged: item.totalCharged,
+        paidAmount: item.paidAmount,
+        balance: item.balance,
+        status: item.status,
       };
     });
 
-    const totalStudents = allDues.length;
-    const paginatedDues = isUnlimited ? allDues : allDues.slice(skip, skip + numLimit);
-
-    const totalOutstandingDecimal = allDues.reduce(
-      (sum, d) => sum.plus(new Prisma.Decimal(d.balance)),
-      new Prisma.Decimal(0)
-    );
-
     return {
-      data: paginatedDues,
+      data: finalData,
       pagination: {
         total: totalStudents,
         page: Number(page),
@@ -289,7 +307,7 @@ export const feeReportsService = {
         totalPages: Math.ceil(totalStudents / Number(limit)),
       },
       summary: {
-        totalOutstanding: Number(totalOutstandingDecimal),
+        totalOutstanding,
         totalStudentsWithDues: totalStudents,
       },
     };
@@ -384,91 +402,87 @@ export const feeReportsService = {
   async getClassFeeCollection(schoolId, query = {}) {
     const { academicYearId } = query;
 
-    const classes = await prisma.class.findMany({
-      where: { schoolId, isActive: true },
-      include: {
-        enrollments: {
-          where: {
-            status: 'ACTIVE',
-            ...(academicYearId && { academicYearId }),
-          },
-          select: { studentId: true },
-        },
-      },
-      orderBy: { order: 'asc' },
-    });
-
-    const result = [];
-    let grandCollectionDecimal = new Prisma.Decimal(0);
-    let grandOutstandingDecimal = new Prisma.Decimal(0);
-
-    for (const cls of classes) {
-      const studentIds = cls.enrollments.map((e) => e.studentId);
-      if (studentIds.length === 0) {
-        result.push({
-          classId: cls.id,
-          className: cls.name,
-          studentCount: 0,
-          collection: 0,
-          outstanding: 0,
-        });
-        continue;
-      }
-
-      // Aggregate payments
-      const collAgg = await prisma.paymentAllocation.aggregate({
-        where: {
-          payment: {
-            schoolId,
-            status: 'SUCCESS',
-            ...(academicYearId && { academicYearId }),
-          },
-          charge: {
-            studentId: { in: studentIds },
+    // Fetch classes and their active student counts in parallel with aggregated totals
+    const [classes, collByClassRows, duesByClassRows] = await Promise.all([
+      prisma.class.findMany({
+        where: { schoolId, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          _count: {
+            select: {
+              enrollments: {
+                where: {
+                  status: 'ACTIVE',
+                  ...(academicYearId && { academicYearId }),
+                },
+              },
+            },
           },
         },
-        _sum: { allocatedAmount: true },
-      });
+        orderBy: { order: 'asc' },
+      }),
+      prisma.$queryRaw`
+        SELECT
+          se.class_id,
+          COALESCE(SUM(pa.allocated_amount), 0)::FLOAT AS "collection"
+        FROM payment_allocations pa
+        JOIN student_fee_charges sfc ON pa.charge_id = sfc.id
+        JOIN student_enrollments se ON sfc.student_enrollment_id = se.id
+        JOIN fee_payments fp ON pa.payment_id = fp.id
+        WHERE fp.school_id = ${schoolId}::uuid
+          AND fp.status = 'SUCCESS'
+          ${academicYearId ? Prisma.sql`AND fp.academic_year_id = ${academicYearId}::uuid` : Prisma.empty}
+        GROUP BY se.class_id
+      `,
+      prisma.$queryRaw`
+        SELECT
+          se.class_id,
+          COALESCE(SUM(GREATEST(0, sfc.amount - sfc.paid_amount)), 0)::FLOAT AS "outstanding"
+        FROM student_fee_charges sfc
+        JOIN student_enrollments se ON sfc.student_enrollment_id = se.id
+        WHERE sfc.school_id = ${schoolId}::uuid
+          AND sfc.status IN ('UNPAID', 'PARTIAL')
+          ${academicYearId ? Prisma.sql`AND sfc.academic_year_id = ${academicYearId}::uuid` : Prisma.empty}
+        GROUP BY se.class_id
+      `,
+    ]);
 
-      const totalColl = collAgg._sum.allocatedAmount || new Prisma.Decimal(0);
+    const collMap = new Map();
+    for (const r of collByClassRows) {
+      collMap.set(r.class_id, Number(r.collection || 0));
+    }
 
-      // Aggregate dues
-      const duesCharges = await prisma.studentFeeCharge.findMany({
-        where: {
-          schoolId,
-          studentId: { in: studentIds },
-          status: { in: ['UNPAID', 'PARTIAL'] },
-          ...(academicYearId && { academicYearId }),
-        },
-        select: { amount: true, paidAmount: true },
-      });
+    const duesMap = new Map();
+    for (const r of duesByClassRows) {
+      duesMap.set(r.class_id, Number(r.outstanding || 0));
+    }
 
-      let classOutstanding = new Prisma.Decimal(0);
-      for (const d of duesCharges) {
-        const remaining = Prisma.Decimal.max(
-          new Prisma.Decimal(0),
-          new Prisma.Decimal(d.amount).minus(new Prisma.Decimal(d.paidAmount || 0))
-        );
-        classOutstanding = classOutstanding.plus(remaining);
-      }
+    let grandCollection = 0;
+    let grandOutstanding = 0;
 
-      grandCollectionDecimal = grandCollectionDecimal.plus(totalColl);
-      grandOutstandingDecimal = grandOutstandingDecimal.plus(classOutstanding);
+    const result = classes.map((cls) => {
+      const studentCount = cls._count?.enrollments || 0;
+      const collection = collMap.get(cls.id) || 0;
+      const outstanding = duesMap.get(cls.id) || 0;
 
-      result.push({
+      grandCollection += collection;
+      grandOutstanding += outstanding;
+
+      return {
         classId: cls.id,
         className: cls.name,
-        studentCount: studentIds.length,
-        collection: Number(totalColl),
-        outstanding: Number(classOutstanding),
-      });
-    }
+        studentCount,
+        collection,
+        outstanding,
+      };
+    });
 
     return {
       data: result,
       summary: {
-        totalCollection: Number(grandCollectionDecimal),
-        totalOutstanding: Number(grandOutstandingDecimal),
+        totalCollection: grandCollection,
+        totalOutstanding: grandOutstanding,
       },
     };
   },
