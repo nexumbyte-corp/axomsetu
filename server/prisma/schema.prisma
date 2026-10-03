@@ -1087,6 +1087,8 @@ model Staff {
 
   @@unique([schoolId, employeeId])
   @@index([schoolId])
+  @@index([schoolId, status])
+  @@index([schoolId, role])
   @@map("staff")
 }
 
@@ -1109,6 +1111,7 @@ model StaffAdvance {
 
   @@index([schoolId])
   @@index([staffId])
+  @@index([schoolId, staffId])
   @@map("staff_advances")
 }
 
@@ -1172,6 +1175,7 @@ model MonthlyPayroll {
   @@index([academicYearId])
   @@index([schoolId, staffId, month, year])
   @@index([schoolId, status])
+  @@index([schoolId, academicYearId, month, year])
   @@map("monthly_payrolls")
 }
 
@@ -1208,6 +1212,8 @@ model SalaryPayment {
   @@unique([schoolId, paymentNumber])
   @@index([schoolId])
   @@index([staffId])
+  @@index([schoolId, paymentDate(sort: Desc)])
+  @@index([schoolId, academicYearId, paymentDate(sort: Desc)])
   @@map("salary_payments")
 }
 
@@ -1330,6 +1336,7 @@ model SubscriptionPlan {
   subscriptions SchoolSubscription[]
   payments      SubscriptionPayment[]
 
+  @@index([isActive, isTrial, displayOrder])
   @@map("subscription_plans")
 }
 
@@ -1365,6 +1372,7 @@ model SchoolSubscription {
   @@index([planId])
   @@index([status, endDate])
   @@index([schoolId, status])
+  @@index([schoolId, createdAt(sort: Desc)])
   @@map("school_subscriptions")
 }
 

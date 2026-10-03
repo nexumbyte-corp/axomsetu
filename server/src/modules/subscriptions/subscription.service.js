@@ -132,56 +132,62 @@ export const getActivePaidPlans = async () => {
 
 /**
  * Public marketing plans (includes trial info for landing page).
+ * Cached for 5 minutes (300 seconds).
  */
 export const getPublicLandingPlans = async () => {
-  const plans = await prisma.subscriptionPlan.findMany({
-    where: { isActive: true },
-    orderBy: { displayOrder: 'asc' },
-  });
+  return await memoryCache.getOrSet('plans:public:landing', async () => {
+    const plans = await prisma.subscriptionPlan.findMany({
+      where: { isActive: true },
+      orderBy: { displayOrder: 'asc' },
+    });
 
-  return plans.map((p) => ({
-    id: p.id,
-    name: p.name,
-    code: p.code,
-    type: p.type,
-    durationValue: p.durationValue,
-    durationUnit: p.durationUnit,
-    basePrice: Number(p.basePrice),
-    discountPercentage: Number(p.discountPercentage),
-    discountAmount: Number(p.discountAmount),
-    finalPrice: Number(p.finalPrice),
-    currency: p.currency,
-    description: p.description,
-    features: p.features,
-    offerTitle: p.offerTitle,
-    offerDescription: p.offerDescription,
-    badge: p.badge,
-    maxStudentLimit: p.maxStudentLimit,
-    isEnterprise: p.isEnterprise,
-    isTrial: p.isTrial,
-  }));
+    return plans.map((p) => ({
+      id: p.id,
+      name: p.name,
+      code: p.code,
+      type: p.type,
+      durationValue: p.durationValue,
+      durationUnit: p.durationUnit,
+      basePrice: Number(p.basePrice),
+      discountPercentage: Number(p.discountPercentage),
+      discountAmount: Number(p.discountAmount),
+      finalPrice: Number(p.finalPrice),
+      currency: p.currency,
+      description: p.description,
+      features: p.features,
+      offerTitle: p.offerTitle,
+      offerDescription: p.offerDescription,
+      badge: p.badge,
+      maxStudentLimit: p.maxStudentLimit,
+      isEnterprise: p.isEnterprise,
+      isTrial: p.isTrial,
+    }));
+  }, 300);
 };
 
 /**
  * Public registered schools list for landing page clients section.
  * Includes all active registered schools regardless of subscription status.
+ * Cached for 5 minutes (300 seconds).
  */
 export const getPublicRegisteredSchools = async () => {
-  const schools = await prisma.school.findMany({
-    where: { status: 'ACTIVE' },
-    select: {
-      id: true,
-      name: true,
-      code: true,
-      logoUrl: true,
-      district: true,
-      state: true,
-      createdAt: true,
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  return await memoryCache.getOrSet('schools:public:landing', async () => {
+    const schools = await prisma.school.findMany({
+      where: { status: 'ACTIVE' },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        logoUrl: true,
+        district: true,
+        state: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
-  return schools;
+    return schools;
+  }, 300);
 };
 
 /**

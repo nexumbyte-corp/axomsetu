@@ -6,6 +6,34 @@ import { financialLedgerService } from '../finance/financialLedger.service.js';
 import { ensureCurrentAcademicYear } from '../academic-years/academicYear.service.js';
 import { parseDateOnlyToUtc, getISTDateString } from '../../utils/dateUtils.js';
 
+// In-memory TTL cache for staff filter metadata (departments & designations)
+const staffFilterCache = new Map();
+const STAFF_FILTER_TTL = 3 * 60 * 1000; // 3 minutes
+
+export const invalidateStaffFilterCache = (schoolId) => {
+  if (schoolId) staffFilterCache.delete(schoolId);
+};
+
+const getStaffFilterMetadata = async (schoolId) => {
+  const cached = staffFilterCache.get(schoolId);
+  const now = Date.now();
+  if (cached && now - cached.timestamp < STAFF_FILTER_TTL) {
+    return cached.data;
+  }
+
+  const allStaff = await prisma.staff.findMany({
+    where: { schoolId },
+    select: { department: true, designation: true },
+  });
+
+  const departments = Array.from(new Set(allStaff.map((s) => s.department).filter(Boolean))).sort();
+  const designations = Array.from(new Set(allStaff.map((s) => s.designation).filter(Boolean))).sort();
+
+  const data = { departments, designations };
+  staffFilterCache.set(schoolId, { data, timestamp: now });
+  return data;
+};
+
 export const staffService = {
   // -------------------------------------------------------------
   // STAFF CRUD
@@ -15,7 +43,7 @@ export const staffService = {
    * Create a new Staff member
    */
   async createStaff(schoolId, data, _userId) {
-    return await prisma.$transaction(async (tx) => {
+    const created = await prisma.$transaction(async (tx) => {
       let employeeId = data.employeeId?.trim();
       if (!employeeId) {
         employeeId = await generateNextDocumentNumber(tx, {
@@ -57,6 +85,9 @@ export const staffService = {
 
       return staff;
     });
+
+    invalidateStaffFilterCache(schoolId);
+    return created;
   },
 
   /**
@@ -97,7 +128,7 @@ export const staffService = {
       ];
     }
 
-    const [total, data, allStaff] = await Promise.all([
+    const [total, data, metadata] = await Promise.all([
       prisma.staff.count({ where }),
       prisma.staff.findMany({
         where,
@@ -105,21 +136,12 @@ export const staffService = {
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-      prisma.staff.findMany({
-        where: { schoolId },
-        select: { department: true, designation: true },
-      }),
+      getStaffFilterMetadata(schoolId),
     ]);
-
-    const departments = Array.from(new Set(allStaff.map(s => s.department).filter(Boolean))).sort();
-    const designations = Array.from(new Set(allStaff.map(s => s.designation).filter(Boolean))).sort();
 
     return {
       data,
-      metadata: {
-        departments,
-        designations,
-      },
+      metadata,
       pagination: {
         total,
         page,
@@ -208,6 +230,7 @@ export const staffService = {
       },
     });
 
+    invalidateStaffFilterCache(schoolId);
     return updated;
   },
 
@@ -234,6 +257,7 @@ export const staffService = {
         where: { id: staffId },
         data: { status: 'INACTIVE' },
       });
+      invalidateStaffFilterCache(schoolId);
       return { message: 'Staff status updated to INACTIVE due to existing financial history.', staff: updated };
     }
 
@@ -241,6 +265,7 @@ export const staffService = {
       where: { id: staffId },
     });
 
+    invalidateStaffFilterCache(schoolId);
     return { message: 'Staff member deleted successfully.' };
   },
 

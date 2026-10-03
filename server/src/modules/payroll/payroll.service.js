@@ -204,50 +204,49 @@ export const payrollService = {
     });
     const existingMap = new Map(existingPayrolls.map((p) => [p.staffId, p]));
 
-    const reviewItems = await Promise.all(
-      eligibleStaff.map(async (st) => {
-        const existing = existingMap.get(st.id);
-        const setup = setupMap.get(st.id);
-        const baseSalary = setup ? Number(setup.baseSalary) : Number(st.baseSalary || 0);
+    // Batch fetch all pending payrolls for the school to compute advance allocations in O(1)
+    const pendingPayrolls = await prisma.monthlyPayroll.findMany({
+      where: {
+        schoolId,
+        status: { in: ['UNPAID', 'PARTIAL'] },
+      },
+      select: {
+        id: true,
+        staffId: true,
+        advanceDeduction: true,
+      },
+    });
 
-        // Fetch advance availability metrics
-        const advInfo = await this.getStaffAdvanceAvailability(
-          prisma,
-          schoolId,
-          st.id,
-          existing?.id || null
-        );
+    const pendingDeductionsMap = new Map();
+    for (const p of pendingPayrolls) {
+      let list = pendingDeductionsMap.get(p.staffId);
+      if (!list) {
+        list = [];
+        pendingDeductionsMap.set(p.staffId, list);
+      }
+      list.push(p);
+    }
 
-        if (existing) {
-          return {
-            staffId: st.id,
-            employeeId: st.employeeId,
-            name: st.name,
-            role: st.role,
-            department: st.department,
-            designation: st.designation,
-            advanceBalance: advInfo.advanceBalance,
-            pendingAdvanceAllocation: advInfo.pendingAllocation,
-            availableAdvance: advInfo.availableAdvance,
-            workingDays: existing.workingDays,
-            workedDays: existing.workedDays,
-            paidLeave: existing.paidLeave,
-            unpaidLeave: existing.unpaidLeave,
-            baseSalary: Number(existing.baseSalary),
-            attendanceDeduction: Number(existing.attendanceDeduction),
-            bonus: Number(existing.bonus),
-            advanceDeduction: Number(existing.advanceDeduction),
-            otherDeduction: Number(existing.otherDeduction),
-            netSalary: Number(existing.netSalary),
-            status: existing.status,
-            isAlreadyPrepared: true,
-            payrollId: existing.id,
-          };
-        }
+    const reviewItems = eligibleStaff.map((st) => {
+      const existing = existingMap.get(st.id);
+      const setup = setupMap.get(st.id);
+      const baseSalary = setup ? Number(setup.baseSalary) : Number(st.baseSalary || 0);
 
-        const autoAdvDeduction = Math.min(advInfo.availableAdvance, baseSalary);
-        const defaultNetSalary = Math.max(0, baseSalary - autoAdvDeduction);
+      // In-memory O(1) advance availability calculation (eliminates N+1 queries)
+      const currentAdvBalance = Number(st.advanceBalance || 0);
+      const staffPendingList = pendingDeductionsMap.get(st.id) || [];
+      const pendingAllocation = staffPendingList.reduce((sum, p) => {
+        if (existing?.id && p.id === existing.id) return sum;
+        return sum + Number(p.advanceDeduction || 0);
+      }, 0);
+      const availableAdvance = Math.max(0, currentAdvBalance - pendingAllocation);
+      const advInfo = {
+        advanceBalance: currentAdvBalance,
+        pendingAllocation,
+        availableAdvance,
+      };
 
+      if (existing) {
         return {
           staffId: st.id,
           employeeId: st.employeeId,
@@ -258,22 +257,50 @@ export const payrollService = {
           advanceBalance: advInfo.advanceBalance,
           pendingAdvanceAllocation: advInfo.pendingAllocation,
           availableAdvance: advInfo.availableAdvance,
-          workingDays: numWorkingDays,
-          workedDays: numWorkingDays,
-          paidLeave: 0,
-          unpaidLeave: 0,
-          baseSalary,
-          attendanceDeduction: 0,
-          bonus: 0,
-          advanceDeduction: autoAdvDeduction,
-          otherDeduction: 0,
-          netSalary: defaultNetSalary,
-          status: 'UNPAID',
-          isAlreadyPrepared: false,
-          payrollId: null,
+          workingDays: existing.workingDays,
+          workedDays: existing.workedDays,
+          paidLeave: existing.paidLeave,
+          unpaidLeave: existing.unpaidLeave,
+          baseSalary: Number(existing.baseSalary),
+          attendanceDeduction: Number(existing.attendanceDeduction),
+          bonus: Number(existing.bonus),
+          advanceDeduction: Number(existing.advanceDeduction),
+          otherDeduction: Number(existing.otherDeduction),
+          netSalary: Number(existing.netSalary),
+          status: existing.status,
+          isAlreadyPrepared: true,
+          payrollId: existing.id,
         };
-      })
-    );
+      }
+
+      const autoAdvDeduction = Math.min(advInfo.availableAdvance, baseSalary);
+      const defaultNetSalary = Math.max(0, baseSalary - autoAdvDeduction);
+
+      return {
+        staffId: st.id,
+        employeeId: st.employeeId,
+        name: st.name,
+        role: st.role,
+        department: st.department,
+        designation: st.designation,
+        advanceBalance: advInfo.advanceBalance,
+        pendingAdvanceAllocation: advInfo.pendingAllocation,
+        availableAdvance: advInfo.availableAdvance,
+        workingDays: numWorkingDays,
+        workedDays: numWorkingDays,
+        paidLeave: 0,
+        unpaidLeave: 0,
+        baseSalary,
+        attendanceDeduction: 0,
+        bonus: 0,
+        advanceDeduction: autoAdvDeduction,
+        otherDeduction: 0,
+        netSalary: defaultNetSalary,
+        status: 'UNPAID',
+        isAlreadyPrepared: false,
+        payrollId: null,
+      };
+    });
 
     const isMonthAlreadyPrepared = existingPayrolls.length > 0;
 
@@ -349,12 +376,27 @@ export const payrollService = {
       });
     }
 
+    // Determine target staff to process
+    // If selectedStaffIds or staffItems is provided, only process selected staff members
+    const selectedStaffIds = data.selectedStaffIds || data.staffIds;
+    let staffToProcess = eligibleStaff;
+    if (Array.isArray(selectedStaffIds) && selectedStaffIds.length > 0) {
+      const idSet = new Set(selectedStaffIds);
+      staffToProcess = eligibleStaff.filter((st) => idSet.has(st.id));
+    } else if (Array.isArray(staffItems)) {
+      staffToProcess = eligibleStaff.filter((st) => itemsMap.has(st.id));
+    }
+
+    if (staffToProcess.length === 0) {
+      throw ApiError.badRequest('No eligible staff members selected for salary preparation.');
+    }
+
     return await prisma.$transaction(async (tx) => {
       let createdCount = 0;
       let updatedCount = 0;
       const results = [];
 
-      for (const st of eligibleStaff) {
+      for (const st of staffToProcess) {
         const customItem = itemsMap.get(st.id);
         const setup = setupMap.get(st.id);
         const baseSalary = setup ? Number(setup.baseSalary) : Number(st.baseSalary || 0);
@@ -482,14 +524,19 @@ export const payrollService = {
       }
 
       return {
-        message: createdCount > 0
+        message: createdCount > 0 && updatedCount > 0
+          ? `Successfully prepared salary for ${createdCount} staff and updated ${updatedCount} staff member(s).`
+          : createdCount > 0
           ? `Successfully prepared salary for ${createdCount} staff member(s).`
-          : `Successfully updated salary review for ${updatedCount} staff member(s).`,
+          : updatedCount > 0
+          ? `Successfully updated salary review for ${updatedCount} staff member(s).`
+          : `Selected staff salary already processed.`,
         month,
         year: yr,
         createdCount,
         updatedCount,
         totalEligible: eligibleStaff.length,
+        processedCount: staffToProcess.length,
         payrolls: results,
       };
     });

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { staffService } from '../../services/staff.service.js';
 import { Card } from '../../components/ui/Card.jsx';
 import { Button } from '../../components/ui/Button.jsx';
@@ -16,6 +16,10 @@ import {
   AlertCircle,
   DollarSign,
   User,
+  Search,
+  ChevronDown,
+  Check,
+  X,
 } from 'lucide-react';
 
 const PAYMENT_MODES = [
@@ -45,6 +49,45 @@ export const SalaryPaymentsPage = () => {
   // Modals state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [successModalData, setSuccessModalData] = useState(null);
+
+  // Searchable Staff Dropdown State
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [staffSearch, setStaffSearch] = useState('');
+  const dropdownRef = useRef(null);
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  const selectedStaff = useMemo(
+    () => staffList.find((st) => st.id === selectedStaffId) || null,
+    [staffList, selectedStaffId]
+  );
+
+  const filteredStaffList = useMemo(() => {
+    if (!staffSearch.trim()) return staffList;
+    const q = staffSearch.toLowerCase().trim();
+    return staffList.filter((st) => {
+      const nameMatch = st.name?.toLowerCase().includes(q);
+      const idMatch = st.employeeId?.toLowerCase().includes(q);
+      const deptMatch = st.department?.toLowerCase().includes(q);
+      const desigMatch = st.designation?.toLowerCase().includes(q);
+      const roleMatch = st.role?.toLowerCase().includes(q);
+      const phoneMatch = st.phone?.includes(q);
+      return Boolean(nameMatch || idMatch || deptMatch || desigMatch || roleMatch || phoneMatch);
+    });
+  }, [staffList, staffSearch]);
 
   const fetchStaffDirectory = async () => {
     setLoadingStaff(true);
@@ -229,11 +272,6 @@ export const SalaryPaymentsPage = () => {
     }
   };
 
-  const staffSelectOptions = staffList.map((st) => ({
-    value: st.id,
-    label: `${st.name} (${st.employeeId}) — ${st.department || 'Staff'}`,
-  }));
-
   const allPayrollsSelected =
     pendingData?.pendingPayrolls?.length > 0 &&
     pendingData.pendingPayrolls.every((p) => selectionMap[p.id]?.selected);
@@ -248,19 +286,217 @@ export const SalaryPaymentsPage = () => {
 
       <StaffSubNav />
 
-      <Card className="p-3 bg-white border border-slate-200 shadow-2xs">
+      <Card className="p-3 bg-white border border-slate-200 shadow-2xs overflow-visible relative z-20">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="w-full md:w-80">
+          <div className="w-full md:w-96 relative" ref={dropdownRef}>
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
               Select Staff Member
             </label>
-            <Select
-              size="sm"
-              value={selectedStaffId}
-              onChange={(e) => setSelectedStaffId(e.target.value)}
-              options={[{ value: '', label: '-- Select Staff Member to Pay --' }, ...staffSelectOptions]}
+
+            {/* Custom Searchable Staff Combobox Trigger */}
+            <button
+              type="button"
               disabled={loadingStaff}
-            />
+              onClick={() => {
+                setIsDropdownOpen((prev) => {
+                  const next = !prev;
+                  if (next) {
+                    setTimeout(() => searchRef.current?.focus(), 50);
+                  }
+                  return next;
+                });
+              }}
+              className={`w-full h-9 px-3 rounded-lg border flex items-center justify-between gap-2 text-xs transition-all bg-white cursor-pointer ${
+                isDropdownOpen
+                  ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-xs'
+                  : 'border-slate-300 hover:border-slate-400 shadow-2xs'
+              } ${loadingStaff ? 'bg-slate-50 cursor-not-allowed opacity-60' : ''}`}
+            >
+              {loadingStaff ? (
+                <div className="flex items-center gap-2 text-slate-400">
+                  <Spinner size="sm" />
+                  <span>Loading staff directory...</span>
+                </div>
+              ) : selectedStaff ? (
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-[10px] shrink-0">
+                    {selectedStaff.name?.charAt(0)}
+                  </div>
+                  <span className="font-bold text-slate-900 truncate">{selectedStaff.name}</span>
+                  <span className="font-mono text-slate-500 text-[10px] shrink-0 font-medium">
+                    ({selectedStaff.employeeId})
+                  </span>
+                  {(selectedStaff.department || selectedStaff.designation) && (
+                    <span className="text-slate-400 text-[10px] hidden sm:inline truncate">
+                      • {selectedStaff.department || selectedStaff.designation}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-slate-400">
+                  <Search className="w-3.5 h-3.5" />
+                  <span>Search or select staff member...</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-1 shrink-0 text-slate-400">
+                {selectedStaffId && !loadingStaff && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedStaffId('');
+                      setStaffSearch('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.stopPropagation();
+                        setSelectedStaffId('');
+                        setStaffSearch('');
+                      }
+                    }}
+                    className="p-1 hover:text-rose-600 rounded transition-colors cursor-pointer"
+                    title="Clear selection"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </span>
+                )}
+                <ChevronDown
+                  className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                    isDropdownOpen ? 'rotate-180 text-indigo-600' : ''
+                  }`}
+                />
+              </div>
+            </button>
+
+            {/* Dropdown Menu Panel */}
+            {isDropdownOpen && (
+              <div className="absolute left-0 top-full mt-1.5 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in duration-100 min-w-[320px]">
+                {/* Search Bar Header */}
+                <div className="p-2 border-b border-slate-100 bg-slate-50/80">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5 pointer-events-none" />
+                    <input
+                      ref={searchRef}
+                      type="text"
+                      value={staffSearch}
+                      onChange={(e) => setStaffSearch(e.target.value)}
+                      placeholder="Search by name, ID, role, dept..."
+                      className="w-full pl-8 pr-7 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-800 placeholder:text-slate-400"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          setIsDropdownOpen(false);
+                        }
+                      }}
+                    />
+                    {staffSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setStaffSearch('')}
+                        className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                        title="Clear search text"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between mt-1 px-1 text-[10px] text-slate-400 font-medium">
+                    <span>
+                      {filteredStaffList.length} of {staffList.length} staff
+                    </span>
+                    {selectedStaffId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedStaffId('');
+                          setIsDropdownOpen(false);
+                        }}
+                        className="text-rose-600 hover:underline font-semibold cursor-pointer"
+                      >
+                        Clear selection
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Staff List Options */}
+                <div className="max-h-64 overflow-y-auto divide-y divide-slate-100/80 text-xs">
+                  {filteredStaffList.length === 0 ? (
+                    <div className="py-6 px-4 text-center text-slate-400">
+                      <Search className="w-6 h-6 mx-auto mb-1 text-slate-300" />
+                      <p className="font-semibold text-slate-600 text-xs">No staff found</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">No active staff match "{staffSearch}"</p>
+                      {staffSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setStaffSearch('')}
+                          className="mt-2 text-[11px] font-semibold text-indigo-600 hover:underline cursor-pointer"
+                        >
+                          Clear search
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    filteredStaffList.map((st) => {
+                      const isSelected = st.id === selectedStaffId;
+                      return (
+                        <button
+                          key={st.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedStaffId(st.id);
+                            setIsDropdownOpen(false);
+                            setStaffSearch('');
+                          }}
+                          className={`w-full text-left px-3 py-2 flex items-center justify-between gap-2.5 transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-indigo-50/80 text-indigo-900'
+                              : 'hover:bg-slate-50 text-slate-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                                isSelected
+                                  ? 'bg-indigo-600 text-white shadow-2xs'
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {st.name?.charAt(0)}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className={`text-xs truncate ${isSelected ? 'font-bold text-indigo-900' : 'font-semibold text-slate-900'}`}>
+                                  {st.name}
+                                </span>
+                                <span className="font-mono text-[10px] px-1 py-0.5 bg-slate-100 text-slate-600 rounded font-semibold shrink-0">
+                                  {st.employeeId}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                                <span className="truncate">{st.designation || st.department || 'Staff'}</span>
+                                {Number(st.advanceBalance || 0) > 0 && (
+                                  <span className="font-mono text-amber-700 bg-amber-50 px-1 rounded shrink-0">
+                                    Adv: ₹{Number(st.advanceBalance).toLocaleString('en-IN')}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {isSelected && (
+                            <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                              <Check className="w-3 h-3" />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {pendingData?.staff ? (

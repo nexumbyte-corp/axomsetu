@@ -5,6 +5,7 @@ import { ToastProvider } from './components/ui/Toast.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { AcademicYearProvider } from './context/AcademicYearContext.jsx';
 import { PageHeaderProvider } from './context/PageHeaderContext.jsx';
+import { CalculatorProvider } from './context/CalculatorContext.jsx';
 import { AppRoutes } from './routes/AppRoutes.jsx';
 
 import { ErrorBoundary } from './components/ui/ErrorBoundary.jsx';
@@ -47,7 +48,9 @@ export default function App() {
             <AuthProvider>
               <AcademicYearProvider>
                 <PageHeaderProvider>
-                  <AppRoutes />
+                  <CalculatorProvider>
+                    <AppRoutes />
+                  </CalculatorProvider>
                 </PageHeaderProvider>
               </AcademicYearProvider>
             </AuthProvider>

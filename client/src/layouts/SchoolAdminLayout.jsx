@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Calendar, LogOut, Menu, ChevronDown, Building, Lock, HelpCircle, User } from 'lucide-react';
+import { Calendar, LogOut, Menu, ChevronDown, Building, Lock, HelpCircle, User, Calculator } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { usePermission } from '../hooks/usePermission.js';
 import { useAcademicYear } from '../hooks/useAcademicYear.js';
 import { useSubscription } from '../hooks/useSubscription.js';
 import { usePageHeader } from '../context/PageHeaderContext.jsx';
+import { useCalculator } from '../context/CalculatorContext.jsx';
 import { SupportModal } from '../components/support/SupportModal.jsx';
 import { ChangePasswordModal } from '../components/auth/ChangePasswordModal.jsx';
+import { CalculatorWidget } from '../components/calculator/CalculatorWidget.jsx';
 import { Drawer } from '../components/ui/Drawer.jsx';
 import { Dropdown, DropdownItem, DropdownDivider } from '../components/ui/Dropdown.jsx';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.jsx';
@@ -26,6 +28,7 @@ export const SchoolAdminLayout = () => {
   const { academicYears, selectedYear, selectedYearId, setSelectedYearId } = useAcademicYear();
   const { isSubscriptionActive } = useSubscription();
   const { headerInfo } = usePageHeader();
+  const { isOpen: isCalculatorOpen, toggleCalculator } = useCalculator();
 
 
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -365,6 +368,21 @@ const getPageTitle = (locationPath, headerTitle) => {
 
           {/* Right Side: Global Controls */}
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            {/* Global Calculator Toggle Button (only icon, immediately to the left of Support) */}
+            <button
+              type="button"
+              onClick={toggleCalculator}
+              className={`p-2 rounded-xl border transition-all duration-150 cursor-pointer flex items-center justify-center ${
+                isCalculatorOpen
+                  ? 'border-indigo-300 bg-indigo-50 text-indigo-700 shadow-xs ring-2 ring-indigo-500/20'
+                  : 'border-slate-200 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 shadow-2xs'
+              }`}
+              title="Calculator"
+              aria-label="Calculator"
+            >
+              <Calculator className="w-4 h-4 text-indigo-600 shrink-0" />
+            </button>
+
             {/* Dynamic Support Button */}
             <button
               onClick={() => setIsSupportOpen(true)}
@@ -520,6 +538,9 @@ const getPageTitle = (locationPath, headerTitle) => {
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
       />
+
+      {/* Global Floating Calculator Widget */}
+      <CalculatorWidget />
     </div>
   );
 };

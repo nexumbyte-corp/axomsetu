@@ -7,9 +7,11 @@ import { memoryCache } from '../../utils/cache.js';
  * Super Admin: List all subscription plans.
  */
 export const listPlans = async () => {
-  return await prisma.subscriptionPlan.findMany({
-    orderBy: { displayOrder: 'asc' },
-  });
+  return await memoryCache.getOrSet('admin:plans:all', async () => {
+    return await prisma.subscriptionPlan.findMany({
+      orderBy: { displayOrder: 'asc' },
+    });
+  }, 300);
 };
 
 /**
@@ -173,6 +175,7 @@ export const updatePlan = async (planId, data, actorUserId) => {
   });
 
   memoryCache.invalidatePrefix('plans:');
+  memoryCache.del('admin:plans:all');
 
   return updatedPlan;
 };
@@ -200,6 +203,7 @@ export const togglePlanStatus = async (planId, isActive, actorUserId) => {
   });
 
   memoryCache.invalidatePrefix('plans:');
+  memoryCache.del('admin:plans:all');
 
   return updated;
 };
@@ -446,6 +450,9 @@ export const approvePayment = async (paymentId, adminId) => {
       subscription: newSub,
     };
   });
+
+  memoryCache.delPattern('subscription:');
+  return result;
 };
 
 /**
@@ -537,6 +544,8 @@ export const extendSubscription = async (subscriptionId, { addDays, newEndDate, 
       newValues: { endDate: targetEndDate, reason: reason.trim() },
     },
   });
+
+  memoryCache.delPattern('subscription:');
 
   return updatedSub;
 };
@@ -693,6 +702,9 @@ export const createManualSubscription = async (schoolId, data, adminId) => {
 
     return sub;
   });
+
+  memoryCache.delPattern('subscription:');
+  return result;
 };
 
 /**
@@ -746,6 +758,8 @@ export const updateSubscriptionDetails = async (subscriptionId, data, adminId) =
       newValues: updateData,
     },
   });
+
+  memoryCache.delPattern('subscription:');
 
   return updated;
 };
@@ -843,6 +857,8 @@ export const expireSubscription = async (subscriptionId, reason = null, adminId)
     },
   });
 
+  memoryCache.delPattern('subscription:');
+
   return updated;
 };
 
@@ -885,6 +901,8 @@ export const updateSubscriptionStatus = async (subscriptionId, status, reason, a
     },
   });
 
+  memoryCache.delPattern('subscription:');
+
   return updated;
 };
 
@@ -918,6 +936,9 @@ export const deletePlan = async (planId, actorUserId) => {
       oldValues: { name: plan.name, code: plan.code },
     },
   });
+
+  memoryCache.invalidatePrefix('plans:');
+  memoryCache.del('admin:plans:all');
 
   return { message: `Plan '${plan.name}' deleted successfully` };
 };

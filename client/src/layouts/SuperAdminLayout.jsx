@@ -17,10 +17,13 @@ import {
   Receipt,
   Activity,
   Sparkles,
+  Calculator,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { authService } from '../services/auth.service.js';
 import { usePageHeader } from '../context/PageHeaderContext.jsx';
+import { useCalculator } from '../context/CalculatorContext.jsx';
+import { CalculatorWidget } from '../components/calculator/CalculatorWidget.jsx';
 
 import { Drawer } from '../components/ui/Drawer.jsx';
 import { Dropdown, DropdownItem, DropdownDivider } from '../components/ui/Dropdown.jsx';
@@ -68,6 +71,7 @@ export const SuperAdminLayout = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { headerInfo } = usePageHeader();
+  const { isOpen: isCalculatorOpen, toggleCalculator } = useCalculator();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -316,6 +320,20 @@ export const SuperAdminLayout = () => {
             </div>
 
             <button
+              type="button"
+              onClick={toggleCalculator}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                isCalculatorOpen
+                  ? 'text-indigo-400 bg-slate-800 ring-1 ring-indigo-500/50'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+              title="Calculator"
+              aria-label="Calculator"
+            >
+              <Calculator className="w-4 h-4" />
+            </button>
+
+            <button
               onClick={() => setToast({ type: 'info', message: 'No new platform notifications.' })}
               className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors relative"
               title="Notifications"
@@ -461,6 +479,9 @@ export const SuperAdminLayout = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Global Floating Calculator Widget */}
+      <CalculatorWidget />
     </div>
   );
 };
