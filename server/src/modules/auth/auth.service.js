@@ -4,6 +4,7 @@ import { ApiError } from '../../utils/ApiError.js';
 import { comparePassword, hashPassword } from '../../utils/password.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../../utils/jwt.js';
 import { generateSessionToken, hashSessionToken } from '../../utils/session.js';
+import { setSessionIdentity, clearSessionIdentity } from '../../middleware/rateLimit.middleware.js';
 
 /**
  * Revokes all active server sessions for a specific user ID.
@@ -86,6 +87,13 @@ export const loginUser = async ({ email, password }, meta = {}) => {
       ipAddress: meta.ipAddress || null,
       userAgent: meta.userAgent || null,
     },
+  });
+
+  // Fast in-memory cache for per-tenant & per-device rate limiting
+  setSessionIdentity(sessionTokenHash, {
+    userId: user.id,
+    schoolId: primarySchoolId,
+    expiresAt,
   });
 
   // Generate legacy access tokens for API compatibility
@@ -208,9 +216,10 @@ export const getCurrentUserProfile = async (userId) => {
   return normalizedUser;
 };
 
-export const logoutUser = async (userId, rawToken = null) => {
+export const logoutUser = async (userId, rawToken = null, meta = {}) => {
   if (rawToken) {
     const tokenHash = hashSessionToken(rawToken);
+    clearSessionIdentity(tokenHash);
     await prisma.userSession.updateMany({
       where: { sessionTokenHash: tokenHash },
       data: { revokedAt: new Date() },
@@ -226,13 +235,15 @@ export const logoutUser = async (userId, rawToken = null) => {
         action: 'LOGOUT',
         entityType: 'User',
         entityId: userId,
+        ipAddress: meta.ipAddress || null,
+        userAgent: meta.userAgent || null,
       },
     }).catch(() => {});
   }
   return true;
 };
 
-export const updateUserProfile = async (userId, data) => {
+export const updateUserProfile = async (userId, data, meta = {}) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) {
     throw ApiError.notFound('User not found');
@@ -263,13 +274,15 @@ export const updateUserProfile = async (userId, data) => {
       entityId: userId,
       oldValues: { name: user.name, phone: user.phone },
       newValues: { name: updatedUser.name, phone: updatedUser.phone },
+      ipAddress: meta.ipAddress || null,
+      userAgent: meta.userAgent || null,
     },
   }).catch(() => {});
 
   return updatedUser;
 };
 
-export const changeUserPassword = async (userId, { currentPassword, newPassword }) => {
+export const changeUserPassword = async (userId, { currentPassword, newPassword }, meta = {}) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) {
     throw ApiError.notFound('User not found');
@@ -300,6 +313,8 @@ export const changeUserPassword = async (userId, { currentPassword, newPassword 
       action: 'PASSWORD_CHANGED',
       entityType: 'User',
       entityId: userId,
+      ipAddress: meta.ipAddress || null,
+      userAgent: meta.userAgent || null,
     },
   }).catch(() => {});
 

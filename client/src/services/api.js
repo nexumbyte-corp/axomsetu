@@ -9,7 +9,7 @@ export const api = axios.create({
   },
 });
 
-// Attach Authorization and Controlled School Context headers if present
+// Attach Authorization and Controlled Device ID headers
 api.interceptors.request.use(
   (config) => {
     const token = storage.getAccessToken();
@@ -20,6 +20,25 @@ api.interceptors.request.use(
         config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${token}`;
       }
+    }
+
+    // Attach persistent device identifier for per-device rate limiting and session security
+    try {
+      let deviceId = localStorage.getItem('axomsetu_device_id');
+      if (!deviceId) {
+        deviceId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : `dev_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        localStorage.setItem('axomsetu_device_id', deviceId);
+      }
+      if (config.headers?.set) {
+        config.headers.set('x-device-id', deviceId);
+      } else {
+        config.headers = config.headers || {};
+        config.headers['x-device-id'] = deviceId;
+      }
+    } catch {
+      // Ignore storage restrictions
     }
 
     return config;

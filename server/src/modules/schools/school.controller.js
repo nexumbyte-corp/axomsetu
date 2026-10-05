@@ -2,10 +2,11 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
 import { ApiError } from '../../utils/ApiError.js';
 import * as schoolService from './school.service.js';
 import { createSchoolUserSchema } from '../school-users/school-user.validation.js';
+import { getClientIp } from '../../utils/ipHelper.js';
 
 export const registerSchool = asyncHandler(async (req, res) => {
   const reqContext = {
-    ipAddress: (req.headers['x-forwarded-for'] || req.ip || req.socket?.remoteAddress || '').toString(),
+    ipAddress: getClientIp(req),
     userAgent: req.headers['user-agent'] || null,
   };
   const result = await schoolService.createSchoolWithOwnerAndTrial(req.body, null, reqContext);
@@ -19,7 +20,7 @@ export const registerSchool = asyncHandler(async (req, res) => {
 
 export const createSchool = asyncHandler(async (req, res) => {
   const reqContext = {
-    ipAddress: (req.headers['x-forwarded-for'] || req.ip || req.socket?.remoteAddress || '').toString(),
+    ipAddress: getClientIp(req),
     userAgent: req.headers['user-agent'] || null,
   };
   const result = await schoolService.createSchoolWithOwnerAndTrial(req.body, req.user?.id, reqContext);
@@ -158,11 +159,17 @@ export const uploadTenantSchoolLogo = asyncHandler(async (req, res) => {
     throw ApiError.badRequest('Please upload an image file');
   }
 
+  const reqMeta = {
+    ipAddress: getClientIp(req),
+    userAgent: req.headers['user-agent'] || null,
+  };
+
   const result = await schoolService.uploadTenantSchoolLogo(
     req.schoolId,
     req.file.buffer,
     req.file.mimetype,
-    req.user?.id
+    req.user?.id,
+    reqMeta
   );
 
   res.status(200).json({
@@ -173,7 +180,12 @@ export const uploadTenantSchoolLogo = asyncHandler(async (req, res) => {
 });
 
 export const deleteTenantSchoolLogo = asyncHandler(async (req, res) => {
-  const result = await schoolService.deleteTenantSchoolLogo(req.schoolId, req.user?.id);
+  const reqMeta = {
+    ipAddress: getClientIp(req),
+    userAgent: req.headers['user-agent'] || null,
+  };
+
+  const result = await schoolService.deleteTenantSchoolLogo(req.schoolId, req.user?.id, reqMeta);
 
   res.status(200).json({
     success: true,

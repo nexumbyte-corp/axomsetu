@@ -21,6 +21,8 @@ import { errorHandler } from './middleware/error.middleware.js';
 import { sanitizeInput } from './middleware/sanitize.middleware.js';
 import { ApiError } from './utils/ApiError.js';
 
+import { requestContextMiddleware } from './middleware/context.middleware.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -28,8 +30,11 @@ const app = express();
 
 // Enable Trust Proxy if specified or in production behind reverse proxies / load balancers
 if (env.TRUST_PROXY || env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
+  app.set('trust proxy', env.TRUST_PROXY ? (env.TRUST_PROXY === 'true' ? true : Number(env.TRUST_PROXY) || env.TRUST_PROXY) : true);
 }
+
+// Attach Request Context (AsyncLocalStorage) for ambient IP & User-Agent tracking
+app.use(requestContextMiddleware);
 
 // Early Anti-DDoS Protocol Anomaly & Malicious Probe Pre-Filter
 app.use(ddosPreFilter);

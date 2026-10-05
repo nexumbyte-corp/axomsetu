@@ -3,6 +3,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { prisma } from '../config/prisma.js';
 import { COOKIE_NAME, hashSessionToken } from '../utils/session.js';
 import { verifyAccessToken } from '../utils/jwt.js';
+import { setRequestContextUser } from './context.middleware.js';
+import { setSessionIdentity } from './rateLimit.middleware.js';
 
 export const authenticate = asyncHandler(async (req, res, next) => {
   let token;
@@ -76,6 +78,12 @@ export const authenticate = asyncHandler(async (req, res, next) => {
     req.user = session.user;
     req.session = session;
     req.token = token;
+    setRequestContextUser(session.user.id);
+    setSessionIdentity(tokenHash, {
+      userId: session.user.id,
+      schoolId: session.schoolId,
+      expiresAt: new Date(session.expiresAt).getTime(),
+    });
     return next();
   }
 
@@ -97,6 +105,7 @@ export const authenticate = asyncHandler(async (req, res, next) => {
     }
 
     req.user = user;
+    setRequestContextUser(user.id);
     return next();
   } catch {
     throw ApiError.unauthorized('Invalid or expired session token', 'SESSION_EXPIRED');

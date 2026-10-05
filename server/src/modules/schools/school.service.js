@@ -1089,7 +1089,7 @@ export const updateTenantSchoolProfile = async (schoolId, data, actorUserId) => 
 /**
  * Tenant School Owner: Upload, compress logo (<=20KB), and delete previous logo from Cloudinary.
  */
-export const uploadTenantSchoolLogo = async (schoolId, fileBuffer, mimeType, actorUserId) => {
+export const uploadTenantSchoolLogo = async (schoolId, fileBuffer, mimeType, actorUserId, reqMeta = {}) => {
   const school = await prisma.school.findUnique({ where: { id: schoolId } });
   if (!school) throw ApiError.notFound('School not found');
 
@@ -1115,6 +1115,8 @@ export const uploadTenantSchoolLogo = async (schoolId, fileBuffer, mimeType, act
       entityId: schoolId,
       oldValues: { logoUrl: school.logoUrl },
       newValues: { logoUrl: uploadResult.secure_url, bytes: uploadResult.bytes },
+      ipAddress: reqMeta.ipAddress || null,
+      userAgent: reqMeta.userAgent || null,
     },
   }).catch(() => { });
 
@@ -1128,7 +1130,7 @@ export const uploadTenantSchoolLogo = async (schoolId, fileBuffer, mimeType, act
 /**
  * Tenant School Owner: Delete school logo from Cloudinary and set DB logoUrl to null.
  */
-export const deleteTenantSchoolLogo = async (schoolId, actorUserId) => {
+export const deleteTenantSchoolLogo = async (schoolId, actorUserId, reqMeta = {}) => {
   const school = await prisma.school.findUnique({ where: { id: schoolId } });
   if (!school) throw ApiError.notFound('School not found');
 
@@ -1150,6 +1152,8 @@ export const deleteTenantSchoolLogo = async (schoolId, actorUserId) => {
       entityId: schoolId,
       oldValues: { logoUrl: school.logoUrl },
       newValues: { logoUrl: null },
+      ipAddress: reqMeta.ipAddress || null,
+      userAgent: reqMeta.userAgent || null,
     },
   }).catch(() => { });
 

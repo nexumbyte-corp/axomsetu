@@ -88,7 +88,7 @@ export const auditReportsService = {
       module: l.entityType ? l.entityType.replace(/Report$/, '') : '-',
       entityType: l.entityType,
       entityId: l.entityId || '-',
-      ipAddress: l.ipAddress || '127.0.0.1',
+      ipAddress: l.ipAddress || '-',
       userAgent: l.userAgent || '-',
       details: formatAuditDetails(l.newValues, l.oldValues),
       oldValues: l.oldValues,

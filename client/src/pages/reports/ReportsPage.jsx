@@ -1599,7 +1599,7 @@ export const ReportsPage = () => {
                             )}
                           </TableCell>
                           <TableCell className="py-2 px-3 font-mono text-xs text-slate-600 print:hidden">
-                            {row.ipAddress || '127.0.0.1'}
+                            {row.ipAddress && row.ipAddress !== '-' ? row.ipAddress : '—'}
                           </TableCell>
                           <TableCell className="py-2 px-3 text-xs text-slate-700 max-w-xs truncate" title={row.details}>
                             {row.details || '—'}
@@ -1728,7 +1728,9 @@ export const ReportsPage = () => {
 
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Client IP & Agent</span>
-                <span className="font-mono font-bold text-slate-700 block">{selectedAuditLog.ipAddress || '127.0.0.1'}</span>
+                <span className="font-mono font-bold text-slate-700 block">
+                  {selectedAuditLog.ipAddress && selectedAuditLog.ipAddress !== '-' ? selectedAuditLog.ipAddress : '—'}
+                </span>
                 {selectedAuditLog.userAgent && (
                   <span className="text-[9px] text-slate-400 block truncate" title={selectedAuditLog.userAgent}>
                     {selectedAuditLog.userAgent.slice(0, 30)}...

@@ -1,6 +1,7 @@
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { prisma } from '../config/prisma.js';
+import { setRequestContextSchool } from './context.middleware.js';
 
 /**
  * Enforces tenant isolation. Resolves the allowed school strictly from
@@ -40,6 +41,7 @@ export const resolveSchool = asyncHandler(async (req, res, next) => {
       if (school) {
         req.schoolId = school.id;
         req.school = school;
+        setRequestContextSchool(school.id);
         req.schoolMembership = {
           id: 'super-admin-membership',
           schoolRole: 'OWNER',
@@ -69,6 +71,7 @@ export const resolveSchool = asyncHandler(async (req, res, next) => {
   req.schoolId = membership.schoolId;
   req.school = membership.school;
   req.schoolAdmin = membership;
+  setRequestContextSchool(membership.schoolId);
 
   // Attach resolved role context
   const isOwnerFlag = membership.isOwner || membership.schoolRole === 'OWNER';
