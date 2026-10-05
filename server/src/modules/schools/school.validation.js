@@ -50,7 +50,6 @@ export const registerSchoolSchema = {
         }),
       acceptedTermsVersion: z.string().optional(),
       privacyPolicyVersion: z.string().optional(),
-      maxStudentLimit: z.union([z.number().int().positive(), z.string(), z.null()]).optional(),
     })
     .refine((data) => data.password === data.confirmPassword, {
       message: 'Passwords do not match',

@@ -21,6 +21,11 @@ import {
   FileSpreadsheet,
   Code2,
   BarChart3,
+  ShieldCheck,
+  Eye,
+  Calendar,
+  Building,
+  Copy,
 } from 'lucide-react';
 import { FinancialReportCharts } from '../../components/reports/FinancialReportCharts.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
@@ -29,9 +34,14 @@ import { toast } from '../../components/ui/Toast.jsx';
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from '../../components/ui/Table.jsx';
 import { Dropdown, DropdownItem, DropdownDivider } from '../../components/ui/Dropdown.jsx';
 import { SchoolReportHeader } from '../../components/common/SchoolReportHeader.jsx';
+import { Modal } from '../../components/ui/Modal.jsx';
+import { Pagination } from '../../components/ui/Pagination.jsx';
+import { Button } from '../../components/ui/Button.jsx';
 
+import { useSearchParams } from 'react-router-dom';
 import { reportService } from '../../services/report.service.js';
-import { formatCurrency, formatDate, getAcademicMonthOptions } from '../../utils/formatters.js';
+import { adminService } from '../../services/adminService.js';
+import { formatCurrency, formatDate, formatDateTime, getAcademicMonthOptions } from '../../utils/formatters.js';
 import { exportToExcel, exportToCSV, exportToJSON } from '../../utils/exportUtils.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
@@ -43,9 +53,35 @@ export const ReportsPage = () => {
   const { user } = useAuth();
   const schoolHeader = user?.schoolAdmins?.[0]?.school || user?.school || {};
 
-  // Active Report Tab: 'charts' | 'student-list' | 'fee-collection' | 'outstanding-list'
-  const [activeTab, setActiveTab] = useState('charts');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get('tab');
+  const initialTab = urlTab === 'audit' || urlTab === 'audit-log' ? 'audit-log' : urlTab || 'charts';
+
+  // Active Report Tab: 'charts' | 'student-list' | 'fee-collection' | 'outstanding-list' | 'audit-log'
+  const [activeTab, setActiveTabState] = useState(initialTab);
   const [chartData, setChartData] = useState(null);
+
+  const setActiveTab = (tab) => {
+    setActiveTabState(tab);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('tab', tab);
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      const resolved = tabParam === 'audit' || tabParam === 'audit-log' ? 'audit-log' : tabParam;
+      if (resolved !== activeTab) {
+        setActiveTabState(resolved);
+      }
+    }
+  }, [searchParams]);
 
   // Dynamic Dropdown Options
   const [filterOptions, setFilterOptions] = useState({
@@ -55,7 +91,7 @@ export const ReportsPage = () => {
     sections: [],
   });
 
-  // Filter State
+  // Filter State for Standard Academic / Fee Reports
   const [filters, setFilters] = useState({
     academicYearId: '',
     classId: '',
@@ -66,6 +102,133 @@ export const ReportsPage = () => {
     month: 'ALL',
     search: '',
   });
+
+  // Audit Log State & Filters
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditPagination, setAuditPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 1 });
+  const [auditSummary, setAuditSummary] = useState({ totalAuditEntries: 0, uniqueOperators: 0 });
+  const [auditOptions, setAuditOptions] = useState({ modules: [], actions: [], users: [] });
+  const [selectedAuditLog, setSelectedAuditLog] = useState(null);
+  const [schoolsList, setSchoolsList] = useState([]);
+  const [selectedSchoolId, setSelectedSchoolId] = useState('');
+
+  const [auditFilters, setAuditFilters] = useState({
+    datePreset: 'ALL',
+    startDate: '',
+    endDate: '',
+    entityType: '',
+    action: '',
+    userId: '',
+    search: '',
+  });
+
+  // Action Badge Formatter for Audit Logs
+  const formatActionBadge = (rawAction, actionName) => {
+    const act = (rawAction || actionName || '').toUpperCase();
+    if (/CREATE|ADD|REGISTER|ADMIT|GENERATE|DISBURSEMENT/i.test(act)) {
+      return (
+        <Badge variant="success" className="text-[9px] font-bold uppercase px-1.5 py-0.5">
+          {actionName}
+        </Badge>
+      );
+    }
+    if (/UPDATE|CHANGE|PROMOTION|REPRINT|EDIT/i.test(act)) {
+      return (
+        <Badge variant="indigo" className="text-[9px] font-bold uppercase px-1.5 py-0.5">
+          {actionName}
+        </Badge>
+      );
+    }
+    if (/DELETE|VOID|EXIT|SUSPEND|CANCEL|REMOVE|HARD/i.test(act)) {
+      return (
+        <Badge variant="danger" className="text-[9px] font-bold uppercase px-1.5 py-0.5">
+          {actionName}
+        </Badge>
+      );
+    }
+    if (/OVERRIDE|FAILED|WARNING/i.test(act)) {
+      return (
+        <Badge variant="warning" className="text-[9px] font-bold uppercase px-1.5 py-0.5">
+          {actionName}
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant="neutral" className="text-[9px] font-bold uppercase px-1.5 py-0.5">
+        {actionName}
+      </Badge>
+    );
+  };
+
+  // Date Preset Change Handler for Audit Log
+  const handleDatePresetChange = (preset) => {
+    const today = new Date();
+    const formatYMD = (d) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    let start = '';
+    let end = '';
+
+    if (preset === 'TODAY') {
+      start = formatYMD(today);
+      end = formatYMD(today);
+    } else if (preset === 'YESTERDAY') {
+      const yest = new Date(today);
+      yest.setDate(yest.getDate() - 1);
+      start = formatYMD(yest);
+      end = formatYMD(yest);
+    } else if (preset === 'LAST_7_DAYS') {
+      const d = new Date(today);
+      d.setDate(d.getDate() - 6);
+      start = formatYMD(d);
+      end = formatYMD(today);
+    } else if (preset === 'LAST_30_DAYS') {
+      const d = new Date(today);
+      d.setDate(d.getDate() - 29);
+      start = formatYMD(d);
+      end = formatYMD(today);
+    } else if (preset === 'THIS_MONTH') {
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      start = formatYMD(firstDay);
+      end = formatYMD(today);
+    }
+
+    setAuditFilters((prev) => ({
+      ...prev,
+      datePreset: preset,
+      startDate: start,
+      endDate: end,
+    }));
+    setAuditPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  // Load Super Admin Schools list if logged in user is SUPER_ADMIN
+  useEffect(() => {
+    if (user?.role === 'SUPER_ADMIN') {
+      adminService
+        .listSchools({ limit: 100 })
+        .then((res) => setSchoolsList(res.data || []))
+        .catch((err) => console.error('Failed to load schools for super admin', err));
+    }
+  }, [user?.role]);
+
+  // Load Dynamic Audit Filter Options for current school
+  useEffect(() => {
+    if (activeTab === 'audit-log') {
+      reportService
+        .getAuditFilterOptions({ schoolId: selectedSchoolId || undefined })
+        .then((res) => {
+          if (res && res.data) {
+            setAuditOptions(res.data);
+          }
+        })
+        .catch((err) => console.error('Failed to load audit options', err));
+    }
+  }, [activeTab, selectedSchoolId]);
 
   // Sync selected academic year ID when global academic year changes
   useEffect(() => {
@@ -145,10 +308,22 @@ export const ReportsPage = () => {
           tablePromise = reportService.getOutstandingReport({
             ...params,
           });
+        } else if (activeTab === 'audit-log') {
+          tablePromise = reportService.getAuditLogsReport({
+            page: auditPagination.page,
+            limit: auditPagination.limit,
+            search: auditFilters.search || undefined,
+            action: auditFilters.action || undefined,
+            entityType: auditFilters.entityType || undefined,
+            userId: auditFilters.userId || undefined,
+            startDate: auditFilters.startDate || undefined,
+            endDate: auditFilters.endDate || undefined,
+            schoolId: selectedSchoolId || undefined,
+          });
         }
 
         const [chartsRes, tableRes] = await Promise.all([
-          chartsPromise.catch(() => null),
+          activeTab === 'charts' ? chartsPromise.catch(() => null) : Promise.resolve(null),
           tablePromise ? tablePromise.catch(() => null) : Promise.resolve(null),
         ]);
 
@@ -157,7 +332,22 @@ export const ReportsPage = () => {
         }
 
         if (tableRes) {
-          setReportData(tableRes.data || []);
+          if (activeTab === 'audit-log') {
+            setAuditLogs(tableRes.data || []);
+            setReportData(tableRes.data || []);
+            if (tableRes.pagination) {
+              setAuditPagination((prev) => ({
+                ...prev,
+                total: tableRes.pagination.total ?? 0,
+                totalPages: tableRes.pagination.totalPages ?? 1,
+              }));
+            }
+            if (tableRes.summary) {
+              setAuditSummary(tableRes.summary);
+            }
+          } else {
+            setReportData(tableRes.data || []);
+          }
         } else if (activeTab === 'charts') {
           setReportData([]);
         }
@@ -165,14 +355,23 @@ export const ReportsPage = () => {
         console.error('Failed to load report data', err);
         toast.error('Failed to load report data. Please try again.');
         setReportData([]);
+        if (activeTab === 'audit-log') setAuditLogs([]);
       } finally {
         setLoading(false);
       }
     },
-    [activeTab, filters, selectedYearId]
+    [
+      activeTab,
+      filters,
+      selectedYearId,
+      auditPagination.page,
+      auditPagination.limit,
+      auditFilters,
+      selectedSchoolId,
+    ]
   );
 
-  // Trigger report fetch automatically whenever activeTab, filters, or selectedYearId change
+  // Trigger report fetch automatically whenever activeTab, filters, or audit parameters change
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchActiveReport();
@@ -207,6 +406,21 @@ export const ReportsPage = () => {
 
   // Reset Filters
   const handleResetFilters = () => {
+    if (activeTab === 'audit-log') {
+      const resetAudit = {
+        datePreset: 'ALL',
+        startDate: '',
+        endDate: '',
+        entityType: '',
+        action: '',
+        userId: '',
+        search: '',
+      };
+      setAuditFilters(resetAudit);
+      setAuditPagination((prev) => ({ ...prev, page: 1 }));
+      return;
+    }
+
     const reset = {
       academicYearId: selectedYearId || '',
       classId: '',
@@ -228,7 +442,8 @@ export const ReportsPage = () => {
 
   // Dynamic Export Handler for .xlsx, .csv, and .json formats
   const handleExport = (format = 'excel') => {
-    if (!reportData || reportData.length === 0) {
+    const exportDataset = activeTab === 'audit-log' ? auditLogs : reportData;
+    if (!exportDataset || exportDataset.length === 0) {
       toast.error('No data available to export.');
       return;
     }
@@ -278,22 +493,63 @@ export const ReportsPage = () => {
         { key: 'balance', label: 'Outstanding Balance (₹)' },
         { key: 'status', label: 'Dues Status' },
       ];
+    } else if (activeTab === 'audit-log') {
+      baseFilename = `School_Audit_Log_${new Date().toISOString().split('T')[0]}`;
+      columns = [
+        { key: 'createdAt', label: 'Timestamp (IST)', format: (v) => formatDateTime(v) },
+        { key: 'userName', label: 'Operator Name' },
+        { key: 'userEmail', label: 'Operator Email' },
+        { key: 'userRole', label: 'Role' },
+        { key: 'action', label: 'Action Event' },
+        { key: 'module', label: 'Module / Entity' },
+        { key: 'entityId', label: 'Entity Reference' },
+        { key: 'ipAddress', label: 'Client IP' },
+        { key: 'details', label: 'Details / Summary' },
+      ];
     }
 
     if (format === 'excel') {
-      exportToExcel(reportData, columns, `${baseFilename}.xlsx`);
+      exportToExcel(exportDataset, columns, `${baseFilename}.xlsx`);
       toast.success(`Exported ${baseFilename}.xlsx`);
     } else if (format === 'csv') {
-      exportToCSV(reportData, columns, `${baseFilename}.csv`);
+      exportToCSV(exportDataset, columns, `${baseFilename}.csv`);
       toast.success(`Exported ${baseFilename}.csv`);
     } else if (format === 'json') {
-      exportToJSON(reportData, `${baseFilename}.json`);
+      exportToJSON(exportDataset, `${baseFilename}.json`);
       toast.success(`Exported ${baseFilename}.json`);
     }
   };
 
   // Build active filter summary string for print header
   const getFilterSummaryString = () => {
+    if (activeTab === 'audit-log') {
+      const auditParts = [];
+      if (auditFilters.entityType) {
+        auditParts.push(`Module: ${auditFilters.entityType}`);
+      }
+      if (auditFilters.action) {
+        auditParts.push(`Action: ${auditFilters.action.replace(/_/g, ' ')}`);
+      }
+      if (auditFilters.userId) {
+        const u = auditOptions.users.find((user) => user.value === auditFilters.userId);
+        if (u) auditParts.push(`Operator: ${u.label}`);
+      }
+      if (auditFilters.startDate) {
+        auditParts.push(`From: ${auditFilters.startDate}`);
+      }
+      if (auditFilters.endDate) {
+        auditParts.push(`To: ${auditFilters.endDate}`);
+      }
+      if (auditFilters.search) {
+        auditParts.push(`Search: "${auditFilters.search}"`);
+      }
+      if (selectedSchoolId && schoolsList.length > 0) {
+        const sch = schoolsList.find((s) => s.id === selectedSchoolId);
+        if (sch) auditParts.push(`School: ${sch.name}`);
+      }
+      return auditParts.length > 0 ? auditParts.join(' | ') : 'All School Audit Records (No Constraints)';
+    }
+
     const parts = [];
 
     const yr = academicYears.find((y) => y.id === (filters.academicYearId || selectedYearId));
@@ -364,6 +620,14 @@ export const ReportsPage = () => {
           templateId: 'feeReport',
           filename: `Outstanding_Fees_${new Date().toISOString().split('T')[0]}.pdf`,
         };
+      case 'audit-log':
+        return {
+          title: 'SCHOOL SYSTEM AUDIT TRAIL & LOGS REPORT',
+          description: 'Immutable, tamper-evident audit history of student records, fee collections, staff payroll, hostel residents, and administrative actions.',
+          icon: ShieldCheck,
+          templateId: 'auditReport',
+          filename: `School_Audit_Log_${new Date().toISOString().split('T')[0]}.pdf`,
+        };
       default:
         return { title: 'REPORTS', description: '', icon: Users, templateId: 'genericReport', filename: 'Report.pdf' };
     }
@@ -389,9 +653,18 @@ export const ReportsPage = () => {
       const totalPaid = reportData.reduce((acc, r) => acc + (r.paidAmount || 0), 0);
       const studentCount = reportData.length;
       return { totalDues, totalBilled, totalPaid, studentCount };
+    } else if (activeTab === 'audit-log') {
+      const totalEntries = auditPagination.total || auditLogs.length;
+      const uniqueOperators =
+        auditSummary.uniqueOperators || new Set(auditLogs.map((l) => l.userId).filter(Boolean)).size;
+      const sensitiveOps = auditLogs.filter((l) =>
+        /DELETE|VOID|STATUS|CANCEL|SUSPEND|OVERRIDE|EXIT|HARD/i.test(l.rawAction || l.action)
+      ).length;
+      const currentPageRecords = auditLogs.length;
+      return { totalEntries, uniqueOperators, sensitiveOps, currentPageRecords };
     }
     return {};
-  }, [activeTab, reportData]);
+  }, [activeTab, reportData, auditLogs, auditPagination.total, auditSummary.uniqueOperators]);
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-16">
@@ -409,8 +682,10 @@ export const ReportsPage = () => {
             {/* Tab Buttons */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
               <button
+                type="button"
+                id="tab-btn-charts"
                 onClick={() => setActiveTab('charts')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap cursor-pointer ${
                   activeTab === 'charts'
                     ? 'bg-indigo-600 text-white shadow-xs'
                     : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
@@ -421,8 +696,10 @@ export const ReportsPage = () => {
               </button>
 
               <button
+                type="button"
+                id="tab-btn-student-list"
                 onClick={() => setActiveTab('student-list')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap cursor-pointer ${
                   activeTab === 'student-list'
                     ? 'bg-indigo-600 text-white shadow-xs'
                     : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
@@ -438,8 +715,10 @@ export const ReportsPage = () => {
               </button>
 
               <button
+                type="button"
+                id="tab-btn-fee-collection"
                 onClick={() => setActiveTab('fee-collection')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap cursor-pointer ${
                   activeTab === 'fee-collection'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
@@ -455,8 +734,10 @@ export const ReportsPage = () => {
               </button>
 
               <button
+                type="button"
+                id="tab-btn-outstanding-list"
                 onClick={() => setActiveTab('outstanding-list')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap cursor-pointer ${
                   activeTab === 'outstanding-list'
                     ? 'bg-rose-600 text-white shadow-xs'
                     : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
@@ -470,6 +751,25 @@ export const ReportsPage = () => {
                   </span>
                 )}
               </button>
+
+              <button
+                type="button"
+                id="tab-btn-audit-log"
+                onClick={() => setActiveTab('audit-log')}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap cursor-pointer ${
+                  activeTab === 'audit-log'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Audit Log</span>
+                {activeTab === 'audit-log' && auditPagination.total > 0 && (
+                  <span className="ml-1 bg-amber-700 text-white px-1.5 py-0.2 rounded-full text-[10px] font-mono">
+                    {auditPagination.total}
+                  </span>
+                )}
+              </button>
             </div>
 
             {/* Action Controls: Refresh, Export Dropdown, and Print */}
@@ -478,7 +778,7 @@ export const ReportsPage = () => {
                 type="button"
                 onClick={() => fetchActiveReport()}
                 disabled={loading}
-                className="h-7 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                className="h-7 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
@@ -490,7 +790,7 @@ export const ReportsPage = () => {
                 trigger={
                   <button
                     type="button"
-                    disabled={loading || reportData.length === 0}
+                    disabled={loading || (activeTab === 'audit-log' ? auditLogs.length === 0 : reportData.length === 0)}
                     className="h-7 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <Download className="w-3 h-3 text-slate-500" />
@@ -515,7 +815,7 @@ export const ReportsPage = () => {
               <button
                 type="button"
                 onClick={handlePrint}
-                disabled={loading || reportData.length === 0}
+                disabled={loading || (activeTab === 'audit-log' ? auditLogs.length === 0 : reportData.length === 0)}
                 className="h-7 px-3 py-1 text-xs font-bold rounded-lg bg-slate-900 hover:bg-slate-800 text-white shadow-2xs transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
@@ -532,6 +832,8 @@ export const ReportsPage = () => {
                 Filter Parameters
               </div>
               <button
+                type="button"
+                id="audit-btn-clear-filters"
                 onClick={handleResetFilters}
                 className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1 cursor-pointer"
               >
@@ -539,155 +841,379 @@ export const ReportsPage = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-              {/* Academic Year Filter */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Academic Year</label>
-                <select
-                  value={filters.academicYearId}
-                  onChange={(e) => handleFilterChange('academicYearId', e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                >
-                  <option value="">Current Year</option>
-                  {academicYears.map((y) => (
-                    <option key={y.id} value={y.id}>
-                      {y.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Class Filter */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Class</label>
-                <select
-                  value={filters.classId}
-                  onChange={(e) => handleFilterChange('classId', e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                >
-                  <option value="">All Classes</option>
-                  {filterOptions.classes.map((cls) => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Section Filter */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Section</label>
-                <select
-                  value={filters.sectionId}
-                  onChange={(e) => handleFilterChange('sectionId', e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                >
-                  <option value="">All Sections</option>
-                  {filterOptions.sections.map((sec) => (
-                    <option key={sec.id} value={sec.id}>
-                      {sec.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Medium Filter */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Medium</label>
-                <select
-                  value={filters.mediumId}
-                  onChange={(e) => handleFilterChange('mediumId', e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                >
-                  <option value="">All Mediums</option>
-                  {filterOptions.mediums.map((med) => (
-                    <option key={med.id} value={med.id}>
-                      {med.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Stream Filter */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider flex items-center justify-between">
-                  <span>Stream</span>
-                  {!isStreamSupported && (
-                    <span className="text-[9px] text-amber-600 font-semibold uppercase">N/A</span>
+            {activeTab === 'audit-log' ? (
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                  {/* Super Admin School Switcher (if applicable) */}
+                  {user?.role === 'SUPER_ADMIN' && schoolsList.length > 0 && (
+                    <div>
+                      <label className="block text-[10px] font-bold text-amber-600 mb-0.5 uppercase tracking-wider flex items-center gap-1">
+                        <Building className="w-3 h-3" /> Target School
+                      </label>
+                      <select
+                        id="audit-filter-school"
+                        value={selectedSchoolId}
+                        onChange={(e) => {
+                          setSelectedSchoolId(e.target.value);
+                          setAuditPagination((prev) => ({ ...prev, page: 1 }));
+                        }}
+                        className="w-full bg-amber-50/50 border border-amber-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      >
+                        <option value="">Current Workspace</option>
+                        {schoolsList.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} ({s.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   )}
-                </label>
-                <select
-                  value={filters.streamId}
-                  disabled={!isStreamSupported}
-                  onChange={(e) => handleFilterChange('streamId', e.target.value)}
-                  className={`w-full border rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
-                    !isStreamSupported
-                      ? 'bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed text-slate-400'
-                      : 'bg-slate-50 border-slate-200 focus:bg-white'
-                  }`}
-                >
-                  <option value="">{isStreamSupported ? 'All Streams' : 'All Streams (N/A)'}</option>
-                  {filterOptions.streams.map((strm) => (
-                    <option key={strm.id} value={strm.id}>
-                      {strm.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
 
-              {/* Status or Month Filter */}
-              {activeTab === 'student-list' ? (
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Student Status</label>
-                  <select
-                    value={filters.status}
-                    onChange={(e) => handleFilterChange('status', e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  >
-                    <option value="ALL">All Statuses</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive (Left/Graduated)</option>
-                    <option value="LEFT">Left</option>
-                    <option value="GRADUATED">Graduated</option>
-                    <option value="ARCHIVED">Archived</option>
-                  </select>
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Fee Month</label>
-                  <select
-                    value={filters.month}
-                    onChange={(e) => handleFilterChange('month', e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  >
-                    <option value="ALL">All Months</option>
-                    {monthOptions.map((m) => (
-                      <option key={m.value} value={m.value}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
+                  {/* Date Preset */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Date Period</label>
+                    <select
+                      id="audit-filter-date-preset"
+                      value={auditFilters.datePreset}
+                      onChange={(e) => handleDatePresetChange(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="ALL">All Time</option>
+                      <option value="TODAY">Today</option>
+                      <option value="YESTERDAY">Yesterday</option>
+                      <option value="LAST_7_DAYS">Last 7 Days</option>
+                      <option value="LAST_30_DAYS">Last 30 Days</option>
+                      <option value="THIS_MONTH">This Month</option>
+                      <option value="CUSTOM">Custom Range</option>
+                    </select>
+                  </div>
 
-            {/* Keyword Search Row */}
-            <div className="mt-2.5 pt-2 border-t border-slate-100">
-              <div className="relative w-full">
-                <input
-                  type="text"
-                  placeholder="Search student name, admission no, phone, receipt no..."
-                  value={filters.search}
-                  onChange={(e) => handleFilterChange('search', e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-7 pr-2.5 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-                <Search className="w-3 h-3 text-slate-400 absolute left-2 top-2" />
+                  {/* Start Date */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">From Date</label>
+                    <input
+                      type="date"
+                      id="audit-filter-start-date"
+                      value={auditFilters.startDate}
+                      onChange={(e) => {
+                        setAuditFilters((prev) => ({ ...prev, startDate: e.target.value, datePreset: 'CUSTOM' }));
+                        setAuditPagination((prev) => ({ ...prev, page: 1 }));
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  {/* End Date */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">To Date</label>
+                    <input
+                      type="date"
+                      id="audit-filter-end-date"
+                      value={auditFilters.endDate}
+                      onChange={(e) => {
+                        setAuditFilters((prev) => ({ ...prev, endDate: e.target.value, datePreset: 'CUSTOM' }));
+                        setAuditPagination((prev) => ({ ...prev, page: 1 }));
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+
+                  {/* Module / Entity Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Module / Entity</label>
+                    <select
+                      id="audit-filter-module"
+                      value={auditFilters.entityType}
+                      onChange={(e) => {
+                        setAuditFilters((prev) => ({ ...prev, entityType: e.target.value }));
+                        setAuditPagination((prev) => ({ ...prev, page: 1 }));
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">All Modules</option>
+                      {auditOptions.modules.map((m) => (
+                        <option key={m.value} value={m.value}>
+                          {m.label} ({m.count})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Action Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Action Type</label>
+                    <select
+                      id="audit-filter-action"
+                      value={auditFilters.action}
+                      onChange={(e) => {
+                        setAuditFilters((prev) => ({ ...prev, action: e.target.value }));
+                        setAuditPagination((prev) => ({ ...prev, page: 1 }));
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">All Actions</option>
+                      {auditOptions.actions.map((a) => (
+                        <option key={a.value} value={a.value}>
+                          {a.label} ({a.count})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Operator / User Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Operator / User</label>
+                    <select
+                      id="audit-filter-operator"
+                      value={auditFilters.userId}
+                      onChange={(e) => {
+                        setAuditFilters((prev) => ({ ...prev, userId: e.target.value }));
+                        setAuditPagination((prev) => ({ ...prev, page: 1 }));
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">All Operators</option>
+                      {auditOptions.users.map((u) => (
+                        <option key={u.value} value={u.value}>
+                          {u.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Audit Keyword Search Row */}
+                <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      id="audit-filter-search"
+                      placeholder="Search action name, module, entity ID, operator name, email, IP address..."
+                      value={auditFilters.search}
+                      onChange={(e) => {
+                        setAuditFilters((prev) => ({ ...prev, search: e.target.value }));
+                        setAuditPagination((prev) => ({ ...prev, page: 1 }));
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-7 pr-2.5 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <Search className="w-3 h-3 text-slate-400 absolute left-2 top-2" />
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 text-[11px] text-slate-500">
+                    <span className="font-bold">Rows:</span>
+                    <select
+                      id="audit-filter-limit"
+                      value={auditPagination.limit}
+                      onChange={(e) => {
+                        setAuditPagination((prev) => ({ ...prev, limit: Number(e.target.value), page: 1 }));
+                      }}
+                      className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-700 focus:bg-white"
+                    >
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                      <option value={200}>200</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                  {/* Academic Year Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Academic Year</label>
+                    <select
+                      value={filters.academicYearId}
+                      onChange={(e) => handleFilterChange('academicYearId', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">Current Year</option>
+                      {academicYears.map((y) => (
+                        <option key={y.id} value={y.id}>
+                          {y.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Class Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Class</label>
+                    <select
+                      value={filters.classId}
+                      onChange={(e) => handleFilterChange('classId', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">All Classes</option>
+                      {filterOptions.classes.map((cls) => (
+                        <option key={cls.id} value={cls.id}>
+                          {cls.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Section Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Section</label>
+                    <select
+                      value={filters.sectionId}
+                      onChange={(e) => handleFilterChange('sectionId', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">All Sections</option>
+                      {filterOptions.sections.map((sec) => (
+                        <option key={sec.id} value={sec.id}>
+                          {sec.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Medium Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Medium</label>
+                    <select
+                      value={filters.mediumId}
+                      onChange={(e) => handleFilterChange('mediumId', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">All Mediums</option>
+                      {filterOptions.mediums.map((med) => (
+                        <option key={med.id} value={med.id}>
+                          {med.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Stream Filter */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider flex items-center justify-between">
+                      <span>Stream</span>
+                      {!isStreamSupported && (
+                        <span className="text-[9px] text-amber-600 font-semibold uppercase">N/A</span>
+                      )}
+                    </label>
+                    <select
+                      value={filters.streamId}
+                      disabled={!isStreamSupported}
+                      onChange={(e) => handleFilterChange('streamId', e.target.value)}
+                      className={`w-full border rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                        !isStreamSupported
+                          ? 'bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed text-slate-400'
+                          : 'bg-slate-50 border-slate-200 focus:bg-white'
+                      }`}
+                    >
+                      <option value="">{isStreamSupported ? 'All Streams' : 'All Streams (N/A)'}</option>
+                      {filterOptions.streams.map((strm) => (
+                        <option key={strm.id} value={strm.id}>
+                          {strm.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Status or Month Filter */}
+                  {activeTab === 'student-list' ? (
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Student Status</label>
+                      <select
+                        value={filters.status}
+                        onChange={(e) => handleFilterChange('status', e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      >
+                        <option value="ALL">All Statuses</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="INACTIVE">Inactive (Left/Graduated)</option>
+                        <option value="LEFT">Left</option>
+                        <option value="GRADUATED">Graduated</option>
+                        <option value="ARCHIVED">Archived</option>
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Fee Month</label>
+                      <select
+                        value={filters.month}
+                        onChange={(e) => handleFilterChange('month', e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      >
+                        <option value="ALL">All Months</option>
+                        {monthOptions.map((m) => (
+                          <option key={m.value} value={m.value}>
+                            {m.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Keyword Search Row */}
+                <div className="mt-2.5 pt-2 border-t border-slate-100">
+                  <div className="relative w-full">
+                    <input
+                      type="text"
+                      placeholder="Search student name, admission no, phone, receipt no..."
+                      value={filters.search}
+                      onChange={(e) => handleFilterChange('search', e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-7 pr-2.5 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <Search className="w-3 h-3 text-slate-400 absolute left-2 top-2" />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Compact KPI Analytics Row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4">
+            {/* AUDIT LOG METRICS */}
+            {activeTab === 'audit-log' && (
+              <>
+                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Log Entries</p>
+                    <p className="text-base font-black text-slate-900">{metrics.totalEntries || 0}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Active Operators</p>
+                    <p className="text-base font-black text-indigo-600">{metrics.uniqueOperators || 0}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold shrink-0">
+                    <AlertCircle className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Sensitive Operations</p>
+                    <p className="text-base font-black text-rose-600">{metrics.sensitiveOps || 0}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Records on Page</p>
+                    <p className="text-base font-black text-slate-900">{metrics.currentPageRecords || 0}</p>
+                  </div>
+                </div>
+              </>
+            )}
+
             {/* STUDENT LIST METRICS */}
             {activeTab === 'student-list' && (
               <>
@@ -860,7 +1386,7 @@ export const ReportsPage = () => {
               <div className="flex items-center gap-2">
                 <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">{activeTabConfig.title}</h2>
                 <Badge variant="outline" className="font-mono text-[10px] font-bold text-slate-700 bg-slate-50">
-                  {reportData.length} records
+                  {activeTab === 'audit-log' ? auditPagination.total : reportData.length} records
                 </Badge>
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">{activeTabConfig.description}</p>
@@ -878,192 +1404,282 @@ export const ReportsPage = () => {
               <p className="text-xs font-bold text-slate-800">Compiling Report Dataset...</p>
               <p className="text-[11px] text-slate-500 mt-0.5">Applying parameters and security rules...</p>
             </div>
-          ) : reportData.length === 0 ? (
+          ) : (activeTab === 'audit-log' ? auditLogs.length === 0 : reportData.length === 0) ? (
             <div className="py-14 text-center border-2 border-dashed border-slate-200 rounded-xl">
               <AlertCircle className="w-9 h-9 text-slate-400 mx-auto mb-2" />
               <p className="text-sm font-bold text-slate-800">No matching report records found</p>
               <p className="text-[11px] text-slate-500 mt-1">Try adjusting your filters or clearing parameters above.</p>
             </div>
           ) : (
-            <Table minWidth="min-w-full">
-              <TableHeader>
-                <TableRow className="bg-slate-100/90 text-slate-700 text-[10px] font-extrabold uppercase tracking-wider border-y border-black print:bg-slate-200 print:text-black print:border-y print:border-black">
-                  {/* TAB 1: STUDENT LIST COLUMNS */}
-                  {activeTab === 'student-list' && (
-                    <>
-                      <TableHead className="w-10 text-center">S.No</TableHead>
-                      <TableHead>Student Info</TableHead>
-                      <TableHead>Guardian & Contact</TableHead>
-                      <TableHead>Class & Section</TableHead>
-                      <TableHead>Medium & Stream</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
-                    </>
-                  )}
-
-                  {/* TAB 2: FEE COLLECTION COLUMNS */}
-                  {activeTab === 'fee-collection' && (
-                    <>
-                      <TableHead className="w-10 text-center">S.No</TableHead>
-                      <TableHead>Payment Date</TableHead>
-                      <TableHead>Receipt No</TableHead>
-                      <TableHead>Student Name & Adm No</TableHead>
-                      <TableHead>Class & Sec</TableHead>
-                      <TableHead>Fee Type</TableHead>
-                      <TableHead className="text-center">Payment Mode</TableHead>
-                      <TableHead className="text-right">Amount (₹)</TableHead>
-                    </>
-                  )}
-
-                  {/* TAB 3: OUTSTANDING LIST COLUMNS */}
-                  {activeTab === 'outstanding-list' && (
-                    <>
-                      <TableHead className="w-10 text-center">S.No</TableHead>
-                      <TableHead>Student Name & Adm No</TableHead>
-                      <TableHead>Guardian & Phone</TableHead>
-                      <TableHead>Class & Sec</TableHead>
-                      <TableHead className="text-right print:hidden">Total Charged</TableHead>
-                      <TableHead className="text-right print:hidden">Amount Paid</TableHead>
-                      <TableHead className="text-right">Outstanding Dues</TableHead>
-                      <TableHead className="text-center">Dues Status</TableHead>
-                    </>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody className="divide-y divide-black">
-                {reportData.map((row, idx) => (
-                  <TableRow key={row.id || row.studentId || idx} className="hover:bg-slate-50/80 transition-colors border-b border-black print:hover:bg-transparent print:border-b print:border-black">
-                    {/* TAB 1: STUDENT LIST ROWS */}
+            <>
+              <Table minWidth="min-w-full">
+                <TableHeader>
+                  <TableRow className="bg-slate-100/90 text-slate-700 text-[10px] font-extrabold uppercase tracking-wider border-y border-black print:bg-slate-200 print:text-black print:border-y print:border-black">
+                    {/* TAB 1: STUDENT LIST COLUMNS */}
                     {activeTab === 'student-list' && (
                       <>
-                        <TableCell className="text-center font-bold text-slate-500 print:text-black py-2 px-3 text-[11px]">{idx + 1}</TableCell>
-                        <TableCell className="py-2 px-3">
-                          <div className="font-bold text-slate-900 text-xs">{row.studentName}</div>
-                          <div className="text-[10px] font-mono text-indigo-600 font-semibold print:text-black">
-                            {row.admissionNo}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-2 px-3">
-                          <div className="text-xs font-semibold text-slate-800">{row.guardianName || '—'}</div>
-                          <div className="text-[10px] font-mono text-slate-500">{row.phone || '—'}</div>
-                        </TableCell>
-                        <TableCell className="py-2 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
-                        <TableCell className="py-2 px-3 text-xs text-slate-600">
-                          <span className="font-medium">{row.mediumName || '—'}</span>
-                          {row.streamName && row.streamName !== '-' && (
-                            <span className="ml-1 text-[10px] text-indigo-600 font-semibold">({row.streamName})</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-2 px-3 text-center">
-                          <Badge
-                            variant={row.status === 'ACTIVE' ? 'success' : 'secondary'}
-                            className="text-[9px] uppercase font-bold px-1.5 py-0.2"
-                          >
-                            {row.status}
-                          </Badge>
-                        </TableCell>
+                        <TableHead className="w-10 text-center">S.No</TableHead>
+                        <TableHead>Student Info</TableHead>
+                        <TableHead>Guardian & Contact</TableHead>
+                        <TableHead>Class & Section</TableHead>
+                        <TableHead>Medium & Stream</TableHead>
+                        <TableHead className="text-center">Status</TableHead>
                       </>
                     )}
 
-                    {/* TAB 2: FEE COLLECTION ROWS */}
+                    {/* TAB 2: FEE COLLECTION COLUMNS */}
                     {activeTab === 'fee-collection' && (
                       <>
-                        <TableCell className="text-center font-bold text-slate-500 print:text-black py-2 px-3 text-[11px]">{idx + 1}</TableCell>
-                        <TableCell className="py-2 px-3 font-mono text-xs text-slate-700">{formatDate(row.date)}</TableCell>
-                        <TableCell className="py-2 px-3">
-                          <div className="font-mono font-bold text-emerald-700 text-xs print:text-black">{row.receiptNo || '—'}</div>
-                          {row.referenceNumber && row.referenceNumber !== '-' && (
-                            <div className="text-[9px] font-mono text-slate-400">Ref: {row.referenceNumber}</div>
-                          )}
-                        </TableCell>
-                        <TableCell className="py-2 px-3">
-                          <div className="font-bold text-slate-900 text-xs">{row.studentName}</div>
-                          <div className="text-[10px] font-mono text-slate-500">{row.admissionNo}</div>
-                        </TableCell>
-                        <TableCell className="py-2 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
-                        <TableCell className="py-2 px-3 text-xs text-slate-700">{row.feeType}</TableCell>
-                        <TableCell className="py-2 px-3 text-center">
-                          <Badge variant="outline" className="text-[9px] font-bold uppercase bg-slate-50 text-slate-700 border-slate-200 px-1.5 py-0.2">
-                            {row.paymentMode}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="py-2 px-3 text-right font-mono font-bold text-emerald-700 text-xs print:text-black">
-                          {formatCurrency(row.amount)}
-                        </TableCell>
+                        <TableHead className="w-10 text-center">S.No</TableHead>
+                        <TableHead>Payment Date</TableHead>
+                        <TableHead>Receipt No</TableHead>
+                        <TableHead>Student Name & Adm No</TableHead>
+                        <TableHead>Class & Sec</TableHead>
+                        <TableHead>Fee Type</TableHead>
+                        <TableHead className="text-center">Payment Mode</TableHead>
+                        <TableHead className="text-right">Amount (₹)</TableHead>
                       </>
                     )}
 
-                    {/* TAB 3: OUTSTANDING LIST ROWS */}
+                    {/* TAB 3: OUTSTANDING LIST COLUMNS */}
                     {activeTab === 'outstanding-list' && (
                       <>
-                        <TableCell className="text-center font-bold text-slate-500 print:text-black py-2 px-3 text-[11px]">{idx + 1}</TableCell>
-                        <TableCell className="py-2 px-3">
-                          <div className="font-bold text-slate-900 text-xs">{row.studentName}</div>
-                          <div className="text-[10px] font-mono text-indigo-600 font-semibold print:text-black">{row.admissionNo}</div>
-                        </TableCell>
-                        <TableCell className="py-2 px-3">
-                          <div className="text-xs font-semibold text-slate-800">{row.guardianName || '—'}</div>
-                          <div className="text-[10px] font-mono text-slate-500">{row.phone || '—'}</div>
-                        </TableCell>
-                        <TableCell className="py-2 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
-                        <TableCell className="py-2 px-3 text-right font-mono text-slate-700 text-xs print:hidden">{formatCurrency(row.totalCharged)}</TableCell>
-                        <TableCell className="py-2 px-3 text-right font-mono text-emerald-600 font-semibold text-xs print:hidden">{formatCurrency(row.paidAmount)}</TableCell>
-                        <TableCell className="py-2 px-3 text-right font-mono font-black text-rose-600 text-xs print:text-black">
-                          {formatCurrency(row.balance)}
-                        </TableCell>
-                        <TableCell className="py-2 px-3 text-center">
-                          <Badge
-                            variant={row.status === 'PARTIAL' ? 'warning' : 'danger'}
-                            className="text-[9px] uppercase font-bold px-1.5 py-0.2"
-                          >
-                            {row.status}
-                          </Badge>
-                        </TableCell>
+                        <TableHead className="w-10 text-center">S.No</TableHead>
+                        <TableHead>Student Name & Adm No</TableHead>
+                        <TableHead>Guardian & Phone</TableHead>
+                        <TableHead>Class & Sec</TableHead>
+                        <TableHead className="text-right print:hidden">Total Charged</TableHead>
+                        <TableHead className="text-right print:hidden">Amount Paid</TableHead>
+                        <TableHead className="text-right">Outstanding Dues</TableHead>
+                        <TableHead className="text-center">Dues Status</TableHead>
+                      </>
+                    )}
+
+                    {/* TAB 4: AUDIT LOG COLUMNS */}
+                    {activeTab === 'audit-log' && (
+                      <>
+                        <TableHead className="w-10 text-center">S.No</TableHead>
+                        <TableHead className="whitespace-nowrap">Timestamp (IST)</TableHead>
+                        <TableHead>Operator / User</TableHead>
+                        <TableHead>Action Event</TableHead>
+                        <TableHead>Module / Entity</TableHead>
+                        <TableHead className="print:hidden">IP Address</TableHead>
+                        <TableHead>Details / Summary</TableHead>
+                        <TableHead className="text-right print:hidden">Inspect</TableHead>
                       </>
                     )}
                   </TableRow>
-                ))}
-              </TableBody>
+                </TableHeader>
+                <TableBody className="divide-y divide-black">
+                  {(activeTab === 'audit-log' ? auditLogs : reportData).map((row, idx) => (
+                    <TableRow key={row.id || row.studentId || idx} className="hover:bg-slate-50/80 transition-colors border-b border-black print:hover:bg-transparent print:border-b print:border-black">
+                      {/* TAB 1: STUDENT LIST ROWS */}
+                      {activeTab === 'student-list' && (
+                        <>
+                          <TableCell className="text-center font-bold text-slate-500 print:text-black py-2 px-3 text-[11px]">{idx + 1}</TableCell>
+                          <TableCell className="py-2 px-3">
+                            <div className="font-bold text-slate-900 text-xs">{row.studentName}</div>
+                            <div className="text-[10px] font-mono text-indigo-600 font-semibold print:text-black">
+                              {row.admissionNo}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2 px-3">
+                            <div className="text-xs font-semibold text-slate-800">{row.guardianName || '—'}</div>
+                            <div className="text-[10px] font-mono text-slate-500">{row.phone || '—'}</div>
+                          </TableCell>
+                          <TableCell className="py-2 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
+                          <TableCell className="py-2 px-3 text-xs text-slate-600">
+                            <span className="font-medium">{row.mediumName || '—'}</span>
+                            {row.streamName && row.streamName !== '-' && (
+                              <span className="ml-1 text-[10px] text-indigo-600 font-semibold">({row.streamName})</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-2 px-3 text-center">
+                            <Badge
+                              variant={row.status === 'ACTIVE' ? 'success' : 'secondary'}
+                              className="text-[9px] uppercase font-bold px-1.5 py-0.2"
+                            >
+                              {row.status}
+                            </Badge>
+                          </TableCell>
+                        </>
+                      )}
 
-              {/* Table Footer Total Summary */}
-              <tfoot>
-                <tr className="bg-slate-100/90 font-bold border-t border-b border-black text-slate-900 text-xs print:bg-slate-200 print:border-t print:border-b print:border-black">
-                  {activeTab === 'student-list' && (
-                    <td colSpan={6} className="py-2.5 px-3 text-right">
-                      Total Filtered Enrolled Students: <span className="text-indigo-700 font-black text-xs">{reportData.length}</span>
-                    </td>
-                  )}
+                      {/* TAB 2: FEE COLLECTION ROWS */}
+                      {activeTab === 'fee-collection' && (
+                        <>
+                          <TableCell className="text-center font-bold text-slate-500 print:text-black py-2 px-3 text-[11px]">{idx + 1}</TableCell>
+                          <TableCell className="py-2 px-3 font-mono text-xs text-slate-700">{formatDate(row.date)}</TableCell>
+                          <TableCell className="py-2 px-3">
+                            <div className="font-mono font-bold text-emerald-700 text-xs print:text-black">{row.receiptNo || '—'}</div>
+                            {row.referenceNumber && row.referenceNumber !== '-' && (
+                              <div className="text-[9px] font-mono text-slate-400">Ref: {row.referenceNumber}</div>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-2 px-3">
+                            <div className="font-bold text-slate-900 text-xs">{row.studentName}</div>
+                            <div className="text-[10px] font-mono text-slate-500">{row.admissionNo}</div>
+                          </TableCell>
+                          <TableCell className="py-2 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
+                          <TableCell className="py-2 px-3 text-xs text-slate-700">{row.feeType}</TableCell>
+                          <TableCell className="py-2 px-3 text-center">
+                            <Badge variant="outline" className="text-[9px] font-bold uppercase bg-slate-50 text-slate-700 border-slate-200 px-1.5 py-0.2">
+                              {row.paymentMode}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="py-2 px-3 text-right font-mono font-bold text-emerald-700 text-xs print:text-black">
+                            {formatCurrency(row.amount)}
+                          </TableCell>
+                        </>
+                      )}
 
-                  {activeTab === 'fee-collection' && (
-                    <>
-                      <td colSpan={7} className="py-2.5 px-3 text-right font-black uppercase text-[11px]">
-                        Grand Total Fee Collected:
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-700 text-xs print:text-black">
-                        {formatCurrency(reportData.reduce((acc, r) => acc + (r.amount || 0), 0))}
-                      </td>
-                    </>
-                  )}
+                      {/* TAB 3: OUTSTANDING LIST ROWS */}
+                      {activeTab === 'outstanding-list' && (
+                        <>
+                          <TableCell className="text-center font-bold text-slate-500 print:text-black py-2 px-3 text-[11px]">{idx + 1}</TableCell>
+                          <TableCell className="py-2 px-3">
+                            <div className="font-bold text-slate-900 text-xs">{row.studentName}</div>
+                            <div className="text-[10px] font-mono text-indigo-600 font-semibold print:text-black">{row.admissionNo}</div>
+                          </TableCell>
+                          <TableCell className="py-2 px-3">
+                            <div className="text-xs font-semibold text-slate-800">{row.guardianName || '—'}</div>
+                            <div className="text-[10px] font-mono text-slate-500">{row.phone || '—'}</div>
+                          </TableCell>
+                          <TableCell className="py-2 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
+                          <TableCell className="py-2 px-3 text-right font-mono text-slate-700 text-xs print:hidden">{formatCurrency(row.totalCharged)}</TableCell>
+                          <TableCell className="py-2 px-3 text-right font-mono text-emerald-600 font-semibold text-xs print:hidden">{formatCurrency(row.paidAmount)}</TableCell>
+                          <TableCell className="py-2 px-3 text-right font-mono font-black text-rose-600 text-xs print:text-black">
+                            {formatCurrency(row.balance)}
+                          </TableCell>
+                          <TableCell className="py-2 px-3 text-center">
+                            <Badge
+                              variant={row.status === 'PARTIAL' ? 'warning' : 'danger'}
+                              className="text-[9px] uppercase font-bold px-1.5 py-0.2"
+                            >
+                              {row.status}
+                            </Badge>
+                          </TableCell>
+                        </>
+                      )}
 
-                  {activeTab === 'outstanding-list' && (
-                    <>
-                      <td colSpan={4} className="py-2.5 px-3 text-right font-black uppercase text-[11px]">
-                        Grand Totals:
+                      {/* TAB 4: AUDIT LOG ROWS */}
+                      {activeTab === 'audit-log' && (
+                        <>
+                          <TableCell className="text-center font-bold text-slate-500 print:text-black py-2 px-3 text-[11px]">
+                            {(auditPagination.page - 1) * auditPagination.limit + idx + 1}
+                          </TableCell>
+                          <TableCell className="py-2 px-3 whitespace-nowrap">
+                            <div className="font-mono text-xs font-semibold text-slate-800">
+                              {formatDateTime(row.createdAt || row.date)}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              ID: {row.id ? row.id.slice(0, 8) + '...' : '-'}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2 px-3">
+                            <div className="font-bold text-slate-900 text-xs">{row.userName}</div>
+                            <div className="text-[10px] font-mono text-slate-500">{row.userEmail}</div>
+                            {row.userRole && (
+                              <span className="inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 uppercase border border-slate-200">
+                                {row.userRole}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-2 px-3">
+                            {formatActionBadge(row.rawAction, row.action)}
+                          </TableCell>
+                          <TableCell className="py-2 px-3">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200">
+                              {row.module || row.entityType}
+                            </span>
+                            {row.entityId && row.entityId !== '-' && (
+                              <div className="text-[9px] font-mono text-slate-400 mt-0.5 truncate max-w-[120px]" title={row.entityId}>
+                                Ref: {row.entityId.slice(0, 8)}...
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-2 px-3 font-mono text-xs text-slate-600 print:hidden">
+                            {row.ipAddress || '127.0.0.1'}
+                          </TableCell>
+                          <TableCell className="py-2 px-3 text-xs text-slate-700 max-w-xs truncate" title={row.details}>
+                            {row.details || '—'}
+                          </TableCell>
+                          <TableCell className="py-2 px-3 text-right print:hidden">
+                            <button
+                              type="button"
+                              id={`btn-inspect-audit-${idx}`}
+                              onClick={() => setSelectedAuditLog(row)}
+                              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors border border-indigo-200 cursor-pointer"
+                            >
+                              <Eye className="w-3 h-3" />
+                              <span>Inspect</span>
+                            </button>
+                          </TableCell>
+                        </>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+
+                {/* Table Footer Total Summary */}
+                <tfoot>
+                  <tr className="bg-slate-100/90 font-bold border-t border-b border-black text-slate-900 text-xs print:bg-slate-200 print:border-t print:border-b print:border-black">
+                    {activeTab === 'student-list' && (
+                      <td colSpan={6} className="py-2.5 px-3 text-right">
+                        Total Filtered Enrolled Students: <span className="text-indigo-700 font-black text-xs">{reportData.length}</span>
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800 text-xs print:hidden">
-                        {formatCurrency(reportData.reduce((acc, r) => acc + (r.totalCharged || 0), 0))}
+                    )}
+
+                    {activeTab === 'fee-collection' && (
+                      <>
+                        <td colSpan={7} className="py-2.5 px-3 text-right font-black uppercase text-[11px]">
+                          Grand Total Fee Collected:
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-700 text-xs print:text-black">
+                          {formatCurrency(reportData.reduce((acc, r) => acc + (r.amount || 0), 0))}
+                        </td>
+                      </>
+                    )}
+
+                    {activeTab === 'outstanding-list' && (
+                      <>
+                        <td colSpan={4} className="py-2.5 px-3 text-right font-black uppercase text-[11px]">
+                          Grand Totals:
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800 text-xs print:hidden">
+                          {formatCurrency(reportData.reduce((acc, r) => acc + (r.totalCharged || 0), 0))}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-xs print:hidden">
+                          {formatCurrency(reportData.reduce((acc, r) => acc + (r.paidAmount || 0), 0))}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-mono font-black text-rose-700 text-xs print:text-black">
+                          {formatCurrency(reportData.reduce((acc, r) => acc + (r.balance || 0), 0))}
+                        </td>
+                        <td></td>
+                      </>
+                    )}
+
+                    {activeTab === 'audit-log' && (
+                      <td colSpan={8} className="py-2.5 px-3 text-right">
+                        Total Filtered School Audit Records: <span className="text-amber-700 font-black text-xs">{auditPagination.total}</span>
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-xs print:hidden">
-                        {formatCurrency(reportData.reduce((acc, r) => acc + (r.paidAmount || 0), 0))}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-black text-rose-700 text-xs print:text-black">
-                        {formatCurrency(reportData.reduce((acc, r) => acc + (r.balance || 0), 0))}
-                      </td>
-                      <td></td>
-                    </>
-                  )}
-                </tr>
-              </tfoot>
-            </Table>
+                    )}
+                  </tr>
+                </tfoot>
+              </Table>
+
+              {/* Audit Log Pagination (Only on Screen) */}
+              {activeTab === 'audit-log' && (
+                <div className="print:hidden">
+                  <Pagination
+                    page={auditPagination.page}
+                    limit={auditPagination.limit}
+                    total={auditPagination.total}
+                    onPageChange={(p) => setAuditPagination((prev) => ({ ...prev, page: p }))}
+                  />
+                </div>
+              )}
+            </>
           )}
 
           {/* Printable Official Footer Notice */}
@@ -1073,6 +1689,116 @@ export const ReportsPage = () => {
         </div>
         )}
       </div>
+
+      {/* Audit Log Inspector Modal */}
+      {selectedAuditLog && (
+        <Modal
+          isOpen={Boolean(selectedAuditLog)}
+          onClose={() => setSelectedAuditLog(null)}
+          title={`Audit Event Details — ${selectedAuditLog.action}`}
+          size="lg"
+        >
+          <div className="space-y-4 text-xs">
+            {/* Operator & Event Overview Card */}
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Operator</span>
+                <span className="font-bold text-slate-900 block">{selectedAuditLog.userName}</span>
+                <span className="text-[10px] text-slate-500 font-mono block">{selectedAuditLog.userEmail}</span>
+                <span className="text-[9px] font-semibold text-indigo-600 block">{selectedAuditLog.userRole}</span>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Event Timestamp</span>
+                <span className="font-mono font-semibold text-slate-800 block">
+                  {formatDateTime(selectedAuditLog.createdAt || selectedAuditLog.date)}
+                </span>
+                <span className="text-[10px] text-slate-400 block">IST (UTC+05:30)</span>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Module & Entity</span>
+                <span className="font-bold text-slate-900 block">{selectedAuditLog.module || selectedAuditLog.entityType}</span>
+                {selectedAuditLog.entityId && (
+                  <span className="font-mono text-[10px] text-slate-600 block truncate" title={selectedAuditLog.entityId}>
+                    ID: {selectedAuditLog.entityId}
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Client IP & Agent</span>
+                <span className="font-mono font-bold text-slate-700 block">{selectedAuditLog.ipAddress || '127.0.0.1'}</span>
+                {selectedAuditLog.userAgent && (
+                  <span className="text-[9px] text-slate-400 block truncate" title={selectedAuditLog.userAgent}>
+                    {selectedAuditLog.userAgent.slice(0, 30)}...
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Event Summary / Details text */}
+            {selectedAuditLog.details && (
+              <div className="bg-amber-50/60 p-3 rounded-lg border border-amber-200/80">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block mb-0.5">
+                  Action Summary
+                </span>
+                <p className="text-xs font-medium text-slate-800">{selectedAuditLog.details}</p>
+              </div>
+            )}
+
+            {/* State Before Change (oldValues) */}
+            {selectedAuditLog.oldValues && Object.keys(selectedAuditLog.oldValues).length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-slate-700">State Before Change (Old Values):</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(selectedAuditLog.oldValues, null, 2));
+                      toast.success('Copied old values JSON');
+                    }}
+                    className="text-[10px] text-slate-500 hover:text-slate-800 flex items-center gap-1 font-semibold cursor-pointer"
+                  >
+                    <Copy className="w-3 h-3" /> Copy JSON
+                  </button>
+                </div>
+                <pre className="p-3 bg-slate-900 text-amber-300 rounded-xl font-mono text-[11px] overflow-x-auto max-h-60 border border-slate-800">
+                  {JSON.stringify(selectedAuditLog.oldValues, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {/* State After Change (newValues) */}
+            {selectedAuditLog.newValues && Object.keys(selectedAuditLog.newValues).length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-slate-700">State After Change (New Values):</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(selectedAuditLog.newValues, null, 2));
+                      toast.success('Copied new values JSON');
+                    }}
+                    className="text-[10px] text-slate-500 hover:text-slate-800 flex items-center gap-1 font-semibold cursor-pointer"
+                  >
+                    <Copy className="w-3 h-3" /> Copy JSON
+                  </button>
+                </div>
+                <pre className="p-3 bg-slate-900 text-emerald-300 rounded-xl font-mono text-[11px] overflow-x-auto max-h-60 border border-slate-800">
+                  {JSON.stringify(selectedAuditLog.newValues, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <Button id="btn-modal-close" variant="outline" size="sm" onClick={() => setSelectedAuditLog(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

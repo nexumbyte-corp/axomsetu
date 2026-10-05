@@ -192,6 +192,7 @@ export const createSchoolWithOwnerAndTrial = async (data, creatorUserId = null, 
       // If superadmin explicitly passed a custom limit, respect that; otherwise dynamically apply trialPlan.maxStudentLimit
       let studentLimit = null;
       if (
+        isSuperAdminCreation &&
         maxStudentLimit !== undefined &&
         maxStudentLimit !== null &&
         maxStudentLimit !== '' &&

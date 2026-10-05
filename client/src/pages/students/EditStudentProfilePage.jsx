@@ -56,11 +56,14 @@ export const EditStudentProfilePage = () => {
     address: '',
     photoUrl: '',
     photoSizeKb: '',
+    rollNumber: '',
   });
 
   // Photo Crop Modal State
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [selectedPhotoFile, setSelectedPhotoFile] = useState(null);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState(null);
+
 
   const [errors, setErrors] = useState({});
 
@@ -68,7 +71,7 @@ export const EditStudentProfilePage = () => {
     const fetchStudent = async () => {
       setLoading(true);
       try {
-        const res = await studentService.getStudent(studentId);
+        const res = await studentService.getStudent(studentId, selectedYear?.id);
         if (res.success && res.data) {
           const s = res.data;
           setStudentRecord(s);
@@ -86,6 +89,12 @@ export const EditStudentProfilePage = () => {
             ? formatDateForInput(s.admissionDate)
             : '';
 
+          const currentAcademic = s.academic || s.enrollments?.find(
+            (e) => e.academicYear?.id === selectedYear?.id || e.academicYearId === selectedYear?.id
+          ) || s.enrollments?.find((e) => e.academicYear?.isCurrent) || s.enrollments?.[0];
+
+          const initialRoll = currentAcademic?.rollNumber ?? currentAcademic?.rollNo ?? '';
+
           setFormData({
             admissionNo: s.admissionNo || '',
             admissionDate: formattedAdmDate,
@@ -98,6 +107,7 @@ export const EditStudentProfilePage = () => {
             address: s.address || '',
             photoUrl: s.photoUrl || '',
             photoSizeKb: '',
+            rollNumber: initialRoll !== '' && initialRoll !== null && initialRoll !== undefined ? String(initialRoll) : '',
           });
         }
       } catch (err) {
@@ -108,7 +118,7 @@ export const EditStudentProfilePage = () => {
       }
     };
     fetchStudent();
-  }, [studentId, navigate]);
+  }, [studentId, selectedYear?.id, navigate]);
 
   // Photo Select Trigger
   const handlePhotoSelect = (e) => {
@@ -133,7 +143,11 @@ export const EditStudentProfilePage = () => {
     }
   };
 
-  const handlePhotoCropSuccess = (url, sizeKb) => {
+  const handlePhotoCropSuccess = (url, sizeKb, file) => {
+    if (formData.photoUrl && formData.photoUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(formData.photoUrl);
+    }
+    setPendingPhotoFile(file || null);
     setFormData((prev) => ({
       ...prev,
       photoUrl: url,
@@ -143,6 +157,10 @@ export const EditStudentProfilePage = () => {
   };
 
   const handleRemovePhoto = () => {
+    if (formData.photoUrl && formData.photoUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(formData.photoUrl);
+    }
+    setPendingPhotoFile(null);
     setFormData((prev) => ({
       ...prev,
       photoUrl: '',
@@ -190,6 +208,14 @@ export const EditStudentProfilePage = () => {
       newErrors.gender = 'Gender is required';
     }
 
+    // Roll number validation: optional integer 1-999
+    if (formData.rollNumber && formData.rollNumber.trim() !== '') {
+      const rollNum = Number(formData.rollNumber.trim());
+      if (isNaN(rollNum) || !Number.isInteger(rollNum) || rollNum < 1 || rollNum > 999) {
+        newErrors.rollNumber = 'Roll number must be an integer between 1 and 999';
+      }
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       toast.error('Please complete all mandatory fields correctly');
@@ -204,6 +230,28 @@ export const EditStudentProfilePage = () => {
 
     setSubmitting(true);
     try {
+      let finalPhotoUrl = (formData.photoUrl?.startsWith('data:') || formData.photoUrl?.startsWith('blob:'))
+        ? null
+        : (formData.photoUrl ? formData.photoUrl.trim() : null);
+
+      // Upload deferred photo to backend during final submit
+      if (pendingPhotoFile) {
+        try {
+          const photoFormData = new FormData();
+          photoFormData.append('logo', pendingPhotoFile);
+          const uploadRes = await studentService.uploadPhoto(photoFormData);
+          if (uploadRes?.data?.photoUrl) {
+            finalPhotoUrl = uploadRes.data.photoUrl;
+          } else {
+            throw new Error(uploadRes?.message || 'Failed to upload student photo');
+          }
+        } catch (photoErr) {
+          toast.error(photoErr?.message || 'Photo upload failed. Please try again.');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const payload = {
         name: formData.name.trim(),
         guardianName: formData.guardianName.trim(),
@@ -212,7 +260,9 @@ export const EditStudentProfilePage = () => {
         gender: formData.gender,
         caste: finalCaste || null,
         address: formData.address.trim() || null,
-        photoUrl: formData.photoUrl ? formData.photoUrl.trim() : null,
+        photoUrl: finalPhotoUrl,
+        rollNumber: formData.rollNumber.trim() ? parseInt(formData.rollNumber.trim(), 10) : null,
+        academicYearId: currentAcademic?.academicYear?.id || selectedYear?.id || null,
       };
 
       await studentService.updateStudentProfile(studentId, payload);
@@ -243,6 +293,7 @@ export const EditStudentProfilePage = () => {
 
   const currentAcademic = studentRecord?.academic;
   const activeAcademicYear = currentAcademic?.academicYear || selectedYear || academicYears?.find((y) => y.isCurrent) || null;
+  const isLocked = Boolean(currentAcademic?.academicYear?.isLocked || selectedYear?.isLocked);
 
   const minAdmissionDate = activeAcademicYear?.startDate
     ? formatDateForInput(activeAcademicYear.startDate)
@@ -252,18 +303,13 @@ export const EditStudentProfilePage = () => {
     ? formatDateForInput(studentRecord.earliestTransferDate)
     : (studentRecord?.transferHistory?.length > 0 ? formatDateForInput(studentRecord.transferHistory[0].transferDate) : '');
 
-  const hostelStartDate = studentRecord?.hostel?.startDate
-    ? formatDateForInput(studentRecord.hostel.startDate)
-    : '';
-
-  // Calculate most restrictive maximum date: capped at today (no future dates) and earlier events (transfer/hostel)
+  // Calculate most restrictive maximum date: capped at today (no future dates) and earlier events (transfer)
   let maxAdmDate = todayStr;
   let maxReason = 'Current Date';
   const dateCandidates = [
     { date: todayStr, reason: 'Current Date' },
   ];
   if (earliestTransferDate) dateCandidates.push({ date: earliestTransferDate, reason: 'Earliest Transfer Date' });
-  if (hostelStartDate) dateCandidates.push({ date: hostelStartDate, reason: 'Hostel Admission Date' });
 
   dateCandidates.sort((a, b) => a.date.localeCompare(b.date));
   maxAdmDate = dateCandidates[0].date;
@@ -322,6 +368,7 @@ export const EditStudentProfilePage = () => {
           setSelectedPhotoFile(file);
           setCropModalOpen(true);
         }}
+        onCaptureSuccess={handlePhotoCropSuccess}
         onFallbackNative={() => cameraInputRef.current?.click()}
       />
 
@@ -382,7 +429,10 @@ export const EditStudentProfilePage = () => {
       {/* Passport Photo Crop Modal */}
       <PassportPhotoCropModal
         isOpen={cropModalOpen}
-        onClose={() => setCropModalOpen(false)}
+        onClose={() => {
+          setCropModalOpen(false);
+          setSelectedPhotoFile(null);
+        }}
         file={selectedPhotoFile}
         onCropSuccess={handlePhotoCropSuccess}
       />
@@ -622,6 +672,51 @@ export const EditStudentProfilePage = () => {
                       placeholder="DD-MM-YYYY"
                     />
                   </div>
+
+                  {/* Roll Number */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                      <span>
+                        Roll Number{' '}
+                        {currentAcademic && (
+                          <span className="text-[10px] font-normal text-slate-500">
+                            ({currentAcademic.academicYear?.name || selectedYear?.name || 'Current Year'})
+                          </span>
+                        )}
+                      </span>
+                      {isLocked ? (
+                        <span className="text-[10px] font-semibold text-amber-600">Locked Year</span>
+                      ) : !currentAcademic ? (
+                        <span className="text-[10px] font-semibold text-slate-400">No Enrollment</span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-slate-400">Optional (1–999)</span>
+                      )}
+                    </label>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={3}
+                      placeholder={!currentAcademic ? 'No active enrollment' : isLocked ? 'Year is locked' : 'e.g. 15'}
+                      disabled={submitting || isLocked || !currentAcademic}
+                      value={formData.rollNumber}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 3);
+                        setFormData((prev) => ({ ...prev, rollNumber: val }));
+                        if (errors.rollNumber) setErrors((prev) => ({ ...prev, rollNumber: null }));
+                      }}
+                      error={errors.rollNumber}
+                      className="text-xs font-mono font-medium"
+                    />
+                    {errors.rollNumber ? (
+                      <p className="text-[11px] text-red-600 font-semibold mt-1">{errors.rollNumber}</p>
+                    ) : (
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {currentAcademic
+                          ? `Class ${currentAcademic.class?.name || ''}${currentAcademic.section ? ` (${currentAcademic.section.name})` : ''}`
+                          : 'Student must have an active enrollment to assign a roll number'}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Residential Address */}
@@ -705,7 +800,14 @@ export const EditStudentProfilePage = () => {
                       )}
                       <div className="flex justify-between items-center pt-2 border-t border-indigo-100">
                         <span className="text-slate-500 font-medium">Roll Number:</span>
-                        <span className="font-mono font-bold text-slate-900">{currentAcademic.rollNumber ?? '—'}</span>
+                        <div className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
+                          <span>{formData.rollNumber ? formData.rollNumber : (currentAcademic.rollNumber ?? '—')}</span>
+                          {formData.rollNumber !== String(currentAcademic.rollNumber ?? '') && (
+                            <span className="text-[9px] font-sans font-semibold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                              Modified
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ) : (

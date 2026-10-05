@@ -92,10 +92,14 @@ pm2 save
 pm2 startup
 ```
 
-#### Step 6: Configure Native Nginx Web Server
+#### Step 6: Configure Native Nginx Web Server with Anti-DDoS Defenses
 Create Nginx configuration (`/etc/nginx/sites-available/axomsetu`):
 
 ```nginx
+# Anti-DDoS Rate & Connection Limiting Zones
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=30r/s;
+limit_conn_zone $binary_remote_addr zone=conn_limit:10m;
+
 server {
     listen 80;
     server_name yourdomain.com; # Replace with your domain or server IP
@@ -107,14 +111,18 @@ server {
     # Client-side upload limit
     client_max_body_size 10M;
 
+    # Anti-DDoS: Connection Limit per IP
+    limit_conn conn_limit 30;
+
     # Gzip Compression
     gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml image/svg+xml;
+    gzip_types text/plain text/css application/json application/javascript text/xml;
 
     # Security Headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
 
     # Cache static assets
     location /assets/ {
@@ -122,9 +130,11 @@ server {
         add_header Cache-Control "public, max-age=31536000, immutable";
     }
 
-    # Reverse proxy API requests to Node.js backend
+    # Reverse proxy API requests to Node.js backend with Rate Limiting
     location /api/ {
-        proxy_pass http://127.0.0.1:5001/api/;
+        limit_req zone=api_limit burst=50 nodelay;
+
+        proxy_pass http://127.0.0.1:5000/api/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -132,6 +142,11 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Timeouts to mitigate Slowloris attacks
+        proxy_connect_timeout 15s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 30s;
     }
 
     # Single Page Application fallback

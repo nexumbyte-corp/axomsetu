@@ -19,6 +19,8 @@ export const Input = React.forwardRef(
       disabled = false,
       isDisabled = false,
       autoComplete,
+      maxLength,
+      showCount = false,
       ...props
     },
     ref
@@ -34,6 +36,119 @@ export const Input = React.forwardRef(
       }
       if (props.onWheel) {
         props.onWheel(e);
+      }
+    };
+
+    const handleKeyDown = (e) => {
+      if (maxLength !== undefined && maxLength !== null) {
+        const isControlKey =
+          e.ctrlKey ||
+          e.metaKey ||
+          e.altKey ||
+          [
+            'Backspace',
+            'Delete',
+            'ArrowLeft',
+            'ArrowRight',
+            'ArrowUp',
+            'ArrowDown',
+            'Tab',
+            'Enter',
+            'Escape',
+            'Home',
+            'End',
+            'PageUp',
+            'PageDown',
+          ].includes(e.key);
+
+        let hasSelection = false;
+        try {
+          if (e.target.selectionStart !== null && e.target.selectionEnd !== null) {
+            hasSelection = e.target.selectionStart !== e.target.selectionEnd;
+          }
+        } catch {
+          hasSelection = false;
+        }
+
+        // If limit reached and user tries to type a printable character without replacement
+        if (!isControlKey && !hasSelection && e.key && e.key.length === 1) {
+          const currentLength = e.target.value ? String(e.target.value).length : 0;
+          if (currentLength >= maxLength) {
+            e.preventDefault();
+          }
+        }
+      }
+
+      if (props.onKeyDown) {
+        props.onKeyDown(e);
+      }
+    };
+
+    const handleInput = (e) => {
+      if (maxLength !== undefined && maxLength !== null) {
+        if (e.target.value && String(e.target.value).length > maxLength) {
+          e.target.value = String(e.target.value).slice(0, maxLength);
+        }
+      }
+      if (props.onInput) {
+        props.onInput(e);
+      }
+    };
+
+    const handleChange = (e) => {
+      if (maxLength !== undefined && maxLength !== null) {
+        if (e.target.value && String(e.target.value).length > maxLength) {
+          e.target.value = String(e.target.value).slice(0, maxLength);
+        }
+      }
+      if (props.onChange) {
+        props.onChange(e);
+      }
+    };
+
+    const handlePaste = (e) => {
+      if (maxLength !== undefined && maxLength !== null) {
+        const clipboardData = e.clipboardData || window.clipboardData;
+        if (clipboardData) {
+          const pastedText = clipboardData.getData('text') || '';
+          const target = e.target;
+          const currentVal = target.value ? String(target.value) : '';
+          let start = currentVal.length;
+          let end = currentVal.length;
+          try {
+            if (target.selectionStart !== null && target.selectionEnd !== null) {
+              start = target.selectionStart;
+              end = target.selectionEnd;
+            }
+          } catch {
+            start = currentVal.length;
+            end = currentVal.length;
+          }
+
+          const newLength = currentVal.length - (end - start) + pastedText.length;
+          if (newLength > maxLength) {
+            e.preventDefault();
+            const availableSpace = Math.max(0, maxLength - (currentVal.length - (end - start)));
+            if (availableSpace > 0) {
+              const truncatedPaste = pastedText.slice(0, availableSpace);
+              const updatedValue = currentVal.slice(0, start) + truncatedPaste + currentVal.slice(end);
+              target.value = updatedValue;
+
+              if (props.onChange) {
+                const syntheticEvent = {
+                  ...e,
+                  target,
+                  currentTarget: target,
+                };
+                props.onChange(syntheticEvent);
+              }
+            }
+          }
+        }
+      }
+
+      if (props.onPaste) {
+        props.onPaste(e);
       }
     };
 
@@ -71,9 +186,14 @@ export const Input = React.forwardRef(
             id={inputId}
             name={name}
             type={type}
+            maxLength={maxLength}
             disabled={isActuallyDisabled}
             autoComplete={computedAutoComplete}
             onWheel={handleWheel}
+            onKeyDown={handleKeyDown}
+            onInput={handleInput}
+            onChange={handleChange}
+            onPaste={handlePaste}
             className={`w-full rounded-lg border transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:cursor-not-allowed ${
               isSm ? 'py-1.5 text-xs' : 'py-2.5 text-sm'
             } ${
@@ -85,8 +205,22 @@ export const Input = React.forwardRef(
           />
           {endElement && <div className="absolute inset-y-0 right-0 pr-2.5 flex items-center">{endElement}</div>}
         </div>
-        {error && <p className="mt-1 text-xs text-rose-500 font-medium">{error}</p>}
-        {helperText && !error && <p className={`mt-1 text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{helperText}</p>}
+        <div className="flex items-center justify-between mt-1">
+          {error ? (
+            <p className="text-xs text-rose-500 font-medium">{error}</p>
+          ) : helperText ? (
+            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{helperText}</p>
+          ) : (
+            <div />
+          )}
+          {showCount && maxLength !== undefined && maxLength !== null && (
+            <p className={`text-[10px] font-mono ml-auto ${
+              String(props.value || '').length >= maxLength ? 'text-amber-500 font-semibold' : 'text-slate-400'
+            }`}>
+              {String(props.value || '').length}/{maxLength}
+            </p>
+          )}
+        </div>
       </div>
     );
   }

@@ -27,6 +27,13 @@ const STATUS_OPTIONS = [
   { value: 'ON_LEAVE', label: 'On Leave' },
 ];
 
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]+(?:[.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,10}$/;
+const PHONE_REGEX = /^[6-9]\d{9}$/;
+const IFSC_REGEX = /^[A-Z0-9]{4,20}$/;
+const BANK_ACCOUNT_REGEX = /^\d{9,18}$/;
+const NAME_REGEX = /^[a-zA-Z\s.'-]+$/;
+const BANK_NAME_REGEX = /^[a-zA-Z0-9\s.&',()/-]+$/;
+
 export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) => {
   const isEditing = Boolean(staff?.id);
 
@@ -63,8 +70,8 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
         joiningDate: staff.joiningDate ? formatDateForInput(staff.joiningDate) : '',
         baseSalary: staff.baseSalary !== undefined && staff.baseSalary !== null ? String(staff.baseSalary) : '',
         bankName: staff.bankName || '',
-        bankAccountNo: staff.bankAccountNo || '',
-        ifscCode: staff.ifscCode || '',
+        bankAccountNo: staff.bankAccountNo ? String(staff.bankAccountNo).replace(/\D/g, '').slice(0, 18) : '',
+        ifscCode: staff.ifscCode ? String(staff.ifscCode).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) : '',
         status: staff.status || 'ACTIVE',
       });
     } else {
@@ -92,24 +99,57 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
     let fieldError = null;
 
     if (name === 'name') {
-      if (!value.trim()) fieldError = 'Full Name is required';
-      else if (value.trim().length < 2) fieldError = 'Name must be at least 2 characters';
-    } else if (name === 'department') {
-      if (!value.trim()) fieldError = 'Department is required';
-    } else if (name === 'designation') {
-      if (!value.trim()) fieldError = 'Designation is required';
-    } else if (name === 'joiningDate') {
-      if (!value) fieldError = 'Joining Date is required';
-    } else if (name === 'phone' && value.trim()) {
-      const trimmed = value.trim();
-      if (trimmed.length < 10) {
-        fieldError = 'Phone number must be 10 digits';
-      } else if (!/^[6-9]\d{9}$/.test(trimmed)) {
-        fieldError = 'Enter a valid 10-digit phone number (starting 6-9)';
+      const trimmed = (value || '').trim();
+      if (!trimmed) {
+        fieldError = 'Full Name is required';
+      } else if (trimmed.length < 2) {
+        fieldError = 'Name must be at least 2 characters';
+      } else if (trimmed.length > 100) {
+        fieldError = 'Name must not exceed 100 characters';
+      } else if (!NAME_REGEX.test(trimmed)) {
+        fieldError = 'Name can only contain letters, spaces, dots, and hyphens';
+      } else if (/(.)\1{5,}/.test(trimmed)) {
+        fieldError = 'Name contains excessive repeated characters';
       }
-    } else if (name === 'email' && value.trim()) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
-        fieldError = 'Enter a valid email address';
+    } else if (name === 'department') {
+      const trimmed = (value || '').trim();
+      if (!trimmed) {
+        fieldError = 'Department is required';
+      } else if (trimmed.length < 2) {
+        fieldError = 'Department must be at least 2 characters';
+      } else if (trimmed.length > 50) {
+        fieldError = 'Department must not exceed 50 characters';
+      }
+    } else if (name === 'designation') {
+      const trimmed = (value || '').trim();
+      if (!trimmed) {
+        fieldError = 'Designation is required';
+      } else if (trimmed.length < 2) {
+        fieldError = 'Designation must be at least 2 characters';
+      } else if (trimmed.length > 50) {
+        fieldError = 'Designation must not exceed 50 characters';
+      }
+    } else if (name === 'joiningDate') {
+      if (!value) {
+        fieldError = 'Joining Date is required';
+      }
+    } else if (name === 'phone') {
+      const trimmed = (value || '').trim();
+      if (trimmed) {
+        if (trimmed.length < 10) {
+          fieldError = 'Phone number must be exactly 10 digits';
+        } else if (!PHONE_REGEX.test(trimmed)) {
+          fieldError = 'Enter a valid 10-digit mobile number starting with 6, 7, 8, or 9';
+        }
+      }
+    } else if (name === 'email') {
+      const trimmed = (value || '').trim();
+      if (trimmed) {
+        if (trimmed.length > 150) {
+          fieldError = 'Email must not exceed 150 characters';
+        } else if (!EMAIL_REGEX.test(trimmed)) {
+          fieldError = 'Enter a valid email address (e.g. name@example.com)';
+        }
       }
     } else if (name === 'baseSalary') {
       const strVal = String(value || '').trim();
@@ -123,24 +163,72 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
           fieldError = 'Base monthly salary must not exceed ₹10,000,000';
         }
       }
-    } else if (name === 'ifscCode' && value.trim()) {
-      if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value.trim().toUpperCase())) {
-        fieldError = 'IFSC code must be 11 characters (e.g. SBIN0001234)';
+    } else if (name === 'bankName') {
+      const trimmed = (value || '').trim();
+      if (trimmed) {
+        if (trimmed.length < 2) {
+          fieldError = 'Bank name must be at least 2 characters';
+        } else if (trimmed.length > 50) {
+          fieldError = 'Bank name must not exceed 50 characters';
+        } else if (!BANK_NAME_REGEX.test(trimmed)) {
+          fieldError = 'Bank name contains invalid characters';
+        } else if (!/[a-zA-Z]{2,}/.test(trimmed)) {
+          fieldError = 'Bank name must contain valid alphabetic characters';
+        } else if (/(.)\1{7,}/.test(trimmed)) {
+          fieldError = 'Bank name contains excessive repeated characters';
+        }
       }
-    } else if (name === 'bankAccountNo' && value.trim()) {
-      if (!/^\d{9,18}$/.test(value.trim())) {
-        fieldError = 'Account number must be 9 to 18 digits';
+    } else if (name === 'bankAccountNo') {
+      const trimmed = (value || '').trim();
+      if (trimmed) {
+        if (trimmed.length < 9) {
+          fieldError = 'Account number must be 9 to 18 digits';
+        } else if (!BANK_ACCOUNT_REGEX.test(trimmed)) {
+          fieldError = 'Account number must be 9 to 18 digits';
+        }
+      }
+    } else if (name === 'ifscCode') {
+      const trimmed = (value || '').trim().toUpperCase();
+      if (trimmed) {
+        if (trimmed.length < 4) {
+          fieldError = 'IFSC code must be at least 4 characters';
+        } else if (trimmed.length > 20) {
+          fieldError = 'IFSC code must not exceed 20 characters';
+        } else if (!IFSC_REGEX.test(trimmed)) {
+          fieldError = 'IFSC code can only contain letters and numbers (up to 20 chars)';
+        }
       }
     }
 
     setErrors((prev) => ({ ...prev, [name]: fieldError }));
+    return fieldError === null;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     let updatedValue = value;
-    if (name === 'ifscCode') updatedValue = value.toUpperCase();
-    if (name === 'phone') updatedValue = value.replace(/\D/g, '').slice(0, 10);
+
+    if (name === 'phone') {
+      updatedValue = value.replace(/\D/g, '').slice(0, 10);
+    } else if (name === 'bankAccountNo') {
+      updatedValue = value.replace(/\D/g, '').slice(0, 18);
+    } else if (name === 'ifscCode') {
+      updatedValue = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
+    } else if (name === 'baseSalary') {
+      if (value.startsWith('-')) return;
+      const clean = value.replace(/[^\d.]/g, '');
+      if (clean.length > 8) return;
+      updatedValue = clean;
+    } else if (name === 'email') {
+      updatedValue = value.replace(/\s/g, '').slice(0, 150);
+    } else if (name === 'bankName') {
+      updatedValue = value.slice(0, 50);
+    } else if (name === 'name') {
+      updatedValue = value.slice(0, 100);
+    } else if (name === 'department' || name === 'designation') {
+      updatedValue = value.slice(0, 50);
+    }
+
     setFormData((prev) => ({ ...prev, [name]: updatedValue }));
 
     if (errors[name]) {
@@ -151,24 +239,57 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
   const validateAll = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) newErrors.name = 'Full Name is required';
-    else if (formData.name.trim().length < 2) newErrors.name = 'Name must be at least 2 characters';
+    const trimmedName = formData.name.trim();
+    if (!trimmedName) {
+      newErrors.name = 'Full Name is required';
+    } else if (trimmedName.length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
+    } else if (trimmedName.length > 100) {
+      newErrors.name = 'Name must not exceed 100 characters';
+    } else if (!NAME_REGEX.test(trimmedName)) {
+      newErrors.name = 'Name can only contain letters, spaces, dots, and hyphens';
+    } else if (/(.)\1{5,}/.test(trimmedName)) {
+      newErrors.name = 'Name contains excessive repeated characters';
+    }
 
-    if (!formData.department.trim()) newErrors.department = 'Department is required';
-    if (!formData.designation.trim()) newErrors.designation = 'Designation is required';
-    if (!formData.joiningDate) newErrors.joiningDate = 'Joining Date is required';
+    const trimmedDept = formData.department.trim();
+    if (!trimmedDept) {
+      newErrors.department = 'Department is required';
+    } else if (trimmedDept.length < 2) {
+      newErrors.department = 'Department must be at least 2 characters';
+    } else if (trimmedDept.length > 50) {
+      newErrors.department = 'Department must not exceed 50 characters';
+    }
+
+    const trimmedDesig = formData.designation.trim();
+    if (!trimmedDesig) {
+      newErrors.designation = 'Designation is required';
+    } else if (trimmedDesig.length < 2) {
+      newErrors.designation = 'Designation must be at least 2 characters';
+    } else if (trimmedDesig.length > 50) {
+      newErrors.designation = 'Designation must not exceed 50 characters';
+    }
+
+    if (!formData.joiningDate) {
+      newErrors.joiningDate = 'Joining Date is required';
+    }
 
     if (formData.phone?.trim()) {
       const trimmedPhone = formData.phone.trim();
       if (trimmedPhone.length < 10) {
-        newErrors.phone = 'Phone number must be 10 digits';
-      } else if (!/^[6-9]\d{9}$/.test(trimmedPhone)) {
-        newErrors.phone = 'Enter a valid 10-digit phone number (starting 6-9)';
+        newErrors.phone = 'Phone number must be exactly 10 digits';
+      } else if (!PHONE_REGEX.test(trimmedPhone)) {
+        newErrors.phone = 'Enter a valid 10-digit mobile number starting with 6, 7, 8, or 9';
       }
     }
 
-    if (formData.email?.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      newErrors.email = 'Enter a valid email address';
+    if (formData.email?.trim()) {
+      const trimmedEmail = formData.email.trim();
+      if (trimmedEmail.length > 150) {
+        newErrors.email = 'Email must not exceed 150 characters';
+      } else if (!EMAIL_REGEX.test(trimmedEmail)) {
+        newErrors.email = 'Enter a valid email address (e.g. name@example.com)';
+      }
     }
 
     const salaryStr = String(formData.baseSalary || '').trim();
@@ -183,12 +304,37 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
       }
     }
 
-    if (formData.ifscCode?.trim() && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(formData.ifscCode.trim().toUpperCase())) {
-      newErrors.ifscCode = 'IFSC code must be 11 characters (e.g. SBIN0001234)';
+    if (formData.bankName?.trim()) {
+      const trimmedBank = formData.bankName.trim();
+      if (trimmedBank.length < 2) {
+        newErrors.bankName = 'Bank name must be at least 2 characters';
+      } else if (trimmedBank.length > 50) {
+        newErrors.bankName = 'Bank name must not exceed 50 characters';
+      } else if (!BANK_NAME_REGEX.test(trimmedBank)) {
+        newErrors.bankName = 'Bank name contains invalid characters';
+      } else if (!/[a-zA-Z]{2,}/.test(trimmedBank)) {
+        newErrors.bankName = 'Bank name must contain valid alphabetic characters';
+      } else if (/(.)\1{7,}/.test(trimmedBank)) {
+        newErrors.bankName = 'Bank name contains excessive repeated characters';
+      }
     }
 
-    if (formData.bankAccountNo?.trim() && !/^\d{9,18}$/.test(formData.bankAccountNo.trim())) {
-      newErrors.bankAccountNo = 'Account number must be 9 to 18 digits';
+    if (formData.bankAccountNo?.trim()) {
+      const trimmedAcc = formData.bankAccountNo.trim();
+      if (trimmedAcc.length < 9 || !BANK_ACCOUNT_REGEX.test(trimmedAcc)) {
+        newErrors.bankAccountNo = 'Account number must be 9 to 18 digits';
+      }
+    }
+
+    if (formData.ifscCode?.trim()) {
+      const trimmedIfsc = formData.ifscCode.trim().toUpperCase();
+      if (trimmedIfsc.length < 4) {
+        newErrors.ifscCode = 'IFSC code must be at least 4 characters';
+      } else if (trimmedIfsc.length > 20) {
+        newErrors.ifscCode = 'IFSC code must not exceed 20 characters';
+      } else if (!IFSC_REGEX.test(trimmedIfsc)) {
+        newErrors.ifscCode = 'IFSC code can only contain letters and numbers (up to 20 chars)';
+      }
     }
 
     setErrors(newErrors);
@@ -292,6 +438,8 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 onBlur={() => validateField('name', formData.name)}
                 placeholder="Full Name"
                 error={errors.name}
+                maxLength={100}
+                required
               />
             </div>
 
@@ -318,6 +466,8 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 onBlur={() => validateField('department', formData.department)}
                 placeholder="Department"
                 error={errors.department}
+                maxLength={50}
+                required
               />
             </div>
 
@@ -331,6 +481,8 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 onBlur={() => validateField('designation', formData.designation)}
                 placeholder="Designation"
                 error={errors.designation}
+                maxLength={50}
+                required
               />
             </div>
 
@@ -364,6 +516,8 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 size="sm"
                 label="Phone Number"
                 name="phone"
+                type="tel"
+                inputMode="numeric"
                 value={formData.phone}
                 onChange={handleChange}
                 onBlur={() => validateField('phone', formData.phone)}
@@ -385,6 +539,7 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 onBlur={() => validateField('email', formData.email)}
                 placeholder="Email Address"
                 error={errors.email}
+                maxLength={150}
               />
             </div>
           </div>
@@ -408,13 +563,20 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 name="baseSalary"
                 type="number"
                 min="0"
+                max="10000000"
+                maxLength={8}
                 step="500"
+                inputMode="decimal"
                 value={formData.baseSalary}
                 onChange={handleChange}
                 onBlur={() => validateField('baseSalary', formData.baseSalary)}
+                onKeyDown={(e) => {
+                  if (['-', 'e', 'E', '+'].includes(e.key)) e.preventDefault();
+                }}
                 placeholder="Base Salary"
                 error={errors.baseSalary}
                 className="font-mono font-semibold"
+                required
               />
             </div>
 
@@ -425,7 +587,10 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 name="bankName"
                 value={formData.bankName}
                 onChange={handleChange}
+                onBlur={() => validateField('bankName', formData.bankName)}
                 placeholder="Bank Name"
+                error={errors.bankName}
+                maxLength={50}
               />
             </div>
 
@@ -434,11 +599,14 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 size="sm"
                 label="Account Number"
                 name="bankAccountNo"
+                type="text"
+                inputMode="numeric"
                 value={formData.bankAccountNo}
                 onChange={handleChange}
                 onBlur={() => validateField('bankAccountNo', formData.bankAccountNo)}
                 placeholder="Account Number"
                 error={errors.bankAccountNo}
+                maxLength={18}
                 className="font-mono"
               />
             </div>
@@ -453,7 +621,9 @@ export const AddEditStaffModal = ({ isOpen, onClose, staff = null, onSuccess }) 
                 onBlur={() => validateField('ifscCode', formData.ifscCode)}
                 placeholder="IFSC Code"
                 error={errors.ifscCode}
+                maxLength={20}
                 className="font-mono uppercase"
+                autoCapitalize="characters"
               />
             </div>
 

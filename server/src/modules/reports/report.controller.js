@@ -225,8 +225,16 @@ export const getFinancialChartsReport = asyncHandler(async (req, res) => {
 // --- Audit Report ---
 export const getAuditLogsReport = asyncHandler(async (req, res) => {
   const query = genericReportQuerySchema.parse(req.query);
-  const result = await auditReportsService.getAuditLogs(req.schoolId, query);
+  const targetSchoolId = req.user?.role === 'SUPER_ADMIN' && query.schoolId ? query.schoolId : req.schoolId;
+  const result = await auditReportsService.getAuditLogs(targetSchoolId, query);
   res.status(200).json({ success: true, message: 'Audit logs report generated', ...result });
+});
+
+export const getAuditLogFilterOptions = asyncHandler(async (req, res) => {
+  const query = genericReportQuerySchema.parse(req.query);
+  const targetSchoolId = req.user?.role === 'SUPER_ADMIN' && query.schoolId ? query.schoolId : req.schoolId;
+  const result = await auditReportsService.getAuditFilterOptions(targetSchoolId);
+  res.status(200).json({ success: true, message: 'Audit log filter options retrieved', data: result });
 });
 
 // --- Hostel Reports ---

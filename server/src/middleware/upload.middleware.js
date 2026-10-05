@@ -3,13 +3,13 @@ import { ApiError } from '../utils/ApiError.js';
 
 const storage = multer.memoryStorage();
 
-const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml'];
+const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 const fileFilter = (req, file, cb) => {
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(ApiError.badRequest('Invalid file format. Only JPEG, PNG, WebP, and SVG images are allowed.'), false);
+    cb(ApiError.badRequest('Invalid file format. Only JPEG, PNG, and WebP raster images are allowed.'), false);
   }
 };
 
@@ -38,10 +38,9 @@ export const validateImageMagicBytes = (req, res, next) => {
   const isJpeg = hex.startsWith('FFD8FF');
   const isPng = hex === '89504E47';
   const isWebp = hex === '52494646'; // RIFF header
-  const isSvg = buffer.toString('utf8', 0, 100).toLowerCase().includes('<svg');
 
-  if (!isJpeg && !isPng && !isWebp && !isSvg) {
-    return next(ApiError.badRequest('Uploaded file content does not match a valid image format'));
+  if (!isJpeg && !isPng && !isWebp) {
+    return next(ApiError.badRequest('Uploaded file content does not match a valid JPEG, PNG, or WebP image format'));
   }
 
   next();

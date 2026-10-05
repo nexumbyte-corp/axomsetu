@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { Select } from '../ui/Select.jsx';
 import { Input } from '../ui/Input.jsx';
-
 import { Link } from 'react-router-dom';
 
 export const EnrollmentFields = ({
@@ -13,6 +12,7 @@ export const EnrollmentFields = ({
   onChange,
   errors = {},
   disabled = false,
+  size = 'sm',
 }) => {
   const selectedClass = classes.find((c) => c.id === values.classId);
   const hasStream = Boolean(selectedClass?.hasStream);
@@ -38,12 +38,13 @@ export const EnrollmentFields = ({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Class & Medium Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="space-y-3">
+      {/* 3-Column Compact Grid for Class, Medium, Section */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {/* Class Selector */}
         <Select
           label="Class"
+          size={size}
           required
           disabled={disabled}
           value={values.classId || ''}
@@ -53,7 +54,7 @@ export const EnrollmentFields = ({
           <option value="">-- Select Class --</option>
           {classes.map((cls) => (
             <option key={cls.id} value={cls.id}>
-              Class {cls.name} {cls.hasStream ? '(Streams Enabled)' : ''}
+              Class {cls.name} {cls.hasStream ? '(Streams)' : ''}
             </option>
           ))}
         </Select>
@@ -62,6 +63,7 @@ export const EnrollmentFields = ({
         <div>
           <Select
             label="Medium"
+            size={size}
             required
             disabled={disabled}
             value={values.mediumId || ''}
@@ -76,26 +78,24 @@ export const EnrollmentFields = ({
             ))}
           </Select>
           {mediums.length === 0 && (
-            <p className="mt-1 text-xs text-amber-600">
-              No mediums configured.{' '}
+            <p className="mt-0.5 text-[10px] text-amber-600">
+              No mediums.{' '}
               <Link to="/app/mediums" className="underline font-semibold">
-                Configure Mediums
+                Configure
               </Link>
             </p>
           )}
         </div>
-      </div>
 
-      {/* Section & Stream Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Section Selector (Optional) */}
+        {/* Section Selector */}
         <Select
           label="Section"
+          size={size}
           disabled={disabled}
           value={values.sectionId || ''}
           onChange={(e) => onChange({ ...values, sectionId: e.target.value || null })}
           error={errors.sectionId}
-          helperText="Optional"
+          helperText={size === 'sm' ? undefined : 'Optional'}
         >
           <option value="">No Section</option>
           {sections.map((sec) => (
@@ -104,58 +104,64 @@ export const EnrollmentFields = ({
             </option>
           ))}
         </Select>
+      </div>
 
+      {/* Row 2: Stream (if enabled) & Roll Number */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {/* Stream Selector (Conditional on Class.hasStream) */}
-        <div>
-          <Select
-            label={`Stream ${hasStream ? '*' : '(N/A)'}`}
-            required={hasStream}
-            disabled={disabled || !hasStream || !values.classId}
-            value={hasStream ? values.streamId || '' : ''}
-            onChange={(e) => onChange({ ...values, streamId: e.target.value || null })}
-            error={errors.streamId}
-            helperText={
-              !values.classId
-                ? 'Select a class first'
-                : !hasStream
-                  ? 'Class does not require a stream'
-                  : 'Required for this class'
-            }
-          >
-            <option value="">
-              {!hasStream ? 'Not Applicable' : '-- Select Stream --'}
-            </option>
-            {hasStream &&
-              streams.map((st) => (
+        {hasStream ? (
+          <div>
+            <Select
+              label="Stream *"
+              size={size}
+              required
+              disabled={disabled || !values.classId}
+              value={values.streamId || ''}
+              onChange={(e) => onChange({ ...values, streamId: e.target.value || null })}
+              error={errors.streamId}
+              helperText={
+                !values.classId
+                  ? 'Select class first'
+                  : undefined
+              }
+            >
+              <option value="">-- Select Stream --</option>
+              {streams.map((st) => (
                 <option key={st.id} value={st.id}>
                   {st.name}
                 </option>
               ))}
-          </Select>
+            </Select>
 
-          {hasStream && streams.length === 0 && (
-            <p className="mt-1 text-xs text-amber-600">
-              No streams configured.{' '}
-              <Link to="/app/streams" className="underline font-semibold">
-                Configure Streams
-              </Link>
-            </p>
-          )}
+            {streams.length === 0 && (
+              <p className="mt-0.5 text-[10px] text-amber-600">
+                No streams.{' '}
+                <Link to="/app/streams" className="underline font-semibold">
+                  Configure
+                </Link>
+              </p>
+            )}
+          </div>
+        ) : null}
+
+        {/* Roll Number */}
+        <div className={hasStream ? '' : 'sm:col-span-1'}>
+          <Input
+            label="Roll Number"
+            size={size}
+            type="text"
+            placeholder="e.g. 15 (Optional)"
+            disabled={disabled}
+            maxLength={3}
+            value={values.rollNumber ?? values.rollNo ?? ''}
+            onChange={(e) => {
+              const clean = e.target.value.replace(/\D/g, '').slice(0, 3);
+              onChange({ ...values, rollNumber: clean });
+            }}
+            error={errors.rollNumber || errors.rollNo}
+            helperText={size === 'sm' ? undefined : 'Optional (1 - 999)'}
+          />
         </div>
-      </div>
-
-      {/* Roll Number Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input
-          label="Roll Number"
-          type="text"
-          placeholder="e.g. 15 (Optional)"
-          disabled={disabled}
-          value={values.rollNumber ?? values.rollNo ?? ''}
-          onChange={(e) => onChange({ ...values, rollNumber: e.target.value })}
-          error={errors.rollNumber || errors.rollNo}
-          helperText="Optional numerical roll number"
-        />
       </div>
     </div>
   );

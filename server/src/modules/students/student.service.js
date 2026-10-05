@@ -7,6 +7,7 @@ import { deleteCloudinaryImage } from '../../services/cloudinary.service.js';
 import { ensureFeeCharge } from '../fees/fee-creation.service.js';
 import { memoryCache } from '../../utils/cache.js';
 import { parseDateOnlyToUtc } from '../../utils/dateUtils.js';
+import { processHostelExitForStudent } from '../hostel/hostel.service.js';
 
 /**
  * Generic helper to determine if a student is operationally active.
@@ -635,6 +636,8 @@ export const listStudents = async (schoolId, query) => {
               where: { status: 'ACTIVE' },
               take: 1,
               select: {
+                id: true,
+                startDate: true,
                 hostel: { select: { id: true, name: true } },
                 room: { select: { id: true, roomNumber: true } },
                 bed: { select: { id: true, bedNumber: true } },
@@ -692,10 +695,13 @@ export const listStudents = async (schoolId, query) => {
       createdAt: e.student.createdAt,
       hostel: activeHostel
         ? {
+          id: activeHostel.id,
           enrolled: true,
+          status: 'ACTIVE',
           hostelName: activeHostel.hostel.name,
           roomNumber: activeHostel.room.roomNumber,
           bedNumber: activeHostel.bed.bedNumber,
+          startDate: activeHostel.startDate,
         }
         : { enrolled: false },
       enrollment: {
@@ -996,19 +1002,6 @@ export const validateStudentAdmissionDateConstraints = async (tx, studentId, new
       throw ApiError.badRequest(`Admission date cannot be after the earliest mid-session transfer date (${formattedTransfer})`);
     }
   }
-
-  // 3. Guardrail against hostel admission date
-  const earliestHostel = await tx.hostelEnrollment.findFirst({
-    where: { studentId },
-    orderBy: { startDate: 'asc' },
-  });
-  if (earliestHostel) {
-    const hostelStart = parseDateOnlyToUtc(earliestHostel.startDate);
-    if (hostelStart && newAdmissionDate > hostelStart) {
-      const formattedHostel = hostelStart.toISOString().split('T')[0];
-      throw ApiError.badRequest(`Admission date cannot be after the student's hostel admission date (${formattedHostel})`);
-    }
-  }
 };
 
 /**
@@ -1127,93 +1120,201 @@ export const updateStudentProfile = async (schoolId, studentId, data, actorUserI
     }
   }
 
-  const updatedStudent = await prisma.student.update({
-    where: { id: studentId },
-    data: updateData,
-  });
+  // Handle Roll Number updates
+  const rollNoInput = data.rollNumber !== undefined ? data.rollNumber : data.rollNo;
+  const isRollNoProvided = rollNoInput !== undefined;
+  let targetEnrollment = null;
+  let rollNoVal = null;
 
-  await prisma.auditLog.create({
-    data: {
-      schoolId,
-      userId: actorUserId,
-      action: 'UPDATE_STUDENT',
-      entityType: 'Student',
-      entityId: studentId,
-      oldValues: {
-        name: student.name,
-        guardianName: student.guardianName,
-        phone: student.phone,
-        admissionDate: student.admissionDate,
+  if (isRollNoProvided) {
+    rollNoVal = parseRollNo(rollNoInput);
+
+    // Find the enrollment for the specified academic year, or active/latest enrollment
+    targetEnrollment = await prisma.studentEnrollment.findFirst({
+      where: {
+        schoolId,
+        studentId,
+        ...(data.academicYearId ? { academicYearId: data.academicYearId } : {}),
       },
-      newValues: {
-        name: updatedStudent.name,
-        guardianName: updatedStudent.guardianName,
-        phone: updatedStudent.phone,
-        admissionDate: updatedStudent.admissionDate,
+      orderBy: [
+        { academicYear: { isCurrent: 'desc' } },
+        { createdAt: 'desc' },
+      ],
+      include: {
+        academicYear: true,
       },
-    },
-  });
+    });
 
-  return updatedStudent;
-};
+    if (targetEnrollment) {
+      if (targetEnrollment.academicYear?.isLocked) {
+        throw ApiError.badRequest(`Cannot update roll number: Academic Year '${targetEnrollment.academicYear?.name || ''}' is locked.`);
+      }
 
-/**
- * Updates student master status (ACTIVE, LEFT, GRADUATED, ARCHIVED).
- */
-export const updateStudentStatus = async (schoolId, studentId, status, actorUserId) => {
-  const student = await prisma.student.findUnique({
-    where: { id: studentId },
-  });
+      if (rollNoVal !== null && rollNoVal !== targetEnrollment.rollNo) {
+        const duplicate = await prisma.studentEnrollment.findFirst({
+          where: {
+            schoolId,
+            academicYearId: targetEnrollment.academicYearId,
+            classId: targetEnrollment.classId,
+            sectionId: targetEnrollment.sectionId,
+            rollNo: rollNoVal,
+            id: { not: targetEnrollment.id },
+          },
+          include: {
+            student: { select: { name: true, admissionNo: true } },
+          },
+        });
 
-  if (!student || student.schoolId !== schoolId) {
-    throw ApiError.notFound('Student not found');
+        if (duplicate) {
+          throw ApiError.conflict(
+            `Roll number ${rollNoVal} is already assigned to student ${duplicate.student.name} (${duplicate.student.admissionNo}) in this class & section.`
+          );
+        }
+      }
+    } else if (rollNoVal !== null) {
+      throw ApiError.badRequest('No enrollment record found to assign roll number');
+    }
   }
 
-  // Active Subscription Student Limit Check on reactivating a student
-  if (status === 'ACTIVE' && student.status !== 'ACTIVE') {
-    const activeSub = await prisma.schoolSubscription.findFirst({
-      where: { schoolId, status: 'ACTIVE' },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        plan: {
-          select: { maxStudentLimit: true },
+  const result = await prisma.$transaction(async (tx) => {
+    const updatedStudent = await tx.student.update({
+      where: { id: studentId },
+      data: updateData,
+    });
+
+    if (isRollNoProvided && targetEnrollment && targetEnrollment.rollNo !== rollNoVal) {
+      await tx.studentEnrollment.update({
+        where: { id: targetEnrollment.id },
+        data: { rollNo: rollNoVal },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: actorUserId,
+          action: 'UPDATE_STUDENT_ENROLLMENT',
+          entityType: 'StudentEnrollment',
+          entityId: targetEnrollment.id,
+          oldValues: { rollNo: targetEnrollment.rollNo },
+          newValues: { rollNo: rollNoVal },
+        },
+      });
+    }
+
+    await tx.auditLog.create({
+      data: {
+        schoolId,
+        userId: actorUserId,
+        action: 'UPDATE_STUDENT',
+        entityType: 'Student',
+        entityId: studentId,
+        oldValues: {
+          name: student.name,
+          guardianName: student.guardianName,
+          phone: student.phone,
+          admissionDate: student.admissionDate,
+          ...(isRollNoProvided && targetEnrollment ? { rollNo: targetEnrollment.rollNo } : {}),
+        },
+        newValues: {
+          name: updatedStudent.name,
+          guardianName: updatedStudent.guardianName,
+          phone: updatedStudent.phone,
+          admissionDate: updatedStudent.admissionDate,
+          ...(isRollNoProvided && targetEnrollment ? { rollNo: rollNoVal } : {}),
         },
       },
     });
 
-    const studentLimit = activeSub?.maxStudentLimitSnapshot ?? activeSub?.plan?.maxStudentLimit ?? null;
+    return updatedStudent;
+  });
 
-    if (activeSub && studentLimit !== null && studentLimit > 0) {
-      const activeCount = await prisma.student.count({
+  return result;
+};
+
+/**
+ * Updates student master status (ACTIVE, LEFT, GRADUATED, ARCHIVED).
+ * When moving to LEFT or GRADUATED, automatically checks whether the student is a
+ * Hosteler or Day Scholar and processes hostel exit within the same atomic transaction.
+ */
+export const updateStudentStatus = async (schoolId, studentId, statusOrPayload, actorUserId) => {
+  const status = typeof statusOrPayload === 'string' ? statusOrPayload : statusOrPayload?.status;
+  const exitDate = typeof statusOrPayload === 'object' ? statusOrPayload?.exitDate : undefined;
+  const reason = typeof statusOrPayload === 'object' ? (statusOrPayload?.reason || statusOrPayload?.exitReason) : undefined;
+
+  return await prisma.$transaction(async (tx) => {
+    const student = await tx.student.findUnique({
+      where: { id: studentId },
+    });
+
+    if (!student || student.schoolId !== schoolId) {
+      throw ApiError.notFound('Student not found');
+    }
+
+    // Active Subscription Student Limit Check on reactivating a student
+    if (status === 'ACTIVE' && student.status !== 'ACTIVE') {
+      const activeSub = await tx.schoolSubscription.findFirst({
         where: { schoolId, status: 'ACTIVE' },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          plan: {
+            select: { maxStudentLimit: true },
+          },
+        },
       });
 
-      if (activeCount >= studentLimit) {
-        throw ApiError.forbidden(
-          `Student limit reached. Your subscription plan '${activeSub.planNameSnapshot}' allows a maximum of ${studentLimit} active students. Current active students: ${activeCount}. Please upgrade your subscription plan.`
-        );
+      const studentLimit = activeSub?.maxStudentLimitSnapshot ?? activeSub?.plan?.maxStudentLimit ?? null;
+
+      if (activeSub && studentLimit !== null && studentLimit > 0) {
+        const activeCount = await tx.student.count({
+          where: { schoolId, status: 'ACTIVE' },
+        });
+
+        if (activeCount >= studentLimit) {
+          throw ApiError.forbidden(
+            `Student limit reached. Your subscription plan '${activeSub.planNameSnapshot}' allows a maximum of ${studentLimit} active students. Current active students: ${activeCount}. Please upgrade your subscription plan.`
+          );
+        }
       }
     }
-  }
 
-  const updated = await prisma.student.update({
-    where: { id: studentId },
-    data: { status },
+    // Automatically check and process hostel exit if student is being marked LEFT or GRADUATED
+    let hostelExitResult = null;
+    if (status === 'LEFT' || status === 'GRADUATED') {
+      hostelExitResult = await processHostelExitForStudent(tx, {
+        schoolId,
+        studentId,
+        status,
+        exitDate,
+        reason,
+        actorUserId,
+      });
+    }
+
+    const updated = await tx.student.update({
+      where: { id: studentId },
+      data: { status },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        schoolId,
+        userId: actorUserId,
+        action: 'CHANGE_STUDENT_STATUS',
+        entityType: 'Student',
+        entityId: studentId,
+        oldValues: { status: student.status },
+        newValues: {
+          status,
+          hostelExited: hostelExitResult?.isHosteler || false,
+        },
+      },
+    });
+
+    return {
+      ...updated,
+      hostelExit: hostelExitResult,
+    };
   });
-
-  await prisma.auditLog.create({
-    data: {
-      schoolId,
-      userId: actorUserId,
-      action: 'CHANGE_STUDENT_STATUS',
-      entityType: 'Student',
-      entityId: studentId,
-      oldValues: { status: student.status },
-      newValues: { status },
-    },
-  });
-
-  return updated;
 };
 
 /**
@@ -1623,6 +1724,16 @@ export const promoteStudent = async (schoolId, studentId, data, actorUserId) => 
         throw ApiError.badRequest('Graduation is not allowed because a higher class exists');
       }
 
+      // Check and process hostel exit if student is a hosteler
+      const hostelExitResult = await processHostelExitForStudent(tx, {
+        schoolId,
+        studentId,
+        status: 'GRADUATED',
+        exitDate: data.exitDate,
+        reason: data.reason || data.exitReason,
+        actorUserId,
+      });
+
       // Update student status to GRADUATED
       const updatedStudent = await tx.student.update({
         where: { id: studentId },
@@ -1638,19 +1749,36 @@ export const promoteStudent = async (schoolId, studentId, data, actorUserId) => 
           entityType: 'Student',
           entityId: studentId,
           oldValues: { status: student.status },
-          newValues: { status: 'GRADUATED', action: 'GRADUATE' },
+          newValues: {
+            status: 'GRADUATED',
+            action: 'GRADUATE',
+            hostelExited: hostelExitResult?.isHosteler || false,
+          },
         },
       });
 
       return {
         success: true,
-        message: 'Student marked as GRADUATED successfully',
+        message: hostelExitResult?.isHosteler
+          ? 'Student marked as GRADUATED and hostel exit processed successfully'
+          : 'Student marked as GRADUATED successfully',
         student: updatedStudent,
+        hostelExit: hostelExitResult,
       };
     }
 
     // --- Action: LEFT ---
     if (action === 'LEFT') {
+      // Check and process hostel exit if student is a hosteler
+      const hostelExitResult = await processHostelExitForStudent(tx, {
+        schoolId,
+        studentId,
+        status: 'LEFT',
+        exitDate: data.exitDate,
+        reason: data.reason || data.exitReason,
+        actorUserId,
+      });
+
       // Update student status to LEFT
       const updatedStudent = await tx.student.update({
         where: { id: studentId },
@@ -1666,14 +1794,21 @@ export const promoteStudent = async (schoolId, studentId, data, actorUserId) => 
           entityType: 'Student',
           entityId: studentId,
           oldValues: { status: student.status },
-          newValues: { status: 'LEFT', action: 'LEFT' },
+          newValues: {
+            status: 'LEFT',
+            action: 'LEFT',
+            hostelExited: hostelExitResult?.isHosteler || false,
+          },
         },
       });
 
       return {
         success: true,
-        message: 'Student marked as LEFT successfully',
+        message: hostelExitResult?.isHosteler
+          ? 'Student marked as LEFT and hostel exit processed successfully'
+          : 'Student marked as LEFT successfully',
         student: updatedStudent,
+        hostelExit: hostelExitResult,
       };
     }
 

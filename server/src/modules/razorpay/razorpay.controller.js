@@ -1,9 +1,10 @@
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import razorpayService from './razorpay.service.js';
+import { createRazorpayOrderSchema, verifyRazorpayPaymentSchema } from './razorpay.validation.js';
 
 export const createOrder = asyncHandler(async (req, res) => {
-  const { amount, currency, receipt } = req.body || {};
-  const orderData = await razorpayService.createRazorpayOrder({ amount, currency, receipt });
+  const validatedBody = createRazorpayOrderSchema.parse(req.body || {});
+  const orderData = await razorpayService.createRazorpayOrder(validatedBody);
 
   res.status(200).json({
     success: true,
@@ -18,7 +19,8 @@ export const createOrder = asyncHandler(async (req, res) => {
 });
 
 export const verifyPayment = asyncHandler(async (req, res) => {
-  const result = await razorpayService.verifyRazorpayPayment(req.body || {});
+  const validatedBody = verifyRazorpayPaymentSchema.parse(req.body || {});
+  const result = await razorpayService.verifyRazorpayPayment(validatedBody);
 
   res.status(200).json({
     success: true,

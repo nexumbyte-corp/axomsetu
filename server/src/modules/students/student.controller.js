@@ -94,11 +94,15 @@ export const updateStudentAdmissionDate = asyncHandler(async (req, res) => {
 
 export const updateStudentStatus = asyncHandler(async (req, res) => {
   const validatedBody = updateStudentStatusSchema.parse(req.body);
-  const result = await studentService.updateStudentStatus(req.schoolId, req.params.studentId, validatedBody.status, req.user?.id);
+  const result = await studentService.updateStudentStatus(req.schoolId, req.params.studentId, validatedBody, req.user?.id);
+
+  const message = result?.hostelExit?.isHosteler
+    ? `Student status updated to ${result.status} and hostel exit processed successfully`
+    : 'Student status updated successfully';
 
   res.status(200).json({
     success: true,
-    message: 'Student status updated successfully',
+    message,
     data: result,
   });
 });

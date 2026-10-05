@@ -30,6 +30,7 @@ const STAFF_STATUSES = ['ACTIVE', 'INACTIVE', 'RESIGNED', 'ON_LEAVE'];
 const PAYMENT_MODES = ['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE', 'DEMAND_DRAFT', 'POS', 'OTHER'];
 
 const phoneRegex = /^[0-9+\-\s()]{7,15}$/;
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]+(?:[.-][a-zA-Z0-9]+)*\.[a-zA-Z]{2,10}$/;
 
 export const createStaffSchema = z.object({
   employeeId: z
@@ -47,9 +48,9 @@ export const createStaffSchema = z.object({
   email: z
     .string()
     .trim()
-    .max(100, 'Email must not exceed 100 characters')
-    .refine((val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
-      message: 'Invalid email address',
+    .max(150, 'Email must not exceed 150 characters')
+    .refine((val) => !val || emailRegex.test(val), {
+      message: 'Invalid email address format',
     })
     .optional()
     .nullable()
@@ -90,14 +91,17 @@ export const createStaffSchema = z.object({
   bankName: z
     .string()
     .trim()
-    .max(100, 'Bank name must not exceed 100 characters')
+    .max(60, 'Bank name must not exceed 60 characters')
+    .refine((val) => !val || /^[a-zA-Z0-9\s.&',()/-]+$/.test(val), {
+      message: 'Bank name contains invalid characters',
+    })
     .optional()
     .nullable()
     .or(z.literal('')),
   bankAccountNo: z
     .string()
     .trim()
-    .max(50, 'Bank account number must not exceed 50 characters')
+    .max(18, 'Bank account number must not exceed 18 digits')
     .refine((val) => !val || /^\d{9,18}$/.test(val), {
       message: 'Bank account number must be between 9 and 18 digits',
     })
@@ -108,8 +112,8 @@ export const createStaffSchema = z.object({
     .string()
     .trim()
     .max(20, 'IFSC code must not exceed 20 characters')
-    .refine((val) => !val || /^[A-Z]{4}0[A-Z0-9]{6}$/.test(val.toUpperCase()), {
-      message: 'IFSC code must be 11 characters (e.g. SBIN0001234)',
+    .refine((val) => !val || /^[A-Z0-9]{4,20}$/.test(val.toUpperCase()), {
+      message: 'IFSC code must be between 4 and 20 alphanumeric characters',
     })
     .optional()
     .nullable()

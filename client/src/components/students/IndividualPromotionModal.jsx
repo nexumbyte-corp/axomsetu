@@ -6,8 +6,20 @@ import { Alert } from '../ui/Alert.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { EnrollmentFields } from './EnrollmentFields.jsx';
 import { studentService } from '../../services/student.service.js';
+import { Input } from '../ui/Input.jsx';
+import { DatePicker } from '../ui/DatePicker.jsx';
 import { toast } from '../ui/Toast.jsx';
-import { Sparkles, AlertTriangle, GraduationCap, RotateCcw, UserX } from 'lucide-react';
+import {
+  Sparkles,
+  AlertTriangle,
+  GraduationCap,
+  RotateCcw,
+  UserX,
+  Building2,
+  Home,
+  Bed,
+  CheckCircle2,
+} from 'lucide-react';
 
 export const IndividualPromotionModal = ({
   isOpen,
@@ -32,6 +44,20 @@ export const IndividualPromotionModal = ({
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+
+  const getTodayDateStr = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const isHosteler = Boolean(student?.hostel?.enrolled || student?.hostel?.status === 'ACTIVE');
+  const hostelInfo = student?.hostel;
+
+  const [exitDate, setExitDate] = useState(getTodayDateStr());
+  const [exitReason, setExitReason] = useState('');
 
   // 1. Sort active classes by order ascending
   const sortedClasses = useMemo(() => {
@@ -99,6 +125,14 @@ export const IndividualPromotionModal = ({
 
       const initialAction = isPromoteAllowed ? 'PROMOTE' : 'GRADUATE';
       setAction(initialAction);
+      setExitDate(getTodayDateStr());
+      if (initialAction === 'GRADUATE') {
+        setExitReason(isHosteler ? 'Graduated - Academic completion' : 'Academic course completion');
+      } else if (initialAction === 'LEFT') {
+        setExitReason(isHosteler ? 'Left school - Hostel exit' : 'Left school');
+      } else {
+        setExitReason('');
+      }
 
       if (isPromoteAllowed) {
         setEnrollmentValues({
@@ -119,7 +153,7 @@ export const IndividualPromotionModal = ({
       }
       setErrors({});
     }
-  }, [isOpen, sourceEnrollment, validFutureYears, isPromoteAllowed, nextClass]);
+  }, [isOpen, sourceEnrollment, validFutureYears, isPromoteAllowed, nextClass, isHosteler]);
 
   if (!student || !sourceEnrollment) return null;
 
@@ -127,6 +161,12 @@ export const IndividualPromotionModal = ({
   const handleActionChange = (newAction) => {
     setAction(newAction);
     setErrors({});
+
+    if (newAction === 'GRADUATE') {
+      setExitReason(isHosteler ? 'Graduated - Academic completion' : 'Academic course completion');
+    } else if (newAction === 'LEFT') {
+      setExitReason(isHosteler ? 'Left school - Hostel exit' : 'Left school');
+    }
 
     if (newAction === 'PROMOTE') {
       const targetCls = nextClass || sourceEnrollment.class;
@@ -190,6 +230,11 @@ export const IndividualPromotionModal = ({
         payload.streamId = selectedClass?.hasStream ? enrollmentValues.streamId || null : null;
         payload.targetStreamId = selectedClass?.hasStream ? enrollmentValues.streamId || null : null;
         payload.rollNumber = enrollmentValues.rollNumber || null;
+      }
+
+      if (action === 'GRADUATE' || action === 'LEFT') {
+        payload.exitDate = isHosteler ? exitDate : undefined;
+        payload.reason = exitReason.trim() || undefined;
       }
 
       const res = await studentService.promoteStudent(student.id, payload);
@@ -430,27 +475,197 @@ export const IndividualPromotionModal = ({
 
         {/* 3. GRADUATE Confirmation */}
         {action === 'GRADUATE' && (
-          <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 space-y-2">
-            <div className="flex items-center gap-2 font-bold text-sm">
-              <GraduationCap className="w-5 h-5 text-blue-600" />
-              <span>Confirm Graduation</span>
+          <div className="space-y-3">
+            <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 space-y-2">
+              <div className="flex items-center gap-2 font-bold text-sm">
+                <GraduationCap className="w-5 h-5 text-blue-600" />
+                <span>Confirm Graduation</span>
+              </div>
+              <p className="text-xs leading-relaxed text-blue-800">
+                This student will be marked as <strong>Graduated</strong>. No new academic year enrollment will be created. Historical enrollment records will be preserved intact.
+              </p>
             </div>
-            <p className="text-xs leading-relaxed text-blue-800">
-              This student will be marked as <strong>Graduated</strong>. No new academic year enrollment will be created. Historical enrollment records will be preserved intact.
-            </p>
+
+            {/* Residence Status Detection & Hostel Workflow Integration */}
+            {isHosteler ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-100 border border-amber-300 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-amber-900 uppercase tracking-wide">
+                        Hosteler Record Detected
+                      </span>
+                      <Badge variant="warning" size="xs">Active Resident</Badge>
+                    </div>
+                    <div className="text-xs text-slate-700 flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
+                      {hostelInfo?.hostelName && (
+                        <span className="flex items-center gap-1">
+                          <Building2 className="w-3.5 h-3.5 text-amber-600" />
+                          {hostelInfo.hostelName}
+                        </span>
+                      )}
+                      {hostelInfo?.roomNumber && (
+                        <span>Room: <strong>{hostelInfo.roomNumber}</strong></span>
+                      )}
+                      {hostelInfo?.bedNumber && (
+                        <span className="flex items-center gap-1">
+                          <Bed className="w-3.5 h-3.5 text-amber-600" />
+                          Bed: <strong>{hostelInfo.bedNumber}</strong>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-xs text-amber-800 bg-white/80 border border-amber-200 rounded-lg p-2.5 space-y-1 leading-relaxed">
+                  <p className="font-semibold flex items-center gap-1.5 text-amber-900">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    Automated Hostel Exit will be processed
+                  </p>
+                  <p className="text-[11px] text-slate-600">
+                    Graduation will automatically exit this student from the hostel, release <strong>Bed {hostelInfo?.bedNumber || ''}</strong> to available room inventory, and update their residence status to <strong>Day Scholar</strong>.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <DatePicker
+                    label="Hostel Exit Date"
+                    value={exitDate}
+                    onChange={(e, val) => setExitDate(typeof e === 'string' ? e : (val || e?.target?.value || ''))}
+                    minDate={hostelInfo?.startDate ? new Date(hostelInfo.startDate) : undefined}
+                    size="sm"
+                    required
+                    disabled={loading}
+                    helperText="Effective date when bed is released"
+                  />
+                  <Input
+                    label="Hostel Exit Reason"
+                    placeholder="e.g. Course completion"
+                    value={exitReason}
+                    onChange={(e) => setExitReason(e.target.value)}
+                    size="sm"
+                    disabled={loading}
+                    helperText="Recorded in student & hostel exit logs"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center shrink-0">
+                  <Home className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-800">Residence: Day Scholar</span>
+                    <Badge variant="neutral" size="xs">Non-Hosteler</Badge>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Student is not enrolled in hostel accommodation. Graduation proceeds with no hostel action.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* 4. LEFT Confirmation */}
         {action === 'LEFT' && (
-          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 space-y-2">
-            <div className="flex items-center gap-2 font-bold text-sm">
-              <UserX className="w-5 h-5 text-amber-600" />
-              <span>Confirm Left School</span>
+          <div className="space-y-3">
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 space-y-2">
+              <div className="flex items-center gap-2 font-bold text-sm">
+                <UserX className="w-5 h-5 text-amber-600" />
+                <span>Confirm Left School</span>
+              </div>
+              <p className="text-xs leading-relaxed text-amber-800">
+                This student will be marked as <strong>Left</strong>. Historical academic records will remain available for reference.
+              </p>
             </div>
-            <p className="text-xs leading-relaxed text-amber-800">
-              This student will be marked as <strong>Left</strong>. Historical academic records will remain available for reference.
-            </p>
+
+            {/* Residence Status Detection & Hostel Workflow Integration */}
+            {isHosteler ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-100 border border-amber-300 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-amber-900 uppercase tracking-wide">
+                        Hosteler Record Detected
+                      </span>
+                      <Badge variant="warning" size="xs">Active Resident</Badge>
+                    </div>
+                    <div className="text-xs text-slate-700 flex flex-wrap items-center gap-x-3 gap-y-1 font-medium">
+                      {hostelInfo?.hostelName && (
+                        <span className="flex items-center gap-1">
+                          <Building2 className="w-3.5 h-3.5 text-amber-600" />
+                          {hostelInfo.hostelName}
+                        </span>
+                      )}
+                      {hostelInfo?.roomNumber && (
+                        <span>Room: <strong>{hostelInfo.roomNumber}</strong></span>
+                      )}
+                      {hostelInfo?.bedNumber && (
+                        <span className="flex items-center gap-1">
+                          <Bed className="w-3.5 h-3.5 text-amber-600" />
+                          Bed: <strong>{hostelInfo.bedNumber}</strong>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-xs text-amber-800 bg-white/80 border border-amber-200 rounded-lg p-2.5 space-y-1 leading-relaxed">
+                  <p className="font-semibold flex items-center gap-1.5 text-amber-900">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    Automated Hostel Exit will be processed
+                  </p>
+                  <p className="text-[11px] text-slate-600">
+                    Marking student as <strong>Left</strong> will automatically exit their hostel enrollment, release <strong>Bed {hostelInfo?.bedNumber || ''}</strong> to available inventory, and update their residence status to <strong>Day Scholar</strong>.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <DatePicker
+                    label="Hostel Exit Date"
+                    value={exitDate}
+                    onChange={(e, val) => setExitDate(typeof e === 'string' ? e : (val || e?.target?.value || ''))}
+                    minDate={hostelInfo?.startDate ? new Date(hostelInfo.startDate) : undefined}
+                    size="sm"
+                    required
+                    disabled={loading}
+                    helperText="Effective date when bed is released"
+                  />
+                  <Input
+                    label="Hostel Exit Reason"
+                    placeholder="e.g. Left school"
+                    value={exitReason}
+                    onChange={(e) => setExitReason(e.target.value)}
+                    size="sm"
+                    disabled={loading}
+                    helperText="Recorded in student & hostel exit logs"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center shrink-0">
+                  <Home className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-800">Residence: Day Scholar</span>
+                    <Badge variant="neutral" size="xs">Non-Hosteler</Badge>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Student is not enrolled in hostel accommodation. Marking as Left proceeds with no hostel action.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </form>

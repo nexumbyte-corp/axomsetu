@@ -63,7 +63,9 @@ router.get('/finance/payment-modes', reportController.getPaymentModeSummaryRepor
 router.get('/finance/charts', reportController.getFinancialChartsReport);
 
 // --- Audit Report ---
+router.get('/audit', reportController.getAuditLogsReport);
 router.get('/audit/logs', reportController.getAuditLogsReport);
+router.get('/audit/options', reportController.getAuditLogFilterOptions);
 
 // --- Hostel Reports ---
 router.get('/hostel/:type', reportController.getHostelReport);

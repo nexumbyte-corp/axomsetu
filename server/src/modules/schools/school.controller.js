@@ -1,6 +1,7 @@
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { ApiError } from '../../utils/ApiError.js';
 import * as schoolService from './school.service.js';
+import { createSchoolUserSchema } from '../school-users/school-user.validation.js';
 
 export const registerSchool = asyncHandler(async (req, res) => {
   const reqContext = {
@@ -111,7 +112,8 @@ export const listSchoolUsers = asyncHandler(async (req, res) => {
 });
 
 export const createSchoolUser = asyncHandler(async (req, res) => {
-  const result = await schoolService.createSchoolUser(req.params.schoolId, req.body, req.user?.id);
+  const validatedBody = createSchoolUserSchema.parse(req.body);
+  const result = await schoolService.createSchoolUser(req.params.schoolId, validatedBody, req.user?.id);
   res.status(201).json({
     success: true,
     message: 'School user created successfully',
@@ -122,6 +124,9 @@ export const createSchoolUser = asyncHandler(async (req, res) => {
 export const updateSchoolUserStatus = asyncHandler(async (req, res) => {
   const { schoolId, adminId } = req.params;
   const { isActive } = req.body;
+  if (typeof isActive !== 'boolean') {
+    throw ApiError.badRequest('isActive must be a boolean');
+  }
   const result = await schoolService.updateSchoolUserStatus(schoolId, adminId, isActive, req.user?.id);
   res.status(200).json({
     success: true,

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const genericReportQuerySchema = z.object({
   academicYearId: z.string().optional().or(z.literal('')),
+  schoolId: z.string().optional().or(z.literal('')),
   classId: z.string().optional().or(z.literal('')),
   sectionId: z.string().optional().or(z.literal('')),
   mediumId: z.string().optional().or(z.literal('')),

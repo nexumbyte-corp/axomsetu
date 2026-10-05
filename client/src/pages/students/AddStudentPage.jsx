@@ -1,6 +1,26 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, UserPlus, ShieldAlert, Camera, Upload, CheckCircle2, Trash2, Phone, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  UserPlus,
+  ShieldAlert,
+  Camera,
+  Upload,
+  CheckCircle2,
+  X,
+  User,
+  ShieldCheck,
+  Sparkles,
+  Receipt,
+  RotateCcw,
+  Check,
+  PlusCircle,
+  Calendar,
+  Info,
+  ArrowRight,
+  ChevronRight,
+  Edit3
+} from 'lucide-react';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { studentService } from '../../services/student.service.js';
@@ -10,9 +30,10 @@ import { Button } from '../../components/ui/Button.jsx';
 import { Input } from '../../components/ui/Input.jsx';
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { Textarea } from '../../components/ui/Textarea.jsx';
-import { Card, CardHeader, CardContent } from '../../components/ui/Card.jsx';
+import { Card, CardContent } from '../../components/ui/Card.jsx';
 import { Alert } from '../../components/ui/Alert.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { EnrollmentFields } from '../../components/students/EnrollmentFields.jsx';
 import { PassportPhotoCropModal } from '../../components/students/PassportPhotoCropModal.jsx';
 import { CameraCaptureModal } from '../../components/students/CameraCaptureModal.jsx';
@@ -21,7 +42,7 @@ import { usePageHeader } from '../../context/PageHeaderContext.jsx';
 import { useSubscription } from '../../context/SubscriptionContext.jsx';
 import { getFormErrors } from '../../utils/errorUtils.js';
 import { isStudentLimitError, parseStudentLimitError } from '../../utils/subscriptionUtils.js';
-import { getISTTodayString, formatDateForInput } from '../../utils/formatters.js';
+import { getISTTodayString, formatDateForInput, formatCurrency } from '../../utils/formatters.js';
 
 const MONTH_NAMES = [
   'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
@@ -30,17 +51,20 @@ const MONTH_NAMES = [
 
 const CASTE_OPTIONS = [
   { value: 'UR', label: 'UR / General' },
-  { value: 'OBC', label: 'OBC (Other Backward Class)' },
-  { value: 'SC', label: 'SC (Scheduled Caste)' },
-  { value: 'ST', label: 'ST (Scheduled Tribe)' },
-  { value: 'EWS', label: 'EWS (Economically Weaker Section)' },
-  { value: 'OTHER', label: 'Other / Unreserved' },
+  { value: 'OBC', label: 'OBC' },
+  { value: 'SC', label: 'SC' },
+  { value: 'ST', label: 'ST' },
+  { value: 'EWS', label: 'EWS' },
+  { value: 'OTHER', label: 'Other' },
 ];
 
-const getCurrentFeeMonth = (dateObj = new Date()) => {
-  const d = new Date(dateObj);
-  const monthIdx = isNaN(d.getTime()) ? new Date().getMonth() : d.getMonth();
-  return MONTH_NAMES[monthIdx] || 'JANUARY';
+const toTitleCase = (str) => {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map((word) => (word.length > 0 ? word.charAt(0).toUpperCase() + word.slice(1) : ''))
+    .join(' ');
 };
 
 export const AddStudentPage = () => {
@@ -48,20 +72,29 @@ export const AddStudentPage = () => {
   const { selectedYear, selectedYearId } = useAcademicYear();
   const { user } = useAuth();
   const { showStudentLimitModal, subscription } = useSubscription();
+
+  // Multi-step state: 1 = Student & Class Details, 2 = Fee Schedule & Concessions
+  const [currentStep, setCurrentStep] = useState(1);
+
   const fileInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+  const nameInputRef = useRef(null);
 
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
   const [photoOptionsOpen, setPhotoOptionsOpen] = useState(false);
+  const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
 
   const canOverride = user?.role === 'SCHOOL_ADMIN';
 
-  // Setup options
+  // Academic Setup options
   const [classes, setClasses] = useState([]);
   const [mediums, setMediums] = useState([]);
   const [sections, setSections] = useState([]);
   const [streams, setStreams] = useState([]);
   const [loadingSetup, setLoadingSetup] = useState(true);
+
+  // Track session count
+  const [sessionAddedCount, setSessionAddedCount] = useState(0);
 
   const todayDateStr = getISTTodayString();
   const minAdmissionDate = selectedYear?.startDate
@@ -73,7 +106,6 @@ export const AddStudentPage = () => {
 
   // Form State
   const [studentInfo, setStudentInfo] = useState({
-    admissionNo: '',
     admissionDate: todayDateStr,
     name: '',
     guardianName: '',
@@ -89,6 +121,8 @@ export const AddStudentPage = () => {
   // Photo Crop Modal State
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [selectedPhotoFile, setSelectedPhotoFile] = useState(null);
+  const [pendingPhotoFile, setPendingPhotoFile] = useState(null);
+  const [photoLoadError, setPhotoLoadError] = useState(false);
 
   const [enrollmentValues, setEnrollmentValues] = useState({
     classId: '',
@@ -101,13 +135,12 @@ export const AddStudentPage = () => {
   const [feeStructureHeads, setFeeStructureHeads] = useState([]);
   const [loadingFeeStructure, setLoadingFeeStructure] = useState(false);
 
-  // Fee Overrides state: { [headKey]: { overrideAmount: string, reason: string } }
+  // Fee Overrides state
   const [feeOverrides, setFeeOverrides] = useState({});
 
   const [submitting, setSubmitting] = useState(false);
+  const [submittingMode, setSubmittingMode] = useState(null);
   const [errors, setErrors] = useState({});
-
-  const currentFeeMonth = getCurrentFeeMonth();
 
   useEffect(() => {
     setStudentInfo((prev) => ({
@@ -116,7 +149,9 @@ export const AddStudentPage = () => {
     }));
   }, []);
 
+  // Fetch academic configuration on mount
   useEffect(() => {
+    let isMounted = true;
     const fetchOptions = async () => {
       setLoadingSetup(true);
       try {
@@ -126,26 +161,32 @@ export const AddStudentPage = () => {
           academicService.getMediums(),
           academicService.getStreams(),
         ]);
-        if (clsRes.success) setClasses(clsRes.data || []);
-        if (secRes.success) setSections(secRes.data || []);
-        if (medRes.success) setMediums(medRes.data || []);
-        if (strRes.success) setStreams(strRes.data || []);
+        if (isMounted) {
+          if (clsRes.success) setClasses(clsRes.data || []);
+          if (secRes.success) setSections(secRes.data || []);
+          if (medRes.success) setMediums(medRes.data || []);
+          if (strRes.success) setStreams(strRes.data || []);
+        }
       } catch {
         toast.error('Failed loading academic configuration');
       } finally {
-        setLoadingSetup(false);
+        if (isMounted) setLoadingSetup(false);
       }
     };
     fetchOptions();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Clear incompatible overrides whenever configuration changes
+  // Clear overrides whenever class/medium/stream changes
   useEffect(() => {
     setFeeOverrides({});
   }, [enrollmentValues.classId, enrollmentValues.mediumId, enrollmentValues.streamId]);
 
   // Fetch Fee Structure when Class / Medium / Stream selection changes
   useEffect(() => {
+    let isCancelled = false;
     const fetchFeeStructure = async () => {
       if (!selectedYearId || !enrollmentValues.classId || !enrollmentValues.mediumId) {
         setFeeStructureHeads([]);
@@ -167,6 +208,7 @@ export const AddStudentPage = () => {
           ...(selectedClass?.hasStream && enrollmentValues.streamId ? { streamId: enrollmentValues.streamId } : {}),
         };
         const res = await feeService.getFeeStructures(params);
+        if (isCancelled) return;
         const fsList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         const fs = fsList[0];
         if (fs && fs.heads?.length > 0) {
@@ -182,22 +224,25 @@ export const AddStudentPage = () => {
           setFeeStructureHeads([]);
         }
       } catch {
-        setFeeStructureHeads([]);
+        if (!isCancelled) setFeeStructureHeads([]);
       } finally {
-        setLoadingFeeStructure(false);
+        if (!isCancelled) setLoadingFeeStructure(false);
       }
     };
 
     fetchFeeStructure();
+    return () => {
+      isCancelled = true;
+    };
   }, [selectedYearId, enrollmentValues.classId, enrollmentValues.mediumId, enrollmentValues.streamId, classes]);
 
-  // Photo Select Trigger
+  // Photo handlers
   const handlePhotoSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file (JPEG, PNG, WebP)');
+      toast.error('Please select a valid image file');
       return;
     }
 
@@ -214,7 +259,9 @@ export const AddStudentPage = () => {
     }
   };
 
-  const handlePhotoCropSuccess = (url, sizeKb) => {
+  const handlePhotoCropSuccess = (url, sizeKb, file) => {
+    setPhotoLoadError(false);
+    setPendingPhotoFile(file || null);
     setStudentInfo((prev) => ({
       ...prev,
       photoUrl: url,
@@ -224,6 +271,8 @@ export const AddStudentPage = () => {
   };
 
   const handleRemovePhoto = () => {
+    setPhotoLoadError(false);
+    setPendingPhotoFile(null);
     setStudentInfo((prev) => ({
       ...prev,
       photoUrl: '',
@@ -231,9 +280,10 @@ export const AddStudentPage = () => {
     }));
   };
 
+  // Fee calculation & overrides logic
   const allPreviewHeads = feeStructureHeads;
 
-  const getHeadOverride = (head) => {
+  const getHeadOverride = useCallback((head) => {
     const key = head.feeTypeId || head.title;
     const ov = feeOverrides[key];
     const templateAmt = Number(head.amount) || 0;
@@ -255,7 +305,7 @@ export const AddStudentPage = () => {
         finalAmount: templateAmt,
         discountAmount: 0,
         isOverridden: true,
-        error: 'Override amount cannot be negative',
+        error: 'Amount cannot be negative',
         reason: ov.reason || '',
         rawValue: ov.overrideAmount,
       };
@@ -266,7 +316,7 @@ export const AddStudentPage = () => {
         finalAmount: parsed,
         discountAmount: 0,
         isOverridden: true,
-        error: 'Override amount cannot be greater than original fee',
+        error: 'Amount cannot exceed template fee',
         reason: ov.reason || '',
         rawValue: ov.overrideAmount,
       };
@@ -281,12 +331,65 @@ export const AddStudentPage = () => {
       reason: ov.reason || '',
       rawValue: ov.overrideAmount,
     };
-  };
+  }, [feeOverrides]);
 
-  const totalOriginalAmount = allPreviewHeads.reduce((sum, h) => sum + (Number(h.amount) || 0), 0);
-  const totalFinalAmount = allPreviewHeads.reduce((sum, h) => sum + getHeadOverride(h).finalAmount, 0);
+  const totalOriginalAmount = useMemo(
+    () => allPreviewHeads.reduce((sum, h) => sum + (Number(h.amount) || 0), 0),
+    [allPreviewHeads]
+  );
+
+  const totalFinalAmount = useMemo(
+    () => allPreviewHeads.reduce((sum, h) => sum + getHeadOverride(h).finalAmount, 0),
+    [allPreviewHeads, getHeadOverride]
+  );
+
   const totalDiscountAmount = Math.max(0, totalOriginalAmount - totalFinalAmount);
-  const hasAnyOverrideError = allPreviewHeads.some((h) => Boolean(getHeadOverride(h).error));
+  const hasAnyOverrideError = useMemo(
+    () => allPreviewHeads.some((h) => Boolean(getHeadOverride(h).error)),
+    [allPreviewHeads, getHeadOverride]
+  );
+
+  const oneTimeAmount = useMemo(() => {
+    return allPreviewHeads
+      .filter((h) => {
+        const cat = (h.category || '').toUpperCase();
+        const titleLower = (h.title || '').toLowerCase();
+        return (
+          cat === 'ONE_TIME' ||
+          cat === 'ONETIME_PER_YEAR' ||
+          titleLower.includes('admission') ||
+          titleLower.includes('registration') ||
+          titleLower.includes('annual')
+        );
+      })
+      .reduce((sum, h) => sum + getHeadOverride(h).finalAmount, 0);
+  }, [allPreviewHeads, getHeadOverride]);
+
+  const monthlyAmount = useMemo(() => {
+    return Math.max(0, totalFinalAmount - oneTimeAmount);
+  }, [totalFinalAmount, oneTimeAmount]);
+
+  const applyPresetDiscount = (head, percentage, defaultReason = '') => {
+    const key = head.feeTypeId || head.title;
+    const templateAmt = Number(head.amount) || 0;
+    if (percentage === 0) {
+      setFeeOverrides((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      return;
+    }
+
+    const discountedAmt = Math.round(templateAmt * (1 - percentage / 100));
+    setFeeOverrides((prev) => ({
+      ...prev,
+      [key]: {
+        overrideAmount: String(discountedAmt),
+        reason: prev[key]?.reason || defaultReason || `${percentage}% Concession`,
+      },
+    }));
+  };
 
   const handleOverrideAmountChange = (headKey, value) => {
     setFeeOverrides((prev) => ({
@@ -308,50 +411,88 @@ export const AddStudentPage = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
-    setErrors({});
-
-    if (selectedYear?.isLocked) {
-      toast.error('Cannot add student into a locked academic year');
-      return;
+  const billingMonthsPreview = useMemo(() => {
+    if (!studentInfo.admissionDate) {
+      return [MONTH_NAMES[new Date().getMonth()] || 'JANUARY'];
+    }
+    const admDate = new Date(studentInfo.admissionDate);
+    if (isNaN(admDate.getTime())) {
+      return [MONTH_NAMES[new Date().getMonth()] || 'JANUARY'];
     }
 
-    if (hasAnyOverrideError) {
-      toast.error('Please fix fee override validation errors before submitting');
-      return;
-    }
+    const today = new Date();
+    const endTarget = admDate > today ? admDate : today;
 
-    // Client-Side Validation
+    const months = [];
+    const curr = new Date(admDate);
+    curr.setDate(1);
+    curr.setHours(0, 0, 0, 0);
+
+    const end = new Date(endTarget);
+    end.setDate(1);
+    end.setHours(0, 0, 0, 0);
+
+    while (curr <= end) {
+      months.push(MONTH_NAMES[curr.getMonth()]);
+      curr.setMonth(curr.getMonth() + 1);
+    }
+    return months.length > 0 ? months : [MONTH_NAMES[end.getMonth()] || 'JANUARY'];
+  }, [studentInfo.admissionDate]);
+
+  const isFormDirty = useMemo(() => {
+    return Boolean(
+      studentInfo.name.trim() ||
+      studentInfo.guardianName.trim() ||
+      studentInfo.phone.trim() ||
+      studentInfo.address.trim() ||
+      studentInfo.photoUrl ||
+      pendingPhotoFile ||
+      enrollmentValues.rollNumber ||
+      Object.keys(feeOverrides).length > 0
+    );
+  }, [studentInfo, pendingPhotoFile, enrollmentValues.rollNumber, feeOverrides]);
+
+  const handleNavigateBack = () => {
+    if (isFormDirty) {
+      setConfirmLeaveOpen(true);
+    } else {
+      navigate('/app/students');
+    }
+  };
+
+  // Step 1 Validation
+  const validateStep1 = () => {
     const newErrors = {};
 
     if (!studentInfo.name.trim()) {
-
-      newErrors.name = 'Student full name is required';
+      newErrors.name = 'Full name is required';
+    } else if (studentInfo.name.trim().length < 2) {
+      newErrors.name = 'Min 2 characters required';
     }
 
     if (!studentInfo.guardianName.trim()) {
       newErrors.guardianName = 'Guardian name is required';
+    } else if (studentInfo.guardianName.trim().length < 2) {
+      newErrors.guardianName = 'Min 2 characters required';
     }
 
     if (!studentInfo.admissionDate) {
-      newErrors.admissionDate = 'Admission date is required';
+      newErrors.admissionDate = 'Admission date required';
     } else if (minAdmissionDate && studentInfo.admissionDate < minAdmissionDate) {
-      newErrors.admissionDate = `Back date before ${minAdmissionDate} is not allowed for ${selectedYear?.name || 'this Academic Year'}`;
+      newErrors.admissionDate = `Cannot be before ${minAdmissionDate}`;
     } else if (maxAdmissionDate && studentInfo.admissionDate > maxAdmissionDate) {
-      newErrors.admissionDate = `Date after ${maxAdmissionDate} is not allowed for ${selectedYear?.name || 'this Academic Year'}`;
+      newErrors.admissionDate = `Cannot be after ${maxAdmissionDate}`;
     }
 
-    // Phone validation: mandatory 10 digits
     const trimmedPhone = studentInfo.phone.trim();
     if (!trimmedPhone) {
-      newErrors.phone = 'Phone number is required';
+      newErrors.phone = 'Phone required';
     } else if (!/^\d{10}$/.test(trimmedPhone)) {
-      newErrors.phone = 'Phone number must be exactly 10 digits';
+      newErrors.phone = 'Must be exactly 10 digits';
     }
 
     if (!studentInfo.gender) {
-      newErrors.gender = 'Gender is required';
+      newErrors.gender = 'Gender required';
     }
 
     if (!enrollmentValues.classId) {
@@ -364,22 +505,71 @@ export const AddStudentPage = () => {
 
     const selectedClass = classes.find((c) => c.id === enrollmentValues.classId);
     if (selectedClass?.hasStream && !enrollmentValues.streamId) {
-      newErrors.streamId = `Stream is required for class '${selectedClass.name}'`;
+      newErrors.streamId = `Stream required for ${selectedClass.name}`;
+    }
+
+    if (enrollmentValues.rollNumber) {
+      const parsedRoll = Number(enrollmentValues.rollNumber);
+      if (isNaN(parsedRoll) || parsedRoll < 1 || parsedRoll > 999) {
+        newErrors.rollNumber = 'Must be between 1 and 999';
+      }
     }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      toast.error('Please complete all mandatory fields correctly');
+      const firstErrorKey = Object.keys(newErrors)[0];
+      const targetElement = document.getElementById(firstErrorKey) || document.querySelector(`[name="${firstErrorKey}"]`);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        targetElement.focus?.();
+      }
+      toast.error('Please correct highlighted fields before proceeding');
+      return false;
+    }
+
+    setErrors({});
+    return true;
+  };
+
+  const handleNextToFeePage = () => {
+    if (validateStep1()) {
+      setCurrentStep(2);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleBackToDetails = () => {
+    setCurrentStep(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Form Submit
+  const handleSubmit = async (e, mode = 'FINISH') => {
+    if (e) e.preventDefault();
+
+    if (currentStep === 1) {
+      handleNextToFeePage();
       return;
     }
 
-    // Resolve Caste Value
+    if (selectedYear?.isLocked) {
+      toast.error('Cannot add student into a locked academic year');
+      return;
+    }
+
+    if (hasAnyOverrideError) {
+      toast.error('Please fix fee override errors before submitting');
+      return;
+    }
+
+    const trimmedPhone = studentInfo.phone.trim();
+    const selectedClass = classes.find((c) => c.id === enrollmentValues.classId);
+
     const resolvedCaste =
       studentInfo.caste === 'OTHER'
         ? studentInfo.customCaste.trim() || 'Other'
         : studentInfo.caste;
 
-    // Prepare Fee Overrides Payload
     const feeOverridesPayload = [];
     allPreviewHeads.forEach((h) => {
       const ov = getHeadOverride(h);
@@ -394,10 +584,35 @@ export const AddStudentPage = () => {
     });
 
     setSubmitting(true);
+    setSubmittingMode(mode);
+
     try {
+      let finalPhotoUrl = (studentInfo.photoUrl?.startsWith('data:') || studentInfo.photoUrl?.startsWith('blob:'))
+        ? null
+        : (studentInfo.photoUrl?.trim() || null);
+
+      // Upload deferred photo to backend during final submit
+      if (pendingPhotoFile) {
+        try {
+          const photoFormData = new FormData();
+          photoFormData.append('logo', pendingPhotoFile);
+          const uploadRes = await studentService.uploadPhoto(photoFormData);
+          if (uploadRes?.data?.photoUrl) {
+            finalPhotoUrl = uploadRes.data.photoUrl;
+          } else {
+            throw new Error(uploadRes?.message || 'Failed to upload student photo');
+          }
+        } catch (photoErr) {
+          toast.error(photoErr?.message || 'Photo upload failed. Please try again.');
+          setSubmitting(false);
+          setSubmittingMode(null);
+          return;
+        }
+      }
+
       const payload = {
-        photoUrl: studentInfo.photoUrl.trim(),
-        admissionNo: studentInfo.admissionNo.trim() || null,
+        photoUrl: finalPhotoUrl,
+        admissionNo: null,
         admissionDate: studentInfo.admissionDate,
         name: studentInfo.name.trim(),
         guardianName: studentInfo.guardianName.trim(),
@@ -411,26 +626,64 @@ export const AddStudentPage = () => {
         sectionId: enrollmentValues.sectionId || null,
         mediumId: enrollmentValues.mediumId,
         streamId: selectedClass?.hasStream ? enrollmentValues.streamId || null : null,
-        rollNumber: enrollmentValues.rollNumber || null,
+        rollNumber: enrollmentValues.rollNumber ? Number(enrollmentValues.rollNumber) : null,
 
         generateInitialFees: true,
         feeOverrides: feeOverridesPayload.length > 0 ? feeOverridesPayload : null,
       };
 
       const createdRes = await studentService.createStudent(payload);
-      toast.success('Student registered successfully and initial fee charges generated!');
+      const studentName = studentInfo.name.trim();
+
       try {
         localStorage.removeItem('student_list_filters');
       } catch (storageErr) {
         console.error('Failed clearing saved student list filters:', storageErr);
       }
-      navigate('/app/students', {
-        state: {
-          newStudentAdded: true,
-          createdStudentId: createdRes?.data?.id,
-          timestamp: Date.now(),
-        },
-      });
+
+      if (mode === 'ANOTHER') {
+        setPendingPhotoFile(null);
+        setPhotoLoadError(false);
+        setSessionAddedCount((prev) => prev + 1);
+        toast.success(`🎉 ${studentName} registered! Ready for next.`);
+
+        setStudentInfo((prev) => ({
+          admissionDate: prev.admissionDate,
+          name: '',
+          guardianName: '',
+          phone: '',
+          gender: 'MALE',
+          caste: 'UR',
+          customCaste: '',
+          address: '',
+          photoUrl: '',
+          photoSizeKb: '',
+        }));
+
+        setFeeOverrides({});
+        setErrors({});
+
+        setEnrollmentValues((prev) => ({
+          ...prev,
+          rollNumber: '',
+        }));
+
+        setCurrentStep(1);
+
+        setTimeout(() => {
+          nameInputRef.current?.focus();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 100);
+      } else {
+        toast.success(`Student ${studentName} registered successfully!`);
+        navigate('/app/students', {
+          state: {
+            newStudentAdded: true,
+            createdStudentId: createdRes?.data?.id,
+            timestamp: Date.now(),
+          },
+        });
+      }
     } catch (err) {
       if (isStudentLimitError(err)) {
         showStudentLimitModal(parseStudentLimitError(err, subscription));
@@ -443,39 +696,95 @@ export const AddStudentPage = () => {
       }
     } finally {
       setSubmitting(false);
+      setSubmittingMode(null);
     }
   };
 
   const isLocked = Boolean(selectedYear?.isLocked);
 
-  const { setHeaderInfo } = usePageHeader();
+  // Keyboard shortcut: Ctrl+Enter
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (currentStep === 1) {
+          handleNextToFeePage();
+        } else {
+          handleSubmit(null, 'FINISH');
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentStep, studentInfo, enrollmentValues, feeOverrides]);
 
+  // Page Header setup
+  const { setHeaderInfo } = usePageHeader();
   const handleSubmitRef = useRef();
   handleSubmitRef.current = handleSubmit;
 
   useEffect(() => {
     setHeaderInfo({
-      title: 'Add Student',
+      title: 'New Student Admission',
       icon: UserPlus,
       actions: (
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            icon={UserPlus}
-            onClick={(e) => handleSubmitRef.current?.(e)}
-            loading={submitting}
-            disabled={isLocked || loadingSetup || hasAnyOverrideError}
-          >
-            Add Student
-          </Button>
+        <div className="flex items-center gap-1.5">
+          {sessionAddedCount > 0 && (
+            <Badge variant="indigo" size="xs" className="hidden sm:inline-flex animate-in fade-in">
+              <Sparkles className="w-2.5 h-2.5 text-indigo-500" />
+              {sessionAddedCount} added
+            </Badge>
+          )}
+
+          {currentStep === 1 ? (
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              icon={ArrowRight}
+              onClick={handleNextToFeePage}
+              className="text-xs font-bold shadow-xs py-1"
+            >
+              Next: Fee Page
+            </Button>
+          ) : (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                icon={PlusCircle}
+                onClick={(e) => handleSubmitRef.current?.(e, 'ANOTHER')}
+                loading={submitting && submittingMode === 'ANOTHER'}
+                disabled={isLocked || loadingSetup || hasAnyOverrideError || (submitting && submittingMode === 'FINISH')}
+                className="hidden sm:inline-flex text-xs py-1"
+                title="Save & Add Another"
+              >
+                Save & Add Another
+              </Button>
+
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                icon={UserPlus}
+                onClick={(e) => handleSubmitRef.current?.(e, 'FINISH')}
+                loading={submitting && submittingMode === 'FINISH'}
+                disabled={isLocked || loadingSetup || hasAnyOverrideError || (submitting && submittingMode === 'ANOTHER')}
+                className="text-xs font-bold shadow-xs py-1"
+              >
+                Add & Finish
+              </Button>
+            </>
+          )}
+
           <Button
             type="button"
             variant="outline"
             size="sm"
             icon={ArrowLeft}
-            onClick={() => navigate('/app/students')}
+            onClick={currentStep === 2 ? handleBackToDetails : handleNavigateBack}
+            className="text-xs py-1"
           >
             Back
           </Button>
@@ -484,18 +793,38 @@ export const AddStudentPage = () => {
     });
 
     return () => setHeaderInfo(null);
-  }, [setHeaderInfo, navigate, submitting, isLocked, loadingSetup, hasAnyOverrideError]);
+  }, [setHeaderInfo, currentStep, sessionAddedCount, submitting, submittingMode, isLocked, loadingSetup, hasAnyOverrideError, isFormDirty]);
+
+  const selectedClassObj = classes.find((c) => c.id === enrollmentValues.classId);
+  const selectedMediumObj = mediums.find((m) => m.id === enrollmentValues.mediumId);
+  const selectedSectionObj = sections.find((s) => s.id === enrollmentValues.sectionId);
 
   return (
-    <div className="w-full space-y-5 pb-20 sm:pb-6">
+    <div className="w-full space-y-3.5 pb-20 sm:pb-6">
 
+      {/* Locked Academic Year Alert */}
       {isLocked && (
         <Alert variant="warning" icon={ShieldAlert} title="Locked Academic Year">
-          {selectedYear?.name} is locked and historical records are read-only. Student creation is disabled.
+          {selectedYear?.name} is locked. Registration disabled.
         </Alert>
       )}
 
-      {/* Hidden File Input for Photo Crop Modal */}
+      {/* Discard Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmLeaveOpen}
+        onClose={() => setConfirmLeaveOpen(false)}
+        onConfirm={() => {
+          setConfirmLeaveOpen(false);
+          navigate('/app/students');
+        }}
+        title="Discard New Student?"
+        message="You have unsaved changes. If you leave now, entered data will be lost."
+        confirmText="Discard & Leave"
+        cancelText="Continue"
+        variant="danger"
+      />
+
+      {/* Hidden File Inputs for Photo */}
       <input
         type="file"
         ref={fileInputRef}
@@ -503,8 +832,6 @@ export const AddStudentPage = () => {
         accept="image/jpeg,image/png,image/jpg,image/webp"
         className="hidden"
       />
-
-      {/* Direct Mobile Camera Input */}
       <input
         type="file"
         ref={cameraInputRef}
@@ -522,39 +849,40 @@ export const AddStudentPage = () => {
           setSelectedPhotoFile(file);
           setCropModalOpen(true);
         }}
+        onCaptureSuccess={handlePhotoCropSuccess}
         onFallbackNative={() => cameraInputRef.current?.click()}
       />
 
       {/* Photo Option Selection Modal */}
       {photoOptionsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-xs overflow-hidden p-4 space-y-3 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Select Upload Method</h4>
+          <div className="bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-xs overflow-hidden p-3.5 space-y-2.5 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Photo Upload Method</h4>
               <button
                 type="button"
                 onClick={() => setPhotoOptionsOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="p-1 rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-1 gap-1.5">
               <button
                 type="button"
                 onClick={() => {
                   setPhotoOptionsOpen(false);
                   fileInputRef.current?.click();
                 }}
-                className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-indigo-50/70 border border-slate-200 hover:border-indigo-200 transition-all text-left group"
+                className="flex items-center gap-2.5 p-2 rounded-lg bg-slate-50 hover:bg-indigo-50/70 border border-slate-200 transition-all text-left"
               >
-                <div className="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <Upload className="w-4.5 h-4.5" />
+                <div className="w-7 h-7 rounded-md bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                  <Upload className="w-3.5 h-3.5" />
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900">Upload from Device</div>
-                  <div className="text-[10px] text-slate-500">Select photo from gallery or files</div>
+                  <div className="text-[10px] text-slate-500">From gallery or files</div>
                 </div>
               </button>
 
@@ -564,14 +892,14 @@ export const AddStudentPage = () => {
                   setPhotoOptionsOpen(false);
                   setCameraModalOpen(true);
                 }}
-                className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-200 transition-all text-left group"
+                className="flex items-center gap-2.5 p-2 rounded-lg bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 transition-all text-left"
               >
-                <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                  <Camera className="w-4.5 h-4.5" />
+                <div className="w-7 h-7 rounded-md bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                  <Camera className="w-3.5 h-3.5" />
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900">Take Photo with Camera</div>
-                  <div className="text-[10px] text-slate-500">Capture photo using front/back camera</div>
+                  <div className="text-[10px] text-slate-500">Camera / Webcam</div>
                 </div>
               </button>
             </div>
@@ -582,146 +910,227 @@ export const AddStudentPage = () => {
       {/* Passport Photo Crop Modal */}
       <PassportPhotoCropModal
         isOpen={cropModalOpen}
-        onClose={() => setCropModalOpen(false)}
+        onClose={() => {
+          setCropModalOpen(false);
+          setSelectedPhotoFile(null);
+        }}
         file={selectedPhotoFile}
         onCropSuccess={handlePhotoCropSuccess}
       />
 
-      <form onSubmit={handleSubmit} autoComplete="off">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* LEFT SIDE: Student Profile & Enrollment Form (7 Cols) */}
-          <div className="lg:col-span-7 space-y-5">
+      {/* ── ULTRA-COMPACT TWO-STEP STEPPER BAR ── */}
+      <div className="bg-white rounded-xl border border-slate-200 px-3 py-2 shadow-2xs flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {/* Step 1 Pill */}
+          <button
+            type="button"
+            onClick={() => setCurrentStep(1)}
+            className={`flex items-center gap-2 text-left transition-all ${
+              currentStep === 1
+                ? 'text-indigo-600 font-bold'
+                : 'text-slate-500 hover:text-slate-800 font-medium'
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
+                currentStep === 1
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : currentStep > 1
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-slate-100 text-slate-500'
+              }`}
+            >
+              {currentStep > 1 ? <Check className="w-3 h-3" /> : '1'}
+            </div>
+            <span className="text-xs">1. Personal & Class Info</span>
+          </button>
 
-            {/* Section 1: Photo & Master Info Card */}
-            <Card className="border-slate-200 shadow-2xs overflow-hidden">
-              <CardHeader
-                title="1. Student Master Information"
-                subtitle="Contact details, photo (optional) & identity info"
-              />
-              <CardContent className="space-y-4 pt-3">
+          <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
 
-                {/* ── PHOTO UPLOADER BOX ── */}
-                <div
-                  className={`p-4 rounded-xl border transition-all ${errors.photoUrl
-                    ? 'bg-red-50/60 border-red-300'
-                    : studentInfo.photoUrl
-                      ? 'bg-emerald-50/30 border-emerald-200'
-                      : 'bg-slate-50 border-slate-200'
+          {/* Step 2 Pill */}
+          <button
+            type="button"
+            onClick={() => {
+              if (currentStep === 1) handleNextToFeePage();
+            }}
+            className={`flex items-center gap-2 text-left transition-all ${
+              currentStep === 2
+                ? 'text-indigo-600 font-bold'
+                : 'text-slate-500 hover:text-slate-800 font-medium'
+            }`}
+          >
+            <div
+              className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
+                currentStep === 2
+                  ? 'bg-indigo-600 text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-500'
+              }`}
+            >
+              <Receipt className="w-3 h-3" />
+            </div>
+            <span className="text-xs">2. Fee Schedule & Concessions</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Badge variant="indigo" size="xs" className="font-semibold">
+            <Calendar className="w-2.5 h-2.5" />
+            {selectedYear?.name || 'Current Year'}
+          </Badge>
+        </div>
+      </div>
+
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* PART 1: STUDENT PERSONAL INFO & CLASS ENROLLMENT (COMPACT)   */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      {currentStep === 1 && (
+        <div className="space-y-3.5 animate-in fade-in-50 duration-150">
+
+          {/* 1. Student Master Information Card */}
+          <Card className="border-slate-200 shadow-2xs">
+            <div className="px-3.5 py-2.5 border-b border-slate-100 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                1. Student Identity & Contact Information
+              </span>
+              <span className="text-[10px] text-slate-400">* Required fields</span>
+            </div>
+
+            <CardContent className="p-3 sm:p-3.5 space-y-3">
+              {/* Row with Compact Passport Photo & Primary Info */}
+              <div className="flex flex-col sm:flex-row items-start gap-3">
+                {/* Compact Passport Thumbnail (3.5 : 4.5 Ratio -> 68px x 88px) */}
+                <div className="shrink-0 flex sm:flex-col items-center gap-1.5">
+                  <div
+                    onClick={() => !studentInfo.photoUrl && !isLocked && setPhotoOptionsOpen(true)}
+                    className={`w-16 h-20 rounded-lg bg-slate-50 border overflow-hidden flex items-center justify-center relative shadow-2xs transition-all ${
+                      studentInfo.photoUrl
+                        ? 'border-emerald-300 ring-2 ring-emerald-100'
+                        : 'border-dashed border-slate-300 hover:border-indigo-400 hover:bg-indigo-50/20 cursor-pointer'
                     }`}
-                >
-                  <div className="flex flex-col sm:flex-row items-center gap-4">
-                    {/* Photo Frame Container (Passport 3.5:4.5 aspect preview) */}
-                    <div className="relative group shrink-0">
-                      <div className="w-24 h-32 rounded-xl bg-white border-2 border-slate-300 shadow-sm overflow-hidden flex items-center justify-center relative">
-                        {studentInfo.photoUrl ? (
-                          <img
-                            src={studentInfo.photoUrl}
-                            alt="Student Passport"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center justify-center p-2 text-slate-400 text-center">
-                            <Camera className="w-8 h-8 mb-1 text-slate-300" />
-                            <span className="text-[10px] font-bold text-slate-400">PASSPORT</span>
-                            <span className="text-[9px] text-slate-400">3.5 x 4.5 ratio</span>
-                          </div>
-                        )}
-
-                        {studentInfo.photoUrl && (
-                          <div className="absolute top-1.5 right-1.5 bg-emerald-500 text-white rounded-full p-0.5 shadow-sm">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                          </div>
-                        )}
+                    title="Student Passport Photo (Optional)"
+                  >
+                    {studentInfo.photoUrl && !photoLoadError ? (
+                      <img
+                        src={studentInfo.photoUrl}
+                        alt="Passport"
+                        className="w-full h-full object-cover"
+                        onError={() => setPhotoLoadError(true)}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-1 text-slate-400 text-center select-none">
+                        <Camera className="w-5 h-5 mb-0.5 text-slate-300" />
+                        <span className="text-[8px] font-bold text-slate-400 uppercase">Photo</span>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Controls & Badges */}
-                    <div className="space-y-2 text-center sm:text-left flex-1">
-                      <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-slate-900">
-                          Student Photo <span className="text-slate-400 font-normal">(Optional)</span>
-                        </span>
-
-                        <Badge variant="warning" size="xs">
-                          Passport Ratio (3.5:4.5)
-                        </Badge>
+                    {studentInfo.photoUrl && (
+                      <div className="absolute top-1 right-1 bg-emerald-500 text-white rounded-full p-0.5 shadow-xs">
+                        <CheckCircle2 className="w-2.5 h-2.5" />
                       </div>
+                    )}
+                  </div>
 
-                      <div className="flex items-center justify-center sm:justify-start gap-2 pt-1 flex-wrap">
-                        <button
-                          type="button"
-                          disabled={submitting || isLocked}
-                          onClick={() => setPhotoOptionsOpen(true)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors shadow-2xs disabled:opacity-50"
-                        >
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>Upload</span>
-                        </button>
-
-                        {studentInfo.photoUrl && (
-                          <button
-                            type="button"
-                            disabled={submitting || isLocked}
-                            onClick={handleRemovePhoto}
-                            className="flex items-center gap-1 px-2.5 py-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Remove</span>
-                          </button>
-                        )}
-                      </div>
-
-                      {errors.photoUrl && (
-                        <p className="text-[11px] text-red-600 font-semibold mt-1">{errors.photoUrl}</p>
-                      )}
-                    </div>
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      type="button"
+                      disabled={submitting || isLocked}
+                      onClick={() => setPhotoOptionsOpen(true)}
+                      className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-bold transition-colors"
+                    >
+                      {studentInfo.photoUrl ? 'Change' : '+ Photo'}
+                    </button>
+                    {studentInfo.photoUrl && (
+                      <button
+                        type="button"
+                        disabled={submitting || isLocked}
+                        onClick={handleRemovePhoto}
+                        className="px-1.5 py-0.5 text-red-600 hover:bg-red-50 rounded text-[9px] font-semibold text-center"
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* ── FORM FIELDS GRID (Compact 2-col / 3-col) ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                {/* Primary Student Inputs Grid */}
+                <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                   {/* Full Name */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Student Full Name <span className="text-red-500">*</span>
-                    </label>
+                  <div id="name">
                     <Input
-                      placeholder="Full Name"
+                      label="Student Full Name"
+                      size="sm"
+                      required
+                      ref={nameInputRef}
+                      placeholder="e.g. Aarav Sharma"
                       disabled={submitting || isLocked}
                       value={studentInfo.name}
-                      onChange={(e) => setStudentInfo({ ...studentInfo, name: e.target.value })}
+                      icon={User}
+                      onBlur={() => {
+                        if (studentInfo.name) {
+                          setStudentInfo((prev) => ({ ...prev, name: toTitleCase(prev.name) }));
+                        }
+                      }}
+                      onChange={(e) => {
+                        setStudentInfo({ ...studentInfo, name: e.target.value });
+                        if (errors.name) setErrors({ ...errors, name: null });
+                      }}
                       error={errors.name}
-                      className="text-xs"
+                      endElement={
+                        studentInfo.name ? (
+                          <button
+                            type="button"
+                            onClick={() => setStudentInfo((prev) => ({ ...prev, name: toTitleCase(prev.name) }))}
+                            className="text-[10px] text-indigo-600 hover:text-indigo-800"
+                            title="Format Case"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                          </button>
+                        ) : null
+                      }
+                      autoFocus
                     />
                   </div>
 
                   {/* Guardian Name */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Father / Guardian Name <span className="text-red-500">*</span>
-                    </label>
+                  <div id="guardianName">
                     <Input
-                      placeholder="Guardian Name"
+                      label="Father / Guardian Name"
+                      size="sm"
+                      required
+                      placeholder="e.g. Rajesh Sharma"
                       disabled={submitting || isLocked}
                       value={studentInfo.guardianName}
-                      onChange={(e) => setStudentInfo({ ...studentInfo, guardianName: e.target.value })}
+                      icon={ShieldCheck}
+                      onBlur={() => {
+                        if (studentInfo.guardianName) {
+                          setStudentInfo((prev) => ({ ...prev, guardianName: toTitleCase(prev.guardianName) }));
+                        }
+                      }}
+                      onChange={(e) => {
+                        setStudentInfo({ ...studentInfo, guardianName: e.target.value });
+                        if (errors.guardianName) setErrors({ ...errors, guardianName: null });
+                      }}
                       error={errors.guardianName}
-                      className="text-xs"
                     />
                   </div>
 
-                  {/* Phone Number (Mandatory 10 digits) */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Phone Number (Exactly 10 Digits) <span className="text-red-500">*</span>
+                  {/* Phone Number */}
+                  <div id="phone">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                      Phone Number <span className="text-rose-500">*</span>
+                      <span className={`float-right font-mono ${studentInfo.phone.length === 10 ? 'text-emerald-600 font-bold' : 'text-slate-400'}`}>
+                        {studentInfo.phone.length}/10
+                      </span>
                     </label>
-                    <div className="relative">
-                      <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                    <div className="relative rounded-lg shadow-2xs">
+                      <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-slate-400 text-xs font-bold border-r border-slate-200 pr-1.5 my-1">
+                        +91
+                      </div>
                       <input
                         type="tel"
                         autoComplete="off"
                         maxLength={10}
-                        placeholder="Phone Number"
+                        placeholder="10 Digits"
                         disabled={submitting || isLocked}
                         value={studentInfo.phone}
                         onChange={(e) => {
@@ -729,93 +1138,58 @@ export const AddStudentPage = () => {
                           setStudentInfo({ ...studentInfo, phone: val });
                           if (errors.phone) setErrors({ ...errors, phone: null });
                         }}
-                        className={`w-full pl-8 pr-3 py-1.5 border rounded-lg text-xs font-mono font-medium outline-none focus:ring-2 transition-colors ${errors.phone
-                          ? 'border-red-400 bg-red-50/50 text-red-900 focus:ring-red-300'
-                          : 'border-slate-200 bg-white text-slate-900 focus:ring-indigo-300'
-                          }`}
+                        className={`w-full pl-12 pr-6 py-1.5 border rounded-lg text-xs font-mono font-medium outline-none focus:ring-2 transition-colors ${
+                          errors.phone
+                            ? 'border-rose-300 text-rose-900 bg-white focus:border-rose-500 focus:ring-rose-500/20'
+                            : 'border-slate-300 text-slate-900 bg-white focus:border-indigo-500 focus:ring-indigo-500/20'
+                        }`}
                       />
+                      {studentInfo.phone.length === 10 && (
+                        <div className="absolute inset-y-0 right-0 pr-2 flex items-center text-emerald-600">
+                          <Check className="w-3.5 h-3.5" />
+                        </div>
+                      )}
                     </div>
-                    {errors.phone ? (
-                      <p className="text-[11px] text-red-600 font-semibold mt-1">{errors.phone}</p>
-                    ) : (
-                      <p className="text-[10px] text-slate-400 mt-0.5">Must be 10 numeric digits</p>
-                    )}
+                    {errors.phone && <p className="mt-0.5 text-xs text-rose-500 font-medium">{errors.phone}</p>}
                   </div>
 
-                  {/* Gender Selector */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Gender <span className="text-red-500">*</span>
+                  {/* Gender */}
+                  <div id="gender">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                      Gender <span className="text-rose-500">*</span>
                     </label>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {['MALE', 'FEMALE', 'OTHER'].map((g) => (
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        { id: 'MALE', label: 'Male' },
+                        { id: 'FEMALE', label: 'Female' },
+                        { id: 'OTHER', label: 'Other' }
+                      ].map((g) => (
                         <button
-                          key={g}
+                          key={g.id}
                           type="button"
                           disabled={submitting || isLocked}
-                          onClick={() => setStudentInfo({ ...studentInfo, gender: g })}
-                          className={`py-1.5 px-2 rounded-lg text-xs font-bold border transition-all ${studentInfo.gender === g
-                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-2xs'
-                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                            }`}
+                          onClick={() => {
+                            setStudentInfo({ ...studentInfo, gender: g.id });
+                            if (errors.gender) setErrors({ ...errors, gender: null });
+                          }}
+                          className={`py-1.5 px-1 rounded-lg text-xs font-bold border transition-all text-center ${
+                            studentInfo.gender === g.id
+                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-2xs'
+                              : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                          }`}
                         >
-                          {g === 'MALE' ? 'Male' : g === 'FEMALE' ? 'Female' : 'Other'}
+                          {g.label}
                         </button>
                       ))}
                     </div>
-                    {errors.gender && (
-                      <p className="text-[11px] text-red-600 font-semibold mt-1">{errors.gender}</p>
-                    )}
-                  </div>
-
-                  {/* Caste / Category Dropdown */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Caste / Category
-                    </label>
-                    <select
-                      disabled={submitting || isLocked}
-                      value={studentInfo.caste}
-                      onChange={(e) => setStudentInfo({ ...studentInfo, caste: e.target.value })}
-                      className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-medium bg-white text-slate-900 focus:ring-2 focus:ring-indigo-300 outline-none"
-                    >
-                      {CASTE_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-
-                    {studentInfo.caste === 'OTHER' && (
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        placeholder="Caste / Category"
-                        value={studentInfo.customCaste}
-                        onChange={(e) => setStudentInfo({ ...studentInfo, customCaste: e.target.value })}
-                        className="w-full mt-1.5 px-2.5 py-1 border border-slate-200 rounded-lg text-xs font-medium"
-                      />
-                    )}
-                  </div>
-
-                  {/* Admission Number */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Admission Number
-                    </label>
-                    <Input
-                      placeholder="Admission Number"
-                      disabled={true}
-                      value={studentInfo.admissionNo || 'Auto-generated'}
-                      readOnly
-                      className="text-xs bg-slate-100 cursor-not-allowed text-slate-500 font-mono"
-                    />
+                    {errors.gender && <p className="mt-0.5 text-xs text-rose-500 font-medium">{errors.gender}</p>}
                   </div>
 
                   {/* Admission Date */}
-                  <div>
+                  <div id="admissionDate">
                     <DatePicker
                       label="Admission Date"
+                      size="sm"
                       required
                       value={studentInfo.admissionDate}
                       onChange={(val) => {
@@ -828,299 +1202,548 @@ export const AddStudentPage = () => {
                       error={errors.admissionDate}
                       clearable={false}
                     />
-                    {minAdmissionDate && (
-                      <p className="text-[10px] text-slate-500 mt-1">
-                        Min date: <span className="font-semibold text-slate-700">{minAdmissionDate}</span> ({selectedYear?.name})
-                      </p>
+                  </div>
+
+                  {/* Caste / Category */}
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">
+                      Social Category
+                    </label>
+                    <select
+                      disabled={submitting || isLocked}
+                      value={studentInfo.caste}
+                      onChange={(e) => setStudentInfo({ ...studentInfo, caste: e.target.value })}
+                      className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs font-medium bg-white text-slate-900 focus:ring-2 focus:ring-indigo-300 outline-none"
+                    >
+                      {CASTE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    {studentInfo.caste === 'OTHER' && (
+                      <input
+                        type="text"
+                        autoComplete="off"
+                        placeholder="Specify Caste / Category"
+                        value={studentInfo.customCaste}
+                        onChange={(e) => setStudentInfo({ ...studentInfo, customCaste: e.target.value })}
+                        className="w-full mt-1 px-2 py-1 border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:ring-1 focus:ring-indigo-300 outline-none"
+                      />
                     )}
                   </div>
-                </div>
 
-                {/* Residential Address */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Residential Address
-                  </label>
-                  <Textarea
-                    placeholder="Address (Optional)"
-                    disabled={submitting || isLocked}
-                    value={studentInfo.address}
-                    onChange={(e) => setStudentInfo({ ...studentInfo, address: e.target.value })}
-                    error={errors.address}
-                    rows={2}
-                    className="text-xs"
-                  />
+                  {/* Residential Address (Spans full width across 3 cols on lg) */}
+                  <div className="sm:col-span-2 lg:col-span-3">
+                    <Textarea
+                      label="Residential Address (Optional)"
+                      size="sm"
+                      placeholder="Street, locality, town, pin code..."
+                      disabled={submitting || isLocked}
+                      maxLength={300}
+                      rows={3}
+                      value={studentInfo.address}
+                      onChange={(e) => setStudentInfo({ ...studentInfo, address: e.target.value })}
+                      error={errors.address}
+                    />
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Section 2: Academic Enrollment */}
-            <Card className="border-slate-200 shadow-2xs">
-              <CardHeader
-                title="2. Academic Placement"
-                subtitle={`Enrollment parameters for ${selectedYear?.name || 'Current Year'}`}
+          {/* 2. Academic Enrollment Section Card */}
+          <Card className="border-slate-200 shadow-2xs">
+            <div className="px-3.5 py-2.5 border-b border-slate-100 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                2. Academic Class & Placement
+              </span>
+              <span className="text-[10px] text-slate-400">Class & medium selection</span>
+            </div>
+
+            <CardContent className="p-3 sm:p-3.5 space-y-3">
+              <EnrollmentFields
+                classes={classes}
+                mediums={mediums}
+                sections={sections}
+                streams={streams}
+                values={enrollmentValues}
+                onChange={setEnrollmentValues}
+                errors={errors}
+                disabled={submitting || isLocked || loadingSetup}
+                size="sm"
               />
-              <CardContent className="pt-2 space-y-4">
-                <EnrollmentFields
-                  classes={classes}
-                  mediums={mediums}
-                  sections={sections}
-                  streams={streams}
-                  values={enrollmentValues}
-                  onChange={setEnrollmentValues}
-                  errors={errors}
-                  disabled={submitting || isLocked || loadingSetup}
-                />
 
-                {/* Left Side Bottom Action Bar */}
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              {/* Bottom Nav Bar */}
+              <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                <div className="text-[11px] text-slate-400 hidden sm:block">
+                  <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">Enter</span> to proceed to Fee Schedule
+                </div>
+
+                <div className="flex items-center gap-2 ml-auto">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate('/app/students')}
-                    disabled={submitting}
+                    onClick={handleNavigateBack}
+                    className="py-1 text-xs"
                   >
                     Cancel
                   </Button>
 
                   <Button
-                    type="submit"
+                    type="button"
                     variant="primary"
                     size="sm"
-                    loading={submitting}
-                    loadingText="Adding Student & Fees..."
-                    disabled={isLocked || loadingSetup || hasAnyOverrideError}
-                    icon={UserPlus}
+                    icon={ArrowRight}
+                    onClick={handleNextToFeePage}
+                    className="py-1 text-xs font-bold shadow-xs"
                   >
-                    Add Student & Generate Fees
+                    Next: Fee Schedule & Concessions
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* PART 2: FEE SCHEDULE & CONCESSIONS PAGE (ENHANCED UX)         */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      {currentStep === 2 && (
+        <div className="space-y-3.5 animate-in fade-in-50 duration-150">
+
+          {/* Executive Student Identity Ribbon */}
+          <div className="bg-gradient-to-r from-indigo-50/90 via-white to-slate-50 rounded-2xl border border-indigo-100/90 p-3 sm:p-3.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              {/* Photo Avatar */}
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white border-2 border-indigo-200/80 shadow-xs ring-2 ring-indigo-50 shrink-0 overflow-hidden flex items-center justify-center">
+                {studentInfo.photoUrl && !photoLoadError ? (
+                  <img
+                    src={studentInfo.photoUrl}
+                    alt={studentInfo.name || 'Student'}
+                    className="w-full h-full object-cover"
+                    onError={() => setPhotoLoadError(true)}
+                  />
+                ) : (
+                  <span className="text-sm font-extrabold text-indigo-700 font-mono">
+                    {studentInfo.name ? studentInfo.name.charAt(0).toUpperCase() : 'S'}
+                  </span>
+                )}
+              </div>
+
+              {/* Details & Badges */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-bold text-slate-900 leading-none">
+                    {studentInfo.name || 'New Student'}
+                  </span>
+                  <Badge variant="indigo" size="xs" className="font-semibold">
+                    Class {selectedClassObj?.name || ''} {selectedMediumObj ? `(${selectedMediumObj.name})` : ''}
+                  </Badge>
+                  {selectedSectionObj && (
+                    <Badge variant="neutral" size="xs">
+                      Sec: {selectedSectionObj.name}
+                    </Badge>
+                  )}
+                  {enrollmentValues.rollNumber && (
+                    <Badge variant="neutral" size="xs" className="font-mono">
+                      Roll #{enrollmentValues.rollNumber}
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2.5 text-xs text-slate-500 flex-wrap">
+                  <span>Guardian: <strong className="text-slate-700">{studentInfo.guardianName || '—'}</strong></span>
+                  <span className="text-slate-300">•</span>
+                  <span>Phone: <strong className="font-mono text-slate-700">+91 {studentInfo.phone || '—'}</strong></span>
+                  <span className="text-slate-300">•</span>
+                  <span>Admission Date: <strong className="text-slate-700">{studentInfo.admissionDate}</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              icon={Edit3}
+              onClick={handleBackToDetails}
+              className="self-start sm:self-center py-1.5 px-3 text-xs text-indigo-700 hover:bg-indigo-50 border-indigo-200"
+            >
+              Edit Details
+            </Button>
           </div>
 
-          {/* RIGHT SIDE: Fee Structure & Overrides (5 Cols, Sticky Desktop) */}
-          <div className="lg:col-span-5 space-y-5 lg:sticky lg:top-5">
-            <Card className="border-indigo-100 shadow-2xs overflow-hidden">
-              <CardHeader
-                title="Applicable Fee Structure"
-                subtitle="Class fee heads, overrides & payable total"
-              />
-              <CardContent className="space-y-3.5 pt-2">
-                <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200 space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                      Fee Heads ({allPreviewHeads.length})
+          <form onSubmit={(e) => handleSubmit(e, 'FINISH')}>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
+
+              {/* Fee Heads List (7 Cols) */}
+              <div className="lg:col-span-7 space-y-3">
+                <Card className="border-slate-200 shadow-2xs">
+                  <div className="px-3.5 py-2.5 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                        Fee Heads ({allPreviewHeads.length})
+                      </span>
+                      <p className="text-[10px] text-slate-400">Configure student-specific fee concessions or waivers</p>
+                    </div>
+                    <span className="text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full font-medium">
+                      Billing starts: <strong className="text-slate-900">{billingMonthsPreview[0]}</strong>
                     </span>
-                    <Badge variant="indigo" size="sm">
-                      Month: {currentFeeMonth}
-                    </Badge>
                   </div>
 
-                  {loadingFeeStructure ? (
-                    <div className="py-6 text-center text-xs text-slate-400 font-medium">
-                      Loading fee structure...
-                    </div>
-                  ) : allPreviewHeads.length === 0 ? (
-                    <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-800">
-                      No active Fee Template found for selected Class/Medium/Stream.
-                    </div>
-                  ) : (
-                    <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
-                      {allPreviewHeads.map((head, idx) => {
-                        const headKey = head.feeTypeId || head.title;
-                        const ov = getHeadOverride(head);
+                  <CardContent className="p-3 sm:p-3.5 space-y-2.5">
+                    {billingMonthsPreview.length > 1 && (
+                      <div className="p-2.5 rounded-lg bg-sky-50 border border-sky-200 text-[11px] text-sky-800 flex items-center gap-2">
+                        <Info className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                        <span>
+                          Backdated admission ({studentInfo.admissionDate}): initial charges generated across <strong>{billingMonthsPreview.length} months</strong> ({billingMonthsPreview[0]} to {billingMonthsPreview[billingMonthsPreview.length - 1]}).
+                        </span>
+                      </div>
+                    )}
 
-                        const titleLower = (head.title || '').toLowerCase();
-                        const isOneTimeHead =
-                          head.category === 'ONE_TIME' ||
-                          head.category === 'ONETIME_PER_YEAR' ||
-                          titleLower.includes('admission') ||
-                          titleLower.includes('registration') ||
-                          titleLower.includes('annual');
+                    {loadingFeeStructure ? (
+                      <div className="py-8 text-center text-xs text-slate-500">
+                        Loading class fee structure...
+                      </div>
+                    ) : allPreviewHeads.length === 0 ? (
+                      <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-800">
+                        No active fee template configured. Student will be admitted with zero initial charges.
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {allPreviewHeads.map((head, idx) => {
+                          const headKey = head.feeTypeId || head.title;
+                          const ov = getHeadOverride(head);
 
-                        const targetMonth = currentFeeMonth;
-                        const templateAmt = Number(head.amount) || 0;
+                          const titleLower = (head.title || '').toLowerCase();
+                          const isOneTimeHead =
+                            head.category === 'ONE_TIME' ||
+                            head.category === 'ONETIME_PER_YEAR' ||
+                            titleLower.includes('admission') ||
+                            titleLower.includes('registration') ||
+                            titleLower.includes('annual');
 
-                        return (
-                          <div
-                            key={headKey || idx}
-                            className={`p-2.5 rounded-xl border transition-all ${ov.error
-                              ? 'bg-red-50/50 border-red-200'
-                              : ov.isOverridden
-                                ? 'bg-amber-50/40 border-amber-200 shadow-2xs'
-                                : 'bg-white border-slate-200'
+                          const templateAmt = Number(head.amount) || 0;
+                          const is100Active = ov.isOverridden && ov.finalAmount === 0;
+                          const is50Active = ov.isOverridden && ov.finalAmount === Math.round(templateAmt * 0.5);
+                          const is25Active = ov.isOverridden && ov.finalAmount === Math.round(templateAmt * 0.75);
+
+                          return (
+                            <div
+                              key={headKey || idx}
+                              className={`p-3 rounded-xl border transition-all ${
+                                ov.error
+                                  ? 'bg-rose-50/60 border-rose-200 shadow-xs'
+                                  : ov.isOverridden
+                                  ? 'bg-amber-50/40 border-amber-200/90 shadow-2xs'
+                                  : 'bg-white border-slate-200 hover:border-slate-300'
                               }`}
-                          >
-                            <div className="flex items-start justify-between gap-2 mb-1.5">
-                              <div>
-                                <h4 className="text-xs font-bold text-slate-900">{head.title}</h4>
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                  <span className="text-[10px] text-slate-400 font-mono">{targetMonth}</span>
+                            >
+                              {/* Head Header */}
+                              <div className="flex items-center justify-between gap-2 mb-2">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-xs font-bold text-slate-900">{head.title}</h4>
                                   {isOneTimeHead ? (
                                     <Badge variant="warning" size="xs">One-Time</Badge>
                                   ) : (
                                     <Badge variant="neutral" size="xs">Monthly</Badge>
                                   )}
                                 </div>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-[9px] text-slate-400 font-medium block">Template:</span>
-                                <span className="text-xs font-bold font-mono text-slate-700">
-                                  ₹{templateAmt.toLocaleString('en-IN')}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Override Input Controls */}
-                            <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-100">
-                              <div>
-                                <label className="text-[9px] font-bold text-slate-500 mb-0.5 block">
-                                  Final Amount (₹)
-                                </label>
-                                <input
-                                  type="number"
-                                  autoComplete="off"
-                                  min="0"
-                                  step="any"
-                                  placeholder="Override Amount"
-                                  disabled={submitting || isLocked || loadingFeeStructure || !canOverride}
-                                  value={ov.rawValue}
-                                  onChange={(e) => handleOverrideAmountChange(headKey, e.target.value)}
-                                  className={`w-full px-2 py-1 text-xs font-mono font-bold rounded-md border focus:ring-2 outline-none ${ov.error
-                                    ? 'border-red-400 bg-red-50 text-red-900'
-                                    : ov.isOverridden
-                                      ? 'border-amber-400 bg-amber-50 text-slate-900'
-                                      : 'border-slate-200 bg-slate-50 text-slate-900'
-                                    }`}
-                                />
+                                <div className="flex items-center gap-1.5 text-xs">
+                                  <span className="text-[10px] text-slate-400">Template Fee:</span>
+                                  <span className="font-mono font-bold text-slate-800">
+                                    {formatCurrency(templateAmt)}
+                                  </span>
+                                </div>
                               </div>
 
-                              <div>
-                                <label className="text-[9px] font-bold text-slate-500 mb-0.5 block">
-                                  Override Reason
-                                </label>
-                                <input
-                                  type="text"
-                                  autoComplete="off"
-                                  placeholder="Reason"
-                                  disabled={submitting || isLocked || loadingFeeStructure || !canOverride}
-                                  value={ov.reason}
-                                  onChange={(e) => handleOverrideReasonChange(headKey, e.target.value)}
-                                  className="w-full px-2 py-1 text-xs rounded-md border border-slate-200 bg-slate-50 text-slate-900 outline-none"
-                                />
-                              </div>
-                            </div>
-
-                            {ov.error ? (
-                              <p className="text-[10px] text-red-600 font-semibold mt-1">{ov.error}</p>
-                            ) : ov.isOverridden ? (
-                              <div className="flex items-center justify-between gap-2 mt-1.5 pt-1 border-t border-amber-100 text-[11px]">
-                                <span className="text-slate-400 line-through font-mono">
-                                  ₹{templateAmt.toLocaleString('en-IN')}
-                                </span>
-                                {ov.discountAmount > 0 && (
-                                  <Badge variant="success" size="xs">
-                                    Concession: ₹{ov.discountAmount.toLocaleString('en-IN')}
-                                  </Badge>
+                              {/* Presets & Custom Overrides Row */}
+                              <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 flex-wrap">
+                                {canOverride && (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1 hidden sm:inline">Concession:</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => applyPresetDiscount(head, 100, 'Full Waiver')}
+                                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                                        is100Active
+                                          ? 'bg-emerald-600 text-white shadow-xs'
+                                          : 'bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700'
+                                      }`}
+                                    >
+                                      100% Free
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => applyPresetDiscount(head, 50, '50% Concession')}
+                                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                                        is50Active
+                                          ? 'bg-indigo-600 text-white shadow-xs'
+                                          : 'bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700'
+                                      }`}
+                                    >
+                                      50% Off
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => applyPresetDiscount(head, 25, '25% Concession')}
+                                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                                        is25Active
+                                          ? 'bg-sky-600 text-white shadow-xs'
+                                          : 'bg-slate-100 hover:bg-sky-50 hover:text-sky-700 text-slate-700'
+                                      }`}
+                                    >
+                                      25% Off
+                                    </button>
+                                    {ov.isOverridden && (
+                                      <button
+                                        type="button"
+                                        onClick={() => applyPresetDiscount(head, 0)}
+                                        className="p-1 rounded text-[10px] font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors ml-0.5"
+                                        title="Reset to Template Amount"
+                                      >
+                                        <RotateCcw className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
                                 )}
-                                <span className="font-extrabold font-mono text-emerald-700">
-                                  Final: ₹{ov.finalAmount.toLocaleString('en-IN')}
-                                </span>
+
+                                {/* Compact Inputs: Payable & Reason */}
+                                <div className="flex items-center gap-2 ml-auto">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] font-semibold text-slate-500">Payable ₹:</span>
+                                    <input
+                                      type="number"
+                                      autoComplete="off"
+                                      min="0"
+                                      step="any"
+                                      placeholder={String(templateAmt)}
+                                      disabled={submitting || isLocked || loadingFeeStructure || !canOverride}
+                                      value={ov.rawValue}
+                                      onChange={(e) => handleOverrideAmountChange(headKey, e.target.value)}
+                                      className={`w-20 px-2 py-0.5 text-xs font-mono font-bold rounded-lg border focus:ring-2 outline-none transition-colors ${
+                                        ov.error
+                                          ? 'border-rose-300 bg-rose-50 text-rose-900 focus:ring-rose-500/20'
+                                          : ov.isOverridden
+                                          ? 'border-amber-400 bg-amber-50/80 text-slate-900 focus:ring-amber-500/20'
+                                          : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-indigo-400 focus:ring-indigo-500/20'
+                                      }`}
+                                    />
+                                  </div>
+
+                                  <input
+                                    type="text"
+                                    autoComplete="off"
+                                    placeholder={ov.isOverridden ? "Reason (e.g. Sibling)" : "Reason (optional)"}
+                                    disabled={submitting || isLocked || loadingFeeStructure || !canOverride}
+                                    value={ov.reason}
+                                    onChange={(e) => handleOverrideReasonChange(headKey, e.target.value)}
+                                    className={`w-32 px-2 py-0.5 text-[11px] rounded-lg border outline-none transition-colors ${
+                                      ov.isOverridden && !ov.reason.trim()
+                                        ? 'border-amber-300 bg-amber-50/40 text-slate-800'
+                                        : 'border-slate-200 bg-slate-50 text-slate-800 focus:border-indigo-400'
+                                    }`}
+                                  />
+                                </div>
                               </div>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
 
-                  {/* Summary Breakdown Card */}
-                  <div className="p-3 bg-indigo-50/90 rounded-xl border border-indigo-100 space-y-1.5">
-                    <div className="flex items-center justify-between text-xs text-indigo-950 font-medium">
-                      <span>Total Template Amount:</span>
-                      <span className="font-mono font-bold">
-                        ₹{totalOriginalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-
-                    {totalDiscountAmount > 0 && (
-                      <div className="flex items-center justify-between text-xs text-emerald-700 font-bold">
-                        <span>Total Concession:</span>
-                        <span className="font-mono">
-                          - ₹{totalDiscountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                        </span>
+                              {/* Error or Concession Status Strip */}
+                              {ov.error ? (
+                                <p className="text-[10px] text-rose-600 font-semibold mt-1.5">{ov.error}</p>
+                              ) : ov.isOverridden ? (
+                                <div className="flex items-center justify-between gap-2 mt-1.5 pt-1.5 border-t border-amber-200/50 text-[11px]">
+                                  <span className="text-slate-400 line-through font-mono text-[10px]">
+                                    Template: {formatCurrency(templateAmt)}
+                                  </span>
+                                  {ov.discountAmount > 0 && (
+                                    <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                      Concession: -{formatCurrency(ov.discountAmount)}
+                                    </span>
+                                  )}
+                                  <span className="font-extrabold font-mono text-emerald-800">
+                                    Final Payable: {formatCurrency(ov.finalAmount)}
+                                  </span>
+                                </div>
+                              ) : null}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
+                  </CardContent>
+                </Card>
+              </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-indigo-200">
-                      <span className="text-xs font-black text-indigo-950">Total Initial Payable:</span>
-                      <span className="text-base font-black font-mono text-indigo-700">
-                        ₹{totalFinalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
+              {/* Financial Summary & Actions (5 Cols, Sticky Desktop) */}
+              <div className="lg:col-span-5 space-y-3 lg:sticky lg:top-4">
+                <Card className="border-indigo-100 shadow-2xs overflow-hidden">
+                  <div className="px-3.5 py-2.5 border-b border-indigo-50 bg-indigo-50/40 flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                      Financial Summary
+                    </span>
+                    <Badge variant="indigo" size="xs">
+                      {selectedYear?.name || 'Academic Year'}
+                    </Badge>
                   </div>
-                </div>
 
-                {/* Form Desktop Action Buttons inside Sticky Fee Panel */}
-                <div className="flex flex-col space-y-2 pt-1">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="sm"
-                    className="w-full justify-center shadow-sm"
-                    loading={submitting}
-                    loadingText="Adding student & generating fees..."
-                    disabled={isLocked || loadingSetup || hasAnyOverrideError}
-                    icon={UserPlus}
-                  >
-                    Add Student & Generate Fees
-                  </Button>
+                  <CardContent className="p-3.5 space-y-3">
+                    <div className="p-3 bg-indigo-50/70 rounded-xl border border-indigo-100 space-y-2 text-xs">
+                      {oneTimeAmount > 0 && (
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span>One-Time Charges:</span>
+                          <span className="font-mono font-medium">{formatCurrency(oneTimeAmount)}</span>
+                        </div>
+                      )}
+                      {monthlyAmount > 0 && (
+                        <div className="flex items-center justify-between text-slate-600">
+                          <span>Recurring Monthly (1st mo):</span>
+                          <span className="font-mono font-medium">{formatCurrency(monthlyAmount)}</span>
+                        </div>
+                      )}
 
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-center"
-                    onClick={() => navigate('/app/students')}
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                      <div className="flex items-center justify-between text-indigo-950 pt-1 border-t border-indigo-100">
+                        <span className="font-medium">Total Standard Fee:</span>
+                        <span className="font-mono font-bold">
+                          {formatCurrency(totalOriginalAmount)}
+                        </span>
+                      </div>
+
+                      {totalDiscountAmount > 0 && (
+                        <div className="flex items-center justify-between text-emerald-700 font-bold bg-emerald-100/70 p-1.5 rounded-lg border border-emerald-200">
+                          <span>Total Concession:</span>
+                          <span className="font-mono">
+                            - {formatCurrency(totalDiscountAmount)}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2 border-t border-indigo-200">
+                        <div>
+                          <span className="font-bold text-indigo-950 block">Net Initial Payable:</span>
+                          <span className="text-[10px] text-slate-500 font-normal">First admission dues</span>
+                        </div>
+                        <span className="text-lg font-black font-mono text-indigo-700">
+                          {formatCurrency(totalFinalAmount)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Operational Note */}
+                    <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-[10px] text-slate-600 space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                        <Calendar className="w-3 h-3 text-indigo-600" />
+                        <span>Billing Cycle Starts: {billingMonthsPreview[0]}</span>
+                      </div>
+                      <p className="text-slate-500 leading-relaxed">
+                        Initial due invoice and student fee ledger will be automatically generated upon enrollment.
+                      </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="space-y-2 pt-1">
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="sm"
+                        className="w-full justify-center shadow-xs font-bold text-xs py-2"
+                        loading={submitting && submittingMode === 'FINISH'}
+                        loadingText="Enrolling..."
+                        disabled={isLocked || loadingSetup || hasAnyOverrideError || (submitting && submittingMode === 'ANOTHER')}
+                        icon={UserPlus}
+                      >
+                        Confirm & Add Student
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-center text-xs py-1.5 font-semibold text-slate-700 hover:text-slate-900"
+                        icon={PlusCircle}
+                        onClick={(e) => handleSubmit(e, 'ANOTHER')}
+                        loading={submitting && submittingMode === 'ANOTHER'}
+                        loadingText="Saving & Resetting..."
+                        disabled={isLocked || loadingSetup || hasAnyOverrideError || (submitting && submittingMode === 'FINISH')}
+                        title="Save student and add next"
+                      >
+                        Save & Add Another Student
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-center text-xs text-slate-500 py-1"
+                        icon={ArrowLeft}
+                        onClick={handleBackToDetails}
+                        disabled={submitting}
+                      >
+                        Back to Student Details
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </form>
         </div>
+      )}
 
-        {/* Floating Mobile Action Bar (< 640px) */}
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 p-3 bg-white border-t border-slate-200 shadow-lg z-40 flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="flex-1 justify-center"
-            onClick={() => navigate('/app/students')}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-
-          <Button
-            type="submit"
-            variant="primary"
-            size="sm"
-            className="flex-[2] justify-center"
-            loading={submitting}
-            loadingText="Adding..."
-            disabled={isLocked || loadingSetup || hasAnyOverrideError}
-            icon={UserPlus}
-          >
-            Add Student
-          </Button>
-        </div>
-      </form>
+      {/* Floating Mobile Action Bar (< 640px) */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 p-2.5 bg-white/95 backdrop-blur-sm border-t border-slate-200 shadow-xl z-40 flex items-center gap-2">
+        {currentStep === 1 ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1 justify-center text-xs py-1"
+              onClick={handleNavigateBack}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              className="flex-[2] justify-center text-xs font-bold py-1"
+              icon={ArrowRight}
+              onClick={handleNextToFeePage}
+            >
+              Next: Fee Page
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1 justify-center text-xs py-1"
+              onClick={handleBackToDetails}
+              disabled={submitting}
+            >
+              Back
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              className="flex-[2] justify-center text-xs font-bold py-1"
+              loading={submitting && submittingMode === 'FINISH'}
+              disabled={isLocked || loadingSetup || hasAnyOverrideError || (submitting && submittingMode === 'ANOTHER')}
+              icon={UserPlus}
+              onClick={(e) => handleSubmit(e, 'FINISH')}
+            >
+              Confirm & Add
+            </Button>
+          </>
+        )}
+      </div>
     </div>
   );
 };

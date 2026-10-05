@@ -13,6 +13,16 @@ const server = app.listen(PORT, () => {
   initCronScheduler();
 });
 
+// Anti-DDoS / Slowloris Defenses & HTTP Connection Hardening
+// 1. headersTimeout: Time allowed for client to transmit entire HTTP headers (20s)
+server.headersTimeout = 20000;
+// 2. requestTimeout: Time allowed for client to transmit entire request body (30s)
+server.requestTimeout = 30000;
+// 3. keepAliveTimeout: Max idle time between requests on keep-alive socket (65s)
+server.keepAliveTimeout = 65000;
+// 4. maxHeadersCount: Limit HTTP header lines to prevent header flood attacks
+server.maxHeadersCount = 100;
+
 const gracefulShutdown = async (signal) => {
   console.log(`${signal} received. Initiating graceful shutdown...`);
   stopCronScheduler();

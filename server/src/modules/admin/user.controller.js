@@ -1,12 +1,21 @@
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { adminUserService } from './user.service.js';
+import {
+  createSuperAdminSchema,
+  updateAdminUserProfileSchema,
+  resetUserPasswordSchema,
+  changeUserRoleSchema,
+} from './admin.validation.js';
 
 export const adminUserController = {
   listUsers: asyncHandler(async (req, res) => {
     const { page, limit, search, role, schoolId } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+
     const result = await adminUserService.listUsers({
-      page: page ? Number(page) : 1,
-      limit: limit ? Number(limit) : 20,
+      page: pageNum,
+      limit: limitNum,
       search,
       role,
       schoolId,
@@ -21,7 +30,8 @@ export const adminUserController = {
 
   createSuperAdmin: asyncHandler(async (req, res) => {
     const actorUserId = req.user.id;
-    const user = await adminUserService.createSuperAdmin(req.body, actorUserId);
+    const validatedBody = createSuperAdminSchema.parse(req.body);
+    const user = await adminUserService.createSuperAdmin(validatedBody, actorUserId);
     res.status(201).json({
       success: true,
       message: 'Super Admin user created successfully',
@@ -32,7 +42,8 @@ export const adminUserController = {
   updateUserProfile: asyncHandler(async (req, res) => {
     const { id } = req.params;
     const actorUserId = req.user.id;
-    const user = await adminUserService.updateUserProfile(id, req.body, actorUserId);
+    const validatedBody = updateAdminUserProfileSchema.parse(req.body);
+    const user = await adminUserService.updateUserProfile(id, validatedBody, actorUserId);
     res.status(200).json({
       success: true,
       message: 'User profile updated successfully',
@@ -42,7 +53,7 @@ export const adminUserController = {
 
   changeUserRole: asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { role } = req.body;
+    const { role } = changeUserRoleSchema.parse(req.body);
     const actorUserId = req.user.id;
     const user = await adminUserService.changeUserRole(id, role, actorUserId);
     res.status(200).json({
@@ -54,7 +65,7 @@ export const adminUserController = {
 
   resetUserPassword: asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { newPassword } = req.body;
+    const { newPassword } = resetUserPasswordSchema.parse(req.body);
     const actorUserId = req.user.id;
     const result = await adminUserService.resetUserPassword(id, newPassword, actorUserId);
     res.status(200).json({

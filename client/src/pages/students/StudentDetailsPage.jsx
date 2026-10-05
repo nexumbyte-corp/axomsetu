@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { UpdateHostelAdmissionDateModal } from '../../components/hostel/UpdateHostelAdmissionDateModal.jsx';
+import { StudentStatusModal } from '../../components/students/StudentStatusModal.jsx';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { usePermission } from '../../hooks/usePermission.js';
 import { useAuth } from '../../hooks/useAuth.js';
@@ -50,7 +51,6 @@ import { formatDate } from '../../utils/formatters.js';
 import { StudentAvatar } from '../../components/students/StudentAvatar.jsx';
 import { StudentStatusBadge } from '../../components/students/StudentStatusBadge.jsx';
 import { IndividualPromotionModal } from '../../components/students/IndividualPromotionModal.jsx';
-import { EditEnrollmentModal } from '../../components/students/EditEnrollmentModal.jsx';
 import { StudentTransferModal } from '../../components/students/StudentTransferModal.jsx';
 import { StudentFeeOverridesTab } from '../../components/students/StudentFeeOverridesTab.jsx';
 import { DuesAdviceCard } from '../../components/fees/DuesAdviceCard.jsx';
@@ -59,7 +59,7 @@ import { PhotoPreviewModal } from '../../components/students/PhotoPreviewModal.j
 export const StudentDetailsPage = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
-  const { selectedYear, selectedYearId } = useAcademicYear();
+  const { selectedYear, selectedYearId, academicYears = [] } = useAcademicYear();
   const { can } = usePermission();
   const { user } = useAuth();
 
@@ -96,8 +96,7 @@ export const StudentDetailsPage = () => {
   const [transferHistories, setTransferHistories] = useState([]);
 
   // Modals
-  const [activeModal, setActiveModal] = useState(null); // 'PROMOTE' | 'EDIT_ENROLLMENT' | 'TRANSFER' | 'STATUS_CONFIRM' | 'DELETE_HARD'
-  const [selectedEnrollmentForEdit, setSelectedEnrollmentForEdit] = useState(null);
+  const [activeModal, setActiveModal] = useState(null); // 'PROMOTE' | 'TRANSFER' | 'STATUS_CONFIRM' | 'DELETE_HARD'
   const [targetStatus, setTargetStatus] = useState(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [hostelDateModalOpen, setHostelDateModalOpen] = useState(false);
@@ -245,12 +244,19 @@ export const StudentDetailsPage = () => {
     (e) => e.academicYear?.id === selectedYearId || e.academicYearId === selectedYearId
   );
 
-  const handleConfirmStatusChange = async () => {
+  const handleConfirmStatusChange = async (payload) => {
     if (!targetStatus) return;
     setStatusUpdating(true);
     try {
-      await studentService.updateStudentStatus(student.id, targetStatus);
-      toast.success(`Student status updated to ${targetStatus}`);
+      const res = await studentService.updateStudentStatus(
+        student.id,
+        payload || { status: targetStatus }
+      );
+      if (res?.data?.hostelExit?.isHosteler) {
+        toast.success(`Student status updated to ${targetStatus} and hostel exit processed successfully`);
+      } else {
+        toast.success(`Student status updated to ${targetStatus}`);
+      }
       fetchStudentData();
     } catch (err) {
       toast.error(err.message || 'Failed updating status');
@@ -337,15 +343,6 @@ export const StudentDetailsPage = () => {
               >
                 {!isLocked && currentAcademic && (
                   <>
-                    <DropdownItem
-                      icon={Edit}
-                      onClick={() => {
-                        setSelectedEnrollmentForEdit(currentAcademic);
-                        setActiveModal('EDIT_ENROLLMENT');
-                      }}
-                    >
-                      Edit Enrollment ({selectedYear?.name})
-                    </DropdownItem>
                     <DropdownItem
                       icon={ArrowRightLeft}
                       onClick={() => setActiveModal('TRANSFER')}
@@ -1116,22 +1113,7 @@ export const StudentDetailsPage = () => {
           />
         )}
 
-        {selectedEnrollmentForEdit && activeModal === 'EDIT_ENROLLMENT' && (
-          <EditEnrollmentModal
-            isOpen={true}
-            onClose={() => {
-              setActiveModal(null);
-              setSelectedEnrollmentForEdit(null);
-            }}
-            student={student}
-            enrollment={selectedEnrollmentForEdit}
-            classes={classes}
-            mediums={mediums}
-            sections={sections}
-            streams={streams}
-            onSuccess={fetchStudentData}
-          />
-        )}
+
 
         {currentAcademic && activeModal === 'TRANSFER' && (
           <StudentTransferModal
@@ -1149,19 +1131,20 @@ export const StudentDetailsPage = () => {
           />
         )}
 
-        {/* Confirm Status Change Dialog */}
-        <ConfirmDialog
+        {/* Student Status Modal with Automated Hostel Exit detection */}
+        <StudentStatusModal
           isOpen={activeModal === 'STATUS_CONFIRM'}
           onClose={() => {
             setActiveModal(null);
             setTargetStatus(null);
           }}
           onConfirm={handleConfirmStatusChange}
-          title="Update Student Status"
-          message={`Are you sure you want to change status of ${student.name} to ${targetStatus}?`}
-          confirmText="Update Status"
+          student={{
+            ...student,
+            enrollment: currentAcademic,
+          }}
+          targetStatus={targetStatus}
           loading={statusUpdating}
-          loadingText="Updating..."
         />
 
         {/* Hard Delete Confirmation Modal */}

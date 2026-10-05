@@ -33,6 +33,7 @@ import { StudentAvatar } from '../../components/students/StudentAvatar.jsx';
 import { StudentStatusBadge } from '../../components/students/StudentStatusBadge.jsx';
 import { StudentFiltersDrawer } from '../../components/students/StudentFiltersDrawer.jsx';
 import { IndividualPromotionModal } from '../../components/students/IndividualPromotionModal.jsx';
+import { StudentStatusModal } from '../../components/students/StudentStatusModal.jsx';
 import { PhotoPreviewModal } from '../../components/students/PhotoPreviewModal.jsx';
 
 const STUDENT_FILTERS_STORAGE_KEY = 'student_list_filters';
@@ -326,12 +327,19 @@ export const StudentsListPage = () => {
     setActiveModal('STATUS_CONFIRM');
   };
 
-  const handleConfirmStatusChange = async () => {
+  const handleConfirmStatusChange = async (payload) => {
     if (!selectedStudentForAction || !targetStatus) return;
     setStatusUpdating(true);
     try {
-      await studentService.updateStudentStatus(selectedStudentForAction.id, targetStatus);
-      toast.success(`Student status updated to ${targetStatus}`);
+      const res = await studentService.updateStudentStatus(
+        selectedStudentForAction.id,
+        payload || { status: targetStatus }
+      );
+      if (res?.data?.hostelExit?.isHosteler) {
+        toast.success(`Student status updated to ${targetStatus} and hostel exit processed successfully`);
+      } else {
+        toast.success(`Student status updated to ${targetStatus}`);
+      }
       refreshStudents();
     } catch (err) {
       toast.error(err?.message || 'Failed updating status');
@@ -761,16 +769,14 @@ export const StudentsListPage = () => {
         />
       )}
 
-      {/* Status Confirmation Dialog */}
-      <ConfirmDialog
+      {/* Student Status Modal with Automated Hostel Exit detection */}
+      <StudentStatusModal
         isOpen={activeModal === 'STATUS_CONFIRM'}
         onClose={closeModal}
         onConfirm={handleConfirmStatusChange}
-        title="Change Student Status"
-        message={`Are you sure you want to change status of ${selectedStudentForAction?.name} to ${targetStatus}?`}
-        confirmText="Update Status"
+        student={selectedStudentForAction}
+        targetStatus={targetStatus}
         loading={statusUpdating}
-        loadingText="Updating..."
       />
 
       {/* Hard Delete Confirmation Dialog */}

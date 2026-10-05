@@ -31,8 +31,9 @@ export const studentService = {
   },
 
   // 5. Update Student Status
-  updateStudentStatus: async (studentId, status) => {
-    return await api.patch(`/students/${studentId}/status`, { status });
+  updateStudentStatus: async (studentId, statusOrPayload) => {
+    const payload = typeof statusOrPayload === 'string' ? { status: statusOrPayload } : statusOrPayload;
+    return await api.patch(`/students/${studentId}/status`, payload);
   },
 
   // 6. Update Academic Enrollment

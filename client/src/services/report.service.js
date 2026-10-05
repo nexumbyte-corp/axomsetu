@@ -97,5 +97,19 @@ export const reportService = {
   async getFinancialChartsReport(params = {}) {
     return this.fetchReport('/reports/finance/charts', params);
   },
+
+  /**
+   * Fetch System Audit Logs Report scoped by School
+   */
+  async getAuditLogsReport(params = {}) {
+    return this.fetchReport('/reports/audit/logs', params);
+  },
+
+  /**
+   * Fetch Dynamic Audit Filter Options (modules, actions, school users)
+   */
+  async getAuditFilterOptions(params = {}) {
+    return this.fetchReport('/reports/audit/options', params);
+  },
 };
 

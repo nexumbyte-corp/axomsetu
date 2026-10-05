@@ -116,7 +116,8 @@ export const exportToExcel = (data = [], columns = [], filename = 'Report_Export
   const formattedRows = data.map((row) => {
     const rowObj = {};
     columns.forEach((col) => {
-      rowObj[col.label] = getFormattedValue(row, col) ?? '';
+      const val = getFormattedValue(row, col) ?? '';
+      rowObj[col.label] = typeof val === 'string' ? sanitizeFormulaInjection(val) : val;
     });
     return rowObj;
   });
@@ -142,6 +143,19 @@ export const exportToExcel = (data = [], columns = [], filename = 'Report_Export
   const cleanFilename = filename.replace(/\.(xlsx|xls|csv|json)$/i, '') + '.xlsx';
   XLSX.writeFile(workbook, cleanFilename);
 };
+
+/**
+ * Neutralizes potential spreadsheet formula injection (=, +, -, @, tab, CR)
+ * Ensures spreadsheet programs treat untrusted strings strictly as plain text.
+ */
+function sanitizeFormulaInjection(val) {
+  if (typeof val !== 'string') return val;
+  const trimmed = val.trimStart();
+  if (/^[=+@\-\t\r]/.test(trimmed)) {
+    return `'${val}`;
+  }
+  return val;
+}
 
 /**
  * Export dataset to JSON (.json)
@@ -180,6 +194,9 @@ export const exportToJSON = (data = [], columns = [], filename = 'Report_Export.
 };
 
 function escapeCSVField(field) {
-  const clean = String(field).replace(/"/g, '""');
-  return `"${clean}"`;
+  let clean = String(field ?? '');
+  if (/^[=+@\-\t\r]/.test(clean.trimStart())) {
+    clean = `'${clean}`;
+  }
+  return `"${clean.replace(/"/g, '""')}"`;
 }

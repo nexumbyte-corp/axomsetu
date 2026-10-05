@@ -4,13 +4,25 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import { env } from './config/env.js';
 import routes, { healthCheckHandler } from './routes/index.js';
 import razorpayRouter from './modules/razorpay/razorpay.routes.js';
-import { authLimiter } from './middleware/rateLimit.middleware.js';
+import {
+  globalLimiter,
+  authLimiter,
+  paymentLimiter,
+  heavyOperationsLimiter,
+  ddosPreFilter,
+} from './middleware/rateLimit.middleware.js';
 import { errorHandler } from './middleware/error.middleware.js';
+import { sanitizeInput } from './middleware/sanitize.middleware.js';
 import { ApiError } from './utils/ApiError.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -18,6 +30,9 @@ const app = express();
 if (env.TRUST_PROXY || env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
+
+// Early Anti-DDoS Protocol Anomaly & Malicious Probe Pre-Filter
+app.use(ddosPreFilter);
 
 // High Performance Compression (Gzip / Deflate)
 app.use(
@@ -106,20 +121,36 @@ app.use((req, res, next) => {
   next();
 });
 
-// Request Parsers
-app.use(express.json({ limit: '10mb' }));
-
 // HTTP Request Logging
 if (env.NODE_ENV !== 'test') {
   app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 }
 
-// Request Parsers
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Request Parsers (Bounded to 2MB to protect against JSON DoS memory exhaustion)
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// Apply Authentication Rate Limiter
+// Global Request Sanitization & Parameter Normalization Middleware
+app.use(sanitizeInput);
+
+// Apply Tiered Rate Limiters
+// 1. Strict Auth Limiter (20 attempts per 15m, skips successful logins)
 app.use('/api/v1/auth', authLimiter);
+
+// 2. Strict Payment & Checkout Limiter (25 requests per 15m)
+app.use('/api/create-order', paymentLimiter);
+app.use('/api/verify-payment', paymentLimiter);
+app.use('/api/razorpay', paymentLimiter);
+app.use('/api/v1/razorpay', paymentLimiter);
+app.use('/api/v1/subscriptions/purchase', paymentLimiter);
+
+// 3. Heavy Operations Limiter (40 requests per 1m)
+app.use('/api/v1/reports', heavyOperationsLimiter);
+app.use('/api/v1/students/promote-bulk', heavyOperationsLimiter);
+app.use('/api/v1/admin/audit-logs', heavyOperationsLimiter);
+
+// 4. Global API Limiter (600 requests per 15m across all API endpoints)
+app.use('/api', globalLimiter);
 
 // Direct Health Check Route Alias
 app.get('/health', healthCheckHandler);

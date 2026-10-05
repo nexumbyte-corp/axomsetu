@@ -113,12 +113,18 @@ export const updateStudentProfileSchema = z.object({
   caste: z.string().trim().max(50, 'Caste must not exceed 50 characters').optional().nullable(),
   address: z.string().trim().max(300, 'Address must not exceed 300 characters').optional().nullable(),
   photoUrl: z.string().trim().max(150000, 'Photo URL is too large').optional().nullable(),
+  rollNumber: rollSchema,
+  rollNo: rollSchema,
+  academicYearId: z.string().uuid('Invalid Academic Year ID').optional().nullable(),
 });
 
 export const updateStudentStatusSchema = z.object({
   status: z.enum(['ACTIVE', 'LEFT', 'GRADUATED', 'ARCHIVED'], {
     errorMap: () => ({ message: 'Status must be ACTIVE, LEFT, GRADUATED, or ARCHIVED' }),
   }),
+  exitDate: z.string().optional().nullable(),
+  reason: z.string().trim().max(300, 'Reason must not exceed 300 characters').optional().nullable(),
+  exitReason: z.string().trim().max(300, 'Reason must not exceed 300 characters').optional().nullable(),
 });
 
 export const updateStudentAdmissionDateSchema = z.object({
@@ -151,6 +157,9 @@ export const promoteStudentSchema = z
     rollNumber: rollSchema,
     rollNo: rollSchema,
     resultStatus: z.enum(['PROMOTED', 'REPEATED']).optional(),
+    exitDate: z.string().optional().nullable(),
+    reason: z.string().trim().max(300, 'Reason must not exceed 300 characters').optional().nullable(),
+    exitReason: z.string().trim().max(300, 'Reason must not exceed 300 characters').optional().nullable(),
   })
   .superRefine((data, ctx) => {
     const action = data.action || (data.resultStatus === 'REPEATED' ? 'REPEAT' : 'PROMOTE');

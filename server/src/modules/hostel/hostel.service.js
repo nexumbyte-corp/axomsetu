@@ -2012,7 +2012,7 @@ export const exitStudent = async (schoolId, payload, actorUserId) => {
       where: { id: enrollment.id },
       data: {
         status: 'EXITED',
-        endDate: new Date(exitDate),
+        endDate: exitD,
         exitReason: reason || 'Hostel Exit',
       },
       include: {
@@ -2038,6 +2038,141 @@ export const exitStudent = async (schoolId, payload, actorUserId) => {
 
     return updated;
   });
+};
+
+/**
+ * Automatically checks whether a student is an active hosteler and processes their hostel exit
+ * if active, within the provided Prisma transaction (tx).
+ *
+ * If the student is a Day Scholar (no ACTIVE hostel enrollment), it cleanly returns
+ * without performing any hostel updates or creating duplicate records.
+ *
+ * @param {Object} tx - Active Prisma transaction client
+ * @param {Object} params
+ * @param {string} params.schoolId
+ * @param {string} params.studentId
+ * @param {string} [params.status] - Target student status ('LEFT' | 'GRADUATED')
+ * @param {string|Date} [params.exitDate] - Optional specific exit date
+ * @param {string} [params.reason] - Optional specific exit reason
+ * @param {string} [params.actorUserId] - ID of user triggering the action
+ * @returns {Promise<{ isHosteler: boolean, exitedHostelEnrollments: Array }>}
+ */
+export const processHostelExitForStudent = async (
+  tx,
+  { schoolId, studentId, status = 'LEFT', exitDate, reason, actorUserId }
+) => {
+  // 1. Check if student currently has any ACTIVE hostel enrollments
+  const activeEnrollments = await tx.hostelEnrollment.findMany({
+    where: {
+      schoolId,
+      studentId,
+      status: 'ACTIVE',
+    },
+    include: {
+      hostel: { select: { id: true, name: true } },
+      room: { select: { id: true, roomNumber: true } },
+      bed: { select: { id: true, bedNumber: true } },
+    },
+  });
+
+  // If student has no active hostel enrollment, they are a Day Scholar (or already exited).
+  // No duplicate records or unnecessary modifications.
+  if (!activeEnrollments || activeEnrollments.length === 0) {
+    return {
+      isHosteler: false,
+      exitedHostelEnrollments: [],
+    };
+  }
+
+  const exitedEnrollments = [];
+
+  for (const enrollment of activeEnrollments) {
+    // 2. Validate and calculate exit date
+    const startD = new Date(enrollment.startDate);
+    startD.setHours(0, 0, 0, 0);
+
+    let exitD = exitDate ? new Date(exitDate) : new Date();
+    if (isNaN(exitD.getTime())) {
+      exitD = new Date();
+    }
+    exitD.setHours(0, 0, 0, 0);
+
+    // If exitDate was not explicitly supplied or falls before start date, ensure it's at least startDate
+    if (exitD < startD) {
+      if (exitDate) {
+        // If explicitly supplied and invalid, throw badRequest consistent with hostel module
+        const formattedStart = startD.toISOString().split('T')[0];
+        throw ApiError.badRequest(`Hostel exit date cannot be before hostel start date (${formattedStart})`);
+      } else {
+        exitD = startD;
+      }
+    }
+
+    // 3. Release room bed allocation: bed status to AVAILABLE
+    if (enrollment.bedId) {
+      await tx.hostelBed.update({
+        where: { id: enrollment.bedId },
+        data: { status: 'AVAILABLE' },
+      });
+    }
+
+    // 4. Update hostel enrollment to EXITED
+    const defaultReason = reason || (status === 'GRADUATED' ? 'Student Graduated' : 'Student Left School');
+    const updatedEnrollment = await tx.hostelEnrollment.update({
+      where: { id: enrollment.id },
+      data: {
+        status: 'EXITED',
+        endDate: exitD,
+        exitReason: defaultReason,
+      },
+      include: {
+        hostel: { select: { id: true, name: true } },
+        room: { select: { id: true, roomNumber: true } },
+        bed: { select: { id: true, bedNumber: true } },
+      },
+    });
+
+    exitedEnrollments.push(updatedEnrollment);
+
+    // 5. Create audit log for hostel exit
+    if (actorUserId) {
+      await tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: actorUserId,
+          action: 'EXIT_STUDENT_HOSTEL',
+          entityType: 'HostelEnrollment',
+          entityId: enrollment.id,
+          newValues: {
+            exitDate: exitD.toISOString().split('T')[0],
+            reason: defaultReason,
+            trigger: `STUDENT_STATUS_${status}`,
+            hostelName: enrollment.hostel?.name,
+            roomNumber: enrollment.room?.roomNumber,
+            bedNumber: enrollment.bed?.bedNumber,
+          },
+        },
+      });
+    }
+  }
+
+  // 6. Handle legacy StudentHostelEnrollment records if any active exist
+  await tx.studentHostelEnrollment.updateMany({
+    where: {
+      schoolId,
+      studentId,
+      status: 'ACTIVE',
+    },
+    data: {
+      status: 'LEFT',
+      endDate: new Date(),
+    },
+  });
+
+  return {
+    isHosteler: true,
+    exitedHostelEnrollments: exitedEnrollments,
+  };
 };
 
 // ==========================================
