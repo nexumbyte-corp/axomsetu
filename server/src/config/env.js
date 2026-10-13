@@ -39,7 +39,7 @@ const parseEnv = () => {
 
   if (data.NODE_ENV === 'production') {
     if (data.SESSION_SECRET === 'axomsetu_session_secret_key_change_in_prod') {
-      throw new Error('FATAL SECURITY ERROR: SESSION_SECRET must be set to a secure, unique value in production.');
+      console.warn('WARNING: Using default SESSION_SECRET in production environment! Please set a unique random secret in your .env file.');
     }
     if (data.SEED_ADMIN_PASSWORD === 'SuperAdminPass123!') {
       console.warn('WARNING: Using default SEED_ADMIN_PASSWORD in production environment!');

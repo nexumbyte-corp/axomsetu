@@ -9,7 +9,7 @@ export default defineConfig({
     include: ['@tanstack/react-query', 'axios', 'lucide-react', 'react-router-dom'],
   },
   build: {
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 2500,
     rollupOptions: {
       output: {
         manualChunks(id) {

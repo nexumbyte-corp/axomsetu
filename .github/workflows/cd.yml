@@ -67,25 +67,30 @@ jobs:
 
             # 5. Application health check probe verification
             echo "Performing API Health Check Probe..."
-            sleep 3
             PORT=$(grep -E '^\s*PORT\s*=' .env 2>/dev/null | tail -n 1 | cut -d '=' -f2 | tr -cd '0-9')
             PORT="${PORT:-5000}"
 
             echo "Probing backend health on port ${PORT}..."
             HEALTH_SUCCESS=false
 
-            for url in "http://localhost:${PORT}/api/v1/health" "http://localhost:${PORT}/health" "http://localhost:${PORT}/"; do
-              if curl -sS -f "$url" > /dev/null; then
-                HEALTH_SUCCESS=true
-                echo "Health check probe succeeded at ${url}"
-                break
-              fi
+            for attempt in $(seq 1 10); do
+              sleep 2
+              for url in "http://localhost:${PORT}/api/v1/health" "http://localhost:${PORT}/health" "http://localhost:${PORT}/"; do
+                if curl -sS -f "$url" > /dev/null 2>&1; then
+                  HEALTH_SUCCESS=true
+                  echo "Health check probe succeeded at ${url} (attempt ${attempt})"
+                  break 2
+                fi
+              done
+              echo "Health check attempt ${attempt}/10 pending..."
             done
 
             if [ "$HEALTH_SUCCESS" = "true" ]; then
               echo "Production application is operational!"
             else
-              echo "Health check probe failed!"
+              echo "Health check probe failed! Dumping PM2 cluster status and error logs for diagnosis:"
+              pm2 status
+              pm2 logs axomsetu-backend --lines 40 --nostream || true
               exit 1
             fi
 
