@@ -9,6 +9,10 @@ export const StudentDetailsCell = ({ student, onPhotoClick, className = '' }) =>
   const guardianName = student.guardianName || student.guardian_name || 'N/A';
   const photoUrl = student.photoUrl || student.photo_url || null;
 
+  const classNameValue = student.className && student.className !== 'N/A' ? student.className : null;
+  const sectionName = student.sectionName && student.sectionName !== 'N/A' ? student.sectionName : null;
+  const classDisplay = classNameValue ? `${classNameValue}${sectionName ? ` - ${sectionName}` : ''}` : null;
+
   return (
     <div className={`flex items-center space-x-2.5 ${className}`}>
       <button
@@ -42,10 +46,15 @@ export const StudentDetailsCell = ({ student, onPhotoClick, className = '' }) =>
           <span className="font-mono text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-semibold shrink-0">
             Adm: {admissionNo}
           </span>
+          {classDisplay && (
+            <span className="text-[10px] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-semibold shrink-0">
+              {classDisplay}
+            </span>
+          )}
         </div>
         <div className="text-[11px] text-slate-500 flex items-center gap-1">
           <span className="font-medium text-slate-400">Guardian:</span>
-          <span className="font-semibold text-slate-700">{guardianName}</span>
+          <span className="font-semibold text-slate-700 truncate">{guardianName}</span>
         </div>
       </div>
     </div>

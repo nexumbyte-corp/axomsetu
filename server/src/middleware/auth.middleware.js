@@ -9,15 +9,13 @@ import { setSessionIdentity } from './rateLimit.middleware.js';
 export const authenticate = asyncHandler(async (req, res, next) => {
   let token;
 
-  // 1. Extract session token from HttpOnly cookie first, then Authorization header, then query parameter
+  // 1. Extract session token from HttpOnly cookie first, then Authorization header only
   if (req.cookies && req.cookies[COOKIE_NAME]) {
     token = req.cookies[COOKIE_NAME];
   } else {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
       token = authHeader.substring(7).trim();
-    } else if (req.query && req.query.token) {
-      token = req.query.token;
     }
   }
 

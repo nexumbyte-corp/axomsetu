@@ -93,22 +93,21 @@ export const PaymentForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} autoComplete="off" className="bg-white rounded-xl border border-slate-200 p-2.5 shadow-2xs space-y-2 shrink-0">
-      <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-        <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-          <CreditCard className="w-3.5 h-3.5 text-indigo-600" />
-          <span>Pay Details</span>
-        </h3>
-        <span className="text-[9px] text-slate-400 font-medium">Entry</span>
+    <form onSubmit={handleSubmit} autoComplete="off" className="bg-white rounded-xl border border-slate-200 p-3 shadow-2xs space-y-2.5 shrink-0">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+        <div className="flex items-center gap-1.5">
+          <CreditCard className="w-3.5 h-3.5 text-slate-500" />
+          <h3 className="text-xs font-bold text-slate-900 tracking-tight">Payment Details</h3>
+        </div>
       </div>
 
       {errorMsg && (
-        <div className="p-1.5 bg-rose-50 border border-rose-200 rounded-lg text-[10px] font-semibold text-rose-700">
+        <div className="p-2 bg-rose-50 border border-rose-200 rounded-lg text-[10px] font-semibold text-rose-700">
           {errorMsg}
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="grid grid-cols-2 gap-2">
         {/* Date */}
         <div>
           <DatePicker
@@ -129,7 +128,7 @@ export const PaymentForm = ({
               setPaymentMode(e.target.value);
               setErrorMsg('');
             }}
-            className="w-full py-1.5 px-2 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold text-slate-900"
+            className="w-full py-1.5 px-2 text-xs bg-slate-50/80 hover:bg-slate-100/70 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold text-slate-800 transition-colors"
           >
             <option value="CASH">Cash</option>
             <option value="UPI">Online / UPI</option>
@@ -155,8 +154,8 @@ export const PaymentForm = ({
             if (errorMsg) setErrorMsg('');
           }}
           placeholder={getRefPlaceholder()}
-          className={`w-full py-1.5 px-2.5 text-xs bg-white border rounded-lg focus:outline-none font-mono text-slate-900 ${
-            !isCash && !referenceNumber ? 'border-amber-400 bg-amber-50/40' : 'border-slate-300'
+          className={`w-full py-1.5 px-2.5 text-xs bg-slate-50/50 border rounded-lg focus:outline-none focus:bg-white focus:ring-1 focus:ring-indigo-500 font-mono text-slate-900 transition-colors ${
+            !isCash && !referenceNumber ? 'border-amber-400 bg-amber-50/30' : 'border-slate-200'
           }`}
         />
       </div>
@@ -170,7 +169,7 @@ export const PaymentForm = ({
           value={remarks}
           onChange={(e) => setRemarks(e.target.value)}
           placeholder="Optional note..."
-          className="w-full py-1.5 px-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:outline-none text-slate-900"
+          className="w-full py-1.5 px-2.5 text-xs bg-slate-50/50 border border-slate-200 rounded-lg focus:outline-none focus:bg-white focus:ring-1 focus:ring-indigo-500 text-slate-900 transition-colors"
         />
       </div>
 
@@ -181,13 +180,23 @@ export const PaymentForm = ({
           variant="primary"
           size="md"
           fullWidth
-          disabled={isDisabled || isSubmitting || totalSelectedAmount < 0}
+          disabled={isDisabled || isSubmitting || totalSelectedAmount <= 0}
           isLoading={isSubmitting}
           loadingText="Collecting..."
-          className="py-2 text-xs sm:text-sm font-bold shadow-xs hover:shadow-sm"
+          className={`py-2.5 text-xs sm:text-sm font-bold transition-all ${
+            totalSelectedAmount > 0
+              ? 'shadow-xs hover:shadow-sm'
+              : 'opacity-50 cursor-not-allowed bg-slate-200 text-slate-500 hover:bg-slate-200'
+          }`}
         >
-          <CheckCircle2 className="w-4 h-4 mr-1.5" />
-          Collect ₹{totalSelectedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          {totalSelectedAmount > 0 ? (
+            <>
+              <CheckCircle2 className="w-4 h-4 mr-1.5" />
+              Collect ₹{totalSelectedAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </>
+          ) : (
+            'Select Charges to Collect'
+          )}
         </Button>
       </div>
     </form>

@@ -251,6 +251,17 @@ export const adminUserService = {
       data: { passwordHash },
     });
 
+    // Invalidate all active user sessions immediately upon password reset
+    await prisma.userSession.updateMany({
+      where: {
+        userId,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+
     await prisma.auditLog.create({
       data: {
         userId: actorUserId,

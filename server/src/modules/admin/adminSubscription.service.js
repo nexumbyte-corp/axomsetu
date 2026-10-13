@@ -350,7 +350,7 @@ export const approvePayment = async (paymentId, adminId) => {
     throw ApiError.badRequest(`This payment request is already ${payment.status.toLowerCase()}`);
   }
 
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // Check if school currently has an active subscription
     const currentSub = await tx.schoolSubscription.findFirst({
       where: {
@@ -606,7 +606,7 @@ export const createManualSubscription = async (schoolId, data, adminId) => {
   }
   const finalPrice = isComplimentary ? 0 : Number(amount);
 
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // Check if school currently has an active subscription to calculate pro-rata credit days
     const currentSub = await tx.schoolSubscription.findFirst({
       where: {

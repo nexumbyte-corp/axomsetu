@@ -169,6 +169,8 @@ export const feeReportsService = {
       streamId,
       status,
       month,
+      startDate,
+      endDate,
       page = 1,
       limit = 20,
     } = query;
@@ -183,6 +185,13 @@ export const feeReportsService = {
       ...(academicYearId && { academicYearId }),
       ...(month && { month: String(month).toUpperCase() }),
     };
+
+    if (startDate || endDate) {
+      chargeWhere.createdAt = {
+        ...(startDate && { gte: new Date(`${startDate}T00:00:00.000+05:30`) }),
+        ...(endDate && { lte: new Date(`${endDate}T23:59:59.999+05:30`) }),
+      };
+    }
 
     if (classId || sectionId || mediumId || streamId) {
       chargeWhere.studentEnrollment = {

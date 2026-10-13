@@ -5,9 +5,7 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  DollarSign,
   RefreshCw,
-  Plus,
   Package,
   CreditCard,
   Receipt,
@@ -17,10 +15,8 @@ import {
   TrendingUp,
   ShieldCheck,
   Eye,
-  ExternalLink,
 } from 'lucide-react';
 import { adminService } from '../../services/adminService.js';
-import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
 import { Toast } from '../../components/ui/Toast.jsx';
 import { formatDate } from '../../utils/formatters.js';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useReducer, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useReducer } from 'react';
 import {
   Calculator as CalcIcon,
   X,

@@ -1,12 +1,15 @@
-import React, { createContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useContext } from 'react';
+import { AcademicYearContext } from './academicYearContextInstance.js';
+import { AuthContext } from './authContextInstance.js';
 import { academicService } from '../services/academic.service.js';
 import { storage } from '../utils/storage.js';
-import { useAuth } from '../hooks/useAuth.js';
 
-export const AcademicYearContext = createContext(null);
+export { AcademicYearContext };
 
 export const AcademicYearProvider = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
+  const auth = useContext(AuthContext);
+  const isAuthenticated = !!auth?.isAuthenticated;
+  const user = auth?.user || null;
   const [academicYears, setAcademicYears] = useState([]);
   const [selectedId, setSelectedId] = useState(storage.getSelectedAcademicYearId());
   const [isLoading, setIsLoading] = useState(false);

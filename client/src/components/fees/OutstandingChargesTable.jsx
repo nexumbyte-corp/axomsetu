@@ -123,8 +123,13 @@ export const OutstandingChargesTable = ({
   return (
     <>
       <div className="h-full flex flex-col bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
-        <div className="shrink-0 px-3 py-2 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/50">
-          <h3 className="text-xs font-bold text-slate-900">Fee Dues</h3>
+        <div className="shrink-0 px-3 py-2 border-b border-slate-100 flex items-center justify-between gap-3 bg-white">
+          <div className="flex items-center gap-2">
+            <h3 className="text-xs font-bold text-slate-900 tracking-tight">Fee Charges</h3>
+            <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+              {charges.length} {charges.length === 1 ? 'head' : 'heads'}
+            </span>
+          </div>
 
           <div className="flex items-center gap-2">
             {student && charges.length > 0 && (
@@ -152,16 +157,16 @@ export const OutstandingChargesTable = ({
                 type="button"
                 disabled={isSharingWhatsApp}
                 onClick={onShareWhatsApp}
-                className="inline-flex items-center justify-center p-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center justify-center p-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
                 title="Share Outstanding Fee Statement on WhatsApp"
                 aria-label="Share Outstanding Fee Statement on WhatsApp"
               >
-                <WhatsAppIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+                <WhatsAppIcon className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
               </button>
             )}
 
             {payableCharges.length > 0 && (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200">
                 <Checkbox
                   checked={isAllSelected}
                   onChange={onToggleAll}
@@ -328,17 +333,17 @@ export const OutstandingChargesTable = ({
         {/* Desktop Table View (>= 768px) */}
         <div className="hidden md:block flex-1 overflow-auto min-h-0">
           <table className="w-full text-left text-xs">
-            <thead className="sticky top-0 z-10 bg-slate-100/90 backdrop-blur-xs text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+            <thead className="sticky top-0 z-10 bg-slate-50/90 backdrop-blur-xs text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
               <tr>
-                <th className="py-1.5 px-2.5 w-7 text-center">[ ]</th>
-                <th className="py-1.5 px-2.5">Fee Title</th>
-                <th className="py-1.5 px-2.5">Month</th>
-                <th className="py-1.5 px-2.5 text-right">Amount</th>
-                <th className="py-1.5 px-2.5 text-right">Paid</th>
-                <th className="py-1.5 px-2.5 text-right">Bal</th>
-                <th className="py-1.5 px-2.5 text-right w-28">Pay (₹)</th>
-                <th className="py-1.5 px-2.5 text-center w-16">Status</th>
-                {canManageCharge && <th className="py-1.5 px-2.5 text-center w-14">Actions</th>}
+                <th className="py-2 px-2.5 w-7 text-center"></th>
+                <th className="py-2 px-2.5">Fee Title</th>
+                <th className="py-2 px-2.5">Month</th>
+                <th className="py-2 px-2.5 text-right">Amount</th>
+                <th className="py-2 px-2.5 text-right">Paid</th>
+                <th className="py-2 px-2.5 text-right">Balance</th>
+                <th className="py-2 px-2.5 text-right w-28">Paying (₹)</th>
+                <th className="py-2 px-2.5 text-center w-16">Status</th>
+                {canManageCharge && <th className="py-2 px-2.5 text-center w-14">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -361,14 +366,18 @@ export const OutstandingChargesTable = ({
                 return (
                   <tr
                     key={charge.id}
-                    className={`transition-colors ${isSelected
-                        ? 'bg-indigo-50/40 font-medium'
+                    className={`transition-colors ${
+                      isSelected
+                        ? 'bg-indigo-50/30 font-medium'
                         : !isPayable
-                          ? 'bg-slate-50/50 opacity-60'
-                          : 'hover:bg-slate-50'
-                      }`}
+                        ? 'bg-slate-50/50 opacity-60'
+                        : 'hover:bg-slate-50/80 cursor-pointer'
+                    }`}
+                    onClick={() => {
+                      if (isPayable) onToggleCharge(charge.id, remainingBal);
+                    }}
                   >
-                    <td className="py-1.5 px-2 text-center">
+                    <td className="py-1.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={isSelected}
                         disabled={!isPayable}
@@ -378,24 +387,24 @@ export const OutstandingChargesTable = ({
                     <td className="py-1.5 px-2.5 font-bold text-slate-900">
                       {charge.title}
                       {charge.feeType?.name && (
-                        <span className="text-[9px] text-slate-400 font-normal ml-1">
+                        <span className="text-[10px] text-slate-400 font-normal ml-1">
                           ({charge.feeType.name})
                         </span>
                       )}
                     </td>
-                    <td className="py-1.5 px-2.5 font-semibold text-slate-700 text-[11px]">
+                    <td className="py-1.5 px-2.5 font-medium text-slate-600 text-[11px]">
                       {charge.month}{charge.year ? ` ${charge.year}` : ''}
                     </td>
-                    <td className="py-1.5 px-2.5 text-right font-mono text-slate-700">
+                    <td className="py-1.5 px-2.5 text-right font-mono text-slate-600">
                       ₹{totalAmt.toFixed(2)}
                     </td>
-                    <td className="py-1.5 px-2.5 text-right font-mono text-emerald-600 font-semibold">
+                    <td className="py-1.5 px-2.5 text-right font-mono text-emerald-600 font-medium">
                       ₹{paidAmt.toFixed(2)}
                     </td>
                     <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900">
                       ₹{remainingBal.toFixed(2)}
                     </td>
-                    <td className="py-1 px-1.5 text-right">
+                    <td className="py-1 px-1.5 text-right" onClick={(e) => e.stopPropagation()}>
                       {isSelected ? (
                         <div className="relative">
                           <input
@@ -406,10 +415,11 @@ export const OutstandingChargesTable = ({
                             max={remainingBal}
                             value={currentPayVal}
                             onChange={(e) => onUpdatePaymentAmount(charge.id, e.target.value)}
-                            className={`w-full text-right py-0.5 px-1.5 rounded-md border font-mono font-bold text-xs focus:outline-none transition-all ${isOver
-                                ? 'border-rose-500 bg-rose-50 text-rose-700'
-                                : 'border-indigo-300 bg-white text-indigo-900 focus:ring-1 focus:ring-indigo-300'
-                              }`}
+                            className={`w-full text-right py-0.5 px-1.5 rounded-lg border font-mono font-bold text-xs focus:outline-none transition-all ${
+                              isOver
+                                ? 'border-rose-400 bg-rose-50/40 text-rose-700'
+                                : 'border-indigo-300 bg-white text-indigo-900 focus:ring-1 focus:ring-indigo-400'
+                            }`}
                           />
                           {isOver && (
                             <span className="text-[8px] text-rose-600 block text-right font-semibold">

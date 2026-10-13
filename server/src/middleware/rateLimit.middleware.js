@@ -1,7 +1,6 @@
 import rateLimit from 'express-rate-limit';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import { env } from '../config/env.js';
 import { COOKIE_NAME, hashSessionToken } from '../utils/session.js';
 import { getClientIp as resolveClientIp } from '../utils/ipHelper.js';
 
@@ -188,20 +187,7 @@ export const resolveUserId = (req) => {
 export const resolveDeviceId = (req) => {
     if (!req) return 'dev_unknown';
 
-    // 1. Preferred: Client-provided device/hardware ID header
-    const devHeader = req.headers?.['x-device-id'] || req.headers?.['x-client-id'];
-    if (devHeader) {
-        const raw = Array.isArray(devHeader) ? devHeader[0] : devHeader;
-        if (raw && raw.trim()) return `dev_${cleanKeyPart(raw.trim())}`;
-    }
-
-    // 2. Cookie device ID
-    const devCookie = req.cookies?.['axomsetu_device_id'];
-    if (devCookie && typeof devCookie === 'string' && devCookie.trim()) {
-        return `dev_${cleanKeyPart(devCookie.trim())}`;
-    }
-
-    // 3. Authenticated session token identifier:
+    // 1. Authenticated session token identifier:
     // Each browser login session is distinct per device/window!
     const sessionToken = req.cookies?.[COOKIE_NAME];
     if (sessionToken) {
@@ -209,7 +195,7 @@ export const resolveDeviceId = (req) => {
         return `sess_${tokenHash.substring(0, 16)}`;
     }
 
-    // 4. Authenticated Bearer token
+    // 2. Authenticated Bearer token
     const authHeader = req.headers?.authorization;
     if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
         const rawToken = authHeader.substring(7).trim();
@@ -217,7 +203,17 @@ export const resolveDeviceId = (req) => {
         return `jwt_${tokenHash.substring(0, 16)}`;
     }
 
-    // 5. Unauthenticated fallback: Client IP
+    // 3. For authenticated users, allow client-provided device ID header for multi-device support
+    if (req.user?.id) {
+        const devHeader = req.headers?.['x-device-id'] || req.headers?.['x-client-id'];
+        if (devHeader) {
+            const raw = Array.isArray(devHeader) ? devHeader[0] : devHeader;
+            if (raw && raw.trim()) return `dev_${cleanKeyPart(raw.trim())}`;
+        }
+    }
+
+    // 4. Unauthenticated traffic (e.g., login, registration, public probes):
+    // MUST strictly bind to client IP to prevent header rotation bypass attacks
     const clientIp = getClientIp(req);
     return `ip_${cleanKeyPart(clientIp, '127.0.0.1')}`;
 };

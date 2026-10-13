@@ -4,6 +4,7 @@ import { Badge } from '../components/ui/Badge.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { Input } from '../components/ui/Input.jsx';
 import { Select } from '../components/ui/Select.jsx';
+import { DatePicker } from '../components/ui/DatePicker.jsx';
 import { Modal } from '../components/ui/Modal.jsx';
 import { Alert } from '../components/ui/Alert.jsx';
 import { Spinner } from '../components/ui/Spinner.jsx';
@@ -20,9 +21,54 @@ export const SuperAdminAuditLogsPage = () => {
   const [search, setSearch] = useState('');
   const [actionFilter, setActionFilter] = useState('');
   const [moduleFilter, setModuleFilter] = useState('');
+  const [datePreset, setDatePreset] = useState('ALL');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const [selectedLog, setSelectedLog] = useState(null);
   const [error, setError] = useState(null);
+
+  const handleDatePresetChange = (preset) => {
+    const today = new Date();
+    const formatYMD = (d) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    let start = '';
+    let end = '';
+
+    if (preset === 'TODAY') {
+      start = formatYMD(today);
+      end = formatYMD(today);
+    } else if (preset === 'YESTERDAY') {
+      const yest = new Date(today);
+      yest.setDate(yest.getDate() - 1);
+      start = formatYMD(yest);
+      end = formatYMD(yest);
+    } else if (preset === 'LAST_7_DAYS') {
+      const d = new Date(today);
+      d.setDate(d.getDate() - 6);
+      start = formatYMD(d);
+      end = formatYMD(today);
+    } else if (preset === 'LAST_30_DAYS') {
+      const d = new Date(today);
+      d.setDate(d.getDate() - 29);
+      start = formatYMD(d);
+      end = formatYMD(today);
+    } else if (preset === 'THIS_MONTH') {
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      start = formatYMD(firstDay);
+      end = formatYMD(today);
+    }
+
+    setDatePreset(preset);
+    setStartDate(start);
+    setEndDate(end);
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
 
   const fetchAuditLogs = async () => {
     setLoading(true);
@@ -34,6 +80,8 @@ export const SuperAdminAuditLogsPage = () => {
         search,
         action: actionFilter,
         entityType: moduleFilter,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
       });
 
       setLogs(res.data || []);
@@ -54,7 +102,7 @@ export const SuperAdminAuditLogsPage = () => {
 
   useEffect(() => {
     fetchAuditLogs();
-  }, [pagination.page, actionFilter, moduleFilter]);
+  }, [pagination.page, actionFilter, moduleFilter, startDate, endDate]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -91,7 +139,7 @@ export const SuperAdminAuditLogsPage = () => {
 
       {/* Read-Only Filter & Search Bar */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-        <form onSubmit={handleSearchSubmit} autoComplete="off" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <form onSubmit={handleSearchSubmit} autoComplete="off" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
           <div className="lg:col-span-2">
             <Input
               placeholder="Search action, entity, user, or IP address..."
@@ -123,6 +171,46 @@ export const SuperAdminAuditLogsPage = () => {
               <option value="SUBSCRIPTION_PAYMENT_APPROVED">SUBSCRIPTION_PAYMENT_APPROVED</option>
               <option value="PLATFORM_SETTINGS_UPDATED">PLATFORM_SETTINGS_UPDATED</option>
             </Select>
+          </div>
+
+          <div>
+            <Select value={datePreset} onChange={(e) => handleDatePresetChange(e.target.value)}>
+              <option value="ALL">All Time</option>
+              <option value="TODAY">Today</option>
+              <option value="YESTERDAY">Yesterday</option>
+              <option value="LAST_7_DAYS">Last 7 Days</option>
+              <option value="LAST_30_DAYS">Last 30 Days</option>
+              <option value="THIS_MONTH">This Month</option>
+              <option value="CUSTOM">Custom Range</option>
+            </Select>
+          </div>
+
+          <div>
+            <DatePicker
+              value={startDate}
+              onChange={(val) => {
+                const dateVal = val?.target ? val.target.value : (val || '');
+                setStartDate(dateVal);
+                setDatePreset('CUSTOM');
+                setPagination((prev) => ({ ...prev, page: 1 }));
+              }}
+              placeholder="From Date"
+              clearable={true}
+            />
+          </div>
+
+          <div>
+            <DatePicker
+              value={endDate}
+              onChange={(val) => {
+                const dateVal = val?.target ? val.target.value : (val || '');
+                setEndDate(dateVal);
+                setDatePreset('CUSTOM');
+                setPagination((prev) => ({ ...prev, page: 1 }));
+              }}
+              placeholder="To Date"
+              clearable={true}
+            />
           </div>
         </form>
       </div>

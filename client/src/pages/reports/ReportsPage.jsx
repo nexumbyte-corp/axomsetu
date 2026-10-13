@@ -23,7 +23,6 @@ import {
   BarChart3,
   ShieldCheck,
   Eye,
-  Calendar,
   Building,
   Copy,
 } from 'lucide-react';
@@ -37,6 +36,7 @@ import { SchoolReportHeader } from '../../components/common/SchoolReportHeader.j
 import { Modal } from '../../components/ui/Modal.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
 import { Button } from '../../components/ui/Button.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
 
 import { useSearchParams } from 'react-router-dom';
 import { reportService } from '../../services/report.service.js';
@@ -55,14 +55,12 @@ export const ReportsPage = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get('tab');
-  const initialTab = urlTab === 'audit' || urlTab === 'audit-log' ? 'audit-log' : urlTab || 'charts';
 
   // Active Report Tab: 'charts' | 'student-list' | 'fee-collection' | 'outstanding-list' | 'audit-log'
-  const [activeTab, setActiveTabState] = useState(initialTab);
+  const activeTab = urlTab === 'audit' || urlTab === 'audit-log' ? 'audit-log' : urlTab || 'charts';
   const [chartData, setChartData] = useState(null);
 
   const setActiveTab = (tab) => {
-    setActiveTabState(tab);
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -72,16 +70,6 @@ export const ReportsPage = () => {
       { replace: true }
     );
   };
-
-  useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam) {
-      const resolved = tabParam === 'audit' || tabParam === 'audit-log' ? 'audit-log' : tabParam;
-      if (resolved !== activeTab) {
-        setActiveTabState(resolved);
-      }
-    }
-  }, [searchParams]);
 
   // Dynamic Dropdown Options
   const [filterOptions, setFilterOptions] = useState({
@@ -93,13 +81,15 @@ export const ReportsPage = () => {
 
   // Filter State for Standard Academic / Fee Reports
   const [filters, setFilters] = useState({
-    academicYearId: '',
     classId: '',
     sectionId: '',
     mediumId: '',
     streamId: '',
     status: 'ALL',
     month: 'ALL',
+    datePreset: 'ALL',
+    startDate: '',
+    endDate: '',
     search: '',
   });
 
@@ -160,8 +150,8 @@ export const ReportsPage = () => {
     );
   };
 
-  // Date Preset Change Handler for Audit Log
-  const handleDatePresetChange = (preset) => {
+  // Reusable Date Preset Calculation
+  const calculatePresetDates = (preset) => {
     const today = new Date();
     const formatYMD = (d) => {
       const year = d.getFullYear();
@@ -197,6 +187,12 @@ export const ReportsPage = () => {
       end = formatYMD(today);
     }
 
+    return { start, end };
+  };
+
+  // Date Preset Change Handler for Audit Log
+  const handleDatePresetChange = (preset) => {
+    const { start, end } = calculatePresetDates(preset);
     setAuditFilters((prev) => ({
       ...prev,
       datePreset: preset,
@@ -204,6 +200,17 @@ export const ReportsPage = () => {
       endDate: end,
     }));
     setAuditPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  // Date Preset Change Handler for Fee Collection & Outstanding List
+  const handleReportDatePresetChange = (preset) => {
+    const { start, end } = calculatePresetDates(preset);
+    setFilters((prev) => ({
+      ...prev,
+      datePreset: preset,
+      startDate: start,
+      endDate: end,
+    }));
   };
 
   // Load Super Admin Schools list if logged in user is SUPER_ADMIN
@@ -229,13 +236,6 @@ export const ReportsPage = () => {
         .catch((err) => console.error('Failed to load audit options', err));
     }
   }, [activeTab, selectedSchoolId]);
-
-  // Sync selected academic year ID when global academic year changes
-  useEffect(() => {
-    if (selectedYearId && (!filters.academicYearId || filters.academicYearId !== selectedYearId)) {
-      setFilters((prev) => ({ ...prev, academicYearId: selectedYearId }));
-    }
-  }, [selectedYearId, filters.academicYearId]);
 
   // Selected class object & stream support validation
   const selectedClassObj = useMemo(() => {
@@ -278,15 +278,16 @@ export const ReportsPage = () => {
     async (overrideFilters = null) => {
       setLoading(true);
       const activeFilters = overrideFilters || filters;
-      const targetYearId = activeFilters.academicYearId || selectedYearId || '';
 
       const params = {
-        academicYearId: targetYearId,
+        academicYearId: selectedYearId || undefined,
         classId: activeFilters.classId || undefined,
         sectionId: activeFilters.sectionId || undefined,
         mediumId: activeFilters.mediumId || undefined,
         streamId: activeFilters.streamId || undefined,
         month: activeFilters.month !== 'ALL' ? activeFilters.month : undefined,
+        startDate: activeFilters.startDate || undefined,
+        endDate: activeFilters.endDate || undefined,
         limit: 1000,
       };
 
@@ -384,10 +385,6 @@ export const ReportsPage = () => {
     setFilters((prev) => {
       const next = { ...prev, [field]: value };
 
-      if (field === 'academicYearId') {
-        next.month = 'ALL';
-      }
-
       if (field === 'classId') {
         if (value) {
           const targetCls = filterOptions.classes.find((c) => c.id === value);
@@ -422,13 +419,15 @@ export const ReportsPage = () => {
     }
 
     const reset = {
-      academicYearId: selectedYearId || '',
       classId: '',
       sectionId: '',
       mediumId: '',
       streamId: '',
       status: 'ALL',
       month: 'ALL',
+      datePreset: 'ALL',
+      startDate: '',
+      endDate: '',
       search: '',
     };
     setFilters(reset);
@@ -552,7 +551,7 @@ export const ReportsPage = () => {
 
     const parts = [];
 
-    const yr = academicYears.find((y) => y.id === (filters.academicYearId || selectedYearId));
+    const yr = academicYears.find((y) => y.id === selectedYearId) || selectedYear;
     if (yr?.name) parts.push(`Academic Year: ${yr.name}`);
 
     if (filters.classId) {
@@ -575,8 +574,10 @@ export const ReportsPage = () => {
     if (activeTab === 'student-list' && filters.status !== 'ALL') {
       parts.push(`Status: ${filters.status}`);
     }
-    if ((activeTab === 'fee-collection' || activeTab === 'outstanding-list') && filters.month !== 'ALL') {
-      parts.push(`Month: ${filters.month}`);
+    if ((activeTab === 'fee-collection' || activeTab === 'outstanding-list')) {
+      if (filters.month !== 'ALL') parts.push(`Month: ${filters.month}`);
+      if (filters.startDate) parts.push(`From: ${filters.startDate}`);
+      if (filters.endDate) parts.push(`To: ${filters.endDate}`);
     }
     if (activeTab === 'student-list' && filters.search) {
       parts.push(`Search: "${filters.search}"`);
@@ -594,7 +595,7 @@ export const ReportsPage = () => {
           description: 'Interactive Collection vs Expense comparisons, Expected vs Actual collections, and Category Expense distributions.',
           icon: BarChart3,
           templateId: 'financialLedger',
-          filename: `Financial_Charts_${new Date().toISOString().split('T')[0]}.pdf`,
+          filename: 'Financial_Charts.pdf',
         };
       case 'student-list':
         return {
@@ -602,7 +603,7 @@ export const ReportsPage = () => {
           description: 'Enrolled students master record with Class, Section, Medium, Stream, Contact info & Status.',
           icon: Users,
           templateId: 'studentReport',
-          filename: `Student_List_${new Date().toISOString().split('T')[0]}.pdf`,
+          filename: 'Student_List.pdf',
         };
       case 'fee-collection':
         return {
@@ -610,7 +611,7 @@ export const ReportsPage = () => {
           description: 'Itemized fee payments collected with receipt numbers, payment modes, fee types, and amounts.',
           icon: CreditCard,
           templateId: 'feeReport',
-          filename: `Fee_Collection_${new Date().toISOString().split('T')[0]}.pdf`,
+          filename: 'Fee_Collection.pdf',
         };
       case 'outstanding-list':
         return {
@@ -618,7 +619,7 @@ export const ReportsPage = () => {
           description: 'Detailed pending fee statement showing total charged, amount paid, and remaining dues.',
           icon: Clock,
           templateId: 'feeReport',
-          filename: `Outstanding_Fees_${new Date().toISOString().split('T')[0]}.pdf`,
+          filename: 'Outstanding_Fees.pdf',
         };
       case 'audit-log':
         return {
@@ -626,7 +627,7 @@ export const ReportsPage = () => {
           description: 'Immutable, tamper-evident audit history of student records, fee collections, staff payroll, hostel residents, and administrative actions.',
           icon: ShieldCheck,
           templateId: 'auditReport',
-          filename: `School_Audit_Log_${new Date().toISOString().split('T')[0]}.pdf`,
+          filename: 'School_Audit_Log.pdf',
         };
       default:
         return { title: 'REPORTS', description: '', icon: Users, templateId: 'genericReport', filename: 'Report.pdf' };
@@ -677,111 +678,78 @@ export const ReportsPage = () => {
         />
 
         <div className="w-full mt-4">
-          {/* Main Navigation Tabs & Compact Action Controls */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
-            {/* Tab Buttons */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-              <button
-                type="button"
-                id="tab-btn-charts"
-                onClick={() => setActiveTab('charts')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'charts'
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
-                }`}
-              >
-                <BarChart3 className="w-3.5 h-3.5" />
-                <span>Financial Charts</span>
-              </button>
-
-              <button
-                type="button"
-                id="tab-btn-student-list"
-                onClick={() => setActiveTab('student-list')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'student-list'
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
-                }`}
-              >
-                <Users className="w-3.5 h-3.5" />
-                <span>Student List</span>
-                {activeTab === 'student-list' && (
-                  <span className="ml-1 bg-indigo-700 text-white px-1.5 py-0.2 rounded-full text-[10px] font-mono">
-                    {reportData.length}
-                  </span>
-                )}
-              </button>
-
-              <button
-                type="button"
-                id="tab-btn-fee-collection"
-                onClick={() => setActiveTab('fee-collection')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'fee-collection'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
-                }`}
-              >
-                <CreditCard className="w-3.5 h-3.5" />
-                <span>Fee Collection</span>
-                {activeTab === 'fee-collection' && (
-                  <span className="ml-1 bg-emerald-700 text-white px-1.5 py-0.2 rounded-full text-[10px] font-mono">
-                    {reportData.length}
-                  </span>
-                )}
-              </button>
-
-              <button
-                type="button"
-                id="tab-btn-outstanding-list"
-                onClick={() => setActiveTab('outstanding-list')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'outstanding-list'
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
-                }`}
-              >
-                <Clock className="w-3.5 h-3.5" />
-                <span>Outstanding List</span>
-                {activeTab === 'outstanding-list' && (
-                  <span className="ml-1 bg-rose-700 text-white px-1.5 py-0.2 rounded-full text-[10px] font-mono">
-                    {reportData.length}
-                  </span>
-                )}
-              </button>
-
-              <button
-                type="button"
-                id="tab-btn-audit-log"
-                onClick={() => setActiveTab('audit-log')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap cursor-pointer ${
-                  activeTab === 'audit-log'
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
-                }`}
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Audit Log</span>
-                {activeTab === 'audit-log' && auditPagination.total > 0 && (
-                  <span className="ml-1 bg-amber-700 text-white px-1.5 py-0.2 rounded-full text-[10px] font-mono">
-                    {auditPagination.total}
-                  </span>
-                )}
-              </button>
+          {/* Main Navigation Tabs & Action Controls Bar */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
+            {/* Segmented Control Pill Tabs */}
+            <div className="p-1 bg-slate-100/90 rounded-2xl border border-slate-200/70 flex items-center gap-1 overflow-x-auto max-w-full no-scrollbar">
+              {[
+                { id: 'charts', label: 'Financial Charts', icon: BarChart3 },
+                {
+                  id: 'student-list',
+                  label: 'Student List',
+                  icon: Users,
+                  count: activeTab === 'student-list' ? reportData.length : undefined,
+                },
+                {
+                  id: 'fee-collection',
+                  label: 'Fee Collection',
+                  icon: CreditCard,
+                  count: activeTab === 'fee-collection' ? reportData.length : undefined,
+                },
+                {
+                  id: 'outstanding-list',
+                  label: 'Outstanding List',
+                  icon: Clock,
+                  count: activeTab === 'outstanding-list' ? reportData.length : undefined,
+                },
+                {
+                  id: 'audit-log',
+                  label: 'Audit Log',
+                  icon: ShieldCheck,
+                  count: activeTab === 'audit-log' && auditPagination.total > 0 ? auditPagination.total : undefined,
+                },
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    id={`tab-btn-${tab.id}`}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                      isActive
+                        ? 'bg-white text-slate-900 shadow-2xs font-bold border border-slate-200/70'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+                    <span>{tab.label}</span>
+                    {tab.count !== undefined && (
+                      <span
+                        className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                          isActive ? 'bg-indigo-50 text-indigo-700' : 'bg-slate-200/70 text-slate-600'
+                        }`}
+                      >
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Action Controls: Refresh, Export Dropdown, and Print */}
-            <div className="flex items-center gap-2 justify-end">
+            <div className="flex items-center gap-2 justify-end shrink-0">
               <button
                 type="button"
                 onClick={() => fetchActiveReport()}
                 disabled={loading}
-                className="h-7 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                className="h-8 px-2.5 py-1 text-xs font-medium rounded-xl border border-slate-200/80 bg-white text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-2xs"
+                title="Refresh Report Data"
               >
-                <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-600' : 'text-slate-500'}`} />
+                <span className="hidden sm:inline">Refresh</span>
               </button>
 
               {/* Export Options Dropdown Menu */}
@@ -791,9 +759,9 @@ export const ReportsPage = () => {
                   <button
                     type="button"
                     disabled={loading || (activeTab === 'audit-log' ? auditLogs.length === 0 : reportData.length === 0)}
-                    className="h-7 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="h-8 px-2.5 py-1 text-xs font-medium rounded-xl border border-slate-200/80 bg-white text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-2xs"
                   >
-                    <Download className="w-3 h-3 text-slate-500" />
+                    <Download className="w-3.5 h-3.5 text-slate-500" />
                     <span>Export</span>
                     <ChevronDown className="w-3 h-3 text-slate-400" />
                   </button>
@@ -816,38 +784,44 @@ export const ReportsPage = () => {
                 type="button"
                 onClick={handlePrint}
                 disabled={loading || (activeTab === 'audit-log' ? auditLogs.length === 0 : reportData.length === 0)}
-                className="h-7 px-3 py-1 text-xs font-bold rounded-lg bg-slate-900 hover:bg-slate-800 text-white shadow-2xs transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="h-8 px-3.5 py-1 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-2xs transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
-                Print
+                <span>Print</span>
               </button>
             </div>
           </div>
 
-          {/* High-Density Multi-Filter Controls Bar */}
-          <div className="mt-4 bg-white rounded-xl p-3.5 border border-slate-200 shadow-2xs">
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-600">
-                <Filter className="w-3 h-3 text-indigo-600" />
-                Filter Parameters
+          {/* Minimalist Multi-Filter Controls Card */}
+          <div className="mt-4 bg-white rounded-2xl p-4 sm:p-4.5 border border-slate-200/80 shadow-2xs space-y-3.5">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                <Filter className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Filters & Scope</span>
+                {selectedYear?.name && (
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                    Academic Year: {selectedYear.name}
+                  </span>
+                )}
               </div>
               <button
                 type="button"
                 id="audit-btn-clear-filters"
                 onClick={handleResetFilters}
-                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1 cursor-pointer"
+                className="text-xs font-medium text-slate-500 hover:text-indigo-600 transition-colors flex items-center gap-1 cursor-pointer"
               >
-                <X className="w-3 h-3" /> Clear
+                <X className="w-3.5 h-3.5" />
+                <span>Clear Filters</span>
               </button>
             </div>
 
             {activeTab === 'audit-log' ? (
-              <div className="space-y-2.5">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
                   {/* Super Admin School Switcher (if applicable) */}
                   {user?.role === 'SUPER_ADMIN' && schoolsList.length > 0 && (
                     <div>
-                      <label className="block text-[10px] font-bold text-amber-600 mb-0.5 uppercase tracking-wider flex items-center gap-1">
+                      <label className="block text-[10px] font-bold text-amber-600 mb-1 uppercase tracking-wider flex items-center gap-1">
                         <Building className="w-3 h-3" /> Target School
                       </label>
                       <select
@@ -857,7 +831,7 @@ export const ReportsPage = () => {
                           setSelectedSchoolId(e.target.value);
                           setAuditPagination((prev) => ({ ...prev, page: 1 }));
                         }}
-                        className="w-full bg-amber-50/50 border border-amber-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        className="w-full bg-amber-50/50 border border-amber-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
                       >
                         <option value="">Current Workspace</option>
                         {schoolsList.map((s) => (
@@ -871,12 +845,12 @@ export const ReportsPage = () => {
 
                   {/* Date Preset */}
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Date Period</label>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Date Period</label>
                     <select
                       id="audit-filter-date-preset"
                       value={auditFilters.datePreset}
                       onChange={(e) => handleDatePresetChange(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                     >
                       <option value="ALL">All Time</option>
                       <option value="TODAY">Today</option>
@@ -890,37 +864,39 @@ export const ReportsPage = () => {
 
                   {/* Start Date */}
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">From Date</label>
-                    <input
-                      type="date"
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">From Date</label>
+                    <DatePicker
                       id="audit-filter-start-date"
                       value={auditFilters.startDate}
-                      onChange={(e) => {
-                        setAuditFilters((prev) => ({ ...prev, startDate: e.target.value, datePreset: 'CUSTOM' }));
+                      onChange={(val) => {
+                        const dateVal = val?.target ? val.target.value : (val || '');
+                        setAuditFilters((prev) => ({ ...prev, startDate: dateVal, datePreset: 'CUSTOM' }));
                         setAuditPagination((prev) => ({ ...prev, page: 1 }));
                       }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      size="sm"
+                      placeholder="DD-MM-YYYY"
                     />
                   </div>
 
                   {/* End Date */}
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">To Date</label>
-                    <input
-                      type="date"
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">To Date</label>
+                    <DatePicker
                       id="audit-filter-end-date"
                       value={auditFilters.endDate}
-                      onChange={(e) => {
-                        setAuditFilters((prev) => ({ ...prev, endDate: e.target.value, datePreset: 'CUSTOM' }));
+                      onChange={(val) => {
+                        const dateVal = val?.target ? val.target.value : (val || '');
+                        setAuditFilters((prev) => ({ ...prev, endDate: dateVal, datePreset: 'CUSTOM' }));
                         setAuditPagination((prev) => ({ ...prev, page: 1 }));
                       }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      size="sm"
+                      placeholder="DD-MM-YYYY"
                     />
                   </div>
 
                   {/* Module / Entity Filter */}
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Module / Entity</label>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Module / Entity</label>
                     <select
                       id="audit-filter-module"
                       value={auditFilters.entityType}
@@ -928,7 +904,7 @@ export const ReportsPage = () => {
                         setAuditFilters((prev) => ({ ...prev, entityType: e.target.value }));
                         setAuditPagination((prev) => ({ ...prev, page: 1 }));
                       }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                     >
                       <option value="">All Modules</option>
                       {auditOptions.modules.map((m) => (
@@ -941,7 +917,7 @@ export const ReportsPage = () => {
 
                   {/* Action Filter */}
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Action Type</label>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Action Type</label>
                     <select
                       id="audit-filter-action"
                       value={auditFilters.action}
@@ -949,7 +925,7 @@ export const ReportsPage = () => {
                         setAuditFilters((prev) => ({ ...prev, action: e.target.value }));
                         setAuditPagination((prev) => ({ ...prev, page: 1 }));
                       }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                     >
                       <option value="">All Actions</option>
                       {auditOptions.actions.map((a) => (
@@ -962,7 +938,7 @@ export const ReportsPage = () => {
 
                   {/* Operator / User Filter */}
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Operator / User</label>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Operator / User</label>
                     <select
                       id="audit-filter-operator"
                       value={auditFilters.userId}
@@ -970,7 +946,7 @@ export const ReportsPage = () => {
                         setAuditFilters((prev) => ({ ...prev, userId: e.target.value }));
                         setAuditPagination((prev) => ({ ...prev, page: 1 }));
                       }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                     >
                       <option value="">All Operators</option>
                       {auditOptions.users.map((u) => (
@@ -983,7 +959,7 @@ export const ReportsPage = () => {
                 </div>
 
                 {/* Audit Keyword Search Row */}
-                <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                <div className="pt-2 border-t border-slate-150/70 flex items-center gap-2.5">
                   <div className="relative flex-1">
                     <input
                       type="text"
@@ -994,19 +970,19 @@ export const ReportsPage = () => {
                         setAuditFilters((prev) => ({ ...prev, search: e.target.value }));
                         setAuditPagination((prev) => ({ ...prev, page: 1 }));
                       }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-7 pr-2.5 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl pl-8 pr-3 py-1.5 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                     />
-                    <Search className="w-3 h-3 text-slate-400 absolute left-2 top-2" />
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0 text-[11px] text-slate-500">
-                    <span className="font-bold">Rows:</span>
+                  <div className="flex items-center gap-1.5 shrink-0 text-xs text-slate-500">
+                    <span className="font-semibold text-slate-400">Rows:</span>
                     <select
                       id="audit-filter-limit"
                       value={auditPagination.limit}
                       onChange={(e) => {
                         setAuditPagination((prev) => ({ ...prev, limit: Number(e.target.value), page: 1 }));
                       }}
-                      className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-700 focus:bg-white"
+                      className="bg-slate-50/70 border border-slate-200/80 rounded-xl px-2 py-1 text-xs font-medium text-slate-700 focus:bg-white focus:outline-none"
                     >
                       <option value={20}>20</option>
                       <option value={50}>50</option>
@@ -1018,110 +994,93 @@ export const ReportsPage = () => {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-                  {/* Academic Year Filter */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Academic Year</label>
-                    <select
-                      value={filters.academicYearId}
-                      onChange={(e) => handleFilterChange('academicYearId', e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    >
-                      <option value="">Current Year</option>
-                      {academicYears.map((y) => (
-                        <option key={y.id} value={y.id}>
-                          {y.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Class Filter */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Class</label>
-                    <select
-                      value={filters.classId}
-                      onChange={(e) => handleFilterChange('classId', e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    >
-                      <option value="">All Classes</option>
-                      {filterOptions.classes.map((cls) => (
-                        <option key={cls.id} value={cls.id}>
-                          {cls.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Section Filter */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Section</label>
-                    <select
-                      value={filters.sectionId}
-                      onChange={(e) => handleFilterChange('sectionId', e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    >
-                      <option value="">All Sections</option>
-                      {filterOptions.sections.map((sec) => (
-                        <option key={sec.id} value={sec.id}>
-                          {sec.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Medium Filter */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Medium</label>
-                    <select
-                      value={filters.mediumId}
-                      onChange={(e) => handleFilterChange('mediumId', e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    >
-                      <option value="">All Mediums</option>
-                      {filterOptions.mediums.map((med) => (
-                        <option key={med.id} value={med.id}>
-                          {med.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Stream Filter */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider flex items-center justify-between">
-                      <span>Stream</span>
-                      {!isStreamSupported && (
-                        <span className="text-[9px] text-amber-600 font-semibold uppercase">N/A</span>
-                      )}
-                    </label>
-                    <select
-                      value={filters.streamId}
-                      disabled={!isStreamSupported}
-                      onChange={(e) => handleFilterChange('streamId', e.target.value)}
-                      className={`w-full border rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
-                        !isStreamSupported
-                          ? 'bg-slate-100 border-slate-200 opacity-60 cursor-not-allowed text-slate-400'
-                          : 'bg-slate-50 border-slate-200 focus:bg-white'
-                      }`}
-                    >
-                      <option value="">{isStreamSupported ? 'All Streams' : 'All Streams (N/A)'}</option>
-                      {filterOptions.streams.map((strm) => (
-                        <option key={strm.id} value={strm.id}>
-                          {strm.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Status or Month Filter */}
-                  {activeTab === 'student-list' ? (
+                {activeTab === 'student-list' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                    {/* Class Filter */}
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Student Status</label>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Class</label>
+                      <select
+                        value={filters.classId}
+                        onChange={(e) => handleFilterChange('classId', e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                      >
+                        <option value="">All Classes</option>
+                        {filterOptions.classes.map((cls) => (
+                          <option key={cls.id} value={cls.id}>
+                            {cls.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Section Filter */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Section</label>
+                      <select
+                        value={filters.sectionId}
+                        onChange={(e) => handleFilterChange('sectionId', e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                      >
+                        <option value="">All Sections</option>
+                        {filterOptions.sections.map((sec) => (
+                          <option key={sec.id} value={sec.id}>
+                            {sec.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Medium Filter */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Medium</label>
+                      <select
+                        value={filters.mediumId}
+                        onChange={(e) => handleFilterChange('mediumId', e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                      >
+                        <option value="">All Mediums</option>
+                        {filterOptions.mediums.map((med) => (
+                          <option key={med.id} value={med.id}>
+                            {med.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Stream Filter */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center justify-between">
+                        <span>Stream</span>
+                        {!isStreamSupported && (
+                          <span className="text-[9px] text-amber-600 font-semibold uppercase">N/A</span>
+                        )}
+                      </label>
+                      <select
+                        value={filters.streamId}
+                        disabled={!isStreamSupported}
+                        onChange={(e) => handleFilterChange('streamId', e.target.value)}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all ${
+                          !isStreamSupported
+                            ? 'bg-slate-100/70 border-slate-200 opacity-60 cursor-not-allowed text-slate-400'
+                            : 'bg-slate-50/70 border-slate-200/80 focus:bg-white'
+                        }`}
+                      >
+                        <option value="">{isStreamSupported ? 'All Streams' : 'All Streams (N/A)'}</option>
+                        {filterOptions.streams.map((strm) => (
+                          <option key={strm.id} value={strm.id}>
+                            {strm.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Student Status Filter */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Student Status</label>
                       <select
                         value={filters.status}
                         onChange={(e) => handleFilterChange('status', e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                       >
                         <option value="ALL">All Statuses</option>
                         <option value="ACTIVE">Active</option>
@@ -1131,13 +1090,94 @@ export const ReportsPage = () => {
                         <option value="ARCHIVED">Archived</option>
                       </select>
                     </div>
-                  ) : (
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2.5">
+                    {/* Class Filter */}
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Fee Month</label>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Class</label>
+                      <select
+                        value={filters.classId}
+                        onChange={(e) => handleFilterChange('classId', e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                      >
+                        <option value="">All Classes</option>
+                        {filterOptions.classes.map((cls) => (
+                          <option key={cls.id} value={cls.id}>
+                            {cls.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Section Filter */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Section</label>
+                      <select
+                        value={filters.sectionId}
+                        onChange={(e) => handleFilterChange('sectionId', e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                      >
+                        <option value="">All Sections</option>
+                        {filterOptions.sections.map((sec) => (
+                          <option key={sec.id} value={sec.id}>
+                            {sec.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Medium Filter */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Medium</label>
+                      <select
+                        value={filters.mediumId}
+                        onChange={(e) => handleFilterChange('mediumId', e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                      >
+                        <option value="">All Mediums</option>
+                        {filterOptions.mediums.map((med) => (
+                          <option key={med.id} value={med.id}>
+                            {med.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Stream Filter */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center justify-between">
+                        <span>Stream</span>
+                        {!isStreamSupported && (
+                          <span className="text-[9px] text-amber-600 font-semibold uppercase">N/A</span>
+                        )}
+                      </label>
+                      <select
+                        value={filters.streamId}
+                        disabled={!isStreamSupported}
+                        onChange={(e) => handleFilterChange('streamId', e.target.value)}
+                        className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all ${
+                          !isStreamSupported
+                            ? 'bg-slate-100/70 border-slate-200 opacity-60 cursor-not-allowed text-slate-400'
+                            : 'bg-slate-50/70 border-slate-200/80 focus:bg-white'
+                        }`}
+                      >
+                        <option value="">{isStreamSupported ? 'All Streams' : 'All Streams (N/A)'}</option>
+                        {filterOptions.streams.map((strm) => (
+                          <option key={strm.id} value={strm.id}>
+                            {strm.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Fee Month Filter */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Fee Month</label>
                       <select
                         value={filters.month}
                         onChange={(e) => handleFilterChange('month', e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                       >
                         <option value="ALL">All Months</option>
                         {monthOptions.map((m) => (
@@ -1147,68 +1187,129 @@ export const ReportsPage = () => {
                         ))}
                       </select>
                     </div>
-                  )}
-                </div>
+
+                    {/* Date Period Preset */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Date Period</label>
+                      <select
+                        id="report-filter-date-preset"
+                        value={filters.datePreset || 'ALL'}
+                        onChange={(e) => handleReportDatePresetChange(e.target.value)}
+                        className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                      >
+                        <option value="ALL">All Time</option>
+                        <option value="TODAY">Today</option>
+                        <option value="YESTERDAY">Yesterday</option>
+                        <option value="LAST_7_DAYS">Last 7 Days</option>
+                        <option value="LAST_30_DAYS">Last 30 Days</option>
+                        <option value="THIS_MONTH">This Month</option>
+                        <option value="CUSTOM">Custom Range</option>
+                      </select>
+                    </div>
+
+                    {/* From Date */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">From Date</label>
+                      <DatePicker
+                        id="report-filter-start-date"
+                        value={filters.startDate || ''}
+                        onChange={(val) => {
+                          const dateVal = val?.target ? val.target.value : (val || '');
+                          setFilters((prev) => ({ ...prev, startDate: dateVal, datePreset: 'CUSTOM' }));
+                        }}
+                        size="sm"
+                        placeholder="DD-MM-YYYY"
+                      />
+                    </div>
+
+                    {/* To Date */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">To Date</label>
+                      <DatePicker
+                        id="report-filter-end-date"
+                        value={filters.endDate || ''}
+                        onChange={(val) => {
+                          const dateVal = val?.target ? val.target.value : (val || '');
+                          setFilters((prev) => ({ ...prev, endDate: dateVal, datePreset: 'CUSTOM' }));
+                        }}
+                        size="sm"
+                        placeholder="DD-MM-YYYY"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Keyword Search Row */}
-                <div className="mt-2.5 pt-2 border-t border-slate-100">
+                <div className="pt-2 border-t border-slate-150/70">
                   <div className="relative w-full">
                     <input
                       type="text"
                       placeholder="Search student name, admission no, phone, receipt no..."
                       value={filters.search}
                       onChange={(e) => handleFilterChange('search', e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-7 pr-2.5 py-1 text-[11px] font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full bg-slate-50/70 border border-slate-200/80 rounded-xl pl-8 pr-3 py-1.5 text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                     />
-                    <Search className="w-3 h-3 text-slate-400 absolute left-2 top-2" />
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                   </div>
                 </div>
               </>
             )}
           </div>
 
-          {/* Compact KPI Analytics Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-4">
+          {/* Minimalist KPI Analytics Metrics Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
             {/* AUDIT LOG METRICS */}
             {activeTab === 'audit-log' && (
               <>
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
-                    <ShieldCheck className="w-4 h-4" />
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Entries</span>
+                    <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Log Entries</p>
-                    <p className="text-base font-black text-slate-900">{metrics.totalEntries || 0}</p>
-                  </div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Active Operators</p>
-                    <p className="text-base font-black text-indigo-600">{metrics.uniqueOperators || 0}</p>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-slate-900">{metrics.totalEntries || 0}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">System audit logs</p>
                   </div>
                 </div>
 
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold shrink-0">
-                    <AlertCircle className="w-4 h-4" />
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Active Operators</span>
+                    <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0">
+                      <Users className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Sensitive Operations</p>
-                    <p className="text-base font-black text-rose-600">{metrics.sensitiveOps || 0}</p>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-indigo-600">{metrics.uniqueOperators || 0}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Distinct users logged</p>
                   </div>
                 </div>
 
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
-                    <FileText className="w-4 h-4" />
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Sensitive Events</span>
+                    <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold shrink-0">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Records on Page</p>
-                    <p className="text-base font-black text-slate-900">{metrics.currentPageRecords || 0}</p>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-rose-600">{metrics.sensitiveOps || 0}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Delete / void actions</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Current Page</span>
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+                      <FileText className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-slate-900">{metrics.currentPageRecords || 0}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Visible rows</p>
                   </div>
                 </div>
               </>
@@ -1217,43 +1318,55 @@ export const ReportsPage = () => {
             {/* STUDENT LIST METRICS */}
             {activeTab === 'student-list' && (
               <>
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0">
-                    <Users className="w-4 h-4" />
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Students</span>
+                    <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0">
+                      <Users className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Students</p>
-                    <p className="text-base font-black text-slate-900">{metrics.total || 0}</p>
-                  </div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
-                    <UserCheck className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Active Enrolled</p>
-                    <p className="text-base font-black text-emerald-600">{metrics.active || 0}</p>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-slate-900">{metrics.total || 0}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Filtered cohort</p>
                   </div>
                 </div>
 
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
-                    <AlertCircle className="w-4 h-4" />
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Active Enrolled</span>
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+                      <UserCheck className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Inactive / Left</p>
-                    <p className="text-base font-black text-amber-600">{metrics.inactive || 0}</p>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-emerald-600">{metrics.active || 0}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Currently attending</p>
                   </div>
                 </div>
 
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0">
-                    <GraduationCap className="w-4 h-4" />
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Inactive / Left</span>
+                    <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Classes Count</p>
-                    <p className="text-base font-black text-slate-900">{metrics.uniqueClasses || 0}</p>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-amber-600">{metrics.inactive || 0}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Alumni & transferred</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Classes Count</span>
+                    <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0">
+                      <GraduationCap className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-slate-900">{metrics.uniqueClasses || 0}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Represented classes</p>
                   </div>
                 </div>
               </>
@@ -1262,43 +1375,55 @@ export const ReportsPage = () => {
             {/* FEE COLLECTION METRICS */}
             {activeTab === 'fee-collection' && (
               <>
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
-                    <TrendingUp className="w-4 h-4" />
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Collection</span>
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+                      <TrendingUp className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Collection</p>
-                    <p className="text-base font-black text-emerald-600">{formatCurrency(metrics.totalAmt || 0)}</p>
-                  </div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0">
-                    <CreditCard className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Receipt Vouchers</p>
-                    <p className="text-base font-black text-slate-900">{metrics.receiptCount || 0}</p>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-emerald-600">{formatCurrency(metrics.totalAmt || 0)}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Realized receipts</p>
                   </div>
                 </div>
 
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0">
-                    <DollarSign className="w-4 h-4" />
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Receipt Vouchers</span>
+                    <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0">
+                      <CreditCard className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Cash Collection</p>
-                    <p className="text-sm font-black text-slate-900">{formatCurrency(metrics.cashAmt || 0)}</p>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-slate-900">{metrics.receiptCount || 0}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Processed transactions</p>
                   </div>
                 </div>
 
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0">
-                    <CheckCircle2 className="w-4 h-4" />
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Cash Payment</span>
+                    <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0">
+                      <DollarSign className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Online / UPI Collection</p>
-                    <p className="text-sm font-black text-slate-900">{formatCurrency(metrics.onlineAmt || 0)}</p>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-slate-900">{formatCurrency(metrics.cashAmt || 0)}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Direct counter cash</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Online / UPI</span>
+                    <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold shrink-0">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-slate-900">{formatCurrency(metrics.onlineAmt || 0)}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Digital gateway / UPI</p>
                   </div>
                 </div>
               </>
@@ -1307,43 +1432,55 @@ export const ReportsPage = () => {
             {/* OUTSTANDING METRICS */}
             {activeTab === 'outstanding-list' && (
               <>
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold shrink-0">
-                    <AlertCircle className="w-4 h-4" />
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Pending Dues</span>
+                    <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold shrink-0">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Dues Pending</p>
-                    <p className="text-base font-black text-rose-600">{formatCurrency(metrics.totalDues || 0)}</p>
-                  </div>
-                </div>
-
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center font-bold shrink-0">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Billed</p>
-                    <p className="text-sm font-black text-slate-900">{formatCurrency(metrics.totalBilled || 0)}</p>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-rose-600">{formatCurrency(metrics.totalDues || 0)}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Uncollected balance</p>
                   </div>
                 </div>
 
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
-                    <CheckCircle2 className="w-4 h-4" />
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Total Billed</span>
+                    <div className="w-7 h-7 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center font-bold shrink-0">
+                      <FileText className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Amount Paid</p>
-                    <p className="text-sm font-black text-emerald-600">{formatCurrency(metrics.totalPaid || 0)}</p>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-slate-900">{formatCurrency(metrics.totalBilled || 0)}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Cumulative charges</p>
                   </div>
                 </div>
 
-                <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
-                    <Users className="w-4 h-4" />
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Amount Paid</span>
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 truncate">Students with Dues</p>
-                    <p className="text-base font-black text-slate-900">{metrics.studentCount || 0}</p>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-emerald-600">{formatCurrency(metrics.totalPaid || 0)}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Partial & full paid</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-slate-300 transition-all flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">Students with Dues</span>
+                    <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
+                      <Users className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold font-mono tracking-tight text-slate-900">{metrics.studentCount || 0}</p>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium truncate">Pending accounts</p>
                   </div>
                 </div>
               </>
@@ -1364,7 +1501,7 @@ export const ReportsPage = () => {
             classOptions={filterOptions.classes}
           />
         ) : (
-          <div id="printable-report-area" className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 print:p-0 print:border-none print:shadow-none">
+          <div id="printable-report-area" className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-5 print:p-0 print:border-none print:shadow-none">
           {/* Printable Formal Header (Only Visible during Window Print) */}
           <div className="hidden print:block mb-4">
             <SchoolReportHeader
@@ -1375,7 +1512,7 @@ export const ReportsPage = () => {
             <div className="text-center text-xs font-semibold text-slate-600 mt-2 pb-3 border-b border-slate-300">
               <p>Filter Parameters: {getFilterSummaryString()}</p>
               <p className="text-[10px] text-slate-500 mt-0.5">
-                Printed On: {new Date().toLocaleDateString('en-IN')} at {new Date().toLocaleTimeString('en-IN')}
+                Official Report Statement
               </p>
             </div>
           </div>
@@ -1384,7 +1521,7 @@ export const ReportsPage = () => {
           <div className="print:hidden flex flex-col sm:flex-row items-start sm:items-center justify-between pb-3 mb-3 border-b border-slate-100 gap-2">
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">{activeTabConfig.title}</h2>
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">{activeTabConfig.title}</h2>
                 <Badge variant="outline" className="font-mono text-[10px] font-bold text-slate-700 bg-slate-50">
                   {activeTab === 'audit-log' ? auditPagination.total : reportData.length} records
                 </Badge>
@@ -1392,29 +1529,29 @@ export const ReportsPage = () => {
               <p className="text-[11px] text-slate-500 mt-0.5">{activeTabConfig.description}</p>
             </div>
 
-            <div className="text-[11px] font-semibold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200/80">
+            <div className="text-[11px] font-medium text-slate-500 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200/80 max-w-md truncate" title={getFilterSummaryString()}>
               Filters: <span className="text-slate-800 font-bold">{getFilterSummaryString()}</span>
             </div>
           </div>
 
           {/* Loading state */}
           {loading ? (
-            <div className="py-14 text-center">
-              <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2.5"></div>
+            <div className="py-16 text-center space-y-2">
+              <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
               <p className="text-xs font-bold text-slate-800">Compiling Report Dataset...</p>
-              <p className="text-[11px] text-slate-500 mt-0.5">Applying parameters and security rules...</p>
+              <p className="text-[11px] text-slate-400">Applying parameters and security rules...</p>
             </div>
           ) : (activeTab === 'audit-log' ? auditLogs.length === 0 : reportData.length === 0) ? (
-            <div className="py-14 text-center border-2 border-dashed border-slate-200 rounded-xl">
-              <AlertCircle className="w-9 h-9 text-slate-400 mx-auto mb-2" />
-              <p className="text-sm font-bold text-slate-800">No matching report records found</p>
-              <p className="text-[11px] text-slate-500 mt-1">Try adjusting your filters or clearing parameters above.</p>
+            <div className="py-16 text-center border-2 border-dashed border-slate-200/80 rounded-2xl bg-slate-50/40">
+              <AlertCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+              <p className="text-xs font-bold text-slate-800">No matching report records found</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Try adjusting your filters or clearing parameters above.</p>
             </div>
           ) : (
             <>
               <Table minWidth="min-w-full">
                 <TableHeader>
-                  <TableRow className="bg-slate-100/90 text-slate-700 text-[10px] font-extrabold uppercase tracking-wider border-y border-black print:bg-slate-200 print:text-black print:border-y print:border-black">
+                  <TableRow className="bg-slate-50/80 text-slate-500 text-[10px] font-bold uppercase tracking-wider border-b border-slate-200/80 print:bg-slate-200 print:text-black print:border-y print:border-black">
                     {/* TAB 1: STUDENT LIST COLUMNS */}
                     {activeTab === 'student-list' && (
                       <>
@@ -1470,31 +1607,31 @@ export const ReportsPage = () => {
                     )}
                   </TableRow>
                 </TableHeader>
-                <TableBody className="divide-y divide-black">
+                <TableBody className="divide-y divide-slate-100 print:divide-black">
                   {(activeTab === 'audit-log' ? auditLogs : reportData).map((row, idx) => (
-                    <TableRow key={row.id || row.studentId || idx} className="hover:bg-slate-50/80 transition-colors border-b border-black print:hover:bg-transparent print:border-b print:border-black">
+                    <TableRow key={row.id || row.studentId || idx} className="hover:bg-slate-50/70 transition-colors border-b border-slate-150/70 print:hover:bg-transparent print:border-b print:border-black">
                       {/* TAB 1: STUDENT LIST ROWS */}
                       {activeTab === 'student-list' && (
                         <>
-                          <TableCell className="text-center font-bold text-slate-500 print:text-black py-2 px-3 text-[11px]">{idx + 1}</TableCell>
-                          <TableCell className="py-2 px-3">
+                          <TableCell className="text-center font-bold text-slate-400 print:text-black py-2.5 px-3 text-[11px]">{idx + 1}</TableCell>
+                          <TableCell className="py-2.5 px-3">
                             <div className="font-bold text-slate-900 text-xs">{row.studentName}</div>
                             <div className="text-[10px] font-mono text-indigo-600 font-semibold print:text-black">
                               {row.admissionNo}
                             </div>
                           </TableCell>
-                          <TableCell className="py-2 px-3">
+                          <TableCell className="py-2.5 px-3">
                             <div className="text-xs font-semibold text-slate-800">{row.guardianName || '—'}</div>
                             <div className="text-[10px] font-mono text-slate-500">{row.phone || '—'}</div>
                           </TableCell>
-                          <TableCell className="py-2 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
-                          <TableCell className="py-2 px-3 text-xs text-slate-600">
+                          <TableCell className="py-2.5 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
+                          <TableCell className="py-2.5 px-3 text-xs text-slate-600">
                             <span className="font-medium">{row.mediumName || '—'}</span>
                             {row.streamName && row.streamName !== '-' && (
                               <span className="ml-1 text-[10px] text-indigo-600 font-semibold">({row.streamName})</span>
                             )}
                           </TableCell>
-                          <TableCell className="py-2 px-3 text-center">
+                          <TableCell className="py-2.5 px-3 text-center">
                             <Badge
                               variant={row.status === 'ACTIVE' ? 'success' : 'secondary'}
                               className="text-[9px] uppercase font-bold px-1.5 py-0.2"
@@ -1508,26 +1645,26 @@ export const ReportsPage = () => {
                       {/* TAB 2: FEE COLLECTION ROWS */}
                       {activeTab === 'fee-collection' && (
                         <>
-                          <TableCell className="text-center font-bold text-slate-500 print:text-black py-2 px-3 text-[11px]">{idx + 1}</TableCell>
-                          <TableCell className="py-2 px-3 font-mono text-xs text-slate-700">{formatDate(row.date)}</TableCell>
-                          <TableCell className="py-2 px-3">
+                          <TableCell className="text-center font-bold text-slate-400 print:text-black py-2.5 px-3 text-[11px]">{idx + 1}</TableCell>
+                          <TableCell className="py-2.5 px-3 font-mono text-xs text-slate-700">{formatDate(row.date)}</TableCell>
+                          <TableCell className="py-2.5 px-3">
                             <div className="font-mono font-bold text-emerald-700 text-xs print:text-black">{row.receiptNo || '—'}</div>
                             {row.referenceNumber && row.referenceNumber !== '-' && (
                               <div className="text-[9px] font-mono text-slate-400">Ref: {row.referenceNumber}</div>
                             )}
                           </TableCell>
-                          <TableCell className="py-2 px-3">
+                          <TableCell className="py-2.5 px-3">
                             <div className="font-bold text-slate-900 text-xs">{row.studentName}</div>
                             <div className="text-[10px] font-mono text-slate-500">{row.admissionNo}</div>
                           </TableCell>
-                          <TableCell className="py-2 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
-                          <TableCell className="py-2 px-3 text-xs text-slate-700">{row.feeType}</TableCell>
-                          <TableCell className="py-2 px-3 text-center">
+                          <TableCell className="py-2.5 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
+                          <TableCell className="py-2.5 px-3 text-xs text-slate-700">{row.feeType}</TableCell>
+                          <TableCell className="py-2.5 px-3 text-center">
                             <Badge variant="outline" className="text-[9px] font-bold uppercase bg-slate-50 text-slate-700 border-slate-200 px-1.5 py-0.2">
                               {row.paymentMode}
                             </Badge>
                           </TableCell>
-                          <TableCell className="py-2 px-3 text-right font-mono font-bold text-emerald-700 text-xs print:text-black">
+                          <TableCell className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-xs print:text-black">
                             {formatCurrency(row.amount)}
                           </TableCell>
                         </>
@@ -1536,22 +1673,22 @@ export const ReportsPage = () => {
                       {/* TAB 3: OUTSTANDING LIST ROWS */}
                       {activeTab === 'outstanding-list' && (
                         <>
-                          <TableCell className="text-center font-bold text-slate-500 print:text-black py-2 px-3 text-[11px]">{idx + 1}</TableCell>
-                          <TableCell className="py-2 px-3">
+                          <TableCell className="text-center font-bold text-slate-400 print:text-black py-2.5 px-3 text-[11px]">{idx + 1}</TableCell>
+                          <TableCell className="py-2.5 px-3">
                             <div className="font-bold text-slate-900 text-xs">{row.studentName}</div>
                             <div className="text-[10px] font-mono text-indigo-600 font-semibold print:text-black">{row.admissionNo}</div>
                           </TableCell>
-                          <TableCell className="py-2 px-3">
+                          <TableCell className="py-2.5 px-3">
                             <div className="text-xs font-semibold text-slate-800">{row.guardianName || '—'}</div>
                             <div className="text-[10px] font-mono text-slate-500">{row.phone || '—'}</div>
                           </TableCell>
-                          <TableCell className="py-2 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
-                          <TableCell className="py-2 px-3 text-right font-mono text-slate-700 text-xs print:hidden">{formatCurrency(row.totalCharged)}</TableCell>
-                          <TableCell className="py-2 px-3 text-right font-mono text-emerald-600 font-semibold text-xs print:hidden">{formatCurrency(row.paidAmount)}</TableCell>
-                          <TableCell className="py-2 px-3 text-right font-mono font-black text-rose-600 text-xs print:text-black">
+                          <TableCell className="py-2.5 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
+                          <TableCell className="py-2.5 px-3 text-right font-mono text-slate-700 text-xs print:hidden">{formatCurrency(row.totalCharged)}</TableCell>
+                          <TableCell className="py-2.5 px-3 text-right font-mono text-emerald-600 font-semibold text-xs print:hidden">{formatCurrency(row.paidAmount)}</TableCell>
+                          <TableCell className="py-2.5 px-3 text-right font-mono font-bold text-rose-600 text-xs print:text-black">
                             {formatCurrency(row.balance)}
                           </TableCell>
-                          <TableCell className="py-2 px-3 text-center">
+                          <TableCell className="py-2.5 px-3 text-center">
                             <Badge
                               variant={row.status === 'PARTIAL' ? 'warning' : 'danger'}
                               className="text-[9px] uppercase font-bold px-1.5 py-0.2"
@@ -1565,10 +1702,10 @@ export const ReportsPage = () => {
                       {/* TAB 4: AUDIT LOG ROWS */}
                       {activeTab === 'audit-log' && (
                         <>
-                          <TableCell className="text-center font-bold text-slate-500 print:text-black py-2 px-3 text-[11px]">
+                          <TableCell className="text-center font-bold text-slate-400 print:text-black py-2.5 px-3 text-[11px]">
                             {(auditPagination.page - 1) * auditPagination.limit + idx + 1}
                           </TableCell>
-                          <TableCell className="py-2 px-3 whitespace-nowrap">
+                          <TableCell className="py-2.5 px-3 whitespace-nowrap">
                             <div className="font-mono text-xs font-semibold text-slate-800">
                               {formatDateTime(row.createdAt || row.date)}
                             </div>
@@ -1576,19 +1713,19 @@ export const ReportsPage = () => {
                               ID: {row.id ? row.id.slice(0, 8) + '...' : '-'}
                             </div>
                           </TableCell>
-                          <TableCell className="py-2 px-3">
+                          <TableCell className="py-2.5 px-3">
                             <div className="font-bold text-slate-900 text-xs">{row.userName}</div>
                             <div className="text-[10px] font-mono text-slate-500">{row.userEmail}</div>
                             {row.userRole && (
-                              <span className="inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 uppercase border border-slate-200">
+                              <span className="inline-block mt-0.5 text-[9px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 uppercase border border-slate-200">
                                 {row.userRole}
                               </span>
                             )}
                           </TableCell>
-                          <TableCell className="py-2 px-3">
+                          <TableCell className="py-2.5 px-3">
                             {formatActionBadge(row.rawAction, row.action)}
                           </TableCell>
-                          <TableCell className="py-2 px-3">
+                          <TableCell className="py-2.5 px-3">
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-200">
                               {row.module || row.entityType}
                             </span>
@@ -1598,18 +1735,18 @@ export const ReportsPage = () => {
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="py-2 px-3 font-mono text-xs text-slate-600 print:hidden">
+                          <TableCell className="py-2.5 px-3 font-mono text-xs text-slate-600 print:hidden">
                             {row.ipAddress && row.ipAddress !== '-' ? row.ipAddress : '—'}
                           </TableCell>
-                          <TableCell className="py-2 px-3 text-xs text-slate-700 max-w-xs truncate" title={row.details}>
+                          <TableCell className="py-2.5 px-3 text-xs text-slate-700 max-w-xs truncate" title={row.details}>
                             {row.details || '—'}
                           </TableCell>
-                          <TableCell className="py-2 px-3 text-right print:hidden">
+                          <TableCell className="py-2.5 px-3 text-right print:hidden">
                             <button
                               type="button"
                               id={`btn-inspect-audit-${idx}`}
                               onClick={() => setSelectedAuditLog(row)}
-                              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors border border-indigo-200 cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 transition-colors border border-indigo-200/60 cursor-pointer"
                             >
                               <Eye className="w-3 h-3" />
                               <span>Inspect</span>
@@ -1623,19 +1760,19 @@ export const ReportsPage = () => {
 
                 {/* Table Footer Total Summary */}
                 <tfoot>
-                  <tr className="bg-slate-100/90 font-bold border-t border-b border-black text-slate-900 text-xs print:bg-slate-200 print:border-t print:border-b print:border-black">
+                  <tr className="bg-slate-50/80 font-bold border-t border-slate-200 text-slate-900 text-xs print:bg-slate-200 print:border-t print:border-b print:border-black">
                     {activeTab === 'student-list' && (
                       <td colSpan={6} className="py-2.5 px-3 text-right">
-                        Total Filtered Enrolled Students: <span className="text-indigo-700 font-black text-xs">{reportData.length}</span>
+                        Total Filtered Students: <span className="text-indigo-700 font-bold text-xs">{reportData.length}</span>
                       </td>
                     )}
 
                     {activeTab === 'fee-collection' && (
                       <>
-                        <td colSpan={7} className="py-2.5 px-3 text-right font-black uppercase text-[11px]">
+                        <td colSpan={7} className="py-2.5 px-3 text-right font-bold uppercase text-[11px]">
                           Grand Total Fee Collected:
                         </td>
-                        <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-700 text-xs print:text-black">
+                        <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-xs print:text-black">
                           {formatCurrency(reportData.reduce((acc, r) => acc + (r.amount || 0), 0))}
                         </td>
                       </>
@@ -1643,16 +1780,16 @@ export const ReportsPage = () => {
 
                     {activeTab === 'outstanding-list' && (
                       <>
-                        <td colSpan={4} className="py-2.5 px-3 text-right font-black uppercase text-[11px]">
+                        <td colSpan={4} className="py-2.5 px-3 text-right font-bold uppercase text-[11px]">
                           Grand Totals:
                         </td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-800 text-xs print:hidden">
+                        <td className="py-2.5 px-3 text-right font-mono font-semibold text-slate-800 text-xs print:hidden">
                           {formatCurrency(reportData.reduce((acc, r) => acc + (r.totalCharged || 0), 0))}
                         </td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-700 text-xs print:hidden">
+                        <td className="py-2.5 px-3 text-right font-mono font-semibold text-emerald-700 text-xs print:hidden">
                           {formatCurrency(reportData.reduce((acc, r) => acc + (r.paidAmount || 0), 0))}
                         </td>
-                        <td className="py-2.5 px-3 text-right font-mono font-black text-rose-700 text-xs print:text-black">
+                        <td className="py-2.5 px-3 text-right font-mono font-bold text-rose-700 text-xs print:text-black">
                           {formatCurrency(reportData.reduce((acc, r) => acc + (r.balance || 0), 0))}
                         </td>
                         <td></td>
@@ -1661,7 +1798,7 @@ export const ReportsPage = () => {
 
                     {activeTab === 'audit-log' && (
                       <td colSpan={8} className="py-2.5 px-3 text-right">
-                        Total Filtered School Audit Records: <span className="text-amber-700 font-black text-xs">{auditPagination.total}</span>
+                        Total Audit Records: <span className="text-amber-700 font-bold text-xs">{auditPagination.total}</span>
                       </td>
                     )}
                   </tr>
@@ -1700,11 +1837,11 @@ export const ReportsPage = () => {
         >
           <div className="space-y-4 text-xs">
             {/* Operator & Event Overview Card */}
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200/80 grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Operator</span>
                 <span className="font-bold text-slate-900 block">{selectedAuditLog.userName}</span>
-                <span className="text-[10px] text-slate-500 font-mono block">{selectedAuditLog.userEmail}</span>
+                <span className="text-[10px] text-slate-500 font-mono block truncate">{selectedAuditLog.userEmail}</span>
                 <span className="text-[9px] font-semibold text-indigo-600 block">{selectedAuditLog.userRole}</span>
               </div>
 
@@ -1720,7 +1857,7 @@ export const ReportsPage = () => {
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Module & Entity</span>
                 <span className="font-bold text-slate-900 block">{selectedAuditLog.module || selectedAuditLog.entityType}</span>
                 {selectedAuditLog.entityId && (
-                  <span className="font-mono text-[10px] text-slate-600 block truncate" title={selectedAuditLog.entityId}>
+                  <span className="font-mono text-[10px] text-slate-500 block truncate" title={selectedAuditLog.entityId}>
                     ID: {selectedAuditLog.entityId}
                   </span>
                 )}
@@ -1741,7 +1878,7 @@ export const ReportsPage = () => {
 
             {/* Event Summary / Details text */}
             {selectedAuditLog.details && (
-              <div className="bg-amber-50/60 p-3 rounded-lg border border-amber-200/80">
+              <div className="bg-amber-50/50 p-3 rounded-xl border border-amber-200/70">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block mb-0.5">
                   Action Summary
                 </span>
@@ -1752,7 +1889,7 @@ export const ReportsPage = () => {
             {/* State Before Change (oldValues) */}
             {selectedAuditLog.oldValues && Object.keys(selectedAuditLog.oldValues).length > 0 && (
               <div>
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-1.5">
                   <span className="font-bold text-slate-700">State Before Change (Old Values):</span>
                   <button
                     type="button"
@@ -1760,12 +1897,12 @@ export const ReportsPage = () => {
                       navigator.clipboard.writeText(JSON.stringify(selectedAuditLog.oldValues, null, 2));
                       toast.success('Copied old values JSON');
                     }}
-                    className="text-[10px] text-slate-500 hover:text-slate-800 flex items-center gap-1 font-semibold cursor-pointer"
+                    className="text-[11px] text-slate-500 hover:text-slate-800 flex items-center gap-1 font-semibold cursor-pointer"
                   >
                     <Copy className="w-3 h-3" /> Copy JSON
                   </button>
                 </div>
-                <pre className="p-3 bg-slate-900 text-amber-300 rounded-xl font-mono text-[11px] overflow-x-auto max-h-60 border border-slate-800">
+                <pre className="p-3.5 bg-slate-900 text-amber-300 rounded-xl font-mono text-[11px] overflow-x-auto max-h-60 border border-slate-800 shadow-inner">
                   {JSON.stringify(selectedAuditLog.oldValues, null, 2)}
                 </pre>
               </div>
@@ -1774,7 +1911,7 @@ export const ReportsPage = () => {
             {/* State After Change (newValues) */}
             {selectedAuditLog.newValues && Object.keys(selectedAuditLog.newValues).length > 0 && (
               <div>
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-1.5">
                   <span className="font-bold text-slate-700">State After Change (New Values):</span>
                   <button
                     type="button"
@@ -1782,12 +1919,12 @@ export const ReportsPage = () => {
                       navigator.clipboard.writeText(JSON.stringify(selectedAuditLog.newValues, null, 2));
                       toast.success('Copied new values JSON');
                     }}
-                    className="text-[10px] text-slate-500 hover:text-slate-800 flex items-center gap-1 font-semibold cursor-pointer"
+                    className="text-[11px] text-slate-500 hover:text-slate-800 flex items-center gap-1 font-semibold cursor-pointer"
                   >
                     <Copy className="w-3 h-3" /> Copy JSON
                   </button>
                 </div>
-                <pre className="p-3 bg-slate-900 text-emerald-300 rounded-xl font-mono text-[11px] overflow-x-auto max-h-60 border border-slate-800">
+                <pre className="p-3.5 bg-slate-900 text-emerald-300 rounded-xl font-mono text-[11px] overflow-x-auto max-h-60 border border-slate-800 shadow-inner">
                   {JSON.stringify(selectedAuditLog.newValues, null, 2)}
                 </pre>
               </div>

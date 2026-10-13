@@ -80,46 +80,48 @@ export const MonthlyCollectionChart = ({ data = [] }) => {
   const activePoint = activePointIndex !== null ? points[activePointIndex] : points[points.length - 1];
 
   return (
-    <Card className="border-slate-200 bg-white shadow-2xs rounded-xl overflow-hidden">
+    <Card className="border-slate-200/80 bg-white shadow-2xs rounded-xl sm:rounded-2xl overflow-hidden">
       {/* Header */}
-      <CardHeader className="py-2.5 px-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <CardHeader className="py-3 px-4 sm:px-5 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-emerald-600" />
-          <CardTitle className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-            Monthly Collection
+          <div className="w-6 h-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <TrendingUp className="w-3.5 h-3.5" />
+          </div>
+          <CardTitle className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
+            Monthly Collection Trend
           </CardTitle>
         </div>
-        <Badge variant="success" size="sm" className="text-[10px] py-0">
-          UP TO {lastMonth?.label?.toUpperCase()}
+        <Badge variant="success" size="sm" className="text-[10px] py-0 px-2 font-mono">
+          {lastMonth?.label?.toUpperCase()}
         </Badge>
       </CardHeader>
 
-      <CardContent className="p-3.5 space-y-2.5">
+      <CardContent className="p-3.5 sm:p-5 space-y-3">
         {/* Top Summary Row */}
-        <div className="flex items-center justify-between text-xs px-1">
+        <div className="flex items-center justify-between text-xs px-1 bg-slate-50/50 p-2.5 rounded-xl border border-slate-100">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Period</span>
-            <span className="font-mono font-bold text-emerald-700">{formatCurrency(totalPeriodCollection)}</span>
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Total Period</span>
+            <span className="font-mono font-bold text-sm text-emerald-700">{formatCurrency(totalPeriodCollection)}</span>
           </div>
           {activePoint ? (
             <div className="text-right">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                {activePoint.fullLabel || activePoint.label}
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                {activePoint.fullLabel || activePoint.label} (Selected)
               </span>
-              <span className="font-mono font-bold text-slate-900">{formatCurrency(activePoint.totalAmount)}</span>
+              <span className="font-mono font-bold text-sm text-slate-900">{formatCurrency(activePoint.totalAmount)}</span>
             </div>
           ) : (
             highestMonth && (
               <div className="text-right">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Peak ({highestMonth.label})</span>
-                <span className="font-mono font-bold text-slate-800">{formatCurrency(highestMonth.totalAmount)}</span>
+                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Peak ({highestMonth.label})</span>
+                <span className="font-mono font-bold text-sm text-slate-800">{formatCurrency(highestMonth.totalAmount)}</span>
               </div>
             )
           )}
         </div>
 
         {/* SVG Line Chart Container */}
-        <div className="w-full overflow-x-auto">
+        <div className="w-full overflow-x-auto touch-pan-x">
           <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible select-none">
             <defs>
               <linearGradient id="compactCollectionGradient" x1="0" y1="0" x2="0" y2="1">
@@ -172,10 +174,12 @@ export const MonthlyCollectionChart = ({ data = [] }) => {
                   key={idx}
                   className="cursor-pointer group"
                   onMouseEnter={() => setActivePointIndex(idx)}
+                  onTouchStart={() => setActivePointIndex(idx)}
+                  onPointerDown={() => setActivePointIndex(idx)}
                   onClick={() => setActivePointIndex(idx)}
                 >
-                  {/* Invisible Larger Touch Area */}
-                  <circle cx={p.x} cy={p.y} r="12" fill="transparent" />
+                  {/* Invisible Larger Touch Area for Mobile (20px radius) */}
+                  <circle cx={p.x} cy={p.y} r="20" fill="transparent" />
 
                   {/* Outer Pulse Ring when Active */}
                   {isActive && (
@@ -222,3 +226,4 @@ export const MonthlyCollectionChart = ({ data = [] }) => {
 };
 
 export default MonthlyCollectionChart;
+

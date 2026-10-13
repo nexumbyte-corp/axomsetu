@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 
 export const Dropdown = ({ trigger, children, align = 'right' }) => {
@@ -8,7 +8,7 @@ export const Dropdown = ({ trigger, children, align = 'right' }) => {
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
 
-  const updatePosition = () => {
+  const updatePosition = useCallback(() => {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
@@ -22,7 +22,7 @@ export const Dropdown = ({ trigger, children, align = 'right' }) => {
         left: align === 'left' ? `${rect.left}px` : 'auto',
       });
     }
-  };
+  }, [align]);
 
   const toggleDropdown = (e) => {
     e.stopPropagation();
@@ -61,7 +61,7 @@ export const Dropdown = ({ trigger, children, align = 'right' }) => {
       window.removeEventListener('resize', handleScrollOrResize);
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, updatePosition]);
 
   return (
     <div className="inline-block" ref={triggerRef}>

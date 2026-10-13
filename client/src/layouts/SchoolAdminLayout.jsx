@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, LogOut, Menu, ChevronDown, Building, Lock, HelpCircle, User, Calculator } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
@@ -49,7 +49,10 @@ export const SchoolAdminLayout = () => {
   };
 
   // Get current navigation groups based on permissions & subscription
-  const navGroups = getSidebarNavigation({ isSubscriptionActive, isOwner, hasFullAccess, can });
+  const navGroups = useMemo(
+    () => getSidebarNavigation({ isSubscriptionActive, isOwner, hasFullAccess, can }),
+    [isSubscriptionActive, isOwner, hasFullAccess, can]
+  );
 
   // Auto-expand the group and sub-menu containing the active route whenever location changes
   useEffect(() => {
@@ -78,7 +81,7 @@ export const SchoolAdminLayout = () => {
         setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
       }
     });
-  }, [location.pathname, isSubscriptionActive, isOwner, hasFullAccess]);
+  }, [location.pathname, navGroups]);
 
   const toggleGroup = (groupId, currentlyExpanded) => {
     setOpenGroups((prev) => ({
@@ -274,12 +277,13 @@ export const SchoolAdminLayout = () => {
 
 const ROUTE_TITLE_MAP = {
   '/app': 'Dashboard',
-  '/app/subscription': 'Subscription',
+  '/app/subscription': 'Subscription & Billing',
   '/app/academic-years': 'Academic Years',
   '/app/classes': 'Classes',
   '/app/mediums': 'Mediums',
   '/app/streams': 'Streams',
   '/app/sections': 'Sections',
+  '/app/admit-cards': 'Admit Cards',
   '/app/students': 'Students',
   '/app/students/new': 'Add Student',
   '/app/students/promote': 'Bulk Promotion',
@@ -292,7 +296,7 @@ const ROUTE_TITLE_MAP = {
   '/app/hostel/setup': 'Rooms & Beds',
   '/app/hostel/reports': 'Hostel Reports',
   '/app/finance': 'Finance & Ledger',
-  '/app/reports': 'Reports',
+  '/app/reports': 'Reports & Analytics',
   '/app/settings/profile': 'School Profile',
   '/app/settings/users': 'Users & Permissions',
 };

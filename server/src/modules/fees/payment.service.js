@@ -125,49 +125,48 @@ export const paymentService = {
       }
     }
 
-    // 3. Compute current remaining balances for all selected charges based on successful (non-VOID) allocations
-    const existingAllocationsGroup = await prisma.paymentAllocation.groupBy({
-      by: ['chargeId'],
-      where: {
-        chargeId: { in: selectedChargeIds },
-        payment: {
-          status: { not: 'VOID' },
+    // 3. Execute Payment & Allocations inside an Atomic Prisma Transaction
+    const paymentResult = await prisma.$transaction(async (tx) => {
+      // Re-verify current remaining balances INSIDE the transaction to prevent concurrency double-allocations
+      const existingAllocationsGroup = await tx.paymentAllocation.groupBy({
+        by: ['chargeId'],
+        where: {
+          chargeId: { in: selectedChargeIds },
+          payment: {
+            status: { not: 'VOID' },
+          },
         },
-      },
-      _sum: {
-        allocatedAmount: true,
-      },
-    });
+        _sum: {
+          allocatedAmount: true,
+        },
+      });
 
-    const existingPaidMap = new Map();
-    for (const group of existingAllocationsGroup) {
-      existingPaidMap.set(group.chargeId, group._sum.allocatedAmount || new Prisma.Decimal(0));
-    }
-
-    let totalRemainingDecimal = new Prisma.Decimal(0);
-
-    for (const charge of dbCharges) {
-      const chargeAmount = new Prisma.Decimal(charge.amount);
-      const alreadyPaid = existingPaidMap.get(charge.id) || new Prisma.Decimal(0);
-      const remainingBalance = chargeAmount.minus(alreadyPaid);
-      const requestedAllocation = allocationMap.get(charge.id);
-
-      if (requestedAllocation.greaterThan(remainingBalance)) {
-        throw new ApiError(
-          400,
-          `Allocation of ${requestedAllocation} for charge '${charge.title}' exceeds remaining balance of ${remainingBalance}`
-        );
+      const existingPaidMap = new Map();
+      for (const group of existingAllocationsGroup) {
+        existingPaidMap.set(group.chargeId, group._sum.allocatedAmount || new Prisma.Decimal(0));
       }
 
-      totalRemainingDecimal = totalRemainingDecimal.plus(remainingBalance);
-    }
+      let totalRemainingDecimal = new Prisma.Decimal(0);
 
-    if (totalReceivedDecimal.greaterThan(totalRemainingDecimal)) {
-      throw new ApiError(400, 'Received payment amount exceeds total remaining balance of selected charges');
-    }
+      for (const charge of dbCharges) {
+        const chargeAmount = new Prisma.Decimal(charge.amount);
+        const alreadyPaid = existingPaidMap.get(charge.id) || new Prisma.Decimal(0);
+        const remainingBalance = chargeAmount.minus(alreadyPaid);
+        const requestedAllocation = allocationMap.get(charge.id);
 
-    // 4. Execute Payment & Allocations inside an Atomic Prisma Transaction
-    return await prisma.$transaction(async (tx) => {
+        if (requestedAllocation.greaterThan(remainingBalance)) {
+          throw new ApiError(
+            400,
+            `Allocation of ${requestedAllocation} for charge '${charge.title}' exceeds remaining balance of ${remainingBalance}`
+          );
+        }
+
+        totalRemainingDecimal = totalRemainingDecimal.plus(remainingBalance);
+      }
+
+      if (totalReceivedDecimal.greaterThan(totalRemainingDecimal)) {
+        throw new ApiError(400, 'Received payment amount exceeds total remaining balance of selected charges');
+      }
       // Generate concurrency-safe receipt number
       const receiptNumber = await receiptService.generateReceiptNumber(tx, {
         schoolId,
@@ -292,7 +291,7 @@ export const paymentService = {
       throw new ApiError(400, 'School ID and Payment ID are required');
     }
 
-    return await prisma.$transaction(async (tx) => {
+    const voidResult = await prisma.$transaction(async (tx) => {
       const payment = await tx.feePayment.findFirst({
         where: { id: paymentId, schoolId },
         include: {
@@ -1366,7 +1365,7 @@ export const paymentService = {
       );
     }
 
-    return await prisma.$transaction(async (tx) => {
+    const deleteResult = await prisma.$transaction(async (tx) => {
       await tx.studentFeeCharge.delete({
         where: { id: chargeId },
       });
@@ -1463,7 +1462,7 @@ export const paymentService = {
       );
     }
 
-    return await prisma.$transaction(async (tx) => {
+    const updateResult = await prisma.$transaction(async (tx) => {
       const remaining = newAmountDecimal.minus(paidAmt);
 
       let newStatus = 'UNPAID';

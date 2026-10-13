@@ -191,7 +191,7 @@ export const schoolUserService = {
   /**
    * Update school user profile fields (name, phone, customRoleLabel).
    */
-  async updateUser(schoolId, membershipId, data, actorUserId) {
+  async updateUser(schoolId, membershipId, data, actorMembership, actorUserId) {
     const membership = await prisma.schoolAdmin.findFirst({
       where: { id: membershipId, schoolId },
       include: { user: true },
@@ -199,6 +199,15 @@ export const schoolUserService = {
 
     if (!membership) {
       throw ApiError.notFound('User not found in this school');
+    }
+
+    // Protect OWNER & Admin: STAFF cannot edit OWNER or SCHOOL_ADMIN profiles
+    if (membership.schoolRole === 'OWNER' && actorMembership?.schoolRole !== 'OWNER') {
+      throw ApiError.forbidden('Only the School Owner can modify the School Owner profile');
+    }
+
+    if (membership.schoolRole === 'SCHOOL_ADMIN' && actorMembership?.schoolRole === 'STAFF') {
+      throw ApiError.forbidden('Staff users cannot modify School Administrator profiles');
     }
 
     const { name, phone } = data;

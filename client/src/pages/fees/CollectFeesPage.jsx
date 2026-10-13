@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import { StudentSummaryCard } from '../../components/fees/StudentSummaryCard.jsx';
 import { OutstandingChargesTable } from '../../components/fees/OutstandingChargesTable.jsx';
@@ -15,15 +16,24 @@ import { schoolService } from '../../services/school.service.js';
 import { StudentPickerTable } from '../../components/fees/StudentPickerTable.jsx';
 
 export const CollectFeesPage = () => {
+  const location = useLocation();
   const { schoolMembership, user } = useAuth();
   const { selectedYear } = useAcademicYear();
-  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(location.state?.student || null);
   const [selectedChargeIds, setSelectedChargeIds] = useState([]);
   const [paymentAmounts, setPaymentAmounts] = useState({});
   const [confirmModalData, setConfirmModalData] = useState(null);
   const [successModalData, setSuccessModalData] = useState(null);
   const [isSharingWhatsApp, setIsSharingWhatsApp] = useState(false);
   const [schoolProfile, setSchoolProfile] = useState(null);
+
+  useEffect(() => {
+    if (location.state?.student && (!selectedStudent || selectedStudent.id !== location.state.student.id)) {
+      setSelectedStudent(location.state.student);
+      setSelectedChargeIds([]);
+      setPaymentAmounts({});
+    }
+  }, [location.state?.student]);
 
   React.useEffect(() => {
     schoolService

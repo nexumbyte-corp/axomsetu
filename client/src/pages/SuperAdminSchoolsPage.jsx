@@ -41,6 +41,7 @@ import { HardDeleteSchoolModal } from '../components/admin/HardDeleteSchoolModal
 
 export const SuperAdminSchoolsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [schools, setSchools] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 15, total: 0 });
   const [search, setSearch] = useState('');
@@ -112,7 +113,6 @@ export const SuperAdminSchoolsPage = () => {
 
   const validateCreateSchool = () => {
     const errors = {};
-    const phoneRegex = /^[0-9+\-\s()]{7,15}$/;
 
     if (!createForm.name.trim()) {
       errors.name = 'School name is required.';

@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { financialLedgerService } from '../finance/financialLedger.service.js';
-import { getISTDayBounds, parseDateOnlyToUtc, getISTDateString } from '../../utils/dateUtils.js';
+import { parseDateOnlyToUtc, getISTDateString } from '../../utils/dateUtils.js';
 
 export const fundService = {
   /**

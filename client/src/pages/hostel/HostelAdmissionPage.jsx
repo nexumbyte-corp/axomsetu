@@ -85,7 +85,7 @@ export const HostelAdmissionPage = () => {
     if (selectedRoom && selectedHostel) {
       fetchBeds(selectedHostel.id, selectedRoom.id);
     }
-  }, [selectedRoom]);
+  }, [selectedRoom, selectedHostel]);
 
   useEffect(() => {
     if (activeAcademicYearId && selectedHostel) {

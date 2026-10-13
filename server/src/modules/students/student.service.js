@@ -494,7 +494,7 @@ export const createStudent = async (schoolId, data, actorUserId, actorRole) => {
   // Invalidate any dashboard / reporting caches for this school
   try {
     memoryCache.invalidatePrefix(`dashboard:${schoolId}`);
-  } catch (cacheErr) {
+  } catch {
     // Non-fatal
   }
 

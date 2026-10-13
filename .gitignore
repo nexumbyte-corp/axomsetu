@@ -64,3 +64,7 @@ server/backups/
 *.json.gz
 !server/prisma/migrations/**/*.sql
 
+#agents
+.agents
+skills-lock.json
+

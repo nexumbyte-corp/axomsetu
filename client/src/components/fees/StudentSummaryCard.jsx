@@ -38,18 +38,19 @@ export const StudentSummaryCard = ({ student, outstandingSummary, onClearStudent
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-2.5 sm:p-3 shadow-2xs space-y-2">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         {/* Left: Student Identity & Details */}
         <div className="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
           {onClearStudent && (
             <button
               type="button"
               onClick={onClearStudent}
-              className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-indigo-600 transition-colors shadow-2xs shrink-0 cursor-pointer mt-0.5 sm:mt-0"
-              title="Back to Student List"
+              className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 text-xs font-medium transition-colors shadow-2xs shrink-0 cursor-pointer mt-0.5 sm:mt-0"
+              title="Select another student"
               aria-label="Back to Student List"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Change</span>
             </button>
           )}
 
@@ -57,88 +58,92 @@ export const StudentSummaryCard = ({ student, outstandingSummary, onClearStudent
             name={student.name}
             photoUrl={student.photoUrl}
             size="md"
-            className="shrink-0 ring-2 ring-indigo-50"
+            className="shrink-0"
           />
 
           <div className="min-w-0 flex-1">
             {/* Student Name & Badges */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <h2 className="text-sm sm:text-base font-extrabold text-slate-900 truncate leading-tight">
+              <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate leading-tight">
                 {student.name}
               </h2>
-              <Badge variant={student.status === 'ACTIVE' ? 'success' : 'neutral'} size="sm" className="text-[9px] py-0 px-1.5 font-bold">
+              <Badge variant={student.status === 'ACTIVE' ? 'success' : 'neutral'} size="sm" className="text-[9px] py-0 px-1.5">
                 {student.status || 'ACTIVE'}
               </Badge>
               {isHostelEnrolled && (
-                <Badge variant="purple" size="sm" className="text-[9px] py-0 px-1.5 font-bold">
+                <Badge variant="purple" size="sm" className="text-[9px] py-0 px-1.5">
                   Resident
                 </Badge>
               )}
             </div>
 
             {/* Sub Info Row: Clean inline pills & text */}
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs mt-1 text-slate-600">
-              <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs mt-1 text-slate-500">
+              <span className="font-semibold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded text-[11px]">
                 {cleanClassName}{sectionName ? ` (${sectionName})` : ''}{streamName ? ` • ${streamName}` : ''}
               </span>
 
-              <span className="text-slate-500 font-mono text-[11px]">
-                Adm: <span className="font-bold text-slate-800">{student.admissionNo || 'N/A'}</span>
+              <span className="font-mono text-[11px]">
+                Adm: <span className="font-semibold text-slate-700">{student.admissionNo || 'N/A'}</span>
               </span>
 
               {rollNo && (
-                <span className="text-slate-500 font-mono text-[11px]">
-                  Roll: <span className="font-semibold text-slate-700">{rollNo}</span>
+                <span className="font-mono text-[11px]">
+                  Roll: <span className="font-medium text-slate-700">{rollNo}</span>
                 </span>
               )}
 
               {mediumName && (
-                <span className="text-slate-500 text-[11px]">
-                  Medium: <span className="font-semibold text-slate-700">{mediumName}</span>
+                <span className="text-[11px]">
+                  Medium: <span className="text-slate-700">{mediumName}</span>
                 </span>
               )}
 
-              <span className="text-slate-500 text-[11px] truncate max-w-[160px]">
-                Father: <span className="font-semibold text-slate-700">{fatherName}</span>
+              <span className="text-[11px] truncate max-w-[150px]">
+                Father: <span className="text-slate-700">{fatherName}</span>
               </span>
 
-              <span className="text-slate-500 text-[11px] font-mono">
-                Ph: <span className="font-semibold text-slate-700">{phone}</span>
-              </span>
+              {phone !== 'N/A' && (
+                <span className="text-[11px] font-mono">
+                  Ph: <span className="text-slate-700">{phone}</span>
+                </span>
+              )}
             </div>
           </div>
         </div>
 
         {/* Right: Financial Dues Summary & Ledger Action */}
-        <div className="grid grid-cols-4 sm:flex sm:items-center sm:justify-end gap-1.5 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100 w-full sm:w-auto">
-          <div className="text-center sm:text-right bg-slate-50 border border-slate-200 px-1.5 sm:px-2.5 py-1 rounded-lg min-w-0">
-            <span className="text-[8px] uppercase font-bold text-slate-400 block tracking-wider truncate">Charges</span>
-            <span className="text-[11px] sm:text-xs font-bold font-mono text-slate-900 block truncate">
-              ₹{totalCharges.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
-            </span>
-          </div>
-
-          <div className="text-center sm:text-right bg-emerald-50/70 border border-emerald-200/70 px-1.5 sm:px-2.5 py-1 rounded-lg min-w-0">
-            <span className="text-[8px] uppercase font-bold text-emerald-600 block tracking-wider truncate">Paid</span>
-            <span className="text-[11px] sm:text-xs font-bold font-mono text-emerald-700 block truncate">
-              ₹{totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
-            </span>
-          </div>
-
-          <div className="text-center sm:text-right bg-rose-50/70 border border-rose-200/70 px-1.5 sm:px-2.5 py-1 rounded-lg min-w-0">
-            <span className="text-[8px] uppercase font-bold text-rose-500 block tracking-wider truncate">Dues</span>
-            <span className={`text-[11px] sm:text-xs font-extrabold font-mono block truncate ${totalOutstanding > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
-              ₹{totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
-            </span>
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+          <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 text-xs">
+            <div>
+              <span className="text-[8px] uppercase font-bold text-slate-400 block tracking-wider">Charges</span>
+              <span className="font-mono font-bold text-slate-800 text-xs">
+                ₹{totalCharges.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+              </span>
+            </div>
+            <div className="h-6 w-px bg-slate-200/80" />
+            <div>
+              <span className="text-[8px] uppercase font-bold text-slate-400 block tracking-wider">Paid</span>
+              <span className="font-mono font-bold text-emerald-600 text-xs">
+                ₹{totalPaid.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+              </span>
+            </div>
+            <div className="h-6 w-px bg-slate-200/80" />
+            <div>
+              <span className="text-[8px] uppercase font-bold text-slate-400 block tracking-wider">Due</span>
+              <span className={`font-mono font-extrabold text-xs ${totalOutstanding > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                ₹{totalOutstanding.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+              </span>
+            </div>
           </div>
 
           <button
             type="button"
             onClick={() => navigate(`/app/students/${student.id}/ledger`)}
-            className="flex items-center justify-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-indigo-700 transition-colors shadow-2xs shrink-0 cursor-pointer min-w-0"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 hover:text-indigo-600 transition-colors shadow-2xs cursor-pointer"
           >
-            <FileText className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-            <span className="truncate">Ledger</span>
+            <FileText className="w-3.5 h-3.5 text-slate-500" />
+            <span>Ledger</span>
           </button>
         </div>
       </div>

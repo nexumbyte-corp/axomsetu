@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Users, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Search, Users } from 'lucide-react';
 import { studentService } from '../../services/student.service.js';
 import { academicService } from '../../services/academic.service.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
-import { Button } from '../ui/Button.jsx';
 import { Input } from '../ui/Input.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from '../ui/Table.jsx';
@@ -166,24 +165,19 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
   return (
     <div className="h-full flex flex-col bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden p-2.5 sm:p-3 space-y-2">
       {/* Header Toolbar */}
-      <div className="shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+      <div className="shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
-            <Users className="w-3.5 h-3.5" />
-          </div>
-          <div>
-            <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
-              Select Student
-              {selectedYear && (
-                <Badge variant="indigo" size="sm" className="text-[10px] py-0 px-1.5">
-                  {selectedYear.name}
-                </Badge>
-              )}
-            </h3>
-            <p className="text-[11px] text-slate-500">
-              <span className="font-bold text-slate-700">{pagination.total}</span> students
-            </p>
-          </div>
+          <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+            Select Student
+          </h3>
+          <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+            {pagination.total} {pagination.total === 1 ? 'student' : 'students'}
+          </span>
+          {selectedYear && (
+            <span className="text-[10px] font-mono font-medium text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
+              {selectedYear.name}
+            </span>
+          )}
         </div>
 
         {/* Filters & Search Toolbar */}
@@ -195,7 +189,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
               setSelectedClassId(e.target.value);
               setPage(1);
             }}
-            className="py-1 px-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold text-slate-700 min-w-[110px]"
+            className="py-1 px-2.5 text-xs bg-slate-50/80 hover:bg-slate-100/70 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium text-slate-700 min-w-[105px] transition-colors"
           >
             <option value="">All Classes</option>
             {classes.map((cls) => (
@@ -212,7 +206,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
               setSelectedMediumId(e.target.value);
               setPage(1);
             }}
-            className="py-1 px-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold text-slate-700 min-w-[100px]"
+            className="py-1 px-2.5 text-xs bg-slate-50/80 hover:bg-slate-100/70 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium text-slate-700 min-w-[95px] transition-colors"
           >
             <option value="">All Medium</option>
             {mediums.map((med) => (
@@ -229,7 +223,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
               setSelectedSectionId(e.target.value);
               setPage(1);
             }}
-            className="py-1 px-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-semibold text-slate-700 min-w-[95px]"
+            className="py-1 px-2.5 text-xs bg-slate-50/80 hover:bg-slate-100/70 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium text-slate-700 min-w-[90px] transition-colors"
           >
             <option value="">All Sec</option>
             {sections.map((sec) => (
@@ -242,18 +236,22 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
           {/* Search Input */}
           <div className="relative flex-1 min-w-[170px] sm:w-56">
             <Input
-              placeholder="Search name, adm, father, phone..."
+              placeholder="Search name, adm, phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               icon={Search}
-              className="py-1 text-xs"
+              className="py-1 text-xs bg-slate-50/50 focus:bg-white"
             />
           </div>
 
           {(searchTerm || selectedClassId || selectedMediumId || selectedSectionId) && (
-            <Button variant="ghost" size="sm" onClick={handleResetFilters} className="text-xs py-1 px-2 h-7">
-              Clear
-            </Button>
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="text-xs py-1 px-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg font-medium transition-colors"
+            >
+              Reset
+            </button>
           )}
         </div>
       </div>
@@ -286,16 +284,16 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
           {/* Desktop Table View (>= 768px) */}
           <div className="hidden md:block flex-1 overflow-auto min-h-0 rounded-lg border border-slate-200">
             <Table>
-              <TableHeader className="sticky top-0 z-10 bg-slate-100/90 backdrop-blur-xs">
-                <TableRow>
-                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Student</TableHead>
-                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Father / Ph</TableHead>
-                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Class</TableHead>
-                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Hostel</TableHead>
-                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Roll</TableHead>
-                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Dues</TableHead>
-                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700">Status</TableHead>
-                  <TableHead className="py-2 px-3 text-xs font-bold text-slate-700 text-right">Action</TableHead>
+              <TableHeader className="sticky top-0 z-10 bg-slate-50/80 backdrop-blur-xs border-b border-slate-200">
+                <TableRow className="border-none">
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-slate-500 tracking-wider">Student</TableHead>
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-slate-500 tracking-wider">Guardian / Phone</TableHead>
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-slate-500 tracking-wider">Class</TableHead>
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-slate-500 tracking-wider">Hostel</TableHead>
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-slate-500 tracking-wider">Roll</TableHead>
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-slate-500 tracking-wider text-right">Pending Dues</TableHead>
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-slate-500 tracking-wider text-center">Status</TableHead>
+                  <TableHead className="py-2 px-3 text-[10px] font-bold uppercase text-slate-500 tracking-wider text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -312,7 +310,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
                   return (
                     <TableRow
                       key={item.id}
-                      className="cursor-pointer hover:bg-indigo-50/40 transition-colors border-b border-slate-100"
+                      className="group cursor-pointer hover:bg-slate-50/80 transition-colors border-b border-slate-100"
                       onClick={() => onSelectStudent(item)}
                     >
                       {/* Identity Cell */}
@@ -324,24 +322,24 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
                             size="sm"
                           />
                           <div>
-                            <span className="font-bold text-slate-900 text-xs hover:text-indigo-600 transition-colors block leading-snug">
+                            <span className="font-bold text-slate-900 text-xs group-hover:text-indigo-600 transition-colors block leading-snug">
                               {item.name}
                             </span>
-                            <span className="text-[10px] text-slate-500 font-mono">Adm: {item.admissionNo}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">Adm: {item.admissionNo}</span>
                           </div>
                         </div>
                       </TableCell>
 
                       {/* Father / Guardian */}
                       <TableCell className="py-1.5 px-3">
-                        <div className="text-xs font-semibold text-slate-900 truncate max-w-[130px]">{fatherName}</div>
-                        {item.phone && <div className="text-[10px] text-slate-500 font-mono">Ph: {item.phone}</div>}
+                        <div className="text-xs font-medium text-slate-800 truncate max-w-[130px]">{fatherName}</div>
+                        {item.phone && <div className="text-[10px] text-slate-400 font-mono">Ph: {item.phone}</div>}
                       </TableCell>
 
                       {/* Class, Stream & Medium */}
                       <TableCell className="py-1.5 px-3">
                         <div className="flex flex-wrap items-center gap-1">
-                          <span className="font-bold text-slate-800 text-xs">{className}</span>
+                          <span className="font-semibold text-slate-800 text-xs">{className}</span>
                           {sectionName && <span className="text-[10px] text-slate-500">({sectionName})</span>}
                           {streamName && (
                             <Badge variant="indigo" size="sm" className="text-[9px] py-0 px-1">
@@ -370,42 +368,39 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
 
                       {/* Roll Number */}
                       <TableCell className="py-1.5 px-3">
-                        <span className="font-mono text-xs text-slate-700 font-medium">
+                        <span className="font-mono text-xs text-slate-600 font-medium">
                           {e.rollNumber ?? '—'}
                         </span>
                       </TableCell>
 
                       {/* Aggregated Pending Fee Column */}
-                      <TableCell className="py-1.5 px-3">
+                      <TableCell className="py-1.5 px-3 text-right">
                         {pendingFee > 0 ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-extrabold bg-rose-50 text-rose-700 border border-rose-200/80 font-mono">
-                            <AlertCircle className="w-3 h-3 text-rose-500 shrink-0" />
+                          <span className="font-mono font-bold text-xs text-rose-600">
                             ₹{pendingFee.toLocaleString('en-IN')}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-mono">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
-                            ₹0 (Clear)
+                          <span className="font-mono text-xs text-slate-300">
+                            —
                           </span>
                         )}
                       </TableCell>
 
                       {/* Status Badge */}
-                      <TableCell className="py-1.5 px-3">
+                      <TableCell className="py-1.5 px-3 text-center">
                         <StudentStatusBadge status={item.status} />
                       </TableCell>
 
                       {/* Action Button */}
                       <TableCell className="py-1.5 px-3 text-right" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          variant="primary"
-                          size="sm"
+                        <button
+                          type="button"
                           onClick={() => onSelectStudent(item)}
-                          icon={CreditCard}
-                          className="py-1 px-2 text-xs"
+                          className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/50 shadow-2xs transition-all cursor-pointer"
                         >
-                          Collect
-                        </Button>
+                          <span>Collect</span>
+                          <span className="text-slate-400 group-hover:text-indigo-600 transition-colors">→</span>
+                        </button>
                       </TableCell>
                     </TableRow>
                   );
@@ -438,13 +433,13 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
                         <span className="font-bold text-slate-900 text-xs block">
                           {item.name}
                         </span>
-                        <p className="text-[10px] text-slate-500 font-mono">Adm: {item.admissionNo}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">Adm: {item.admissionNo}</p>
                       </div>
                     </div>
                     <StudentStatusBadge status={item.status} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-1.5 text-xs bg-slate-50 p-2 rounded-lg border border-slate-100">
+                  <div className="grid grid-cols-2 gap-1.5 text-xs bg-slate-50/70 p-2 rounded-lg border border-slate-100">
                     <div>
                       <span className="text-slate-400 block text-[9px] uppercase font-bold">Class</span>
                       <span className="font-semibold text-slate-800 text-[11px]">
@@ -460,11 +455,11 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
                     <div>
                       <span className="text-slate-400 block text-[9px] uppercase font-bold">Dues</span>
                       {pendingFee > 0 ? (
-                        <span className="font-extrabold text-rose-600 font-mono text-[11px]">
+                        <span className="font-bold text-rose-600 font-mono text-[11px]">
                           ₹{pendingFee.toLocaleString('en-IN')}
                         </span>
                       ) : (
-                        <span className="font-bold text-emerald-600 text-[11px]">Clear (₹0)</span>
+                        <span className="font-medium text-slate-400 text-[11px]">Cleared</span>
                       )}
                     </div>
                     <div>
@@ -476,15 +471,14 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
                   </div>
 
                   <div className="flex items-center justify-end pt-0.5" onClick={(e) => e.stopPropagation()}>
-                    <Button
-                      variant="primary"
-                      size="sm"
+                    <button
+                      type="button"
                       onClick={() => onSelectStudent(item)}
-                      icon={CreditCard}
-                      className="w-full py-1 text-xs"
+                      className="w-full py-1 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white transition-colors flex items-center justify-center gap-1"
                     >
-                      Collect
-                    </Button>
+                      <span>Collect Fee</span>
+                      <span>→</span>
+                    </button>
                   </div>
                 </div>
               );

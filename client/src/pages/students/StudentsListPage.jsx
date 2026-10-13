@@ -532,27 +532,27 @@ export const StudentsListPage = () => {
           <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
             <Table minWidth="min-w-full">
               <TableHeader>
-                <TableRow>
-                  <TableHead className="py-2.5 px-3.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-50/90 border-b border-slate-200">
-                    STUDENT
+                <TableRow className="border-none">
+                  <TableHead className="py-2 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200">
+                    Student
                   </TableHead>
-                  <TableHead className="py-2.5 px-3.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-50/90 border-b border-slate-200">
-                    GUARDIAN
+                  <TableHead className="py-2 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200">
+                    Guardian
                   </TableHead>
-                  <TableHead className="py-2.5 px-3.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-50/90 border-b border-slate-200">
-                    CLASS
+                  <TableHead className="py-2 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200">
+                    Class & Stream
                   </TableHead>
-                  <TableHead className="py-2.5 px-3.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-50/90 border-b border-slate-200">
-                    HOSTEL
+                  <TableHead className="py-2 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200">
+                    Hostel
                   </TableHead>
-                  <TableHead className="py-2.5 px-3.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-50/90 border-b border-slate-200">
-                    ROLL NO
+                  <TableHead className="py-2 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200 text-center">
+                    Roll No
                   </TableHead>
-                  <TableHead className="py-2.5 px-3.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-50/90 border-b border-slate-200">
-                    STATUS
+                  <TableHead className="py-2 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200 text-center">
+                    Status
                   </TableHead>
-                  <TableHead className="py-2.5 px-3.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-50/90 border-b border-slate-200 text-right">
-                    ACTION
+                  <TableHead className="py-2 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200 text-right">
+                    Actions
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -570,15 +570,15 @@ export const StudentsListPage = () => {
                   return (
                     <TableRow
                       key={item.id}
-                      className={`cursor-pointer transition-colors border-b border-slate-100 ${
+                      className={`group cursor-pointer transition-colors border-b border-slate-100 ${
                         isHighlighted
                           ? 'bg-emerald-50/80 hover:bg-emerald-100/70 ring-2 ring-emerald-500/50'
-                          : 'hover:bg-slate-50/80'
+                          : 'hover:bg-slate-50/70'
                       }`}
                       onClick={() => navigate(`/app/students/${item.id}`)}
                     >
                       {/* STUDENT */}
-                      <TableCell className="py-2.5 px-3.5">
+                      <TableCell className="py-2 px-3.5">
                         <div className="flex items-center gap-2.5">
                           <StudentAvatar
                             name={item.name}
@@ -588,7 +588,7 @@ export const StudentsListPage = () => {
                           />
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-semibold text-slate-900 text-xs sm:text-sm hover:text-indigo-600 transition-colors truncate">
+                              <span className="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-indigo-600 transition-colors truncate">
                                 {item.name}
                               </span>
                               {isHighlighted && (
@@ -597,7 +597,7 @@ export const StudentsListPage = () => {
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-slate-500 font-mono tracking-tight">
+                            <div className="text-[10px] text-slate-400 font-mono tracking-tight">
                               {item.admissionNo}
                             </div>
                           </div>
@@ -605,33 +605,33 @@ export const StudentsListPage = () => {
                       </TableCell>
 
                       {/* GUARDIAN */}
-                      <TableCell className="py-2.5 px-3.5">
-                        <div className="text-xs font-medium text-slate-900 truncate">
+                      <TableCell className="py-2 px-3.5">
+                        <div className="text-xs font-medium text-slate-800 truncate">
                           {fatherName}
                         </div>
-                        <div className="text-[11px] text-slate-500 font-mono">
+                        <div className="text-[10px] text-slate-400 font-mono">
                           {item.phone || '—'}
                         </div>
                       </TableCell>
 
                       {/* CLASS */}
-                      <TableCell className="py-2.5 px-3.5">
-                        <div className="text-xs font-semibold text-slate-900">
+                      <TableCell className="py-2 px-3.5">
+                        <div className="text-xs font-semibold text-slate-800">
                           {className} {sectionName}
                         </div>
-                        <div className="text-[11px] text-slate-500 truncate">
+                        <div className="text-[10px] text-slate-400 truncate">
                           {streamName ? `${streamName} · ${mediumName}` : mediumName}
                         </div>
                       </TableCell>
 
                       {/* HOSTEL */}
-                      <TableCell className="py-2.5 px-3.5">
+                      <TableCell className="py-2 px-3.5">
                         {hostelInfo?.enrolled ? (
                           <div>
-                            <span className="inline-block text-[11px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-100/80">
-                              Hosteler
+                            <span className="inline-block text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-100/80">
+                              Resident
                             </span>
-                            <div className="text-[10px] text-slate-500 mt-0.5">
+                            <div className="text-[9px] text-slate-400 mt-0.5">
                               Room {hostelInfo.roomNumber} · Bed {hostelInfo.bedNumber}
                             </div>
                           </div>
@@ -641,19 +641,19 @@ export const StudentsListPage = () => {
                       </TableCell>
 
                       {/* ROLL NO */}
-                      <TableCell className="py-2.5 px-3.5">
-                        <span className="font-mono text-xs text-slate-700 font-medium">
+                      <TableCell className="py-2 px-3.5 text-center">
+                        <span className="font-mono text-xs text-slate-600 font-medium">
                           {e.rollNumber ?? '—'}
                         </span>
                       </TableCell>
 
                       {/* STATUS */}
-                      <TableCell className="py-2.5 px-3.5">
+                      <TableCell className="py-2 px-3.5 text-center">
                         <StudentStatusBadge status={item.status} size="sm" />
                       </TableCell>
 
                       {/* ACTION */}
-                      <TableCell className="py-2.5 px-3.5 text-right" onClick={(ev) => ev.stopPropagation()}>
+                      <TableCell className="py-2 px-3.5 text-right" onClick={(ev) => ev.stopPropagation()}>
                         {renderStudentActions(item)}
                       </TableCell>
                     </TableRow>

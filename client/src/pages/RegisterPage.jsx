@@ -53,7 +53,7 @@ export const RegisterPage = () => {
             setTrialStudentLimit(tPlan.maxStudentLimit);
           }
         }
-      } catch (err) {
+      } catch {
         // Fallback to default
       }
     };
@@ -71,7 +71,6 @@ export const RegisterPage = () => {
 
   const validateForm = () => {
     const errors = {};
-    const phoneRegex = /^[0-9+\-\s()]{7,15}$/;
 
     if (!formData.schoolName.trim()) {
       errors.schoolName = 'School name is required.';

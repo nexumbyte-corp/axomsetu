@@ -28,7 +28,6 @@ import { ModulePageHeader } from '../components/ui/ModulePageHeader.jsx';
 import { Toast, toast } from '../components/ui/Toast.jsx';
 import { Button } from '../components/ui/Button.jsx';
 import { Badge } from '../components/ui/Badge.jsx';
-import { Card, CardContent } from '../components/ui/Card.jsx';
 import { Modal } from '../components/ui/Modal.jsx';
 import { Table, TableHeader, TableHead, TableBody, TableRow, TableCell } from '../components/ui/Table.jsx';
 import { TableSkeleton } from '../components/ui/Skeleton.jsx';
@@ -174,179 +173,235 @@ export const SubscriptionPage = () => {
       {loading ? (
         <TableSkeleton rows={2} cols={4} />
       ) : hasActiveSubscription ? (
-        <Card className="shadow-xs border-slate-200">
-          <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-              {/* Left Column: Plan Title & Details */}
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 uppercase tracking-wider">
-                    Current Plan
-                  </span>
-                  <Badge
-                    variant={
-                      hasActiveSubscription
-                        ? 'success'
-                        : isSuspended
-                          ? 'warning'
-                          : 'danger'
-                    }
-                    size="sm"
-                  >
-                    {hasActiveSubscription
-                      ? isTrialPlan
-                        ? 'TRIAL ACTIVE'
-                        : 'ACTIVE'
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+          {/* Top Row: Plan Identity & Days Counter */}
+          <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-5">
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80 uppercase tracking-wider">
+                  Current Plan
+                </span>
+                <Badge
+                  variant={
+                    hasActiveSubscription
+                      ? 'success'
                       : isSuspended
-                        ? 'SUSPENDED'
-                        : 'INACTIVE'}
-                  </Badge>
-                </div>
-
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                    <span>{sub?.planName || 'No Active Subscription Plan'}</span>
-                    {hasActiveSubscription && !isTrialPlan && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-                        onClick={() => {
-                          if (isCurrentEnterprise) {
-                            handleOpenContactModal();
-                          } else if (currentMatchingPlan) {
-                            handleOpenPurchaseModal(currentMatchingPlan);
-                          } else if (sub) {
-                            handleOpenPurchaseModal({
-                              id: sub.planId,
-                              name: sub.planName,
-                              finalPrice: sub.finalPrice,
-                              durationValue: 1,
-                              durationUnit: 'Year',
-                            });
-                          }
-                        }}
-                      >
-                        {isCurrentEnterprise ? 'Contact Support for Upgrade' : 'Renew Plan'}
-                      </Button>
-                    )}
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-1 flex items-center gap-2 font-medium">
-                    <Calendar className="w-4 h-4 text-indigo-600" />
-                    <span>
-                      Validity: <strong>{formatDate(sub?.startDate, '-')}</strong> to{' '}
-                      <strong>{formatDate(sub?.endDate, 'N/A (Expired)')}</strong>
-                    </span>
-                  </p>
-                </div>
+                        ? 'warning'
+                        : 'danger'
+                  }
+                  size="sm"
+                >
+                  {hasActiveSubscription
+                    ? isTrialPlan
+                      ? 'TRIAL ACTIVE'
+                      : 'ACTIVE'
+                    : isSuspended
+                      ? 'SUSPENDED'
+                      : 'INACTIVE'}
+                </Badge>
               </div>
 
-              {/* Right Column: Days Remaining Metric Box */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 min-w-[240px] shrink-0 text-center lg:text-right space-y-2">
-                <span className="text-xs font-semibold text-slate-500 block">Remaining Active Days</span>
-                <div className="text-3xl font-bold text-slate-900 font-mono">
-                  {remainingDays}{' '}
-                  <span className="text-xs font-normal text-slate-500 font-sans">Days</span>
-                </div>
-                <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-500 ${remainingDays > 30
-                        ? 'bg-emerald-500'
-                        : remainingDays > 10
-                          ? 'bg-amber-500'
-                          : 'bg-rose-500'
-                      }`}
-                    style={{ width: `${Math.min(100, (remainingDays / 60) * 100)}%` }}
-                  />
-                </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                  {sub?.planName || 'No Active Subscription Plan'}
+                </h2>
+                {hasActiveSubscription && !isTrialPlan && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs font-semibold border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-lg cursor-pointer"
+                    onClick={() => {
+                      if (isCurrentEnterprise) {
+                        handleOpenContactModal();
+                      } else if (currentMatchingPlan) {
+                        handleOpenPurchaseModal(currentMatchingPlan);
+                      } else if (sub) {
+                        handleOpenPurchaseModal({
+                          id: sub.planId,
+                          name: sub.planName,
+                          finalPrice: sub.finalPrice,
+                          durationValue: 1,
+                          durationUnit: 'Year',
+                        });
+                      }
+                    }}
+                  >
+                    {isCurrentEnterprise ? 'Contact Support for Upgrade' : 'Renew Plan'}
+                  </Button>
+                )}
               </div>
-            </div>
 
-            {/* Grid Metrics Strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-6 pt-5 border-t border-slate-100 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/60">
-                <span className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider block">Billing Cycle</span>
-                <span className="font-semibold text-slate-800 text-sm mt-0.5 block">{sub?.duration || '-'}</span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/60">
-                <span className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider block">Student Limit</span>
-                <span className="font-semibold text-indigo-700 text-sm mt-0.5 block">
-                  {currentSubData?.activeStudentCount ?? 0} / {sub?.maxStudentLimit ? `${sub.maxStudentLimit}` : 'Unlimited'}
+              <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                <span>
+                  Validity: <span className="font-semibold text-slate-700">{formatDate(sub?.startDate, '-')}</span> to{' '}
+                  <span className="font-semibold text-slate-700">{formatDate(sub?.endDate, 'N/A (Expired)')}</span>
                 </span>
               </div>
+            </div>
 
-              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/60">
-                <span className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider block">Base Price</span>
-                <span className="font-semibold text-slate-700 text-sm mt-0.5 block">{formatCurrency(sub?.basePrice)}</span>
+            {/* Days Remaining Pill & Mini Bar */}
+            <div className="bg-slate-50 px-4 py-3 rounded-xl border border-slate-200/80 flex flex-col sm:items-end justify-center min-w-[200px]">
+              <div className="flex items-center justify-between sm:justify-end gap-2 w-full">
+                <span className="text-[11px] font-semibold text-slate-500">Remaining Period</span>
+                <span className={`text-base font-bold font-mono ${remainingDays <= 7 ? 'text-amber-600' : 'text-slate-900'}`}>
+                  {remainingDays} <span className="text-xs font-medium text-slate-500 font-sans">Days</span>
+                </span>
               </div>
-
-              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/60">
-                <span className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider block">Discount Savings</span>
-                <span className="font-semibold text-emerald-700 text-sm mt-0.5 block">{formatCurrency(sub?.discount)}</span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/60">
-                <span className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider block">Final Price</span>
-                <span className="font-bold text-slate-900 text-sm mt-0.5 block">{formatCurrency(sub?.finalPrice)}</span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/60">
-                <span className="text-slate-400 font-semibold text-[10px] uppercase tracking-wider block">Payment Status</span>
-                <span className="font-semibold text-emerald-700 text-sm mt-0.5 block">{sub?.paymentStatus || 'PAID'}</span>
+              <div className="w-full bg-slate-200/80 h-1.5 rounded-full overflow-hidden mt-2">
+                <div
+                  className={`h-full transition-all duration-500 ${
+                    remainingDays > 30
+                      ? 'bg-emerald-500'
+                      : remainingDays > 7
+                        ? 'bg-amber-500'
+                        : 'bg-rose-500'
+                  }`}
+                  style={{ width: `${Math.min(100, (remainingDays / 60) * 100)}%` }}
+                />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          {/* Bottom Metrics: 4 Clean Operational Metric Tiles */}
+          <div className="p-4 sm:p-5 bg-slate-50/50 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 border-t border-slate-100">
+            {/* Student Capacity with Mini Progress */}
+            <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs space-y-1.5">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <span>Student Limit</span>
+                <Users className="w-3 h-3 text-slate-400" />
+              </div>
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm sm:text-base font-bold text-slate-900 font-mono">
+                  {currentSubData?.activeStudentCount ?? 0}
+                  <span className="text-xs font-normal text-slate-400 font-sans">
+                    {' '}/ {sub?.maxStudentLimit ? sub.maxStudentLimit : 'Unlimited'}
+                  </span>
+                </span>
+                {sub?.maxStudentLimit && (
+                  <span className={`text-[10px] font-bold ${
+                    ((currentSubData?.activeStudentCount || 0) / sub.maxStudentLimit) >= 0.9 ? 'text-rose-600' : 'text-slate-500'
+                  }`}>
+                    {Math.min(100, Math.round(((currentSubData?.activeStudentCount || 0) / sub.maxStudentLimit) * 100))}%
+                  </span>
+                )}
+              </div>
+              {sub?.maxStudentLimit && (
+                <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      ((currentSubData?.activeStudentCount || 0) / sub.maxStudentLimit) >= 0.95
+                        ? 'bg-rose-500'
+                        : ((currentSubData?.activeStudentCount || 0) / sub.maxStudentLimit) >= 0.8
+                          ? 'bg-amber-500'
+                          : 'bg-indigo-500'
+                    }`}
+                    style={{
+                      width: `${Math.min(100, Math.round(((currentSubData?.activeStudentCount || 0) / sub.maxStudentLimit) * 100))}%`,
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Billing Cycle */}
+            <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Billing Cycle</span>
+              <span className="text-sm sm:text-base font-bold text-slate-900 block truncate">
+                {sub?.duration || '1 Month'}
+              </span>
+              <span className="text-[10px] text-slate-400 block truncate">
+                Cycle duration
+              </span>
+            </div>
+
+            {/* Final Price / Investment */}
+            <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Current Rate</span>
+              <span className="text-sm sm:text-base font-bold text-slate-900 font-mono block">
+                {formatCurrency(sub?.finalPrice)}
+              </span>
+              <span className="text-[10px] text-emerald-600 font-semibold block truncate">
+                {sub?.discount > 0 ? `Saved ${formatCurrency(sub.discount)}` : 'Standard Rate'}
+              </span>
+            </div>
+
+            {/* Payment Status */}
+            <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Payment Status</span>
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
+                  <Check className="w-3 h-3 text-emerald-600" />
+                  {sub?.paymentStatus || 'PAID'}
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-400 block truncate">
+                Active status confirmed
+              </span>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {/* Main Tabbed Container: Available Plans, Payment Requests & Subscription History */}
-      <Card className="shadow-xs border-slate-200">
-        <div className="border-b border-slate-200 px-6 pt-4 flex items-center gap-6 overflow-x-auto no-scrollbar">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+        <div className="border-b border-slate-200 px-4 sm:px-6 pt-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveBottomTab('plans')}
-            className={`pb-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${activeBottomTab === 'plans'
-                ? 'border-indigo-600 text-indigo-600 font-extrabold'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
+            className={`px-3.5 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 -mb-px flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeBottomTab === 'plans'
+                ? 'border-indigo-600 text-indigo-700 bg-slate-50/70 font-bold'
+                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50/50'
+            }`}
           >
-            <Zap className="w-4 h-4" />
-            Available Subscription Plans ({plans.length})
+            <Zap className="w-3.5 h-3.5" />
+            <span>Available Plans</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+              {plans.length}
+            </span>
           </button>
 
           <button
             onClick={() => setActiveBottomTab('requests')}
-            className={`pb-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${activeBottomTab === 'requests'
-                ? 'border-indigo-600 text-indigo-600 font-extrabold'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
+            className={`px-3.5 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 -mb-px flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeBottomTab === 'requests'
+                ? 'border-indigo-600 text-indigo-700 bg-slate-50/70 font-bold'
+                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50/50'
+            }`}
           >
-            <Clock className="w-4 h-4" />
-            Payment & Approval Requests ({requests.length})
+            <Clock className="w-3.5 h-3.5" />
+            <span>Payment Requests</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+              {requests.length}
+            </span>
           </button>
 
           <button
             onClick={() => setActiveBottomTab('history')}
-            className={`pb-3 text-xs font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${activeBottomTab === 'history'
-                ? 'border-indigo-600 text-indigo-600 font-extrabold'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
+            className={`px-3.5 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 -mb-px flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeBottomTab === 'history'
+                ? 'border-indigo-600 text-indigo-700 bg-slate-50/70 font-bold'
+                : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50/50'
+            }`}
           >
-            <History className="w-4 h-4" />
-            Subscription History ({history.length})
+            <History className="w-3.5 h-3.5" />
+            <span>Subscription History</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+              {history.length}
+            </span>
           </button>
         </div>
 
-        <CardContent className="p-6">
+        <div className="p-5 sm:p-6">
           {/* TAB 1: AVAILABLE SUBSCRIPTION PLANS */}
           {activeBottomTab === 'plans' && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                 <div>
                   <h3 className="text-base font-bold text-slate-900">Select Subscription Tier</h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     {hasActiveSubscription
-                      ? 'Upgrade your capacity tier, renew your current active plan, or contact support for custom enterprise setup.'
+                      ? 'Upgrade capacity tier, renew active term, or contact support for dedicated enterprise setups.'
                       : 'Select a subscription plan to activate operational features for your institution.'}
                   </p>
                 </div>
@@ -407,7 +462,7 @@ export const SubscriptionPage = () => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 items-stretch pt-2">
                   {plans.map((plan) => {
                     const hasDiscount = plan.discountAmount > 0 || plan.discountPercentage > 0;
                     const planNameLower = plan.name?.toLowerCase() || '';
@@ -463,7 +518,7 @@ export const SubscriptionPage = () => {
                         btnText = 'Upgrade Plan';
                         btnAction = () => handleOpenPurchaseModal(plan);
                       } else {
-                        btnText = 'Current Plan (Included)';
+                        btnText = 'Current Plan (Active)';
                         btnDisabled = true;
                         btnVariant = 'outline';
                       }
@@ -472,64 +527,69 @@ export const SubscriptionPage = () => {
                     return (
                       <div
                         key={plan.id}
-                        className={`bg-white rounded-xl p-6 border shadow-2xs flex flex-col justify-between transition-all relative ${isCurrentPlan
-                            ? 'border-indigo-400 ring-2 ring-indigo-100'
+                        className={`bg-white rounded-xl p-5 border flex flex-col justify-between transition-all relative ${
+                          isCurrentPlan
+                            ? 'border-indigo-500 ring-2 ring-indigo-500/15 shadow-sm'
                             : isEnterprisePlan
-                              ? 'border-purple-300 ring-1 ring-purple-100'
-                              : 'border-slate-200 hover:border-indigo-300'
-                          }`}
+                              ? 'border-purple-200 hover:border-purple-300 shadow-2xs'
+                              : 'border-slate-200 hover:border-indigo-200 hover:shadow-xs'
+                        }`}
                       >
                         <div>
-                          <div className="flex items-center justify-between mb-2 gap-1.5 flex-wrap">
-                            <h4 className="text-lg font-bold text-slate-900">{plan.name}</h4>
+                          {/* Header: Name and Badge */}
+                          <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                            <h4 className="text-base font-bold text-slate-900">{plan.name}</h4>
                             {isCurrentPlan ? (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-indigo-600 text-white uppercase tracking-wider">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white tracking-wide uppercase">
                                 Current Plan
                               </span>
                             ) : isTrial ? (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                                 Trial
                               </span>
                             ) : isEnterprisePlan ? (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
                                 Enterprise
                               </span>
                             ) : plan.badge ? (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase">
                                 {plan.badge}
                               </span>
                             ) : null}
                           </div>
 
-                          {/* Student Capacity Highlight Badge */}
-                          <div className="mb-3">
+                          {/* Student Capacity Tag */}
+                          <div className="mb-2.5">
                             <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold border ${isEnterprisePlan
-                                  ? 'bg-purple-50 text-purple-900 border-purple-200/90'
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                                isEnterprisePlan
+                                  ? 'bg-purple-50 text-purple-800 border border-purple-100'
                                   : plan.maxStudentLimit
-                                    ? 'bg-indigo-50 text-indigo-800 border-indigo-200/90'
-                                    : 'bg-emerald-50 text-emerald-800 border-emerald-200/90'
-                                }`}
+                                    ? 'bg-indigo-50/70 text-indigo-800 border border-indigo-100'
+                                    : 'bg-emerald-50/70 text-emerald-800 border border-emerald-100'
+                              }`}
                             >
                               <Users className="w-3.5 h-3.5 shrink-0" />
                               <span>
                                 {isEnterprisePlan
-                                  ? 'Custom Student Capacity (Contact Sales)'
+                                  ? 'Custom Capacity (Sales)'
                                   : plan.type === 'ENTERPRISE' || planNameLower.includes('enterprise')
-                                    ? 'Custom Capacity (Unlimited Active Students)'
+                                    ? 'Custom (Unlimited Students)'
                                     : plan.maxStudentLimit
-                                      ? `Upto ${plan.maxStudentLimit} Active Students`
-                                      : 'Unlimited Active Students'}
+                                      ? `Up to ${plan.maxStudentLimit} Active Students`
+                                      : 'Unlimited Students'}
                               </span>
                             </span>
                           </div>
 
-                          <p className="text-xs text-slate-500 mb-4 min-h-[32px] leading-relaxed">{plan.description}</p>
+                          <p className="text-xs text-slate-500 mb-3 min-h-[32px] leading-relaxed line-clamp-2">
+                            {plan.description}
+                          </p>
 
-                          {/* Pricing Box - Styled as per Landing Page */}
-                          <div className="py-3 border-y border-slate-100 my-4">
+                          {/* Pricing Strip */}
+                          <div className="py-2.5 border-y border-slate-100 my-3">
                             <div className="flex items-baseline gap-1.5 flex-wrap">
-                              <span className={`text-2xl font-bold ${isEnterprisePlan ? 'text-purple-900 font-extrabold' : 'text-slate-900'}`}>
+                              <span className={`text-xl font-bold font-mono ${isEnterprisePlan ? 'text-purple-900 font-extrabold font-sans' : 'text-slate-900'}`}>
                                 {isTrial
                                   ? 'Free'
                                   : isEnterprisePlan
@@ -537,32 +597,34 @@ export const SubscriptionPage = () => {
                                     : formatCurrency(plan.finalPrice)}
                               </span>
                               {!isEnterprisePlan && !isTrial && (
-                                <span className="text-xs text-slate-500 font-medium">
+                                <span className="text-xs text-slate-500 font-medium font-sans">
                                   / {plan.durationValue || 1} {plan.durationUnit || 'Year'}
                                 </span>
                               )}
                             </div>
+
                             {hasDiscount && !isEnterprisePlan && !isTrial && (
                               <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs text-slate-400 line-through">
+                                <span className="text-xs text-slate-400 line-through font-mono">
                                   {formatCurrency(plan.basePrice)}
                                 </span>
-                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded">
                                   Save {formatCurrency(plan.discountAmount)}
                                 </span>
                               </div>
                             )}
+
                             {!isEnterprisePlan && !isTrial && (
-                              <div className="mt-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50/70 border border-indigo-100 px-2 py-0.5 rounded inline-block">
+                              <div className="mt-1 text-[11px] font-semibold text-indigo-600">
                                 {formatCurrency(calculateMonthlyPrice(plan))} / month
                               </div>
                             )}
                           </div>
 
-                          {/* Feature List */}
-                          <div className="space-y-2 mb-6">
+                          {/* Features List */}
+                          <div className="space-y-1.5 mb-5">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                              Included Features:
+                              Included:
                             </span>
                             {Array.isArray(plan.features) && plan.features.length > 0 ? (
                               plan.features.map((feat, idx) => (
@@ -577,16 +639,17 @@ export const SubscriptionPage = () => {
                           </div>
                         </div>
 
-                        {/* Action CTA Button */}
+                        {/* CTA Button */}
                         <Button
                           variant={btnVariant}
-                          size="md"
-                          className={`w-full justify-center font-bold text-xs py-2.5 rounded-xl transition-all cursor-pointer ${isCurrentPlan
+                          size="sm"
+                          className={`w-full justify-center font-bold text-xs py-2 rounded-xl transition-all cursor-pointer ${
+                            isCurrentPlan
                               ? 'bg-slate-100 hover:bg-indigo-50 border-indigo-200 text-indigo-700'
                               : isEnterprisePlan
-                                ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-xs'
+                                ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-2xs'
                                 : ''
-                            }`}
+                          }`}
                           disabled={btnDisabled}
                           icon={btnDisabled ? undefined : isEnterprisePlan || btnText.includes('Contact Support') ? Phone : ArrowRight}
                           iconPosition="right"
@@ -604,116 +667,152 @@ export const SubscriptionPage = () => {
 
           {/* TAB 2: PAYMENT & APPROVAL REQUESTS */}
           {activeBottomTab === 'requests' && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Requested Date</TableHead>
-                  <TableHead>Plan Name</TableHead>
-                  <TableHead>Payment Method</TableHead>
-                  <TableHead>Reference / Txn ID</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Approval Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {requests.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-slate-500 text-xs">
-                      No payment requests submitted yet.
-                    </TableCell>
+            <div className="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-none">
+                    <TableHead className="py-2.5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200">
+                      Requested Date
+                    </TableHead>
+                    <TableHead className="py-2.5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200">
+                      Plan Name
+                    </TableHead>
+                    <TableHead className="py-2.5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200">
+                      Payment Method
+                    </TableHead>
+                    <TableHead className="py-2.5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200">
+                      Reference / Txn ID
+                    </TableHead>
+                    <TableHead className="py-2.5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200 text-right">
+                      Amount
+                    </TableHead>
+                    <TableHead className="py-2.5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200 text-right">
+                      Approval Status
+                    </TableHead>
                   </TableRow>
-                ) : (
-                  requests.map((req) => (
-                    <TableRow key={req.id} className="hover:bg-slate-50/80 transition-colors">
-                      <TableCell className="text-xs font-mono text-slate-500">
-                        {formatDate(req.requestedAt)}
-                      </TableCell>
-                      <TableCell className="font-bold text-slate-900 text-xs">{req.planName}</TableCell>
-                      <TableCell className="text-xs text-slate-600 font-medium">{req.paymentMethod}</TableCell>
-                      <TableCell className="font-mono text-xs text-slate-600">{req.referenceNumber || '-'}</TableCell>
-                      <TableCell className="text-right font-bold text-slate-900 font-mono text-xs">
-                        {formatCurrency(req.amount)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant={req.status === 'PAID' ? 'success' : req.status === 'REJECTED' ? 'danger' : 'warning'} size="sm">
-                          {req.status}
-                        </Badge>
-                        {req.status === 'REJECTED' && req.rejectionReason && (
-                          <span className="block text-[10px] text-rose-600 mt-0.5 truncate max-w-[160px] ml-auto" title={req.rejectionReason}>
-                            Reason: {req.rejectionReason}
-                          </span>
-                        )}
+                </TableHeader>
+                <TableBody>
+                  {requests.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-slate-400 text-xs">
+                        No payment requests submitted yet.
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    requests.map((req) => (
+                      <TableRow key={req.id} className="hover:bg-slate-50/70 border-b border-slate-100 transition-colors">
+                        <TableCell className="py-2.5 px-3.5 text-xs font-mono text-slate-500">
+                          {formatDate(req.requestedAt)}
+                        </TableCell>
+                        <TableCell className="py-2.5 px-3.5 font-bold text-slate-900 text-xs">
+                          {req.planName}
+                        </TableCell>
+                        <TableCell className="py-2.5 px-3.5 text-xs text-slate-600 font-medium">
+                          {req.paymentMethod}
+                        </TableCell>
+                        <TableCell className="py-2.5 px-3.5 font-mono text-xs text-slate-500">
+                          {req.referenceNumber || '—'}
+                        </TableCell>
+                        <TableCell className="py-2.5 px-3.5 text-right font-bold text-slate-900 font-mono text-xs">
+                          {formatCurrency(req.amount)}
+                        </TableCell>
+                        <TableCell className="py-2.5 px-3.5 text-right">
+                          <Badge variant={req.status === 'PAID' ? 'success' : req.status === 'REJECTED' ? 'danger' : 'warning'} size="sm">
+                            {req.status}
+                          </Badge>
+                          {req.status === 'REJECTED' && req.rejectionReason && (
+                            <span className="block text-[10px] text-rose-600 mt-0.5 truncate max-w-[160px] ml-auto" title={req.rejectionReason}>
+                              Reason: {req.rejectionReason}
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
 
           {/* TAB 3: SUBSCRIPTION HISTORY */}
           {activeBottomTab === 'history' && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Plan</TableHead>
-                  <TableHead>Billing Cycle</TableHead>
-                  <TableHead>Start Date</TableHead>
-                  <TableHead>End Date</TableHead>
-                  <TableHead className="text-right">Final Amount</TableHead>
-                  <TableHead className="text-right">Payment Status</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {history.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-slate-500 text-xs">
-                      No historical subscription records found.
-                    </TableCell>
+            <div className="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-none">
+                    <TableHead className="py-2.5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200">
+                      Plan
+                    </TableHead>
+                    <TableHead className="py-2.5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200">
+                      Billing Cycle
+                    </TableHead>
+                    <TableHead className="py-2.5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200">
+                      Start Date
+                    </TableHead>
+                    <TableHead className="py-2.5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200">
+                      End Date
+                    </TableHead>
+                    <TableHead className="py-2.5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200 text-right">
+                      Final Amount
+                    </TableHead>
+                    <TableHead className="py-2.5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200 text-right">
+                      Payment Status
+                    </TableHead>
+                    <TableHead className="py-2.5 px-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/80 border-b border-slate-200 text-right">
+                      Status
+                    </TableHead>
                   </TableRow>
-                ) : (
-                  history.map((h) => {
-                    const isCurrentActive = sub?.id === h.id && hasActiveSubscription;
-                    return (
-                      <TableRow key={h.id} className={isCurrentActive ? 'bg-indigo-50/40 font-medium' : 'hover:bg-slate-50/80 transition-colors'}>
-                        <TableCell className="font-semibold text-slate-900 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span>{h.planName}</span>
-                            {isCurrentActive && (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-indigo-600 text-white uppercase tracking-wider">
-                                Current
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-xs text-slate-600">{h.duration}</TableCell>
-                        <TableCell className="text-xs font-mono text-slate-500">
-                          {formatDate(h.startDate)}
-                        </TableCell>
-                        <TableCell className="text-xs font-mono text-slate-500">
-                          {h.endDate ? formatDate(h.endDate) : <span className="text-rose-600 font-medium">N/A (Expired)</span>}
-                        </TableCell>
-                        <TableCell className="text-right font-bold text-slate-900 font-mono text-xs">
-                          {formatCurrency(h.finalPrice)}
-                        </TableCell>
-                        <TableCell className="text-right text-xs font-semibold text-emerald-600">
-                          {h.paymentStatus || 'PAID'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant={h.status === 'ACTIVE' ? 'success' : h.status === 'SUSPENDED' ? 'warning' : 'danger'} size="sm">
-                            {h.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {history.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-slate-400 text-xs">
+                        No historical subscription records found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    history.map((h) => {
+                      const isCurrentActive = sub?.id === h.id && hasActiveSubscription;
+                      return (
+                        <TableRow key={h.id} className={isCurrentActive ? 'bg-indigo-50/40 font-medium' : 'hover:bg-slate-50/70 border-b border-slate-100 transition-colors'}>
+                          <TableCell className="py-2.5 px-3.5 font-semibold text-slate-900 text-xs">
+                            <div className="flex items-center gap-2">
+                              <span>{h.planName}</span>
+                              {isCurrentActive && (
+                                <span className="px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-indigo-600 text-white uppercase tracking-wider">
+                                  Current
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-2.5 px-3.5 text-xs text-slate-600">{h.duration}</TableCell>
+                          <TableCell className="py-2.5 px-3.5 text-xs font-mono text-slate-500">
+                            {formatDate(h.startDate)}
+                          </TableCell>
+                          <TableCell className="py-2.5 px-3.5 text-xs font-mono text-slate-500">
+                            {h.endDate ? formatDate(h.endDate) : <span className="text-rose-600 font-medium">N/A (Expired)</span>}
+                          </TableCell>
+                          <TableCell className="py-2.5 px-3.5 text-right font-bold text-slate-900 font-mono text-xs">
+                            {formatCurrency(h.finalPrice)}
+                          </TableCell>
+                          <TableCell className="py-2.5 px-3.5 text-right text-xs font-semibold text-emerald-600">
+                            {h.paymentStatus || 'PAID'}
+                          </TableCell>
+                          <TableCell className="py-2.5 px-3.5 text-right">
+                            <Badge variant={h.status === 'ACTIVE' ? 'success' : h.status === 'SUSPENDED' ? 'warning' : 'danger'} size="sm">
+                              {h.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Purchase Plan Modal */}
       {selectedPlan && (

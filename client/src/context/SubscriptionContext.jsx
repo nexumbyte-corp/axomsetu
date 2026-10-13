@@ -1,13 +1,15 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { useContext, useState, useEffect, useCallback } from 'react';
+import { SubscriptionContext } from './subscriptionContextInstance.js';
+import { AuthContext } from './authContextInstance.js';
 import { subscriptionService } from '../services/subscriptionService.js';
-import { useAuth } from '../hooks/useAuth.js';
 import { StudentLimitModal } from '../components/subscription/StudentLimitModal.jsx';
 import { parseStudentLimitError } from '../utils/subscriptionUtils.js';
 
-export const SubscriptionContext = createContext(null);
+export { SubscriptionContext };
 
 export const SubscriptionProvider = ({ children }) => {
-  const { user } = useAuth();
+  const auth = useContext(AuthContext);
+  const user = auth?.user || null;
   const [currentSubData, setCurrentSubData] = useState(null);
   const [loading, setLoading] = useState(true);
 

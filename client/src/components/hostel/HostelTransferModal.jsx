@@ -52,7 +52,7 @@ export const HostelTransferModal = ({ isOpen, onClose, resident, onSuccess }) =>
       setToBeds([]);
       setSelectedToBed(null);
     }
-  }, [toRoomId]);
+  }, [toRoomId, toHostelId]);
 
   const fetchHostels = async () => {
     try {

@@ -3,19 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search,
   RefreshCw,
-  RotateCcw,
-  Receipt,
   Plus,
   SlidersHorizontal,
-  ChevronDown,
-  ChevronUp,
+  X,
 } from 'lucide-react';
 import { DashboardCards } from '../../components/fees/DashboardCards.jsx';
 import { ReceiptTable } from '../../components/fees/ReceiptTable.jsx';
 import { usePaymentsList, useDashboardSummary } from '../../hooks/usePaymentEngine.js';
 import { useAcademicYear } from '../../hooks/useAcademicYear.js';
 import { academicService } from '../../services/academic.service.js';
-import { Input } from '../../components/ui/Input.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { DatePicker } from '../../components/ui/DatePicker.jsx';
 import { Button } from '../../components/ui/Button.jsx';
@@ -25,6 +21,7 @@ import { Pagination } from '../../components/ui/Pagination.jsx';
 import { formatDateForInput, formatCurrency, formatNumber } from '../../utils/formatters.js';
 
 const FEE_RECEIPTS_FILTERS_STORAGE_KEY = 'fee_receipts_filters';
+const EMPTY_PAYMENTS = Object.freeze([]);
 
 const loadSavedFeeReceiptFilters = () => {
   try {
@@ -58,6 +55,9 @@ export const ReceiptsListPage = () => {
   const [startDate, setStartDate] = useState(() => savedFilters?.startDate || '');
   const [endDate, setEndDate] = useState(() => savedFilters?.endDate || '');
   const [page, setPage] = useState(() => savedFilters?.page || 1);
+
+  // Filter Bar Drawer / Collapsible State
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Persist filter values to localStorage
   useEffect(() => {
@@ -111,7 +111,7 @@ export const ReceiptsListPage = () => {
 
   const queryParams = {
     page,
-    limit: 15, // Higher compact page limit for high-density view
+    limit: 15,
     ...(debouncedSearch.trim() && { search: debouncedSearch.trim() }),
     ...(selectedYearId && { academicYearId: selectedYearId }),
     ...(selectedClassId && { classId: selectedClassId }),
@@ -128,27 +128,19 @@ export const ReceiptsListPage = () => {
   const { data: paymentsRes, isLoading: isLoadingPayments, refetch } = usePaymentsList(queryParams);
 
   const dashboardSummary = dashboardRes?.data || dashboardRes || {};
-  const payments = paymentsRes?.data || paymentsRes?.payments || [];
+  const payments = paymentsRes?.data || paymentsRes?.payments || EMPTY_PAYMENTS;
   const pagination = paymentsRes?.pagination || { page: 1, totalPages: 1, total: 0, limit: 15 };
 
-  // Calculate live inline stats for the current filtered view
+  // Calculate live inline stats for the current view
   const currentViewStats = useMemo(() => {
     let totalAmount = 0;
-    const modeCounts = {};
-
     payments.forEach((p) => {
       if (p.status !== 'VOID') {
-        const amt = Number(p.receivedAmount || p.amount || 0);
-        totalAmount += amt;
-        const mode = p.paymentMode || 'OTHER';
-        modeCounts[mode] = (modeCounts[mode] || 0) + amt;
+        totalAmount += Number(p.receivedAmount || p.amount || 0);
       }
     });
-
-    return { totalAmount, modeCounts };
+    return { totalAmount };
   }, [payments]);
-
-  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -205,6 +197,27 @@ export const ReceiptsListPage = () => {
     setPage(1);
   };
 
+  const handleClearDatePreset = () => {
+    setStartDate('');
+    setEndDate('');
+    setPage(1);
+  };
+
+  const isTodayActive = startDate === todayStr && endDate === todayStr;
+  const isYesterdayActive = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const y = formatDateForInput(d);
+    return startDate === y && endDate === y;
+  })();
+  const isThisMonthActive = (() => {
+    const now = new Date();
+    const firstDay = formatDateForInput(new Date(now.getFullYear(), now.getMonth(), 1));
+    const today = formatDateForInput(now);
+    return startDate === firstDay && endDate === today;
+  })();
+  const isAllDatesActive = !startDate && !endDate;
+
   const PAYMENT_MODE_OPTIONS = [
     { value: '', label: 'All Payment Modes' },
     { value: 'CASH', label: 'Cash' },
@@ -218,50 +231,39 @@ export const ReceiptsListPage = () => {
 
   const STATUS_OPTIONS = [
     { value: '', label: 'All Statuses' },
-    { value: 'SUCCESS', label: 'SUCCESS' },
-    { value: 'VOID', label: 'VOID' },
+    { value: 'SUCCESS', label: 'Success' },
+    { value: 'VOID', label: 'Void' },
   ];
 
   return (
-    <div className="min-h-full flex flex-col space-y-2 sm:space-y-2.5 w-full pb-6 md:pb-0 md:h-full md:overflow-hidden">
-      {/* Top Financial Dashboard Overview Cards */}
+    <div className="h-full flex flex-col space-y-2.5 w-full overflow-hidden">
+      {/* Top Financial Metric Cards */}
       <div className="shrink-0">
         <DashboardCards summary={dashboardSummary} isLoading={isLoadingDashboard} />
       </div>
 
-      {/* Main Business Filter Toolbar Card */}
-      <Card className="shrink-0 p-3 sm:p-3.5 bg-white border border-slate-200 shadow-2xs space-y-2.5">
-        {/* Header Row: Title, Inline Metrics & Primary Action */}
-        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold shadow-2xs shrink-0">
-              <Receipt className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <h2 className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">
-                  Receipts & Search Register
-                </h2>
-                <Badge variant="indigo" size="sm" className="font-mono text-[9px] shrink-0">
-                  {formatNumber(pagination.total)}
-                </Badge>
-              </div>
-              <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate hidden sm:block">
-                Comprehensive cashier ledger, receipt search, and audit control
-              </p>
-            </div>
+      {/* Main Filter & Action Card */}
+      <Card className="shrink-0 p-3 sm:p-3.5 bg-white border border-slate-200/80 shadow-2xs space-y-2.5">
+        {/* Top Action Header: Title, Total Badge, Quick Actions */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+              Fee Receipts
+            </h2>
+            <Badge variant="neutral" size="sm" className="font-mono text-[10px] text-slate-600 bg-slate-100">
+              {formatNumber(pagination.total)} records
+            </Badge>
           </div>
 
-          {/* Quick Actions Header Toolbar */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <Button
               variant="primary"
               size="sm"
               icon={Plus}
               onClick={() => navigate('/app/fees/collect')}
-              className="text-xs font-bold py-1 px-2.5 sm:px-3"
+              className="text-xs font-semibold py-1 px-3"
             >
-              <span>Collect Fee</span>
+              Collect Fee
             </Button>
 
             <Button
@@ -270,52 +272,131 @@ export const ReceiptsListPage = () => {
               icon={RefreshCw}
               loading={isLoadingPayments}
               onClick={() => refetch()}
-              title="Refresh dataset"
+              title="Refresh receipts"
               className="p-1.5"
             />
           </div>
         </div>
 
-        {/* Mobile Search & Filter Toggle Bar (< md) */}
-        <div className="md:hidden flex items-center gap-2">
-          <div className="flex-1">
-            <Input
-              placeholder="Search receipt #, student..."
+        {/* Search, Presets & Filter Toggle Row */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 pt-1">
+          {/* Left: Search Box */}
+          <div className="relative flex-1 min-w-[220px] max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search receipt #, student name, admission no..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              icon={Search}
-              className="text-xs py-1"
+              className="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsMobileFiltersOpen((prev) => !prev)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 h-[34px] rounded-lg border text-xs font-bold transition-all shrink-0 ${
-              isMobileFiltersOpen || activeFilterCount > 0
-                ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Filters</span>
-            {activeFilterCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[9px] flex items-center justify-center font-mono font-bold">
-                {activeFilterCount}
+          {/* Right: Quick Date Presets & Filter Toggle */}
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {/* Segmented Presets */}
+            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50/70 p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={handleClearDatePreset}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                  isAllDatesActive
+                    ? 'bg-white text-indigo-600 font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={handleSetToday}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                  isTodayActive
+                    ? 'bg-white text-indigo-600 font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={handleSetYesterday}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                  isYesterdayActive
+                    ? 'bg-white text-indigo-600 font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Yesterday
+              </button>
+              <button
+                type="button"
+                onClick={handleSetThisMonth}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                  isThisMonthActive
+                    ? 'bg-white text-indigo-600 font-bold shadow-2xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                This Month
+              </button>
+            </div>
+
+            {/* Filters Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setShowAdvancedFilters((prev) => !prev)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${
+                showAdvancedFilters || activeFilterCount > 0
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] flex items-center justify-center font-bold">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+
+            {/* Clear Filters Button (shown only when filters active) */}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="text-xs text-rose-600 hover:text-rose-800 font-medium px-1.5 py-1 hover:underline"
+                title="Reset all filters"
+              >
+                Reset
+              </button>
+            )}
+
+            {/* Live Page Total Metric */}
+            <div className="hidden sm:inline-flex items-center gap-1.5 bg-slate-100/80 px-2.5 py-1 rounded-lg border border-slate-200/60 text-xs">
+              <span className="text-slate-400 text-[10px] font-medium uppercase">Page Total:</span>
+              <span className="font-mono font-bold text-slate-800">
+                {formatCurrency(currentViewStats.totalAmount)}
               </span>
-            )}
-            {isMobileFiltersOpen ? (
-              <ChevronUp className="w-3 h-3 text-slate-400" />
-            ) : (
-              <ChevronDown className="w-3 h-3 text-slate-400" />
-            )}
-          </button>
+            </div>
+          </div>
         </div>
 
-        {/* Mobile Collapsible Filters Grid */}
-        {isMobileFiltersOpen && (
-          <div className="md:hidden grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-            {/* Class Filter */}
+        {/* Collapsible Secondary Filter Bar */}
+        {showAdvancedFilters && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-2.5 border-t border-slate-100">
+            {/* Class */}
             <Select
               value={selectedClassId}
               onChange={(e) => {
@@ -329,7 +410,7 @@ export const ReceiptsListPage = () => {
               className="text-xs py-1"
             />
 
-            {/* Medium Filter */}
+            {/* Medium */}
             <Select
               value={selectedMediumId}
               onChange={(e) => {
@@ -337,7 +418,7 @@ export const ReceiptsListPage = () => {
                 setPage(1);
               }}
               options={[
-                { label: 'All Medium', value: '' },
+                { label: 'All Mediums', value: '' },
                 ...mediums.map((med) => ({
                   label: med.name ? med.name.replace(/\s*medium$/i, '').trim() : '',
                   value: med.id,
@@ -368,7 +449,7 @@ export const ReceiptsListPage = () => {
               className="text-xs py-1"
             />
 
-            {/* Date Range Pickers */}
+            {/* From Date */}
             <DatePicker
               value={startDate}
               onChange={(val) => {
@@ -379,6 +460,7 @@ export const ReceiptsListPage = () => {
               className="text-xs py-1"
             />
 
+            {/* To Date */}
             <DatePicker
               value={endDate}
               onChange={(val) => {
@@ -390,165 +472,26 @@ export const ReceiptsListPage = () => {
             />
           </div>
         )}
-
-        {/* Desktop Multi-Filter Grid (>= md) */}
-        <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-7 gap-2">
-          {/* Search Input */}
-          <div className="lg:col-span-1">
-            <Input
-              placeholder="Search receipt #, student..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              icon={Search}
-              className="text-xs py-1"
-            />
-          </div>
-
-          {/* Class Filter */}
-          <Select
-            value={selectedClassId}
-            onChange={(e) => {
-              setSelectedClassId(e.target.value);
-              setPage(1);
-            }}
-            options={[
-              { label: 'All Classes', value: '' },
-              ...classes.map((cls) => ({ label: `Class ${cls.name}`, value: cls.id })),
-            ]}
-            className="text-xs py-1"
-          />
-
-          {/* Medium Filter */}
-          <Select
-            value={selectedMediumId}
-            onChange={(e) => {
-              setSelectedMediumId(e.target.value);
-              setPage(1);
-            }}
-            options={[
-              { label: 'All Medium', value: '' },
-              ...mediums.map((med) => ({
-                label: med.name ? med.name.replace(/\s*medium$/i, '').trim() : '',
-                value: med.id,
-              })),
-            ]}
-            className="text-xs py-1"
-          />
-
-          {/* Payment Mode */}
-          <Select
-            value={paymentMode}
-            onChange={(e) => {
-              setPaymentMode(e.target.value);
-              setPage(1);
-            }}
-            options={PAYMENT_MODE_OPTIONS}
-            className="text-xs py-1"
-          />
-
-          {/* Status */}
-          <Select
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-            options={STATUS_OPTIONS}
-            className="text-xs py-1"
-          />
-
-          {/* Date Range Pickers */}
-          <DatePicker
-            value={startDate}
-            onChange={(val) => {
-              setStartDate(val);
-              setPage(1);
-            }}
-            placeholder="From Date"
-            className="text-xs py-1"
-          />
-
-          <DatePicker
-            value={endDate}
-            onChange={(val) => {
-              setEndDate(val);
-              setPage(1);
-            }}
-            placeholder="To Date"
-            className="text-xs py-1"
-          />
-        </div>
-
-        {/* Quick Date Range Bar & Filter Summary Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-100 bg-slate-50/60 -mx-3 -mb-3 sm:-mx-3.5 sm:-mb-3.5 p-2 sm:p-2.5 rounded-b-xl">
-          {/* Preset Buttons */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-0.5">Presets:</span>
-            <button
-              type="button"
-              onClick={handleSetToday}
-              className={`px-2 py-0.5 text-[11px] font-bold rounded-md transition-colors ${
-                startDate === todayStr && endDate === todayStr
-                  ? 'bg-indigo-600 text-white shadow-2xs'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              onClick={handleSetYesterday}
-              className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors"
-            >
-              Yesterday
-            </button>
-            <button
-              type="button"
-              onClick={handleSetThisMonth}
-              className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors"
-            >
-              This Month
-            </button>
-
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={handleResetFilters}
-                className="px-2 py-0.5 text-[11px] font-bold rounded-md text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors flex items-center gap-1"
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span>Reset</span>
-              </button>
-            )}
-          </div>
-
-          {/* Current Page Revenue Summary Indicator */}
-          {payments.length > 0 && (
-            <div className="flex items-center justify-between sm:justify-end gap-2 text-xs font-semibold text-slate-700 shrink-0">
-              <span className="text-[10px] text-slate-500 font-medium">Page Total:</span>
-              <span className="font-mono font-extrabold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs text-xs">
-                {formatCurrency(currentViewStats.totalAmount)}
-              </span>
-            </div>
-          )}
-        </div>
       </Card>
 
-      {/* High-Density Compact Receipt Table & Mobile Cards */}
-      <div className="flex-1 flex flex-col min-h-0 md:overflow-hidden">
-        <ReceiptTable payments={payments} isLoading={isLoadingPayments} />
+      {/* Receipts Table Container */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <ReceiptTable
+          payments={payments}
+          isLoading={isLoadingPayments}
+        />
       </div>
 
-      {/* Compact Pagination Bar */}
+      {/* Minimalist Pagination Bar */}
       {pagination.totalPages > 1 && (
-        <div className="shrink-0">
+        <div className="shrink-0 bg-white rounded-xl border border-slate-200/80 px-3 py-2 flex items-center justify-between text-xs">
+          <span className="text-slate-500 font-medium text-[11px]">
+            Showing {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} receipts
+          </span>
           <Pagination
             currentPage={pagination.page}
             totalPages={pagination.totalPages}
-            totalItems={pagination.total}
-            itemsPerPage={pagination.limit}
             onPageChange={(p) => setPage(p)}
-            className="rounded-xl border border-slate-200 shadow-2xs"
           />
         </div>
       )}

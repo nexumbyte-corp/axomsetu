@@ -33,6 +33,8 @@ import platformRouter from '../modules/platform/platform.routes.js';
 import razorpayRouter from '../modules/razorpay/razorpay.routes.js';
 import { createOrder, verifyPayment } from '../modules/razorpay/razorpay.controller.js';
 import { requireActiveSubscription } from '../middleware/subscription.middleware.js';
+import { authenticate } from '../middleware/auth.middleware.js';
+import { resolveSchool } from '../middleware/school.middleware.js';
 
 import { prisma } from '../config/prisma.js';
 
@@ -78,10 +80,10 @@ router.get('/health', healthCheckHandler);
 router.use('/auth', authRouter);
 router.use('/platform', platformRouter);
 
-// Razorpay Checkout Endpoints
+// Razorpay Checkout Endpoints (Protected: requires authentication & school resolution)
 router.use('/razorpay', razorpayRouter);
-router.post('/create-order', createOrder);
-router.post('/verify-payment', verifyPayment);
+router.post('/create-order', authenticate, resolveSchool, createOrder);
+router.post('/verify-payment', authenticate, resolveSchool, verifyPayment);
 
 // School Subscriptions Portal Routes
 router.use('/subscriptions', subscriptionRouter);

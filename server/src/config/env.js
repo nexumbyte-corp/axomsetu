@@ -23,8 +23,8 @@ const envSchema = z.object({
   SEED_ADMIN_NAME: z.string().default('Super Admin'),
   SEED_ADMIN_EMAIL: z.string().email().default('admin@schoolsaas.com'),
   SEED_ADMIN_PASSWORD: z.string().default('SuperAdminPass123!'),
-  RAZORPAY_KEY_ID: z.string().optional().default('rzp_test_TcN6LHCXuBovS1'),
-  RAZORPAY_KEY_SECRET: z.string().optional().default('6iGAa26DZHKzsgenoDnWnUx0'),
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
 });
 
 const parseEnv = () => {
@@ -38,6 +38,9 @@ const parseEnv = () => {
   process.env.TZ = data.TZ;
 
   if (data.NODE_ENV === 'production') {
+    if (data.SESSION_SECRET === 'axomsetu_session_secret_key_change_in_prod') {
+      throw new Error('FATAL SECURITY ERROR: SESSION_SECRET must be set to a secure, unique value in production.');
+    }
     if (data.SEED_ADMIN_PASSWORD === 'SuperAdminPass123!') {
       console.warn('WARNING: Using default SEED_ADMIN_PASSWORD in production environment!');
     }

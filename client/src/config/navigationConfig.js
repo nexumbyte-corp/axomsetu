@@ -11,9 +11,10 @@ import {
   BarChart3,
   Building,
   Wallet,
-  FileSpreadsheet,
   Settings,
   IdCard,
+  ShieldCheck,
+  FileText,
 } from 'lucide-react';
 
 /**
@@ -60,20 +61,6 @@ export const getSidebarNavigation = ({ isSubscriptionActive, isOwner, _hasFullAc
       expandable: true,
       items: [
         { label: 'Dashboard', path: '/app', icon: LayoutDashboard, end: true, permission: 'DASHBOARD_VIEW' },
-        { label: 'Subscription', path: '/app/subscription', icon: CreditCard },
-      ],
-    },
-    {
-      id: 'academic-setup',
-      title: 'ACADEMIC SETUP',
-      expandable: true,
-      items: [
-        { label: 'Academic Years', path: '/app/academic-years', icon: Calendar, permission: 'ACADEMICS_VIEW' },
-        { label: 'Classes', path: '/app/classes', icon: BookOpen, permission: 'ACADEMICS_VIEW' },
-        { label: 'Mediums', path: '/app/mediums', icon: Languages, permission: 'ACADEMICS_VIEW' },
-        { label: 'Streams', path: '/app/streams', icon: GitBranch, permission: 'ACADEMICS_VIEW' },
-        { label: 'Sections', path: '/app/sections', icon: Layers, permission: 'ACADEMICS_VIEW' },
-        { label: 'Admit Card Generation', path: '/app/admit-cards', icon: IdCard, permission: 'ACADEMICS_VIEW' },
       ],
     },
     {
@@ -84,18 +71,32 @@ export const getSidebarNavigation = ({ isSubscriptionActive, isOwner, _hasFullAc
         { label: 'Students', path: '/app/students', icon: Users, permission: 'STUDENTS_VIEW' },
         { label: 'Fee Management', path: '/app/fees', icon: CreditCard, permission: 'FEES_VIEW' },
         { label: 'Staff & Payroll', path: '/app/staff', icon: Briefcase, permission: 'STAFF_VIEW' },
+        { label: 'Finance & Ledger', path: '/app/finance', icon: Wallet, permission: 'EXPENSE_VIEW' },
+      ],
+    },
+    {
+      id: 'academics',
+      title: 'ACADEMICS',
+      expandable: true,
+      items: [
+        { label: 'Academic Years', path: '/app/academic-years', icon: Calendar, permission: 'ACADEMICS_VIEW' },
+        { label: 'Classes', path: '/app/classes', icon: BookOpen, permission: 'ACADEMICS_VIEW' },
+        { label: 'Sections', path: '/app/sections', icon: Layers, permission: 'ACADEMICS_VIEW' },
+        { label: 'Mediums', path: '/app/mediums', icon: Languages, permission: 'ACADEMICS_VIEW' },
+        { label: 'Streams', path: '/app/streams', icon: GitBranch, permission: 'ACADEMICS_VIEW' },
+        { label: 'Admit Cards', path: '/app/admit-cards', icon: IdCard, permission: 'ACADEMICS_VIEW' },
       ],
     },
     {
       id: 'hostel',
-      title: 'HOSTEL MANAGEMENT',
+      title: 'HOSTEL',
       expandable: true,
       items: [
         { label: 'Overview', path: '/app/hostel', icon: LayoutDashboard, end: true, permission: 'HOSTEL_VIEW' },
         { label: 'Residents', path: '/app/hostel/residents', icon: Users, permission: 'HOSTEL_VIEW' },
         { label: 'Hostel Fees', path: '/app/hostel/fees', icon: CreditCard, permission: 'HOSTEL_SETUP' },
         { label: 'Rooms & Beds', path: '/app/hostel/setup', icon: Settings, permission: 'HOSTEL_SETUP' },
-        { label: 'Reports', path: '/app/hostel/reports', icon: BarChart3, permission: 'HOSTEL_VIEW' },
+        { label: 'Hostel Reports', path: '/app/hostel/reports', icon: FileText, permission: 'HOSTEL_VIEW' },
       ],
     },
     {
@@ -103,8 +104,7 @@ export const getSidebarNavigation = ({ isSubscriptionActive, isOwner, _hasFullAc
       title: 'REPORTS',
       expandable: true,
       items: [
-        { label: 'Finance & Ledger', path: '/app/finance', icon: Wallet, permission: 'EXPENSE_VIEW' },
-        { label: 'Reports', path: '/app/reports', icon: BarChart3, permission: 'REPORTS_VIEW' },
+        { label: 'Reports & Analytics', path: '/app/reports', icon: BarChart3, permission: 'REPORTS_VIEW' },
       ],
     },
     {
@@ -115,8 +115,10 @@ export const getSidebarNavigation = ({ isSubscriptionActive, isOwner, _hasFullAc
         ...(isOwner
           ? [{ label: 'School Profile', path: '/app/settings/profile', icon: Building, permission: 'SETTINGS_VIEW', isOwnerOnly: true }]
           : []),
-        { label: 'Users & Permissions', path: '/app/settings/users', icon: FileSpreadsheet, permission: 'USERS_VIEW' },
+        { label: 'Users & Permissions', path: '/app/settings/users', icon: ShieldCheck, permission: 'USERS_VIEW' },
+        { label: 'Subscription & Billing', path: '/app/subscription', icon: CreditCard },
       ],
     },
   ];
 };
+

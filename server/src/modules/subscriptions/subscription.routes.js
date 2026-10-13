@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/auth.middleware.js';
 import { resolveSchool } from '../../middleware/school.middleware.js';
-import { requireRole } from '../../middleware/role.middleware.js';
+import { requireOwnerOrSchoolAdmin } from '../../middleware/permission.middleware.js';
 import * as subscriptionController from './subscription.controller.js';
 
 const router = Router();
@@ -13,7 +13,7 @@ router.get('/public-schools', subscriptionController.getPublicLandingSchools);
 // Protected School Admin routes
 router.use(authenticate);
 router.use(resolveSchool);
-router.use(requireRole('SCHOOL_ADMIN', 'SUPER_ADMIN'));
+router.use(requireOwnerOrSchoolAdmin('Only the School Owner or School Admin can access subscription management'));
 
 router.get('/current', subscriptionController.getCurrentSubscription);
 router.get('/plans', subscriptionController.getActivePlans);

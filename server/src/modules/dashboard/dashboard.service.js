@@ -309,7 +309,7 @@ export const dashboardService = {
       return {
         school,
         subscription: subscriptionWidget,
-        monthlyCollections: monthlyCollectionSlots.map(({ key, ...rest }) => rest),
+        monthlyCollections: monthlyCollectionSlots.map(({ key: _key, ...rest }) => rest),
         academicYear: activeAcademicYear
           ? {
             id: activeAcademicYear.id,
@@ -493,7 +493,7 @@ export const dashboardService = {
    */
   async getDailyExpenses(schoolId, query = {}) {
     const { academicYearId, date } = query;
-    const { startOfDay, endOfDay, dateStr: formattedDateString } = getISTDayBounds(date);
+    const { dateStr: formattedDateString } = getISTDayBounds(date);
     const cacheKey = `dashboard:daily-exp:${schoolId}:${formattedDateString}:${academicYearId || 'default'}`;
 
     return await memoryCache.getOrSet(cacheKey, async () => {

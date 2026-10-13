@@ -35,7 +35,6 @@ export const AdmitCardGenerationPage = () => {
   const [sections, setSections] = useState([]);
   const [mediums, setMediums] = useState([]);
   const [streams, setStreams] = useState([]);
-  const [loadingConfig, setLoadingConfig] = useState(false);
 
   // 2. Generation Inputs & Filters
   const [academicYearId, setAcademicYearId] = useState(selectedYearId || '');
@@ -78,7 +77,6 @@ export const AdmitCardGenerationPage = () => {
   // Load School Profile & Setup Options Once
   useEffect(() => {
     const fetchConfig = async () => {
-      setLoadingConfig(true);
       try {
         const [schRes, clsRes, secRes, medRes, strRes] = await Promise.all([
           schoolService.getTenantProfile(),
@@ -96,8 +94,6 @@ export const AdmitCardGenerationPage = () => {
       } catch (err) {
         console.error('Failed to load admit card configuration', err);
         toast.error('Failed to load academic setup information');
-      } finally {
-        setLoadingConfig(false);
       }
     };
     fetchConfig();

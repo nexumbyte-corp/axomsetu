@@ -15,8 +15,6 @@ import {
   Lock,
   Plus,
   Receipt,
-  Activity,
-  Sparkles,
   Calculator,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';

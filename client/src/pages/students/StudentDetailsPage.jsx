@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
-  Edit,
   Sparkles,
   UserCheck,
   UserX,
@@ -23,8 +22,11 @@ import {
   ZoomIn,
   CheckCircle2,
   DollarSign,
-  ChevronRight,
   Edit2,
+  Copy,
+  Check,
+  Home,
+  MessageSquare,
 } from 'lucide-react';
 import { DocumentActions } from '../../components/documents/DocumentActions.jsx';
 import { UpdateHostelAdmissionDateModal } from '../../components/hostel/UpdateHostelAdmissionDateModal.jsx';
@@ -101,6 +103,19 @@ export const StudentDetailsPage = () => {
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [hostelDateModalOpen, setHostelDateModalOpen] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState(null);
+
+  // Copied chip state
+  const [copiedKey, setCopiedKey] = useState(null);
+
+  const handleCopy = (text, key, label) => {
+    if (!text) return;
+    navigator.clipboard.writeText(String(text).trim());
+    setCopiedKey(key);
+    toast.success(`${label} copied!`);
+    setTimeout(() => {
+      setCopiedKey((curr) => (curr === key ? null : curr));
+    }, 2000);
+  };
 
   // 1. Load Academic Setup Options & School Profile
   useEffect(() => {
@@ -199,12 +214,19 @@ export const StudentDetailsPage = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6 w-full px-4 py-6">
-        <Skeleton height="140px" width="100%" className="rounded-2xl" />
-        <Skeleton height="50px" width="100%" className="rounded-xl" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Skeleton height="350px" className="lg:col-span-1 rounded-2xl" />
-          <Skeleton height="350px" className="lg:col-span-2 rounded-2xl" />
+      <div className="space-y-6 w-full max-w-7xl mx-auto py-2">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs flex items-center gap-6">
+          <Skeleton height="96px" width="80px" className="rounded-xl shrink-0" />
+          <div className="space-y-3 flex-1">
+            <Skeleton height="28px" width="240px" className="rounded-lg" />
+            <Skeleton height="20px" width="380px" className="rounded-md" />
+            <Skeleton height="18px" width="180px" className="rounded-md" />
+          </div>
+        </div>
+        <Skeleton height="44px" width="100%" className="rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton height="320px" className="rounded-2xl" />
+          <Skeleton height="320px" className="rounded-2xl" />
         </div>
       </div>
     );
@@ -212,7 +234,7 @@ export const StudentDetailsPage = () => {
 
   if (error) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center max-w-xl mx-auto space-y-4 my-12">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-8 text-center max-w-xl mx-auto space-y-4 my-12">
         <Alert variant="danger" icon={ShieldAlert} title="Unable to load student profile">
           {error}
         </Alert>
@@ -225,7 +247,7 @@ export const StudentDetailsPage = () => {
 
   if (notFound || !student) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center max-w-xl mx-auto space-y-4 my-12">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-8 text-center max-w-xl mx-auto space-y-4 my-12">
         <EmptyState
           icon={User}
           title="Student Record Not Found"
@@ -286,40 +308,53 @@ export const StudentDetailsPage = () => {
   };
 
   const pendingDues = parseFloat(student.feeSummary?.pending || 0);
+  const totalBilled = parseFloat(student.feeSummary?.generated || 0);
+  const totalPaid = parseFloat(student.feeSummary?.paid || 0);
+  const collectionPercentage = totalBilled > 0 ? Math.min(100, Math.round((totalPaid / totalBilled) * 100)) : 100;
+
+  const getCleanPhone = (p) => {
+    if (!p) return null;
+    return String(p).replace(/[^0-9]/g, '');
+  };
+
+  const cleanPhone = getCleanPhone(student.phone);
+  const whatsappUrl = cleanPhone
+    ? `https://wa.me/${cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone}`
+    : null;
 
   const tabs = [
-    { id: 'overview', label: 'Overview & Placement', icon: GraduationCap },
-    { id: 'fees', label: 'Financial Dues & Fee Structure', icon: CreditCard, badge: pendingFees.length > 0 ? pendingFees.length : null },
-    { id: 'overrides', label: 'Fee Overrides & Discounts', icon: DollarSign },
-    { id: 'history', label: 'History & Progression', icon: History, badge: transferHistories.length > 0 ? transferHistories.length : null },
+    { id: 'overview', label: 'Overview', icon: User },
+    { id: 'fees', label: 'Fees & Dues', icon: CreditCard, badge: pendingFees.length > 0 ? pendingFees.length : null },
+    { id: 'overrides', label: 'Fee Overrides', icon: DollarSign },
+    { id: 'history', label: 'Progression & History', icon: History, badge: transferHistories.length > 0 ? transferHistories.length : null },
   ];
 
   return (
     <>
-      <div className="space-y-6 print:hidden w-full">
-        {/* Module Header Bar */}
+      <div className="space-y-6 print:hidden w-full max-w-7xl mx-auto">
+        {/* Module Header Bar - Clean and Uncluttered */}
         <ModulePageHeader
           icon={User}
-          title={`Student Profile: ${student.name}`}
-          description={`Admission No: ${student.admissionNo} • ${selectedYear?.name || 'Academic Year'}`}
+          title="Student Profile"
+          description={`${student.name} • ${student.admissionNo}`}
           actions={
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate('/app/students')}
                 icon={ArrowLeft}
               >
-                Back to List
+                Students
               </Button>
 
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate(`/app/students/${student.id}/edit`)}
-                icon={Edit}
+                icon={Edit2}
               >
-                Edit Record
+                Edit
               </Button>
 
               {!isLocked && currentAcademic && student.status !== 'GRADUATED' && student.status !== 'LEFT' && (
@@ -329,7 +364,7 @@ export const StudentDetailsPage = () => {
                   onClick={() => setActiveModal('PROMOTE')}
                   icon={Sparkles}
                 >
-                  Academic Transition
+                  Promote
                 </Button>
               )}
 
@@ -360,7 +395,6 @@ export const StudentDetailsPage = () => {
                     <DropdownDivider />
                   </>
                 )}
-
 
                 {student.status === 'ACTIVE' && (
                   <DropdownItem
@@ -419,15 +453,15 @@ export const StudentDetailsPage = () => {
           </Alert>
         )}
 
-        {/* Clean Professional Enterprise Student Header */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+        {/* Minimalist Hero Student Profile Header */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            {/* Left: Passport Photo & Executive Details */}
-            <div className="flex items-center gap-5">
-              {/* Passport Photo Box */}
+            {/* Left: Avatar, Name & Metadata Chips */}
+            <div className="flex items-start sm:items-center gap-4 sm:gap-5 min-w-0">
+              {/* Photo Box */}
               <div
-                className={`relative w-20 h-26 rounded-xl bg-slate-50 border-2 border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center shrink-0 group ${
-                  student.photoUrl ? 'cursor-pointer hover:border-indigo-500 transition-colors' : ''
+                className={`relative w-20 h-26 rounded-xl bg-slate-50 border border-slate-200 shadow-2xs overflow-hidden flex items-center justify-center shrink-0 group ${
+                  student.photoUrl ? 'cursor-pointer hover:border-indigo-400 transition-colors' : ''
                 }`}
                 onClick={() => {
                   if (student.photoUrl) setPreviewPhoto(student.photoUrl);
@@ -446,76 +480,183 @@ export const StudentDetailsPage = () => {
                     </div>
                   </>
                 ) : (
-                  <StudentAvatar name={student.name} size="passport" className="w-full h-full border-none rounded-none text-xl" />
+                  <StudentAvatar
+                    name={student.name}
+                    size="passport"
+                    className="w-full h-full border-none rounded-none text-xl"
+                  />
                 )}
               </div>
 
-              {/* Student Details Header Info */}
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="text-2xl font-bold text-slate-900">{student.name}</h1>
+              {/* Identity & Status */}
+              <div className="space-y-2 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 truncate">
+                    {student.name}
+                  </h1>
                   <StudentStatusBadge status={student.status} size="sm" />
                   {student.hostel?.enrolled ? (
-                    <Badge variant="purple" size="sm" className="font-semibold">
+                    <Badge variant="purple" size="sm" className="font-medium">
                       <Building2 className="w-3 h-3 mr-1 inline" />
                       Hostel Resident
                     </Badge>
                   ) : student.hostel?.status === 'EXITED' ? (
-                    <Badge variant="warning" size="sm" className="font-semibold">
+                    <Badge variant="warning" size="sm" className="font-medium">
                       <Building2 className="w-3 h-3 mr-1 inline" />
                       Exited Hosteller
                     </Badge>
                   ) : (
-                    <Badge variant="neutral" size="sm">
+                    <Badge variant="neutral" size="sm" className="font-normal text-slate-600">
                       Day Scholar
                     </Badge>
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                  <span className="font-mono bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-md font-semibold border border-slate-200">
-                    Adm No: {student.admissionNo}
-                  </span>
+                {/* Minimalist Details Bar */}
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-slate-600">
+                  {/* Admission Number Chip with 1-click copy */}
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(student.admissionNo, 'adm', 'Admission number')}
+                    className="inline-flex items-center gap-1 font-mono bg-slate-100 hover:bg-slate-200/80 text-slate-700 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-slate-200/70 transition-colors cursor-pointer"
+                    title="Click to copy admission number"
+                  >
+                    <span>Adm: {student.admissionNo}</span>
+                    {copiedKey === 'adm' ? (
+                      <Check className="w-3 h-3 text-emerald-600 shrink-0" />
+                    ) : (
+                      <Copy className="w-3 h-3 text-slate-400 group-hover:text-slate-600 shrink-0" />
+                    )}
+                  </button>
 
+                  {/* Class & Section */}
                   {currentAcademic && (
-                    <span className="bg-slate-100 text-slate-800 px-2.5 py-0.5 rounded-md font-semibold flex items-center gap-1 border border-slate-200">
+                    <span className="bg-slate-100 text-slate-800 px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1 border border-slate-200/70">
                       <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
                       Class {currentAcademic.class?.name || '—'}
                       {currentAcademic.section ? ` (${currentAcademic.section.name})` : ''}
                     </span>
                   )}
 
+                  {/* Roll Number */}
+                  {currentAcademic?.rollNumber !== null && currentAcademic?.rollNumber !== undefined && (
+                    <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded-md text-[11px] font-mono font-medium border border-slate-200/70">
+                      Roll #{currentAcademic.rollNumber}
+                    </span>
+                  )}
+
+                  {/* Gender */}
                   {student.gender && (
-                    <span className="bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-md font-semibold capitalize border border-slate-200">
+                    <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-[11px] font-medium capitalize border border-slate-200/70">
                       {student.gender.toLowerCase()}
                     </span>
+                  )}
+
+                  {/* Caste / Category */}
+                  {student.caste && (
+                    <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-[11px] font-medium border border-slate-200/70">
+                      {student.caste}
+                    </span>
+                  )}
+                </div>
+
+                {/* Guardian & Quick Contact Row */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 pt-0.5">
+                  {student.guardianName && (
+                    <span className="flex items-center gap-1.5 font-medium text-slate-700">
+                      <span className="text-slate-400 font-normal">Guardian:</span>
+                      {student.guardianName}
+                    </span>
+                  )}
+
+                  {student.phone && (
+                    <div className="flex items-center gap-1.5">
+                      <a
+                        href={`tel:${student.phone}`}
+                        className="inline-flex items-center gap-1 font-mono text-indigo-600 hover:text-indigo-800 hover:underline font-medium"
+                      >
+                        <Phone className="w-3 h-3 text-indigo-500" />
+                        {student.phone}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(student.phone, 'phone', 'Phone number')}
+                        className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors cursor-pointer"
+                        title="Copy phone number"
+                      >
+                        {copiedKey === 'phone' ? (
+                          <Check className="w-3 h-3 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                      </button>
+                      {whatsappUrl && (
+                        <a
+                          href={whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                          title="Chat on WhatsApp"
+                        >
+                          <MessageSquare className="w-2.5 h-2.5" />
+                          WhatsApp
+                        </a>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Right: Dues Balance Box */}
-            <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 shrink-0">
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Total Dues Balance</span>
-                <span className={`text-xl font-bold font-mono ${pendingDues > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
-                  {formatCurrency(pendingDues)}
-                </span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate(`/app/students/${student.id}/ledger`)}
-                icon={FileText}
+            {/* Right: Minimalist Financial Health Snapshot */}
+            <div className="flex items-center gap-3 shrink-0">
+              <div
+                className={`p-4 rounded-xl border min-w-[210px] space-y-1 ${
+                  pendingDues > 0
+                    ? 'bg-rose-50/50 border-rose-200/80 text-rose-900'
+                    : 'bg-emerald-50/50 border-emerald-200/80 text-emerald-900'
+                }`}
               >
-                View Ledger
-              </Button>
+                <div className="flex items-center justify-between text-[11px] font-semibold">
+                  <span className={pendingDues > 0 ? 'text-rose-700' : 'text-emerald-700'}>
+                    {pendingDues > 0 ? 'Outstanding Dues' : 'Fee Status'}
+                  </span>
+                  <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/80">
+                    {pendingDues > 0 ? 'Pending' : 'Cleared'}
+                  </span>
+                </div>
+                <div className={`text-xl font-bold font-mono ${pendingDues > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
+                  {formatCurrency(pendingDues)}
+                </div>
+                <div className="flex items-center gap-2 pt-1 text-xs">
+                  {pendingDues > 0 && can('FEES_COLLECT') ? (
+                    <Button
+                      variant="primary"
+                      size="xs"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                      onClick={() => navigate('/app/fees/collect', { state: { student } })}
+                      icon={CreditCard}
+                    >
+                      Collect Fee
+                    </Button>
+                  ) : null}
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    className="bg-white"
+                    onClick={() => navigate(`/app/students/${student.id}/ledger`)}
+                    icon={FileText}
+                  >
+                    Ledger
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Tab Switcher Bar */}
-        <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto no-scrollbar">
+        {/* Minimalist Tab Switcher Bar */}
+        <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto no-scrollbar">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -523,18 +664,20 @@ export const StudentDetailsPage = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 border-b-2 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-all border-b-2 cursor-pointer ${
                   isActive
-                    ? 'border-indigo-600 text-indigo-600 font-bold bg-indigo-50/50 rounded-t-lg'
-                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                    ? 'border-indigo-600 text-indigo-600 font-bold bg-indigo-50/40 rounded-t-lg'
+                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
                 <span>{tab.label}</span>
                 {tab.badge !== null && tab.badge !== undefined && (
-                  <span className={`px-1.5 py-0.5 text-[10px] font-mono font-bold rounded-full ${
-                    isActive ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'
-                  }`}>
+                  <span
+                    className={`px-1.5 py-0.2 text-[10px] font-mono font-bold rounded-full ${
+                      isActive ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'
+                    }`}
+                  >
                     {tab.badge}
                   </span>
                 )}
@@ -543,93 +686,137 @@ export const StudentDetailsPage = () => {
           })}
         </div>
 
-        {/* TAB 1: OVERVIEW & PLACEMENT */}
+        {/* ─── TAB 1: OVERVIEW ─── */}
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column (1 col): Placement & Guardian */}
-            <div className="space-y-6 lg:col-span-1">
-              {/* Unified Student & Family Details Card */}
-              <Card className="shadow-xs border-slate-200">
+          <div className="space-y-6">
+            {/* Top Row: Academic Placement & Guardian Information */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              {/* Card 1: Academic Enrollment */}
+              <Card className="shadow-xs border-slate-200/80">
                 <CardHeader
-                  title="Student Details"
-                  subtitle="Academic placement, guardian info, and residential contact"
+                  title="Academic Placement"
+                  subtitle={`Session: ${selectedYear?.name || 'Selected Academic Year'}`}
                 />
-                <CardContent className="space-y-4 text-xs">
-                  {/* Academic Placement Subsection */}
-                  <div className="space-y-2.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block border-b border-slate-100 pb-1">
-                      Academic Placement ({selectedYear?.name || 'Current Year'})
-                    </span>
-
-                    {currentAcademic ? (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                          <span className="text-slate-400 font-bold uppercase text-[10px] block">Class & Section</span>
-                          <span className="font-bold text-slate-900 text-sm mt-0.5 block">
-                            Class {currentAcademic.class?.name || '—'} {currentAcademic.section ? `(${currentAcademic.section.name})` : ''}
-                          </span>
-                        </div>
-
-                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                          <span className="text-slate-400 font-bold uppercase text-[10px] block">Medium & Stream</span>
-                          <span className="font-semibold text-slate-800 text-xs mt-0.5 block">
-                            {currentAcademic.medium?.name || '—'} {currentAcademic.stream ? `(${currentAcademic.stream.name})` : ''}
-                          </span>
-                        </div>
-
-                        {currentAcademic.rollNumber !== null && currentAcademic.rollNumber !== undefined && (
-                          <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                            <span className="text-slate-400 font-bold uppercase text-[10px] block">Roll Number</span>
-                            <span className="font-mono font-bold text-slate-900 text-xs mt-0.5 block">
-                              {currentAcademic.rollNumber}
-                            </span>
-                          </div>
-                        )}
-
-                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                          <span className="text-slate-400 font-bold uppercase text-[10px] block">Admission Date</span>
-                          <span className="font-semibold text-slate-800 text-xs mt-0.5 block">
-                            {formatDate(student.admissionDate || student.createdAt)}
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-slate-500 italic py-1">No active enrollment placement for selected year.</p>
-                    )}
-                  </div>
-
-                  {/* Guardian & Contact Subsection */}
-                  <div className="space-y-2.5 pt-2 border-t border-slate-100">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block border-b border-slate-100 pb-1">
-                      Guardian & Family Contact
-                    </span>
-
-                    <div className="space-y-3">
+                <CardContent className="pt-2">
+                  {currentAcademic ? (
+                    <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-xs">
                       <div>
-                        <span className="text-slate-400 font-bold uppercase text-[10px] block">Father / Guardian Name</span>
-                        <span className="font-bold text-slate-900 text-sm mt-0.5 block">{student.guardianName || '—'}</span>
+                        <span className="text-slate-400 text-[11px] font-medium block">Class & Section</span>
+                        <span className="font-bold text-slate-900 text-sm mt-0.5 block">
+                          Class {currentAcademic.class?.name || '—'} {currentAcademic.section ? `(${currentAcademic.section.name})` : ''}
+                        </span>
                       </div>
 
                       <div>
-                        <span className="text-slate-400 font-bold uppercase text-[10px] block">Contact Phone Number</span>
-                        <span className="font-semibold text-slate-800 flex items-center gap-1.5 mt-1">
-                          <Phone className="w-3.5 h-3.5 text-indigo-600" />
-                          {student.phone ? (
-                            <a href={`tel:${student.phone}`} className="hover:underline text-indigo-600 font-mono font-medium">
+                        <span className="text-slate-400 text-[11px] font-medium block">Medium & Stream</span>
+                        <span className="font-semibold text-slate-800 text-xs mt-0.5 block">
+                          {currentAcademic.medium?.name || '—'} {currentAcademic.stream ? `(${currentAcademic.stream.name})` : ''}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-slate-400 text-[11px] font-medium block">Roll Number</span>
+                        <span className="font-mono font-bold text-slate-900 text-xs mt-0.5 block">
+                          {currentAcademic.rollNumber ?? 'Not Assigned'}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-slate-400 text-[11px] font-medium block">Admission Date</span>
+                        <span className="font-semibold text-slate-800 text-xs mt-0.5 block">
+                          {formatDate(student.admissionDate || student.createdAt)}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-slate-400 text-[11px] font-medium block">Category / Caste</span>
+                        <span className="font-medium text-slate-800 text-xs mt-0.5 block">
+                          {student.caste || 'General / UR'}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-slate-400 text-[11px] font-medium block">Enrollment Status</span>
+                        <div className="mt-0.5">
+                          <Badge variant={currentAcademic.status === 'ACTIVE' ? 'success' : 'neutral'} size="sm">
+                            {currentAcademic.status || 'ACTIVE'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-slate-500 italic py-3 text-xs">No active enrollment record for selected year.</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Card 2: Guardian & Residential Contact */}
+              <Card className="shadow-xs border-slate-200/80">
+                <CardHeader
+                  title="Guardian & Residential Details"
+                  subtitle="Primary family contact and home address"
+                />
+                <CardContent className="pt-2">
+                  <div className="space-y-4 text-xs">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-slate-400 text-[11px] font-medium block">Father / Guardian Name</span>
+                        <span className="font-bold text-slate-900 text-sm mt-0.5 block">
+                          {student.guardianName || '—'}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-slate-400 text-[11px] font-medium block">Phone Contact</span>
+                        {student.phone ? (
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <a
+                              href={`tel:${student.phone}`}
+                              className="font-mono font-medium text-indigo-600 hover:underline flex items-center gap-1"
+                            >
+                              <Phone className="w-3 h-3 text-indigo-500" />
                               {student.phone}
                             </a>
-                          ) : (
-                            '—'
-                          )}
-                        </span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopy(student.phone, 'phone-card', 'Phone number')}
+                              className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors cursor-pointer"
+                              title="Copy phone"
+                            >
+                              {copiedKey === 'phone-card' ? (
+                                <Check className="w-3 h-3 text-emerald-600" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-slate-500 italic mt-0.5 block">Not recorded</span>
+                        )}
                       </div>
+                    </div>
 
-                      <div>
-                        <span className="text-slate-400 font-bold uppercase text-[10px] block">Residential Address</span>
-                        <span className="text-slate-700 flex items-start gap-1.5 mt-1 leading-relaxed">
+                    <div className="pt-2 border-t border-slate-100">
+                      <span className="text-slate-400 text-[11px] font-medium block">Residential Address</span>
+                      <div className="flex items-start justify-between gap-2 mt-1">
+                        <span className="text-slate-700 leading-relaxed flex items-start gap-1.5">
                           <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                          {student.address || '—'}
+                          {student.address || 'No residential address recorded.'}
                         </span>
+                        {student.address && (
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(student.address, 'addr', 'Address')}
+                            className="p-1 text-slate-400 hover:text-slate-600 rounded shrink-0 cursor-pointer"
+                            title="Copy address"
+                          >
+                            {copiedKey === 'addr' ? (
+                              <Check className="w-3 h-3 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -637,19 +824,19 @@ export const StudentDetailsPage = () => {
               </Card>
             </div>
 
-            {/* Right Column (2 cols): Hostel & Quick Financial Summary */}
-            <div className="space-y-6 lg:col-span-2">
-              {/* Hostel Accommodation Card */}
-              <Card className="shadow-xs border-slate-200">
+            {/* Bottom Row: Residential Status & Financial Summary */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              {/* Card 3: Residential Status */}
+              <Card className="shadow-xs border-slate-200/80">
                 <CardHeader
-                  title="Hostel Accommodation"
-                  subtitle={student.hostel?.enrolled ? 'Active Hostel Enrollment' : 'Residential Accommodation Status'}
+                  title="Campus Accommodation"
+                  subtitle="Hostel enrollment or day scholar status"
                   action={
                     !student.hostel?.enrolled ? (
                       <Button
                         variant="outline"
-                        size="sm"
-                        className="h-7 text-xs text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                        size="xs"
+                        className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 font-semibold"
                         onClick={() => navigate('/app/hostel/admission', { state: { student } })}
                       >
                         + Admit to Hostel
@@ -657,129 +844,148 @@ export const StudentDetailsPage = () => {
                     ) : (
                       <Button
                         variant="outline"
-                        size="sm"
-                        className="h-7 text-xs text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                        size="xs"
+                        className="text-purple-700 border-purple-200 hover:bg-purple-50 font-semibold"
                         onClick={() => navigate('/app/hostel/residents', { state: { hostelId: student.hostel.hostelId } })}
                       >
-                        View Hostel Dashboard
+                        Hostel Page
                       </Button>
                     )
                   }
                 />
-                <CardContent className="text-xs">
+                <CardContent className="pt-2">
                   {student.hostel?.enrolled ? (
-                    <div className="space-y-3 bg-purple-50/40 p-4 rounded-xl border border-purple-100">
-                      <div className="flex items-center justify-between pb-2 border-b border-purple-200">
+                    <div className="p-4 rounded-xl bg-purple-50/50 border border-purple-100 space-y-3 text-xs">
+                      <div className="flex items-center justify-between pb-2 border-b border-purple-200/70">
                         <span className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
                           <Building2 className="w-4 h-4 text-purple-600" />
                           {student.hostel.hostelName}
                         </span>
                         <Badge variant="purple" size="sm">{student.hostel.hostelType || 'Hostel'}</Badge>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 text-xs">
+
+                      <div className="grid grid-cols-2 gap-3 text-xs">
                         <div className="bg-white p-2.5 rounded-lg border border-purple-100">
-                          <span className="text-slate-400 font-bold uppercase text-[10px] block">Room Number</span>
-                          <span className="font-semibold text-slate-800 text-sm">Room {student.hostel.roomNumber}</span>
+                          <span className="text-slate-400 font-medium text-[10px] block">Room Number</span>
+                          <span className="font-semibold text-slate-800 text-xs mt-0.5 block">Room {student.hostel.roomNumber}</span>
                         </div>
                         <div className="bg-white p-2.5 rounded-lg border border-purple-100">
-                          <span className="text-slate-400 font-bold uppercase text-[10px] block">Bed Allocation</span>
-                          <span className="font-bold text-purple-700 text-sm">{student.hostel.bedNumber}</span>
+                          <span className="text-slate-400 font-medium text-[10px] block">Bed Allocation</span>
+                          <span className="font-bold text-purple-700 text-xs mt-0.5 block">{student.hostel.bedNumber}</span>
                         </div>
                       </div>
-                      {student.hostel.startDate && (
-                        <div className="flex items-center justify-between pt-1">
-                          <div>
-                            <span className="text-slate-400 font-bold uppercase text-[10px] block">Hostel Admission Date</span>
-                            <span className="font-semibold text-slate-700">{formatDate(student.hostel.startDate)}</span>
-                          </div>
-                          {can('HOSTEL_ADMIT') && student.hostel?.id && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2 text-[11px] text-purple-700 hover:bg-purple-100 font-medium"
-                              onClick={() => setHostelDateModalOpen(true)}
-                              title="Edit Hostel Admission Date"
-                            >
-                              <Edit2 className="w-3 h-3 mr-1" />
-                              Edit Date
-                            </Button>
-                          )}
+
+                      <div className="flex items-center justify-between pt-1">
+                        <div>
+                          <span className="text-slate-400 font-medium text-[10px] block">Hostel Admission Date</span>
+                          <span className="font-semibold text-slate-700">{formatDate(student.hostel.startDate)}</span>
                         </div>
-                      )}
+                        {can('HOSTEL_ADMIT') && student.hostel?.id && (
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            className="text-purple-700 hover:bg-purple-100 font-medium"
+                            onClick={() => setHostelDateModalOpen(true)}
+                          >
+                            <Edit2 className="w-3 h-3 mr-1" />
+                            Edit Date
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ) : student.hostel?.status === 'EXITED' ? (
-                    <div className="space-y-3 bg-amber-50/50 p-4 rounded-xl border border-amber-200">
-                      <div className="flex items-center justify-between pb-2 border-b border-amber-200">
-                        <span className="font-bold text-slate-900 text-xs">{student.hostel.hostelName}</span>
+                    <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200/80 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900">{student.hostel.hostelName}</span>
                         <Badge variant="warning" size="sm">HOSTEL EXITED</Badge>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="grid grid-cols-2 gap-2 text-slate-600 text-xs pt-1">
                         <div>
-                          <span className="text-slate-400 font-bold uppercase text-[10px] block">Previous Room & Bed</span>
-                          <span className="font-semibold text-slate-800">Room {student.hostel.roomNumber} ({student.hostel.bedNumber})</span>
+                          <span className="text-slate-400 text-[10px] block font-medium">Previous Room & Bed</span>
+                          <span>Room {student.hostel.roomNumber} ({student.hostel.bedNumber})</span>
                         </div>
                         <div>
-                          <span className="text-slate-400 font-bold uppercase text-[10px] block">Exit Date</span>
-                          <span className="font-semibold text-rose-700 font-mono">{formatDate(student.hostel.endDate)}</span>
+                          <span className="text-slate-400 text-[10px] block font-medium">Exit Date</span>
+                          <span className="font-mono text-rose-700 font-semibold">{formatDate(student.hostel.endDate)}</span>
                         </div>
                       </div>
                       {student.hostel.exitReason && (
-                        <div>
-                          <span className="text-slate-400 font-bold uppercase text-[10px] block">Exit Reason</span>
-                          <span className="font-medium text-slate-700 italic">"{student.hostel.exitReason}"</span>
-                        </div>
+                        <p className="text-[11px] text-slate-600 italic pt-1">"{student.hostel.exitReason}"</p>
                       )}
                     </div>
                   ) : (
-                    <div className="p-4 bg-slate-50 rounded-xl text-slate-600 text-xs text-center border border-slate-100 flex items-center justify-center gap-2">
-                      <Building2 className="w-4 h-4 text-slate-400" />
-                      <span>Student is currently a <strong>Day Scholar</strong> (Not enrolled in hostel accommodation).</span>
+                    <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200/70 text-xs">
+                      <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 text-slate-500 shadow-2xs">
+                        <Home className="w-4 h-4 text-slate-600" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-slate-900 text-xs">Day Scholar</div>
+                        <div className="text-slate-500 text-[11px] mt-0.5">
+                          Student commutes to school daily and is not enrolled in campus hostel.
+                        </div>
+                      </div>
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Quick Fee Dues Highlights */}
-              <Card className="shadow-xs border-slate-200">
+              {/* Card 4: Fee Collection Snapshot */}
+              <Card className="shadow-xs border-slate-200/80">
                 <CardHeader
-                  title="Fee Status Overview"
-                  subtitle="Current year fee collection breakdown"
+                  title="Fee Collection Overview"
+                  subtitle="Collection status for the academic year"
                   action={
                     <Button
-                      variant="outline"
-                      size="sm"
+                      variant="ghost"
+                      size="xs"
                       onClick={() => setActiveTab('fees')}
-                      icon={ChevronRight}
+                      className="text-indigo-600 hover:text-indigo-800 font-semibold"
                     >
-                      View Full Details
+                      View Details →
                     </Button>
                   }
                 />
-                <CardContent>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80">
-                      <span className="text-slate-500 font-semibold block text-[11px] mb-1">Total Generated Dues</span>
-                      <span className="text-base font-bold text-slate-900 font-mono">
-                        {formatCurrency(student.feeSummary?.generated)}
+                <CardContent className="space-y-4 pt-2">
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                      <span className="text-slate-400 font-medium text-[10px] block mb-0.5">Total Billed</span>
+                      <span className="font-mono font-bold text-slate-800 text-xs">
+                        {formatCurrency(totalBilled)}
                       </span>
                     </div>
 
-                    <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80">
-                      <span className="text-emerald-800 font-semibold block text-[11px] mb-1">Total Paid Receipts</span>
-                      <span className="text-base font-bold text-emerald-700 font-mono">
-                        {formatCurrency(student.feeSummary?.paid)}
+                    <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/70">
+                      <span className="text-emerald-700 font-medium text-[10px] block mb-0.5">Total Paid</span>
+                      <span className="font-mono font-bold text-emerald-700 text-xs">
+                        {formatCurrency(totalPaid)}
                       </span>
                     </div>
 
-                    <div className={`p-3.5 rounded-xl border ${
-                      pendingDues > 0 ? 'bg-rose-50/60 border-rose-200' : 'bg-slate-50 border-slate-200'
+                    <div className={`p-3 rounded-xl border ${
+                      pendingDues > 0
+                        ? 'bg-rose-50/60 border-rose-200/80 text-rose-800'
+                        : 'bg-slate-50 border-slate-200/70 text-slate-800'
                     }`}>
-                      <span className={`${pendingDues > 0 ? 'text-rose-700' : 'text-slate-500'} font-semibold block text-[11px] mb-1`}>
-                        Outstanding Balance
+                      <span className={`${pendingDues > 0 ? 'text-rose-600' : 'text-slate-400'} font-medium text-[10px] block mb-0.5`}>
+                        Outstanding
                       </span>
-                      <span className={`text-base font-bold font-mono ${pendingDues > 0 ? 'text-rose-800' : 'text-slate-900'}`}>
+                      <span className="font-mono font-bold text-xs">
                         {formatCurrency(pendingDues)}
                       </span>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                      <span>Collection Progress</span>
+                      <span className="font-mono font-bold text-slate-700">{collectionPercentage}% Paid</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/60">
+                      <div
+                        className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${collectionPercentage}%` }}
+                      />
                     </div>
                   </div>
                 </CardContent>
@@ -788,175 +994,175 @@ export const StudentDetailsPage = () => {
           </div>
         )}
 
-        {/* TAB 2: FINANCIAL DUES & FEE STRUCTURE */}
+        {/* ─── TAB 2: FINANCIAL DUES & FEE STRUCTURE ─── */}
         {activeTab === 'fees' && (
           <div className="space-y-6">
-            {/* Fee Summary Executive Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-              {student.feeSummary?.discount > 0 ? (
-                <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-200 shadow-2xs">
-                  <span className="text-amber-800 font-bold block uppercase text-[10px] tracking-wider mb-1">Original Master Fee</span>
-                  <span className="text-xl font-bold font-mono text-slate-600 line-through">
-                    {formatCurrency(student.feeSummary?.original)}
-                  </span>
-                </div>
-              ) : (
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-2xs">
-                  <span className="text-slate-500 font-bold block uppercase text-[10px] tracking-wider mb-1 font-mono">Billed Master Head</span>
-                  <span className="text-xl font-bold font-mono text-slate-800">
-                    {formatCurrency(student.feeSummary?.generated)}
-                  </span>
-                </div>
-              )}
-
-              {student.feeSummary?.discount > 0 && (
-                <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200 shadow-2xs">
-                  <span className="text-emerald-800 font-bold block uppercase text-[10px] tracking-wider mb-1">Total Concessions</span>
-                  <span className="text-xl font-bold font-mono text-emerald-700">
-                    - {formatCurrency(student.feeSummary?.discount)}
-                  </span>
-                </div>
-              )}
-
-              <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200 shadow-2xs">
-                <span className="text-emerald-800 font-bold block uppercase text-[10px] tracking-wider mb-1">Total Paid Receipts</span>
-                <span className="text-xl font-bold text-emerald-700 font-mono">
-                  {formatCurrency(student.feeSummary?.paid)}
+            {/* Top Metric Strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-2xs space-y-1">
+                <span className="text-slate-400 font-medium text-[10px] uppercase tracking-wider block">Master Billed</span>
+                <span className="text-lg font-bold font-mono text-slate-900 block">
+                  {formatCurrency(totalBilled)}
                 </span>
               </div>
 
-              <div className={`p-4 rounded-xl border shadow-2xs ${
-                pendingDues > 0 ? 'bg-rose-50/70 border-rose-200' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <span className={`${pendingDues > 0 ? 'text-rose-800' : 'text-slate-500'} font-bold block uppercase text-[10px] tracking-wider mb-1`}>
-                  Pending Outstanding
+              <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-2xs space-y-1">
+                <span className="text-slate-400 font-medium text-[10px] uppercase tracking-wider block">Discounts</span>
+                <span className="text-lg font-bold font-mono text-emerald-600 block">
+                  {student.feeSummary?.discount > 0 ? `- ${formatCurrency(student.feeSummary.discount)}` : '₹0.00'}
                 </span>
-                <span className={`text-xl font-bold font-mono ${pendingDues > 0 ? 'text-rose-800' : 'text-slate-900'}`}>
+              </div>
+
+              <div className="p-4 rounded-xl bg-white border border-slate-200/80 shadow-2xs space-y-1">
+                <span className="text-slate-400 font-medium text-[10px] uppercase tracking-wider block">Total Paid</span>
+                <span className="text-lg font-bold font-mono text-emerald-700 block">
+                  {formatCurrency(totalPaid)}
+                </span>
+              </div>
+
+              <div className={`p-4 rounded-xl border shadow-2xs space-y-1 ${
+                pendingDues > 0 ? 'bg-rose-50/50 border-rose-200 text-rose-900' : 'bg-white border-slate-200/80'
+              }`}>
+                <span className={`${pendingDues > 0 ? 'text-rose-600' : 'text-slate-400'} font-medium text-[10px] uppercase tracking-wider block`}>
+                  Pending Dues
+                </span>
+                <span className={`text-lg font-bold font-mono ${pendingDues > 0 ? 'text-rose-700' : 'text-slate-900'} block`}>
                   {formatCurrency(pendingDues)}
                 </span>
               </div>
             </div>
 
             {/* Pending Fees Table Card */}
-            <Card className="shadow-xs border-slate-200">
+            <Card className="shadow-xs border-slate-200/80">
               <CardHeader
                 title="Pending Dues Charges List"
-                subtitle={`Unpaid and partial fee charges in chronological ascending order (${selectedYear?.name || 'Selected Year'})`}
+                subtitle={`Unpaid and partial charges in chronological order (${selectedYear?.name || 'Selected Year'})`}
                 action={
-                  pendingFees.length > 0 ? (
-                    <DocumentActions
-                      templateId="duesAdvice"
-                      data={{
-                        student,
-                        currentAcademic,
-                        pendingFees,
-                        schoolHeader,
-                        academicYear: selectedYear,
-                      }}
-                      filename={`Dues_Slip_${student.admissionNo || 'Student'}.pdf`}
-                      title={`Pending Dues Statement - ${student.name}`}
-                    />
-                  ) : null
+                  <div className="flex items-center gap-2">
+                    {pendingFees.length > 0 && can('FEES_COLLECT') && (
+                      <Button
+                        variant="primary"
+                        size="xs"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                        onClick={() => navigate('/app/fees/collect', { state: { student } })}
+                        icon={CreditCard}
+                      >
+                        Collect Fees
+                      </Button>
+                    )}
+                    {pendingFees.length > 0 && (
+                      <DocumentActions
+                        templateId="duesAdvice"
+                        data={{
+                          student,
+                          currentAcademic,
+                          pendingFees,
+                          schoolHeader,
+                          academicYear: selectedYear,
+                        }}
+                        filename={`Dues_Slip_${student.admissionNo || 'Student'}.pdf`}
+                        title={`Pending Dues Statement - ${student.name}`}
+                      />
+                    )}
+                  </div>
                 }
               />
-              <CardContent>
+              <CardContent className="pt-2">
                 {pendingLoading ? (
                   <div className="p-4 space-y-2">
                     <Skeleton height="35px" width="100%" />
                     <Skeleton height="35px" width="100%" />
                   </div>
                 ) : pendingFees.length === 0 ? (
-                  <div className="p-6 bg-emerald-50/80 rounded-xl border border-emerald-200 text-center text-xs text-emerald-800 font-semibold space-y-1">
-                    <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-                    <p className="text-sm">All fee charges for this student are fully settled.</p>
-                    <p className="text-slate-600 font-normal">There are zero pending dues for the selected academic year.</p>
+                  <div className="p-8 bg-emerald-50/60 rounded-xl border border-emerald-200/80 text-center text-xs text-emerald-800 space-y-1">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto mb-1.5" />
+                    <p className="text-sm font-bold text-emerald-900">All fee charges are fully settled</p>
+                    <p className="text-slate-600 font-normal">There are zero pending dues for this student in the selected academic year.</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    <div className="overflow-x-auto rounded-xl border border-slate-200">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase text-[10px]">
-                          <tr>
-                            <th className="py-3 px-3.5">#</th>
-                            <th className="py-3 px-3.5">Fee Head</th>
-                            <th className="py-3 px-3.5">Month</th>
-                            <th className="py-3 px-3.5 text-right">Billed Amount</th>
-                            <th className="py-3 px-3.5 text-right">Paid Amount</th>
-                            <th className="py-3 px-3.5 text-right">Pending Balance</th>
-                            <th className="py-3 px-3.5 text-center">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {pendingFees.map((fee, idx) => (
-                            <tr key={fee.id || idx} className="hover:bg-slate-50/80 transition-colors">
-                              <td className="py-3 px-3.5 font-mono text-slate-400 text-[11px]">{idx + 1}</td>
-                              <td className="py-3 px-3.5 font-bold text-slate-900">{fee.title}</td>
-                              <td className="py-3 px-3.5 font-semibold text-indigo-700 font-mono">
-                                {fee.month} {fee.year ? `(${fee.year})` : ''}
-                              </td>
-                              <td className="py-3 px-3.5 text-right font-mono text-slate-700">₹{fee.amount}</td>
-                              <td className="py-3 px-3.5 text-right font-mono text-emerald-600 font-semibold">₹{fee.paidAmount || 0}</td>
-                              <td className="py-3 px-3.5 text-right font-extrabold font-mono text-rose-700 text-sm">₹{fee.balance}</td>
-                              <td className="py-3 px-3.5 text-center">
-                                <Badge variant={fee.status === 'PARTIAL' ? 'amber' : 'red'} size="sm">
-                                  {fee.status}
-                                </Badge>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-xs">
-                          <tr>
-                            <td colSpan="5" className="py-3 px-3.5 text-right text-slate-700 uppercase font-bold text-[11px]">
-                              Total Outstanding Dues:
+                  <div className="overflow-x-auto rounded-xl border border-slate-200/80">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-semibold uppercase text-[10px]">
+                        <tr>
+                          <th className="py-2.5 px-3.5">#</th>
+                          <th className="py-2.5 px-3.5">Fee Head</th>
+                          <th className="py-2.5 px-3.5">Billing Month</th>
+                          <th className="py-2.5 px-3.5 text-right">Billed Amount</th>
+                          <th className="py-2.5 px-3.5 text-right">Paid Amount</th>
+                          <th className="py-2.5 px-3.5 text-right">Pending Balance</th>
+                          <th className="py-2.5 px-3.5 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {pendingFees.map((fee, idx) => (
+                          <tr key={fee.id || idx} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-3 px-3.5 font-mono text-slate-400 text-[11px]">{idx + 1}</td>
+                            <td className="py-3 px-3.5 font-bold text-slate-900">{fee.title}</td>
+                            <td className="py-3 px-3.5 font-semibold text-slate-700 font-mono">
+                              {fee.month} {fee.year ? `(${fee.year})` : ''}
                             </td>
-                            <td className="py-3 px-3.5 text-right font-extrabold font-mono text-rose-700 text-sm">
-                              ₹{pendingFees.reduce((sum, f) => sum + Number(f.balance || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            <td className="py-3 px-3.5 text-right font-mono text-slate-700">₹{fee.amount}</td>
+                            <td className="py-3 px-3.5 text-right font-mono text-emerald-600 font-semibold">₹{fee.paidAmount || 0}</td>
+                            <td className="py-3 px-3.5 text-right font-bold font-mono text-rose-700 text-sm">₹{fee.balance}</td>
+                            <td className="py-3 px-3.5 text-center">
+                              <Badge variant={fee.status === 'PARTIAL' ? 'warning' : 'danger'} size="sm">
+                                {fee.status}
+                              </Badge>
                             </td>
-                            <td></td>
                           </tr>
-                        </tfoot>
-                      </table>
-                    </div>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-slate-50 font-bold border-t border-slate-200 text-xs">
+                        <tr>
+                          <td colSpan="5" className="py-3 px-3.5 text-right text-slate-700 uppercase font-bold text-[10px]">
+                            Total Outstanding Dues:
+                          </td>
+                          <td className="py-3 px-3.5 text-right font-bold font-mono text-rose-700 text-sm">
+                            ₹{pendingFees.reduce((sum, f) => sum + Number(f.balance || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
+                    </table>
                   </div>
                 )}
               </CardContent>
             </Card>
 
             {/* Master Fee Structure Card */}
-            <Card className="shadow-xs border-slate-200">
+            <Card className="shadow-xs border-slate-200/80">
               <CardHeader
                 title="Master Fee Structure"
                 subtitle={`Applicable academic fee structure for Class ${currentAcademic?.class?.name || '—'} (${selectedYear?.name || 'Selected Year'})`}
               />
-              <CardContent className="space-y-4">
+              <CardContent className="pt-2">
                 {student.currentFeeStructure?.isConfigured ? (
                   <div>
                     {student.currentFeeStructure.academicFees?.length > 0 ? (
-                      <div className="overflow-x-auto rounded-xl border border-slate-200">
+                      <div className="overflow-x-auto rounded-xl border border-slate-200/80">
                         <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px]">
+                          <thead className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-semibold uppercase text-[10px]">
                             <tr>
-                              <th className="py-3 px-3.5">Fee Head</th>
-                              <th className="py-3 px-3.5">Billing Cycle</th>
-                              <th className="py-3 px-3.5 text-right">Amount</th>
+                              <th className="py-2.5 px-3.5">Fee Head</th>
+                              <th className="py-2.5 px-3.5">Billing Cycle</th>
+                              <th className="py-2.5 px-3.5 text-right">Amount</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
                             {student.currentFeeStructure.academicFees.map((head, idx) => {
                               const hasDiscount = head.discountAmount > 0 || (head.originalAmount && head.originalAmount > head.amount);
                               return (
-                                <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                                <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
                                   <td className="py-3 px-3.5 font-semibold text-slate-800">
                                     {head.title}
                                     {head.isOverridden && (
-                                      <span className="ml-2 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-mono">
+                                      <span className="ml-2 text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded font-mono font-normal">
                                         Custom Override
                                       </span>
                                     )}
                                     {hasDiscount && (
-                                      <span className="ml-1.5 text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded font-mono">
-                                        Discount: {formatCurrency(head.discountAmount || (head.originalAmount - head.amount))}
+                                      <span className="ml-1.5 text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded font-mono font-normal">
+                                        Concession: {formatCurrency(head.discountAmount || (head.originalAmount - head.amount))}
                                       </span>
                                     )}
                                   </td>
@@ -980,16 +1186,16 @@ export const StudentDetailsPage = () => {
                         </table>
                       </div>
                     ) : (
-                      <p className="text-xs text-slate-500 italic bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
+                      <p className="text-xs text-slate-500 italic bg-slate-50 p-4 rounded-xl border border-slate-200/70 text-center">
                         No academic fee heads configured for this class.
                       </p>
                     )}
                   </div>
                 ) : (
-                  <div className="p-6 text-center rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="p-6 text-center rounded-xl bg-slate-50 border border-slate-200/70 space-y-3">
                     <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
                     <p className="text-xs text-slate-600 font-medium">
-                      No master fee structure is currently configured for this class, medium, and stream placement.
+                      No master fee structure configured for this class, medium, and stream placement.
                     </p>
                     <Button
                       variant="outline"
@@ -1005,26 +1211,29 @@ export const StudentDetailsPage = () => {
           </div>
         )}
 
-        {/* TAB 3: FEE OVERRIDES & CONCESSIONS */}
+        {/* ─── TAB 3: FEE OVERRIDES ─── */}
         {activeTab === 'overrides' && (
-          <Card className="shadow-xs border-slate-200">
+          <Card className="shadow-xs border-slate-200/80">
             <CardHeader
-              title="Student Fee Overrides & Concessions"
-              subtitle={`Student-specific fee head overrides for ${selectedYear?.name || 'Selected Year'}`}
+              title="Student Fee Overrides & Discounts"
+              subtitle={`Individual student concessions for ${selectedYear?.name || 'Selected Year'}`}
             />
-            <CardContent>
+            <CardContent className="pt-2">
               <StudentFeeOverridesTab studentId={student.id} isLocked={isLocked} />
             </CardContent>
           </Card>
         )}
 
-        {/* TAB 4: HISTORY & PROGRESSION */}
+        {/* ─── TAB 4: PROGRESSION & HISTORY ─── */}
         {activeTab === 'history' && (
           <div className="space-y-6">
             {/* Academic Progression Card */}
-            <Card className="shadow-xs border-slate-200">
-              <CardHeader title="Academic Progression History" subtitle="Year-by-year enrollment placement record" />
-              <CardContent className="space-y-3">
+            <Card className="shadow-xs border-slate-200/80">
+              <CardHeader
+                title="Academic Progression Record"
+                subtitle="Year-by-year historical enrollment tracking"
+              />
+              <CardContent className="space-y-3 pt-2">
                 {student.enrollments && student.enrollments.length > 0 ? (
                   student.enrollments.map((enr) => {
                     const isSelected = enr.academicYear?.id === selectedYearId || enr.academicYearId === selectedYearId;
@@ -1033,20 +1242,25 @@ export const StudentDetailsPage = () => {
                         key={enr.id}
                         className={`p-4 rounded-xl border text-xs transition-all ${
                           isSelected
-                            ? 'border-indigo-300 bg-indigo-50/50 shadow-2xs'
-                            : 'border-slate-200 bg-white hover:border-slate-300'
+                            ? 'border-indigo-300 bg-indigo-50/40 shadow-2xs'
+                            : 'border-slate-200/80 bg-white hover:border-slate-300'
                         }`}
                       >
                         <div className="flex items-center justify-between font-bold text-slate-900 mb-1.5 text-sm">
                           <span className="flex items-center gap-2">
                             <GraduationCap className="w-4 h-4 text-indigo-600" />
                             {enr.academicYear?.name}
+                            {isSelected && (
+                              <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
+                                Selected Session
+                              </span>
+                            )}
                           </span>
                           <Badge variant={enr.status === 'ACTIVE' ? 'success' : 'neutral'} size="sm">
                             Class {enr.class?.name || '—'}
                           </Badge>
                         </div>
-                        <div className="text-slate-600 text-xs flex justify-between font-medium pt-1">
+                        <div className="text-slate-600 text-xs flex flex-wrap justify-between gap-2 font-medium pt-1">
                           <span>
                             Medium: {enr.medium?.name || '—'} {enr.stream ? `• Stream: ${enr.stream.name}` : ''}
                           </span>
@@ -1065,14 +1279,14 @@ export const StudentDetailsPage = () => {
 
             {/* Mid-Session Transfer History */}
             {transferHistories && transferHistories.length > 0 && (
-              <Card className="shadow-xs border-slate-200">
+              <Card className="shadow-xs border-slate-200/80">
                 <CardHeader
-                  title="Mid-Session Transfer History"
-                  subtitle="Historical Medium & Stream transfers within an academic year"
+                  title="Mid-Session Stream & Medium Transfers"
+                  subtitle="Historical internal stream/medium changes"
                 />
-                <CardContent className="space-y-3 text-xs">
+                <CardContent className="space-y-3 pt-2 text-xs">
                   {transferHistories.map((h) => (
-                    <div key={h.id} className="p-4 bg-indigo-50/50 border border-indigo-200 rounded-xl space-y-2">
+                    <div key={h.id} className="p-4 bg-indigo-50/40 border border-indigo-200/80 rounded-xl space-y-2">
                       <div className="flex items-center justify-between font-bold text-slate-800">
                         <span className="flex items-center gap-1.5 text-indigo-700 text-sm">
                           <ArrowRightLeft className="w-4 h-4 text-indigo-600" />
@@ -1112,8 +1326,6 @@ export const StudentDetailsPage = () => {
             onSuccess={fetchStudentData}
           />
         )}
-
-
 
         {currentAcademic && activeModal === 'TRANSFER' && (
           <StudentTransferModal

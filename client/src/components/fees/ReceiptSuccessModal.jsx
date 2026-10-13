@@ -51,30 +51,30 @@ export const ReceiptSuccessModal = ({ isOpen, onClose, resultData, onCollectAnot
     <Modal isOpen={isOpen} onClose={onClose} size="md" showCloseButton={false}>
       <div className="text-center p-6 space-y-5">
         {/* Success Icon */}
-        <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-xs animate-bounce">
-          <CheckCircle2 className="w-10 h-10" />
+        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+          <CheckCircle2 className="w-6 h-6" />
         </div>
 
         {/* Title */}
         <div>
-          <h2 className="text-xl font-extrabold text-slate-900">Payment Collected Successfully</h2>
-          <p className="text-xs text-slate-500 mt-1">
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight">Payment Collected Successfully</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
             Transaction completed and receipt generated.
           </p>
         </div>
 
         {/* Receipt Box */}
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 text-xs">
+        <div className="bg-slate-50/70 border border-slate-200/80 rounded-xl p-3.5 space-y-2.5 text-xs">
           <div className="flex items-center justify-between">
             <span className="text-slate-500">Receipt Number</span>
-            <span className="font-mono font-bold text-indigo-700 text-sm bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-              {receiptNumber}
+            <span className="font-mono font-bold text-indigo-700 text-xs bg-indigo-50 px-2 py-0.5 rounded">
+              #{receiptNumber}
             </span>
           </div>
 
           <div className="flex items-center justify-between">
             <span className="text-slate-500">Amount Collected</span>
-            <span className="font-mono font-extrabold text-slate-900 text-base">
+            <span className="font-mono font-bold text-slate-900 text-base">
               ₹{amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>

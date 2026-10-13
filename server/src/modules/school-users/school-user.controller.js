@@ -48,7 +48,13 @@ export const schoolUserController = {
   updateUser: asyncHandler(async (req, res) => {
     const { id } = schoolUserParamSchema.parse(req.params);
     const body = updateSchoolUserSchema.parse(req.body);
-    const data = await schoolUserService.updateUser(req.schoolId, id, body, req.user.id);
+    const data = await schoolUserService.updateUser(
+      req.schoolId,
+      id,
+      body,
+      req.schoolMembership,
+      req.user.id
+    );
     res.status(200).json({
       success: true,
       message: 'User updated successfully',

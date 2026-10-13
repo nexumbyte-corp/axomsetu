@@ -8,10 +8,14 @@ export const Card = ({ children, className = '', ...props }) => {
   );
 };
 
-export const CardHeader = ({ children, className = '', action }) => {
+export const CardHeader = ({ children, title, subtitle, className = '', action }) => {
   return (
     <div className={`px-6 py-4 border-b border-slate-100 flex items-center justify-between gap-4 ${className}`}>
-      <div className="flex-1">{children}</div>
+      <div className="flex-1 min-w-0">
+        {title && <h3 className="text-sm font-bold text-slate-900 tracking-tight">{title}</h3>}
+        {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+        {children}
+      </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>
   );

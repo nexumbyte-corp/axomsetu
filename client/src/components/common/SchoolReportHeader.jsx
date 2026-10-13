@@ -1,5 +1,4 @@
 import React from 'react';
-import { School } from 'lucide-react';
 
 export const SchoolReportHeader = ({
   school = {},

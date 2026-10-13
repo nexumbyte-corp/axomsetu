@@ -1,8 +1,11 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { AuthContext } from './authContextInstance.js';
 import { authService } from '../services/auth.service.js';
 import { storage } from '../utils/storage.js';
 
-export const AuthContext = createContext(null);
+export { AuthContext };
+
+const EMPTY_PERMISSIONS = Object.freeze([]);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -107,7 +110,7 @@ export const AuthProvider = ({ children }) => {
   // The primary school membership is always schoolAdmins[0]
   const schoolMembership = user?.schoolAdmins?.[0] || null;
   const schoolRole = schoolMembership?.isOwner ? 'OWNER' : (schoolMembership?.schoolRole || null);
-  const schoolPermissions = schoolMembership?.permissions || [];
+  const schoolPermissions = schoolMembership?.permissions || EMPTY_PERMISSIONS;
   const isOwner = schoolRole === 'OWNER' || Boolean(schoolMembership?.isOwner);
   const isSchoolAdmin = schoolRole === 'SCHOOL_ADMIN';
   const hasFullAccess = isOwner || isSchoolAdmin;
@@ -132,25 +135,43 @@ export const AuthProvider = ({ children }) => {
    */
   const canVoidReceipt = isOwner || isSchoolAdmin;
 
-  const value = {
-    user,
-    isAuthenticated: !!user,
-    isInitializing,
-    // School-level access
-    schoolMembership,
-    schoolRole,
-    schoolPermissions,
-    isOwner,
-    isSchoolAdmin,
-    hasFullAccess,
-    can,
-    canVoidReceipt,
-    // Actions
-    login,
-    registerSchool,
-    logout,
-    refreshProfile,
-  };
+  const value = useMemo(
+    () => ({
+      user,
+      isAuthenticated: !!user,
+      isInitializing,
+      // School-level access
+      schoolMembership,
+      schoolRole,
+      schoolPermissions,
+      isOwner,
+      isSchoolAdmin,
+      hasFullAccess,
+      can,
+      canVoidReceipt,
+      // Actions
+      login,
+      registerSchool,
+      logout,
+      refreshProfile,
+    }),
+    [
+      user,
+      isInitializing,
+      schoolMembership,
+      schoolRole,
+      schoolPermissions,
+      isOwner,
+      isSchoolAdmin,
+      hasFullAccess,
+      can,
+      canVoidReceipt,
+      login,
+      registerSchool,
+      logout,
+      refreshProfile,
+    ]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

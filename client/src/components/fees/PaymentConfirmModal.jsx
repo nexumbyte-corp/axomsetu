@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { Modal } from '../ui/Modal.jsx';
 import { Button } from '../ui/Button.jsx';
 
@@ -22,8 +22,8 @@ export const PaymentConfirmModal = ({
     <Modal isOpen={isOpen} onClose={isSubmitting ? undefined : onClose} size="sm">
       <div className="p-4 space-y-4 text-center">
         {/* Icon */}
-        <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-2xs">
-          <DollarSign className="w-6 h-6" />
+        <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+          <CheckCircle2 className="w-5 h-5" />
         </div>
 
         {/* Confirmation Question */}
