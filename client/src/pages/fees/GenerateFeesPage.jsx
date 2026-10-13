@@ -83,6 +83,7 @@ export const GenerateFeesPage = () => {
   // Selection Inputs
   const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [selectedStudentInfo, setSelectedStudentInfo] = useState(null);
 
   // Fee Sheet state (Step 2)
   const [sheetHeads, setSheetHeads] = useState([]);
@@ -248,9 +249,9 @@ export const GenerateFeesPage = () => {
   const loadFeeSheet = async () => {
     if (!selectedYearId) return;
     setSheetLoading(true);
-    setSelectedStudentInfo(null);
-    setMediumStructures([]);
     try {
+      setSelectedStudentInfo(null);
+      setMediumStructures([]);
       if (generationMode === 'ENTIRE_SCHOOL') {
         setSheetHeads((prev) => prev.filter((h) => h.isTemporary));
       } else if (generationMode === 'BY_CLASS' && selectedClassId) {
@@ -753,127 +754,194 @@ export const GenerateFeesPage = () => {
           {/* Fee Heads List / Table Area */}
           <div className="p-4 space-y-4">
             {sheetLoading ? (
-              <div className="space-y-2 py-4">
-                <Skeleton height="35px" width="100%" />
-                <Skeleton height="35px" width="100%" />
-                <Skeleton height="35px" width="100%" />
+              <div className="space-y-2.5 py-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
-            ) : generationMode === 'BY_CLASS' && mediumStructures.length > 0 ? (
-              <div className="space-y-4">
-                {mediumStructures.map((ms, medIdx) => {
-                  const mediumTotal = ms.heads.reduce(
-                    (sum, h) => (h.enabled ? sum + (parseFloat(h.amount) || 0) : sum),
-                    0
-                  );
-                  return (
-                    <div key={medIdx} className="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
-                      <div className="px-3.5 py-2 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between text-xs font-semibold text-slate-800">
-                        <span>Medium: {ms.mediumName} {ms.streamName ? `(${ms.streamName})` : ''}</span>
-                        <span className="text-indigo-700 font-mono font-bold">
-                          Total: ₹{mediumTotal.toLocaleString('en-IN')} / student
-                        </span>
-                      </div>
-
-                      {ms.heads.length === 0 ? (
-                        <div className="p-4 text-xs text-slate-400 italic text-center">
-                          No fee heads configured in template for {ms.mediumName}.
+            ) : generationMode === 'BY_CLASS' ? (
+              mediumStructures.length > 0 ? (
+                <div className="space-y-4">
+                  {mediumStructures.map((ms, medIdx) => {
+                    const mediumTotal = ms.heads.reduce(
+                      (sum, h) => (h.enabled ? sum + (parseFloat(h.amount) || 0) : sum),
+                      0
+                    );
+                    return (
+                      <div key={medIdx} className="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+                        <div className="px-3.5 py-2 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between text-xs font-semibold text-slate-800">
+                          <span>Medium: {ms.mediumName} {ms.streamName ? `(${ms.streamName})` : ''}</span>
+                          <span className="text-indigo-700 font-mono font-bold">
+                            Total: ₹{mediumTotal.toLocaleString('en-IN')} / student
+                          </span>
                         </div>
-                      ) : (
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 border-b border-slate-100 text-slate-400 font-bold uppercase text-[9px]">
-                            <tr>
-                              <th className="px-3 py-2 w-10 text-center">Include</th>
-                              <th className="px-3 py-2">Fee Head</th>
-                              <th className="px-3 py-2 text-right w-36">Amount</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {ms.heads.map((head, headIdx) => (
-                              <tr key={headIdx} className={!head.enabled ? 'bg-slate-50/60 opacity-40' : 'hover:bg-slate-50/50'}>
-                                <td className="px-3 py-1.5 text-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={head.enabled}
-                                    onChange={() => handleToggleMediumHead(medIdx, headIdx)}
-                                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5 cursor-pointer"
-                                  />
-                                </td>
-                                <td className="px-3 py-1.5 font-bold text-slate-900">
-                                  {head.title}
-                                </td>
-                                <td className="px-3 py-1.5 text-right">
-                                  <div className="relative w-32 ml-auto">
-                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₹</span>
-                                    <input
-                                      type="number"
-                                      autoComplete="off"
-                                      min="0"
-                                      step="0.01"
-                                      disabled={!head.enabled}
-                                      value={head.amount}
-                                      onChange={(e) => handleMediumHeadAmountChange(medIdx, headIdx, e.target.value)}
-                                      className="w-full pl-6 pr-2 py-1 text-xs text-right font-mono font-bold rounded-md border border-slate-200 focus:ring-1 focus:ring-indigo-500"
-                                    />
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  );
-                })}
 
-                {/* Temporary Fee Heads section */}
-                {sheetHeads.filter((h) => h.isTemporary).length > 0 && (
-                  <div className="bg-white rounded-xl border border-amber-200 shadow-2xs overflow-hidden">
-                    <div className="px-3 py-2 bg-amber-50 border-b border-amber-200 flex items-center justify-between text-xs font-bold text-amber-900">
-                      <span>⚡ Custom Temporary Fee Heads</span>
-                    </div>
-                    <div className="p-2 space-y-1.5">
-                      {sheetHeads.filter((h) => h.isTemporary).map((head, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-amber-50/50 border border-amber-100 text-xs">
-                          <span className="font-bold text-slate-800">{head.title}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-indigo-700">₹{Number(head.amount).toLocaleString('en-IN')}</span>
-                            <button
-                              onClick={() => handleRemoveTemporaryHead(sheetHeads.findIndex((sh) => sh === head))}
-                              className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
-                            >
-                              <Trash className="w-3.5 h-3.5" />
-                            </button>
+                        {ms.heads.length === 0 ? (
+                          <div className="p-4 text-xs text-slate-400 italic text-center">
+                            No fee heads configured in template for {ms.mediumName}.
                           </div>
-                        </div>
-                      ))}
+                        ) : (
+                          <table className="w-full text-left text-xs">
+                            <thead className="bg-slate-50 border-b border-slate-100 text-slate-400 font-bold uppercase text-[9px]">
+                              <tr>
+                                <th className="px-3 py-2 w-10 text-center">Include</th>
+                                <th className="px-3 py-2">Fee Head</th>
+                                <th className="px-3 py-2 text-right w-36">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {ms.heads.map((head, headIdx) => (
+                                <tr key={headIdx} className={!head.enabled ? 'bg-slate-50/60 opacity-40' : 'hover:bg-slate-50/50'}>
+                                  <td className="px-3 py-1.5 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={head.enabled}
+                                      onChange={() => handleToggleMediumHead(medIdx, headIdx)}
+                                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5 cursor-pointer"
+                                    />
+                                  </td>
+                                  <td className="px-3 py-1.5 font-bold text-slate-900">
+                                    {head.title}
+                                  </td>
+                                  <td className="px-3 py-1.5 text-right">
+                                    <div className="relative w-32 ml-auto">
+                                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₹</span>
+                                      <input
+                                        type="number"
+                                        autoComplete="off"
+                                        min="0"
+                                        step="0.01"
+                                        disabled={!head.enabled}
+                                        value={head.amount}
+                                        onChange={(e) => handleMediumHeadAmountChange(medIdx, headIdx, e.target.value)}
+                                        className="w-full pl-6 pr-2 py-1 text-xs text-right font-mono font-bold rounded-md border border-slate-200 focus:ring-1 focus:ring-indigo-500"
+                                      />
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Temporary Fee Heads section */}
+                  {sheetHeads.filter((h) => h.isTemporary).length > 0 && (
+                    <div className="bg-white rounded-xl border border-amber-200 shadow-2xs overflow-hidden">
+                      <div className="px-3 py-2 bg-amber-50 border-b border-amber-200 flex items-center justify-between text-xs font-bold text-amber-900">
+                        <span>⚡ Custom Temporary Fee Heads</span>
+                      </div>
+                      <div className="p-2 space-y-1.5">
+                        {sheetHeads.filter((h) => h.isTemporary).map((head, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-amber-50/50 border border-amber-100 text-xs">
+                            <span className="font-bold text-slate-800">{head.title}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-indigo-700">₹{Number(head.amount).toLocaleString('en-IN')}</span>
+                              <button
+                                onClick={() => handleRemoveTemporaryHead(sheetHeads.findIndex((sh) => sh === head))}
+                                className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                              >
+                                <Trash className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-6 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300 space-y-2">
+                    <FileSpreadsheet className="w-8 h-8 text-slate-400 mx-auto" />
+                    <p className="text-xs font-bold text-slate-700">
+                      No Fee Structure configured for Class {selectedClassObj?.name || ''} in {selectedYear?.name}
+                    </p>
+                    <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                      Configure a master fee structure for this class in the Fee Templates tab, or click &quot;+ Custom Head&quot; above to add one-time charges for this billing month.
+                    </p>
+                  </div>
+
+                  {/* Temporary Fee Heads if any were added */}
+                  {sheetHeads.filter((h) => h.isTemporary).length > 0 && (
+                    <div className="bg-white rounded-xl border border-amber-200 shadow-2xs overflow-hidden">
+                      <div className="px-3 py-2 bg-amber-50 border-b border-amber-200 flex items-center justify-between text-xs font-bold text-amber-900">
+                        <span>⚡ Custom Temporary Fee Heads</span>
+                      </div>
+                      <div className="p-2 space-y-1.5">
+                        {sheetHeads.filter((h) => h.isTemporary).map((head, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-amber-50/50 border border-amber-100 text-xs">
+                            <span className="font-bold text-slate-800">{head.title}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-indigo-700">₹{Number(head.amount).toLocaleString('en-IN')}</span>
+                              <button
+                                onClick={() => handleRemoveTemporaryHead(sheetHeads.findIndex((sh) => sh === head))}
+                                className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                              >
+                                <Trash className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            ) : (
+              <div className="space-y-3">
+                {generationMode === 'BY_STUDENT' && selectedStudentInfo && (
+                  <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-lg bg-indigo-50/60 border border-indigo-100 text-xs">
+                    <span className="font-bold text-slate-900">{selectedStudentInfo.name}</span>
+                    <span className="text-slate-400 font-mono text-[11px]">({selectedStudentInfo.admissionNo})</span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-slate-700 font-medium">Class {selectedStudentInfo.className}</span>
+                    {selectedStudentInfo.mediumName && (
+                      <>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-slate-700 font-medium">{selectedStudentInfo.mediumName} Medium</span>
+                      </>
+                    )}
+                    {selectedStudentInfo.streamName && (
+                      <>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-slate-700 font-medium">Stream: {selectedStudentInfo.streamName}</span>
+                      </>
+                    )}
                   </div>
                 )}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[9px]">
-                    <tr>
-                      <th className="px-3 py-2 w-10 text-center">Include</th>
-                      <th className="px-3 py-2">Fee Head</th>
-                      <th className="px-3 py-2">Type</th>
-                      <th className="px-3 py-2 w-40 text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {sheetHeads.length === 0 ? (
+
+                <div className="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase text-[9px]">
                       <tr>
-                        <td colSpan={4} className="px-4 py-8 text-center text-xs text-slate-500">
-                          <div className="flex flex-col items-center gap-1">
-                            <span className="font-bold text-slate-700">Master Fee Templates Active</span>
-                            <span className="text-[10px] text-slate-400">
-                              Each class generates charges according to its Master Template. Click "+ Custom Head" if adding single-run charges.
-                            </span>
-                          </div>
-                        </td>
+                        <th className="px-3 py-2 w-10 text-center">Include</th>
+                        <th className="px-3 py-2">Fee Head</th>
+                        <th className="px-3 py-2">Type</th>
+                        <th className="px-3 py-2 w-40 text-right">Amount</th>
                       </tr>
-                    ) : (
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {sheetHeads.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-8 text-center text-xs text-slate-500">
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="font-bold text-slate-700">
+                                {generationMode === 'BY_STUDENT'
+                                  ? 'No Fee Template for this student'
+                                  : 'Master Fee Templates Active'}
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                {generationMode === 'BY_STUDENT'
+                                  ? 'No active fee structure found for this student\'s class & medium. Click "+ Custom Head" to add single-run charges.'
+                                  : 'Each class generates charges according to its Master Template. Click "+ Custom Head" if adding single-run charges.'}
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
                       sheetHeads.map((head, idx) => (
                         <tr key={idx} className={!head.enabled ? 'bg-slate-50/70 opacity-40' : 'hover:bg-slate-50/50'}>
                           <td className="px-3 py-1.5 text-center">
@@ -924,7 +992,8 @@ export const GenerateFeesPage = () => {
                   </tbody>
                 </table>
               </div>
-            )}
+            </div>
+          )}
           </div>
 
           {/* Step 2 Footer Navigation */}

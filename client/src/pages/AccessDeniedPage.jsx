@@ -24,6 +24,8 @@ const PERMISSION_LABELS = {
   STAFF_CREATE: 'Add Staff',
   STAFF_EDIT: 'Edit Staff',
   STAFF_DELETE: 'Delete Staff',
+  SALARY_VIEW: 'View Salary Setup',
+  SALARY_MANAGE: 'Manage Salaries & Advances',
   PAYROLL_VIEW: 'View Payroll',
   PAYROLL_PROCESS: 'Process Payroll',
   EXPENSE_VIEW: 'View Expenses',
@@ -40,8 +42,12 @@ const PERMISSION_LABELS = {
   USERS_EDIT: 'Edit Users',
   USERS_DISABLE: 'Deactivate Users',
   USERS_MANAGE_PERMISSIONS: 'Manage Permissions',
-  SETTINGS_VIEW: 'View Settings',
-  SETTINGS_EDIT: 'Edit Settings',
+  HOSTEL_VIEW: 'View Hostel',
+  HOSTEL_SETUP: 'Manage Hostel Setup',
+  HOSTEL_ADMIT: 'Admit Hostel Resident',
+  HOSTEL_TRANSFER: 'Transfer Hostel Resident',
+  HOSTEL_EXIT: 'Exit Hostel Resident',
+  FEES_VOID_RECEIPT: 'Void Receipt',
 };
 
 export const AccessDeniedPage = ({ missingPermission }) => {

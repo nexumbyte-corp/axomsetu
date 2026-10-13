@@ -210,7 +210,26 @@ export const schoolUserService = {
       throw ApiError.forbidden('Staff users cannot modify School Administrator profiles');
     }
 
-    const { name, phone } = data;
+    const { name, phone, schoolRole } = data;
+
+    let updatedMembership = membership;
+    if (schoolRole && schoolRole !== membership.schoolRole) {
+      if (membership.schoolRole === 'OWNER') {
+        throw ApiError.forbidden('Cannot modify Owner role. Ownership cannot be transferred here.');
+      }
+      if (actorMembership?.schoolRole === 'STAFF') {
+        throw ApiError.forbidden('Staff users cannot change user roles');
+      }
+
+      updatedMembership = await prisma.schoolAdmin.update({
+        where: { id: membershipId },
+        data: { schoolRole },
+        include: {
+          user: true,
+          permissions: { select: { permission: true } },
+        },
+      });
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: membership.userId },
@@ -228,12 +247,20 @@ export const schoolUserService = {
         action: 'SCHOOL_USER_UPDATED',
         entityType: 'SchoolAdmin',
         entityId: membershipId,
-        oldValues: { name: membership.user.name, phone: membership.user.phone },
-        newValues: { name: updatedUser.name, phone: updatedUser.phone },
+        oldValues: {
+          name: membership.user.name,
+          phone: membership.user.phone,
+          schoolRole: membership.schoolRole,
+        },
+        newValues: {
+          name: updatedUser.name,
+          phone: updatedUser.phone,
+          schoolRole: updatedMembership.schoolRole,
+        },
       },
     });
 
-    return { ...formatMembership({ ...membership, user: updatedUser }) };
+    return formatMembership({ ...updatedMembership, user: updatedUser });
   },
 
   /**

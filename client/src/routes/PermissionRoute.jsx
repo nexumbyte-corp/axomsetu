@@ -12,11 +12,12 @@ import { AccessDeniedPage } from '../pages/AccessDeniedPage.jsx';
  *     <ProcessPayrollPage />
  *   </PermissionRoute>
  */
-export const PermissionRoute = ({ children, permission }) => {
+export const PermissionRoute = ({ children, permission, requireAll = false }) => {
   const { can } = usePermission();
 
-  if (permission && !can(permission)) {
-    return <AccessDeniedPage missingPermission={permission} />;
+  if (permission && !can(permission, { requireAll })) {
+    const missingPerm = Array.isArray(permission) ? permission.join(', ') : permission;
+    return <AccessDeniedPage missingPermission={missingPerm} />;
   }
 
   return children;

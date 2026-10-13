@@ -19,7 +19,7 @@ feesRouter.use(authenticate, resolveSchool);
 // Fee Charges Management Routes
 // ------------------------------------------
 feesRouter.delete('/charges/:chargeId', requireOwnerOrSchoolAdmin('Only School Admin or Owner can delete unpaid fee charges'), deleteUnpaidFeeCharge);
-feesRouter.patch('/charges/:chargeId', requireOwnerOrSchoolAdmin('Only School Admin or Owner can edit fee charges'), updateUnpaidFeeCharge);
+feesRouter.patch('/charges/:chargeId', requirePermission(PERMISSIONS.FEES_EDIT), updateUnpaidFeeCharge);
 
 // ------------------------------------------
 // Fee Types Routes

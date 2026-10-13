@@ -138,7 +138,7 @@ export const SchoolAdminLayout = () => {
           }
           return false;
         });
-        const isExpanded = openGroups[group.id] ?? (hasActiveChildGroup || group.id === 'main');
+        const isExpanded = openGroups[group.id] ?? (hasActiveChildGroup || group.id === 'main' || group.id === 'operations');
 
         return (
           <div key={group.id} className="select-none">

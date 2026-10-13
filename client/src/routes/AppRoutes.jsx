@@ -8,6 +8,7 @@ import { OwnerRoute } from './OwnerRoute.jsx';
 import { SubscriptionRoute } from './SubscriptionRoute.jsx';
 import { SubscriptionProvider } from '../context/SubscriptionContext.jsx';
 import { PageLoader } from '../components/ui/PageLoader.jsx';
+import { usePermission } from '../hooks/usePermission.js';
 
 // Helper function to lazy load pages with named or default exports
 const lazyLoad = (factory, name) =>
@@ -106,6 +107,46 @@ const HostelAdmissionPage = lazyLoad(() => import('../pages/hostel/HostelAdmissi
 const HostelResidentsPage = lazyLoad(() => import('../pages/hostel/HostelResidentsPage.jsx'), 'HostelResidentsPage');
 const HostelReportsPage = lazyLoad(() => import('../pages/hostel/HostelReportsPage.jsx'), 'HostelReportsPage');
 
+// Smart redirect for /app index when user lacks DASHBOARD_VIEW
+const AppIndexRedirect = () => {
+  const { can } = usePermission();
+  if (can('DASHBOARD_VIEW')) {
+    return <DashboardPage />;
+  }
+  if (can(['FEES_COLLECT', 'FEES_VIEW', 'FEES_GENERATE'])) {
+    return <Navigate to="/app/fees" replace />;
+  }
+  if (can('STUDENTS_VIEW')) {
+    return <Navigate to="/app/students" replace />;
+  }
+  if (can('STAFF_VIEW')) {
+    return <Navigate to="/app/staff" replace />;
+  }
+  if (can(['EXPENSE_VIEW', 'FUND_VIEW'])) {
+    return <Navigate to="/app/finance" replace />;
+  }
+  if (can(['HOSTEL_VIEW', 'HOSTEL_SETUP', 'HOSTEL_ADMIT'])) {
+    return <Navigate to="/app/hostel" replace />;
+  }
+  if (can('REPORTS_VIEW')) {
+    return <Navigate to="/app/reports" replace />;
+  }
+  if (can('USERS_VIEW')) {
+    return <Navigate to="/app/settings/users" replace />;
+  }
+  return <PermissionRoute permission="DASHBOARD_VIEW"><DashboardPage /></PermissionRoute>;
+};
+
+// Smart redirect for /app/fees index to route users to their accessible fee tab
+const FeeIndexRedirect = () => {
+  const { can } = usePermission();
+  if (can('FEES_COLLECT')) return <Navigate to="collect" replace />;
+  if (can('FEES_VIEW')) return <Navigate to="receipts" replace />;
+  if (can('FEES_GENERATE')) return <Navigate to="generate" replace />;
+  if (can('FEES_MANAGE_STRUCTURE')) return <Navigate to="templates" replace />;
+  return <Navigate to="/app" replace />;
+};
+
 export const AppRoutes = () => {
   return (
     <React.Suspense fallback={<PageLoader />}>
@@ -136,16 +177,16 @@ export const AppRoutes = () => {
             </ProtectedRoute>
           }
         >
-          <Route index element={<PermissionRoute permission="DASHBOARD_VIEW"><DashboardPage /></PermissionRoute>} />
+          <Route index element={<AppIndexRedirect />} />
           <Route path="subscription" element={<SubscriptionPage />} />
 
           {/* Operational Modules - Protected by SubscriptionRoute */}
-          <Route path="academic-years" element={<SubscriptionRoute><PermissionRoute permission="ACADEMICS_VIEW"><AcademicYearsPage /></PermissionRoute></SubscriptionRoute>} />
-          <Route path="classes" element={<SubscriptionRoute><PermissionRoute permission="ACADEMICS_VIEW"><ClassesPage /></PermissionRoute></SubscriptionRoute>} />
-          <Route path="mediums" element={<SubscriptionRoute><PermissionRoute permission="ACADEMICS_VIEW"><MediumsPage /></PermissionRoute></SubscriptionRoute>} />
-          <Route path="sections" element={<SubscriptionRoute><PermissionRoute permission="ACADEMICS_VIEW"><SectionsPage /></PermissionRoute></SubscriptionRoute>} />
-          <Route path="streams" element={<SubscriptionRoute><PermissionRoute permission="ACADEMICS_VIEW"><StreamsPage /></PermissionRoute></SubscriptionRoute>} />
-          <Route path="admit-cards" element={<SubscriptionRoute><PermissionRoute permission="ACADEMICS_VIEW"><AdmitCardGenerationPage /></PermissionRoute></SubscriptionRoute>} />
+          <Route path="academic-years" element={<SubscriptionRoute><PermissionRoute permission={['ACADEMICS_VIEW', 'ACADEMICS_MANAGE']}><AcademicYearsPage /></PermissionRoute></SubscriptionRoute>} />
+          <Route path="classes" element={<SubscriptionRoute><PermissionRoute permission={['ACADEMICS_VIEW', 'ACADEMICS_MANAGE']}><ClassesPage /></PermissionRoute></SubscriptionRoute>} />
+          <Route path="mediums" element={<SubscriptionRoute><PermissionRoute permission={['ACADEMICS_VIEW', 'ACADEMICS_MANAGE']}><MediumsPage /></PermissionRoute></SubscriptionRoute>} />
+          <Route path="sections" element={<SubscriptionRoute><PermissionRoute permission={['ACADEMICS_VIEW', 'ACADEMICS_MANAGE']}><SectionsPage /></PermissionRoute></SubscriptionRoute>} />
+          <Route path="streams" element={<SubscriptionRoute><PermissionRoute permission={['ACADEMICS_VIEW', 'ACADEMICS_MANAGE']}><StreamsPage /></PermissionRoute></SubscriptionRoute>} />
+          <Route path="admit-cards" element={<SubscriptionRoute><PermissionRoute permission={['ACADEMICS_VIEW', 'ACADEMICS_MANAGE']}><AdmitCardGenerationPage /></PermissionRoute></SubscriptionRoute>} />
 
           {/* Students Routes */}
           <Route path="students" element={<SubscriptionRoute><PermissionRoute permission="STUDENTS_VIEW"><StudentsListPage /></PermissionRoute></SubscriptionRoute>} />
@@ -156,8 +197,8 @@ export const AppRoutes = () => {
           <Route path="students/:studentId/edit" element={<SubscriptionRoute><PermissionRoute permission="STUDENTS_EDIT"><EditStudentProfilePage /></PermissionRoute></SubscriptionRoute>} />
 
           {/* Fee Management Routes */}
-          <Route path="fees" element={<SubscriptionRoute><FeeManagementLayout /></SubscriptionRoute>}>
-            <Route index element={<Navigate to="collect" replace />} />
+          <Route path="fees" element={<SubscriptionRoute><PermissionRoute permission={['FEES_VIEW', 'FEES_COLLECT', 'FEES_GENERATE', 'FEES_MANAGE_STRUCTURE']}><FeeManagementLayout /></PermissionRoute></SubscriptionRoute>}>
+            <Route index element={<FeeIndexRedirect />} />
             <Route path="collect" element={<PermissionRoute permission="FEES_COLLECT"><CollectFeesPage /></PermissionRoute>} />
             <Route path="generate" element={<PermissionRoute permission="FEES_GENERATE"><GenerateFeesPage /></PermissionRoute>} />
             <Route path="templates" element={<PermissionRoute permission="FEES_MANAGE_STRUCTURE"><FeeTemplatesPage /></PermissionRoute>} />
@@ -173,7 +214,7 @@ export const AppRoutes = () => {
           </Route>
 
           {/* Staff & Payroll Routes */}
-          <Route path="staff" element={<SubscriptionRoute><PermissionRoute permission="STAFF_VIEW"><StaffListPage /></PermissionRoute></SubscriptionRoute>} />
+          <Route path="staff" element={<SubscriptionRoute><PermissionRoute permission={['STAFF_VIEW', 'PAYROLL_VIEW', 'SALARY_VIEW']}><StaffListPage /></PermissionRoute></SubscriptionRoute>} />
           <Route path="staff/departments" element={<SubscriptionRoute><PermissionRoute permission="STAFF_VIEW"><StaffDepartmentsPage /></PermissionRoute></SubscriptionRoute>} />
           <Route path="staff/salary" element={<SubscriptionRoute><PermissionRoute permission="SALARY_VIEW"><SalarySetupPage /></PermissionRoute></SubscriptionRoute>} />
           <Route path="staff/payments" element={<SubscriptionRoute><PermissionRoute permission="PAYROLL_VIEW"><SalaryPaymentsPage /></PermissionRoute></SubscriptionRoute>} />
@@ -186,7 +227,7 @@ export const AppRoutes = () => {
           <Route path="payroll/payments" element={<Navigate to="/app/staff/payments" replace />} />
 
           {/* Finance & Ledger Routes */}
-          <Route path="finance" element={<SubscriptionRoute><PermissionRoute permission="EXPENSE_VIEW"><FinanceLayout /></PermissionRoute></SubscriptionRoute>}>
+          <Route path="finance" element={<SubscriptionRoute><PermissionRoute permission={['EXPENSE_VIEW', 'FUND_VIEW']}><FinanceLayout /></PermissionRoute></SubscriptionRoute>}>
             <Route index element={<Navigate to="overview" replace />} />
             <Route path="overview" element={<FinanceOverviewPage />} />
             <Route path="transactions" element={<FinancialTransactionsPage />} />
@@ -199,7 +240,7 @@ export const AppRoutes = () => {
           <Route path="reports" element={<SubscriptionRoute><PermissionRoute permission="REPORTS_VIEW"><ReportsPage /></PermissionRoute></SubscriptionRoute>} />
 
           {/* Hostel Management Routes */}
-          <Route path="hostel" element={<SubscriptionRoute><PermissionRoute permission="HOSTEL_VIEW"><HostelLayout /></PermissionRoute></SubscriptionRoute>}>
+          <Route path="hostel" element={<SubscriptionRoute><PermissionRoute permission={['HOSTEL_VIEW', 'HOSTEL_SETUP', 'HOSTEL_ADMIT']}><HostelLayout /></PermissionRoute></SubscriptionRoute>}>
             <Route index element={<HostelDashboardPage />} />
             <Route path="setup" element={<PermissionRoute permission="HOSTEL_SETUP"><HostelSetupPage /></PermissionRoute>} />
             <Route path="fees" element={<PermissionRoute permission="HOSTEL_SETUP"><HostelFeeSetupPage /></PermissionRoute>} />
@@ -210,7 +251,7 @@ export const AppRoutes = () => {
           </Route>
 
           {/* Users & Permissions Routes */}
-          <Route path="settings/users" element={<SubscriptionRoute><PermissionRoute permission="USERS_VIEW"><SchoolUsersPage /></PermissionRoute></SubscriptionRoute>} />
+          <Route path="settings/users" element={<SubscriptionRoute><PermissionRoute permission={['USERS_VIEW', 'USERS_MANAGE_PERMISSIONS', 'USERS_CREATE']}><SchoolUsersPage /></PermissionRoute></SubscriptionRoute>} />
           <Route path="settings/profile" element={<SubscriptionRoute><OwnerRoute><SchoolProfilePage /></OwnerRoute></SubscriptionRoute>} />
           <Route path="profile" element={<SubscriptionRoute><UserProfilePage /></SubscriptionRoute>} />
         </Route>

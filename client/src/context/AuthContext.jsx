@@ -121,9 +121,16 @@ export const AuthProvider = ({ children }) => {
    * STAFF returns true only if the permission is in their list.
    */
   const can = useCallback(
-    (permission) => {
+    (permission, options = {}) => {
       if (!user) return false;
       if (hasFullAccess) return true;
+      if (!permission) return true;
+      if (Array.isArray(permission)) {
+        if (options.requireAll) {
+          return permission.every((p) => schoolPermissions.includes(p));
+        }
+        return permission.some((p) => schoolPermissions.includes(p));
+      }
       return schoolPermissions.includes(permission);
     },
     [user, hasFullAccess, schoolPermissions]

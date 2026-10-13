@@ -1,7 +1,12 @@
 import React from 'react';
 
-export const Skeleton = ({ className = '', ...props }) => {
-  return <div className={`animate-pulse rounded-md bg-slate-200/80 ${className}`} {...props} />;
+export const Skeleton = ({ className = '', height, width, style, ...props }) => {
+  const customStyle = {
+    ...(height ? { height } : {}),
+    ...(width ? { width } : {}),
+    ...style,
+  };
+  return <div className={`animate-pulse rounded-md bg-slate-200/80 ${className}`} style={customStyle} {...props} />;
 };
 
 export const TableSkeleton = ({ rows = 5, cols = 4 }) => {

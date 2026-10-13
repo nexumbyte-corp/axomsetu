@@ -15,9 +15,9 @@ const router = Router();
 
 router.use(authenticate, resolveSchool);
 
-router.get('/overview', requirePermission(PERMISSIONS.EXPENSE_VIEW), getFinanceOverview);
-router.get('/transactions', requirePermission(PERMISSIONS.EXPENSE_VIEW), getFinancialTransactions);
-router.get('/transactions/:id', requirePermission(PERMISSIONS.EXPENSE_VIEW), getFinancialTransactionById);
+router.get('/overview', requirePermission([PERMISSIONS.EXPENSE_VIEW, PERMISSIONS.FUND_VIEW]), getFinanceOverview);
+router.get('/transactions', requirePermission([PERMISSIONS.EXPENSE_VIEW, PERMISSIONS.FUND_VIEW]), getFinancialTransactions);
+router.get('/transactions/:id', requirePermission([PERMISSIONS.EXPENSE_VIEW, PERMISSIONS.FUND_VIEW]), getFinancialTransactionById);
 router.post('/opening-balance', requireOwnerOrSchoolAdmin(), recordOpeningBalance);
 router.post('/backfill', requireOwnerOrSchoolAdmin(), backfillFinanceLedger);
 

@@ -17,9 +17,9 @@ paymentRouter.post('/', requirePermission(PERMISSIONS.FEES_COLLECT), paymentCont
 paymentRouter.get('/search', requirePermission(PERMISSIONS.FEES_VIEW), paymentController.searchReceipts);
 paymentRouter.get('/dashboard', requirePermission(PERMISSIONS.FEES_VIEW), paymentController.getDashboardSummary);
 
-// 2. Unpaid Fee Charge Management (OWNER or SCHOOL_ADMIN ONLY)
+// 2. Unpaid Fee Charge Management
 paymentRouter.delete('/charges/:chargeId', requireOwnerOrSchoolAdmin('Only School Admin or Owner can delete unpaid fee charges'), paymentController.deleteUnpaidFeeCharge);
-paymentRouter.patch('/charges/:chargeId', requireOwnerOrSchoolAdmin('Only School Admin or Owner can edit unpaid fee charges'), paymentController.updateUnpaidFeeCharge);
+paymentRouter.patch('/charges/:chargeId', requirePermission(PERMISSIONS.FEES_EDIT), paymentController.updateUnpaidFeeCharge);
 
 // 3. Parametric Receipt Routes
 paymentRouter.get('/:id', requirePermission(PERMISSIONS.FEES_VIEW), paymentController.getPaymentDetails);

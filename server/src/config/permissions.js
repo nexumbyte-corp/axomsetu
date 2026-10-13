@@ -23,11 +23,6 @@ export const PERMISSIONS = {
   ACADEMICS_VIEW: 'ACADEMICS_VIEW',
   ACADEMICS_MANAGE: 'ACADEMICS_MANAGE',
 
-  // Attendance
-  ATTENDANCE_VIEW: 'ATTENDANCE_VIEW',
-  ATTENDANCE_MARK: 'ATTENDANCE_MARK',
-  ATTENDANCE_EDIT: 'ATTENDANCE_EDIT',
-
   // Fee Management
   FEES_VIEW: 'FEES_VIEW',
   FEES_COLLECT: 'FEES_COLLECT',
@@ -36,7 +31,6 @@ export const PERMISSIONS = {
   FEES_EDIT: 'FEES_EDIT',
   FEES_APPLY_DISCOUNT: 'FEES_APPLY_DISCOUNT',
   FEES_MANAGE_STRUCTURE: 'FEES_MANAGE_STRUCTURE',
-
 
   // Staff Management
   STAFF_VIEW: 'STAFF_VIEW',
@@ -73,10 +67,6 @@ export const PERMISSIONS = {
   USERS_EDIT: 'USERS_EDIT',
   USERS_DISABLE: 'USERS_DISABLE',
   USERS_MANAGE_PERMISSIONS: 'USERS_MANAGE_PERMISSIONS',
-
-  // Settings
-  SETTINGS_VIEW: 'SETTINGS_VIEW',
-  SETTINGS_EDIT: 'SETTINGS_EDIT',
 
   // Hostel Management
   HOSTEL_VIEW: 'HOSTEL_VIEW',
@@ -119,7 +109,7 @@ export const PERMISSION_GROUPS = [
   {
     key: 'students',
     label: 'Student Directory & Admissions',
-    description: 'Manage student records, admissions, promotions, and hostel assignments',
+    description: 'Manage student records, admissions, promotions, and transfers',
     permissions: [
       {
         key: PERMISSIONS.STUDENTS_VIEW,
@@ -138,13 +128,30 @@ export const PERMISSION_GROUPS = [
       },
       {
         key: PERMISSIONS.STUDENTS_PROMOTE,
-        label: 'Academic Promotion',
+        label: 'Academic Promotion & Transition',
         description: 'Promote students to next class or manage bulk academic transitions',
       },
       {
         key: PERMISSIONS.STUDENTS_DELETE,
         label: 'Delete Student',
         description: 'Remove student records from the database',
+      },
+    ],
+  },
+  {
+    key: 'academics',
+    label: 'Academic Setup & Classes',
+    description: 'Configure academic years, classes, sections, mediums, streams, and admit cards',
+    permissions: [
+      {
+        key: PERMISSIONS.ACADEMICS_VIEW,
+        label: 'View Academic Setup',
+        description: 'View academic year list, classes, sections, and streams',
+      },
+      {
+        key: PERMISSIONS.ACADEMICS_MANAGE,
+        label: 'Manage Classes & Sections',
+        description: 'Create and edit classes, sections, mediums, and streams',
       },
     ],
   },
@@ -172,6 +179,11 @@ export const PERMISSION_GROUPS = [
         key: PERMISSIONS.FEES_GENERATE,
         label: 'Generate Monthly Fees',
         description: 'Run bulk monthly fee generation batches for classes',
+      },
+      {
+        key: PERMISSIONS.FEES_EDIT,
+        label: 'Edit & Adjust Fees',
+        description: 'Modify unpaid fee charges, adjust fee amounts and due dates',
       },
       {
         key: PERMISSIONS.FEES_APPLY_DISCOUNT,
@@ -280,22 +292,42 @@ export const PERMISSION_GROUPS = [
         label: 'Record Capital Fund',
         description: 'Add new capital fund deposits and fund sources',
       },
+      {
+        key: PERMISSIONS.FUND_EDIT,
+        label: 'Edit Capital Fund',
+        description: 'Update capital fund entries and fund source status',
+      },
     ],
   },
   {
-    key: 'academics',
-    label: 'Academic Setup & Classes',
-    description: 'Configure academic years, classes, sections, mediums, and streams',
+    key: 'hostel',
+    label: 'Hostel Management',
+    description: 'Manage hostels, rooms, beds, admissions, transfers, and exits',
     permissions: [
       {
-        key: PERMISSIONS.ACADEMICS_VIEW,
-        label: 'View Academic Setup',
-        description: 'View academic year list, classes, sections, and streams',
+        key: PERMISSIONS.HOSTEL_VIEW,
+        label: 'View Hostel Module',
+        description: 'Access hostel dashboard, resident lists, bed availability, and reports',
       },
       {
-        key: PERMISSIONS.ACADEMICS_MANAGE,
-        label: 'Manage Classes & Sections',
-        description: 'Create and edit classes, sections, mediums, and streams',
+        key: PERMISSIONS.HOSTEL_SETUP,
+        label: 'Manage Hostel Setup & Fees',
+        description: 'Create and configure hostels, rooms, beds, and hostel fee settings',
+      },
+      {
+        key: PERMISSIONS.HOSTEL_ADMIT,
+        label: 'Admit Hostel Resident',
+        description: 'Admit active students to hostels and allocate beds',
+      },
+      {
+        key: PERMISSIONS.HOSTEL_TRANSFER,
+        label: 'Transfer Hostel Resident',
+        description: 'Transfer residents between hostels, rooms, or beds',
+      },
+      {
+        key: PERMISSIONS.HOSTEL_EXIT,
+        label: 'Exit Hostel Resident',
+        description: 'Process hostel exits and release beds back to available status',
       },
     ],
   },
@@ -348,38 +380,6 @@ export const PERMISSION_GROUPS = [
       },
     ],
   },
-  {
-    key: 'hostel',
-    label: 'Hostel Management',
-    description: 'Manage hostels, rooms, beds, admissions, transfers, and exits',
-    permissions: [
-      {
-        key: PERMISSIONS.HOSTEL_VIEW,
-        label: 'View Hostel Module',
-        description: 'Access hostel dashboard, resident lists, bed availability, and reports',
-      },
-      {
-        key: PERMISSIONS.HOSTEL_SETUP,
-        label: 'Manage Hostel Setup & Fees',
-        description: 'Create and configure hostels, rooms, beds, and hostel fee settings',
-      },
-      {
-        key: PERMISSIONS.HOSTEL_ADMIT,
-        label: 'Admit Hostel Resident',
-        description: 'Admit active students to hostels and allocate beds',
-      },
-      {
-        key: PERMISSIONS.HOSTEL_TRANSFER,
-        label: 'Transfer Hostel Resident',
-        description: 'Transfer residents between hostels, rooms, or beds',
-      },
-      {
-        key: PERMISSIONS.HOSTEL_EXIT,
-        label: 'Exit Hostel Resident',
-        description: 'Process hostel exits and release beds back to available status',
-      },
-    ],
-  },
 ];
 
 /**
@@ -410,6 +410,7 @@ export const PERMISSION_PRESETS = {
       PERMISSIONS.FEES_COLLECT,
       PERMISSIONS.FEES_PRINT_RECEIPT,
       PERMISSIONS.FEES_GENERATE,
+      PERMISSIONS.FEES_EDIT,
       PERMISSIONS.FEES_APPLY_DISCOUNT,
       PERMISSIONS.FEES_MANAGE_STRUCTURE,
       PERMISSIONS.EXPENSE_VIEW,
@@ -431,6 +432,22 @@ export const PERMISSION_PRESETS = {
       PERMISSIONS.STUDENTS_EDIT,
       PERMISSIONS.STUDENTS_PROMOTE,
       PERMISSIONS.ACADEMICS_VIEW,
+      PERMISSIONS.HOSTEL_VIEW,
+      PERMISSIONS.HOSTEL_ADMIT,
+      PERMISSIONS.REPORTS_VIEW,
+    ],
+  },
+  HOSTEL_MANAGER: {
+    label: 'Hostel Manager',
+    description: 'Hostel block/room management, resident admissions, transfers, and hostel reports',
+    permissions: [
+      PERMISSIONS.DASHBOARD_VIEW,
+      PERMISSIONS.STUDENTS_VIEW,
+      PERMISSIONS.HOSTEL_VIEW,
+      PERMISSIONS.HOSTEL_SETUP,
+      PERMISSIONS.HOSTEL_ADMIT,
+      PERMISSIONS.HOSTEL_TRANSFER,
+      PERMISSIONS.HOSTEL_EXIT,
       PERMISSIONS.REPORTS_VIEW,
     ],
   },

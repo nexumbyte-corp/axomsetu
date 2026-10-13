@@ -31,6 +31,9 @@ export const updateSchoolUserSchema = z.object({
     })
     .optional()
     .nullable(),
+  schoolRole: z.enum(['SCHOOL_ADMIN', 'STAFF'], {
+    errorMap: () => ({ message: 'Role must be SCHOOL_ADMIN or STAFF' }),
+  }).optional(),
   customRoleLabel: z.string().trim().max(50, 'Custom role label must not exceed 50 characters').optional().nullable(),
 });
 

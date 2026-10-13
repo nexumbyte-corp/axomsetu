@@ -25,7 +25,6 @@ router.get(
 
 router.post(
   '/',
-  requireOwnerOrSchoolAdmin(),
   requirePermission(PERMISSIONS.USERS_CREATE),
   schoolUserController.createUser
 );
@@ -45,7 +44,6 @@ router.patch(
 
 router.patch(
   '/:id/status',
-  requireOwnerOrSchoolAdmin(),
   requirePermission(PERMISSIONS.USERS_DISABLE),
   schoolUserController.updateUserStatus
 );
@@ -59,7 +57,6 @@ router.get(
 
 router.put(
   '/:id/permissions',
-  requireOwnerOrSchoolAdmin(),
   requirePermission(PERMISSIONS.USERS_MANAGE_PERMISSIONS),
   schoolUserController.setUserPermissions
 );
