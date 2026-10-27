@@ -7,6 +7,8 @@ export const createPDFTable = ({
   data = [],
   showTotals = false,
   totals = {},
+  totalLabel = 'TOTAL AMOUNT PAID:',
+  layoutOptions = {},
 }) => {
   // 1. Build Header Row
   const headerRow = columns.map((col) => {
@@ -44,20 +46,52 @@ export const createPDFTable = ({
     });
   });
 
-  // 3. Optional Totals Row
+  // 3. Optional Totals Row with Smart Colspan (never wraps label into a narrow column)
   if (showTotals) {
-    const totalRow = columns.map((col, idx) => {
-      if (idx === 0) {
-        return { text: 'TOTAL', style: 'tableCellBold', fillColor: '#f1f5f9' };
+    const totalColIndex = columns.findIndex((col) => totals[col.key] !== undefined);
+
+    if (totalColIndex > 0) {
+      const totalRow = [];
+      // Merged label cell spanning up to the first total value column
+      totalRow.push({
+        colSpan: totalColIndex,
+        text: totalLabel,
+        style: 'tableCellBoldRight',
+        alignment: 'right',
+        fillColor: '#f1f5f9',
+      });
+
+      // Dummy cells required by pdfMake for colSpan
+      for (let i = 1; i < totalColIndex; i++) {
+        totalRow.push({ text: '', fillColor: '#f1f5f9' });
       }
-      if (totals[col.key] !== undefined) {
-        const align = col.align || 'right';
-        const styleName = align === 'right' ? 'tableCellBoldRight' : 'tableCellBold';
-        return { text: String(totals[col.key]), style: styleName, fillColor: '#f1f5f9' };
+
+      // Value cells from totalColIndex onwards
+      for (let i = totalColIndex; i < columns.length; i++) {
+        const col = columns[i];
+        if (totals[col.key] !== undefined) {
+          const align = col.align || 'right';
+          const styleName = align === 'right' ? 'tableCellBoldRight' : 'tableCellBold';
+          totalRow.push({ text: String(totals[col.key]), style: styleName, fillColor: '#f1f5f9' });
+        } else {
+          totalRow.push({ text: '', style: 'tableCell', fillColor: '#f1f5f9' });
+        }
       }
-      return { text: '', style: 'tableCell', fillColor: '#f1f5f9' };
-    });
-    bodyRows.push(totalRow);
+      bodyRows.push(totalRow);
+    } else {
+      const totalRow = columns.map((col, idx) => {
+        if (idx === 0) {
+          return { text: totalLabel || 'TOTAL', style: 'tableCellBold', fillColor: '#f1f5f9' };
+        }
+        if (totals[col.key] !== undefined) {
+          const align = col.align || 'right';
+          const styleName = align === 'right' ? 'tableCellBoldRight' : 'tableCellBold';
+          return { text: String(totals[col.key]), style: styleName, fillColor: '#f1f5f9' };
+        }
+        return { text: '', style: 'tableCell', fillColor: '#f1f5f9' };
+      });
+      bodyRows.push(totalRow);
+    }
   }
 
   // 4. Column Widths
@@ -72,12 +106,13 @@ export const createPDFTable = ({
     layout: {
       hLineWidth: (i, node) => (i === 0 || i === 1 || i === node.table.body.length ? 1.5 : 1),
       vLineWidth: () => 1,
-      hLineColor: (i, node) => (i === 0 || i === 1 || i === node.table.body.length ? '#334155' : '#64748b'),
-      vLineColor: () => '#64748b',
+      hLineColor: (i, node) => (i === 0 || i === 1 || i === node.table.body.length ? '#475569' : '#cbd5e1'),
+      vLineColor: () => '#e2e8f0',
       paddingLeft: () => 6,
       paddingRight: () => 6,
       paddingTop: () => 5,
       paddingBottom: () => 5,
+      ...layoutOptions,
     },
     margin: [0, 4, 0, 8],
   };

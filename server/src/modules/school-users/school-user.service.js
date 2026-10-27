@@ -127,6 +127,10 @@ export const schoolUserService = {
     let userId;
 
     if (existingUser) {
+      if (existingUser.role === 'SUPER_ADMIN') {
+        throw ApiError.forbidden('Cannot add a Super Administrator as a tenant school user.');
+      }
+
       // Check if they're already a member of this school
       const existingMembership = await prisma.schoolAdmin.findFirst({
         where: { userId: existingUser.id, schoolId },
@@ -134,6 +138,18 @@ export const schoolUserService = {
 
       if (existingMembership) {
         throw ApiError.conflict('This user is already a member of your school');
+      }
+
+      // Cross-tenant account protection:
+      // Prevent silently attaching an existing user from another school without explicit invitation
+      const otherSchoolMembership = await prisma.schoolAdmin.findFirst({
+        where: { userId: existingUser.id },
+      });
+
+      if (otherSchoolMembership) {
+        throw ApiError.conflict(
+          'An account with this email already belongs to another institution. Unilateral multi-tenant assignment is prohibited.'
+        );
       }
 
       userId = existingUser.id;
@@ -201,13 +217,13 @@ export const schoolUserService = {
       throw ApiError.notFound('User not found in this school');
     }
 
-    // Protect OWNER & Admin: STAFF cannot edit OWNER or SCHOOL_ADMIN profiles
+    // Protect OWNER & Admin: STAFF cannot edit OWNER or SCHOOL_ADMIN profiles; only OWNER can edit other admins
     if (membership.schoolRole === 'OWNER' && actorMembership?.schoolRole !== 'OWNER') {
       throw ApiError.forbidden('Only the School Owner can modify the School Owner profile');
     }
 
-    if (membership.schoolRole === 'SCHOOL_ADMIN' && actorMembership?.schoolRole === 'STAFF') {
-      throw ApiError.forbidden('Staff users cannot modify School Administrator profiles');
+    if (membership.schoolRole === 'SCHOOL_ADMIN' && actorMembership?.schoolRole !== 'OWNER' && actorUserId !== membership.userId) {
+      throw ApiError.forbidden('Only the School Owner can modify other School Administrator profiles');
     }
 
     const { name, phone, schoolRole } = data;
@@ -296,6 +312,11 @@ export const schoolUserService = {
           );
         }
       }
+    }
+
+    // Protect SCHOOL_ADMIN — only an OWNER can deactivate/activate a SCHOOL_ADMIN
+    if (membership.schoolRole === 'SCHOOL_ADMIN' && actorMembership.schoolRole !== 'OWNER') {
+      throw ApiError.forbidden('Only the School Owner can modify the status of a School Administrator.');
     }
 
     const updated = await prisma.schoolAdmin.update({

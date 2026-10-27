@@ -102,10 +102,27 @@ export const authenticate = asyncHandler(async (req, res, next) => {
       throw ApiError.unauthorized('User associated with token no longer exists');
     }
 
+    // Verify user has at least one active, unrevoked, unexpired session (respects logout & password resets)
+    const activeSession = await prisma.userSession.findFirst({
+      where: {
+        userId: user.id,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!activeSession) {
+      throw ApiError.unauthorized(
+        'Your session has been signed out or revoked. Please log in again.',
+        'SESSION_REVOKED'
+      );
+    }
+
     req.user = user;
     setRequestContextUser(user.id);
     return next();
-  } catch {
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
     throw ApiError.unauthorized('Invalid or expired session token', 'SESSION_EXPIRED');
   }
 });

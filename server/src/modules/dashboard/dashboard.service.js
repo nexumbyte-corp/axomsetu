@@ -67,17 +67,27 @@ export const dashboardService = {
         latestSubscription,
         monthlyAggregates,
       ] = await Promise.all([
-        // Total active students in system
-        prisma.student.count({ where: { schoolId, status: 'ACTIVE' } }),
+        // Total students in system / selected academic year
+        academicYearId
+          ? prisma.studentEnrollment.count({
+              where: {
+                schoolId,
+                academicYearId,
+              },
+            })
+          : prisma.student.count({ where: { schoolId } }),
 
-        // Active enrolled students for selected academic year
-        prisma.studentEnrollment.count({
-          where: {
-            schoolId,
-            status: 'ACTIVE',
-            ...(academicYearId && { academicYearId }),
-          },
-        }),
+        // Active students in system / selected academic year (ensuring student master status is ACTIVE)
+        academicYearId
+          ? prisma.studentEnrollment.count({
+              where: {
+                schoolId,
+                status: 'ACTIVE',
+                academicYearId,
+                student: { status: 'ACTIVE' },
+              },
+            })
+          : prisma.student.count({ where: { schoolId, status: 'ACTIVE' } }),
 
         // Total active staff
         prisma.staff.count({ where: { schoolId, status: 'ACTIVE' } }),
@@ -322,7 +332,7 @@ export const dashboardService = {
         metrics: {
           students: {
             total: totalStudentsCount,
-            active: activeEnrolledStudentsCount || totalStudentsCount,
+            active: activeEnrolledStudentsCount,
           },
           staff: {
             active: activeStaffCount,

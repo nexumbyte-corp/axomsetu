@@ -1,7 +1,10 @@
+import { env } from '../config/env.js';
+
 /**
  * Universal Client IP Resolution Utility
  * Accurately extracts the real client IP across Cloudflare, Nginx reverse proxies,
  * AWS ALB/Traefik load balancers, and direct connections.
+ * Strictly guards against header spoofing by checking trust proxy configuration.
  */
 
 /**
@@ -33,37 +36,43 @@ const cleanIp = (ip) => {
 export const getClientIp = (req, fallback = null) => {
   if (!req) return fallback;
 
-  // 1. Cloudflare edge header (most authoritative when behind Cloudflare)
-  const cfIp = req.headers?.['cf-connecting-ip'];
-  if (cfIp) {
-    const raw = Array.isArray(cfIp) ? cfIp[0] : cfIp;
-    const cleaned = cleanIp(raw);
-    if (cleaned) return cleaned;
-  }
+  const trustProxySetting = req.app?.get?.('trust proxy');
+  const isTrustProxy = Boolean(trustProxySetting || env.TRUST_PROXY);
 
-  // 2. Akamai / Cloudflare Enterprise
-  const trueClientIp = req.headers?.['true-client-ip'];
-  if (trueClientIp) {
-    const raw = Array.isArray(trueClientIp) ? trueClientIp[0] : trueClientIp;
-    const cleaned = cleanIp(raw);
-    if (cleaned) return cleaned;
-  }
+  // Only inspect edge headers if trust proxy is explicitly enabled
+  if (isTrustProxy) {
+    // 1. Cloudflare edge header (most authoritative when behind Cloudflare)
+    const cfIp = req.headers?.['cf-connecting-ip'];
+    if (cfIp) {
+      const raw = Array.isArray(cfIp) ? cfIp[0] : cfIp;
+      const cleaned = cleanIp(raw);
+      if (cleaned) return cleaned;
+    }
 
-  // 3. Nginx / reverse proxy X-Real-IP
-  const xRealIp = req.headers?.['x-real-ip'];
-  if (xRealIp) {
-    const raw = Array.isArray(xRealIp) ? xRealIp[0] : xRealIp;
-    const cleaned = cleanIp(raw);
-    if (cleaned) return cleaned;
-  }
+    // 2. Akamai / Cloudflare Enterprise
+    const trueClientIp = req.headers?.['true-client-ip'];
+    if (trueClientIp) {
+      const raw = Array.isArray(trueClientIp) ? trueClientIp[0] : trueClientIp;
+      const cleaned = cleanIp(raw);
+      if (cleaned) return cleaned;
+    }
 
-  // 4. X-Forwarded-For: client, proxy1, proxy2
-  const xForwardedFor = req.headers?.['x-forwarded-for'];
-  if (xForwardedFor) {
-    const raw = Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor;
-    const firstIp = raw.split(',')[0].trim();
-    const cleaned = cleanIp(firstIp);
-    if (cleaned) return cleaned;
+    // 3. Nginx / reverse proxy X-Real-IP
+    const xRealIp = req.headers?.['x-real-ip'];
+    if (xRealIp) {
+      const raw = Array.isArray(xRealIp) ? xRealIp[0] : xRealIp;
+      const cleaned = cleanIp(raw);
+      if (cleaned) return cleaned;
+    }
+
+    // 4. X-Forwarded-For: client, proxy1, proxy2
+    const xForwardedFor = req.headers?.['x-forwarded-for'];
+    if (xForwardedFor) {
+      const raw = Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor;
+      const firstIp = raw.split(',')[0].trim();
+      const cleaned = cleanIp(firstIp);
+      if (cleaned) return cleaned;
+    }
   }
 
   // 5. Express req.ip

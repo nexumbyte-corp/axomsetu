@@ -13,13 +13,33 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-export const uploadSingleImage = multer({
+const multerInstance = multer({
   storage,
   fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
-}).single('logo');
+});
+
+export const uploadSingleImage = (req, res, next) => {
+  multerInstance.fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'photo', maxCount: 1 },
+    { name: 'file', maxCount: 1 },
+    { name: 'image', maxCount: 1 },
+  ])(req, res, (err) => {
+    if (err) return next(err);
+    if (req.files) {
+      req.file =
+        req.files.logo?.[0] ||
+        req.files.photo?.[0] ||
+        req.files.file?.[0] ||
+        req.files.image?.[0] ||
+        null;
+    }
+    next();
+  });
+};
 
 /**
  * Middleware to validate magic bytes of uploaded memory buffer to prevent file extension spoofing.

@@ -1241,7 +1241,7 @@ export const updateStudentStatus = async (schoolId, studentId, statusOrPayload, 
   const exitDate = typeof statusOrPayload === 'object' ? statusOrPayload?.exitDate : undefined;
   const reason = typeof statusOrPayload === 'object' ? (statusOrPayload?.reason || statusOrPayload?.exitReason) : undefined;
 
-  return await prisma.$transaction(async (tx) => {
+  const updateResult = await prisma.$transaction(async (tx) => {
     const student = await tx.student.findUnique({
       where: { id: studentId },
     });
@@ -1295,6 +1295,18 @@ export const updateStudentStatus = async (schoolId, studentId, statusOrPayload, 
       data: { status },
     });
 
+    if (status === 'LEFT') {
+      await tx.studentEnrollment.updateMany({
+        where: { schoolId, studentId, status: 'ACTIVE' },
+        data: { status: 'LEFT' },
+      });
+    } else if (status === 'ACTIVE') {
+      await tx.studentEnrollment.updateMany({
+        where: { schoolId, studentId, status: 'LEFT' },
+        data: { status: 'ACTIVE' },
+      });
+    }
+
     await tx.auditLog.create({
       data: {
         schoolId,
@@ -1315,6 +1327,15 @@ export const updateStudentStatus = async (schoolId, studentId, statusOrPayload, 
       hostelExit: hostelExitResult,
     };
   });
+
+  // Invalidate any dashboard / reporting caches for this school
+  try {
+    memoryCache.invalidatePrefix(`dashboard:${schoolId}`);
+  } catch {
+    // Non-fatal
+  }
+
+  return updateResult;
 };
 
 /**
@@ -1400,7 +1421,7 @@ const isClassX = (cls) => {
 export const promoteStudent = async (schoolId, studentId, data, actorUserId) => {
   const action = data.action || (data.resultStatus === 'REPEATED' ? 'REPEAT' : 'PROMOTE');
 
-  return await prisma.$transaction(async (tx) => {
+  const transitionResult = await prisma.$transaction(async (tx) => {
     // 1. Verify student and active status
     const student = await tx.student.findUnique({
       where: { id: studentId },
@@ -1785,6 +1806,12 @@ export const promoteStudent = async (schoolId, studentId, data, actorUserId) => 
         data: { status: 'LEFT' },
       });
 
+      // Update student enrollments to LEFT
+      await tx.studentEnrollment.updateMany({
+        where: { schoolId, studentId, status: 'ACTIVE' },
+        data: { status: 'LEFT' },
+      });
+
       // Audit log
       await tx.auditLog.create({
         data: {
@@ -1814,6 +1841,15 @@ export const promoteStudent = async (schoolId, studentId, data, actorUserId) => 
 
     throw ApiError.badRequest(`Unsupported transition action '${action}'`);
   });
+
+  // Invalidate any dashboard / reporting caches for this school
+  try {
+    memoryCache.invalidatePrefix(`dashboard:${schoolId}`);
+  } catch {
+    // Non-fatal
+  }
+
+  return transitionResult;
 };
 
 /**

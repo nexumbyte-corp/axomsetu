@@ -3,6 +3,8 @@ import { ApiError } from '../../utils/ApiError.js';
 import { getPaymentProvider } from '../../services/paymentProvider.js';
 import { memoryCache } from '../../utils/cache.js';
 import { approvePayment } from '../admin/adminSubscription.service.js';
+import razorpayService from '../razorpay/razorpay.service.js';
+import { env } from '../../config/env.js';
 
 /**
  * Get current active or latest subscription for a school.
@@ -191,7 +193,12 @@ export const getPublicRegisteredSchools = async () => {
 };
 
 /**
- * Submit purchase request for a plan (Cash or UPI).
+ * Submit purchase request for a plan (Razorpay, UPI, or Cash).
+ * Strict security rules:
+ * 1. Razorpay requires verified signature and authoritative payment fetch from Razorpay API.
+ * 2. Paid amount must match plan final price.
+ * 3. Anti-replay check prevents reusing a transaction reference.
+ * 4. Manual/UPI payments remain PENDING for Super Admin approval.
  */
 export const submitPurchaseRequest = async (schoolId, data, actorUserId) => {
   const { planId, paymentMethod, referenceNumber, remarks, noRefundAccepted } = data;
@@ -215,16 +222,6 @@ export const submitPurchaseRequest = async (schoolId, data, actorUserId) => {
   if (plan.isTrial) {
     throw ApiError.badRequest('The free trial plan cannot be purchased.');
   }
-
-  const providerType = paymentMethod === 'RAZORPAY' ? 'RAZORPAY' : 'MANUAL';
-  const provider = getPaymentProvider(providerType);
-
-  await provider.createOrder({
-    amount: plan.finalPrice,
-    currency: plan.currency,
-    referenceNumber,
-    paymentMethod,
-  });
 
   const currentSub = await prisma.schoolSubscription.findFirst({
     where: { schoolId },
@@ -257,6 +254,94 @@ export const submitPurchaseRequest = async (schoolId, data, actorUserId) => {
     throw ApiError.conflict('You already have a pending payment request awaiting Super Admin approval.');
   }
 
+  const isRazorpay = paymentMethod === 'RAZORPAY';
+  let verifiedPaymentId = null;
+  let verifiedOrderId = null;
+
+  if (isRazorpay) {
+    // 1. Resolve Razorpay transaction identifiers (support camelCase and snake_case)
+    const paymentId = (
+      data.razorpayPaymentId ||
+      data.razorpay_payment_id ||
+      data.paymentId ||
+      data.payment_id ||
+      referenceNumber ||
+      ''
+    ).trim();
+
+    let orderId = (
+      data.razorpayOrderId ||
+      data.razorpay_order_id ||
+      data.orderId ||
+      data.order_id ||
+      ''
+    ).trim();
+
+    if (!orderId && remarks?.includes('Razorpay Order: ')) {
+      orderId = remarks.replace('Razorpay Order: ', '').trim();
+    }
+
+    const signature = (
+      data.razorpaySignature ||
+      data.razorpay_signature ||
+      data.signature ||
+      ''
+    ).trim();
+
+    if (!paymentId || !orderId || !signature) {
+      throw ApiError.badRequest(
+        'Razorpay checkout verification requires razorpay_payment_id, razorpay_order_id, and razorpay_signature.'
+      );
+    }
+
+    // 2. Anti-Replay Guard: Prevent transaction reference reuse
+    const existingRef = await prisma.subscriptionPayment.findFirst({
+      where: {
+        referenceNumber: paymentId,
+        status: { not: 'REJECTED' },
+      },
+    });
+
+    if (existingRef) {
+      throw ApiError.conflict('This Razorpay payment transaction reference has already been processed or is in review.');
+    }
+
+    // 3. Cryptographic Signature Verification
+    await razorpayService.verifyRazorpayPayment({
+      razorpay_order_id: orderId,
+      razorpay_payment_id: paymentId,
+      razorpay_signature: signature,
+    });
+
+    // 4. Authoritative Verification via Razorpay API (Server-to-Server)
+    if (env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET) {
+      const paymentDetails = await razorpayService.fetchRazorpayPayment(paymentId);
+
+      if (paymentDetails.order_id && paymentDetails.order_id !== orderId) {
+        throw ApiError.badRequest('Razorpay payment does not match the generated order ID.');
+      }
+
+      if (paymentDetails.status !== 'captured' && paymentDetails.status !== 'authorized') {
+        throw ApiError.badRequest(
+          `Payment transaction is in status "${paymentDetails.status}". Subscription activation requires a captured payment.`
+        );
+      }
+
+      // Check payment amount (Razorpay amounts are in paise)
+      const expectedAmountPaise = Math.round(Number(plan.finalPrice) * 100);
+      if (paymentDetails.amount < expectedAmountPaise) {
+        throw ApiError.badRequest(
+          `Payment amount (₹${paymentDetails.amount / 100}) does not match the required subscription plan price (₹${plan.finalPrice}).`
+        );
+      }
+    }
+
+    verifiedPaymentId = paymentId;
+    verifiedOrderId = orderId;
+  }
+
+  const providerType = isRazorpay ? 'RAZORPAY' : 'MANUAL';
+
   const paymentRecord = await prisma.subscriptionPayment.create({
     data: {
       schoolId,
@@ -266,9 +351,9 @@ export const submitPurchaseRequest = async (schoolId, data, actorUserId) => {
       currency: plan.currency,
       paymentMethod,
       status: 'PENDING',
-      referenceNumber: referenceNumber?.trim() || null,
+      referenceNumber: verifiedPaymentId || referenceNumber?.trim() || null,
       provider: providerType,
-      remarks: remarks?.trim() || null,
+      remarks: verifiedOrderId ? `Razorpay Order: ${verifiedOrderId}` : remarks?.trim() || null,
       requestedAt: new Date(),
     },
     include: {
@@ -290,7 +375,7 @@ export const submitPurchaseRequest = async (schoolId, data, actorUserId) => {
         planName: plan.name,
         amount: Number(plan.finalPrice),
         paymentMethod,
-        referenceNumber: referenceNumber || null,
+        referenceNumber: paymentRecord.referenceNumber,
       },
     },
   });
@@ -298,7 +383,8 @@ export const submitPurchaseRequest = async (schoolId, data, actorUserId) => {
   memoryCache.delPattern(`subscription:`);
   memoryCache.del(`subscription:current:${schoolId}`);
 
-  if (paymentMethod === 'RAZORPAY') {
+  // Only verified Razorpay payments are auto-approved. Manual/Cash/UPI require Super Admin approval.
+  if (isRazorpay) {
     const approved = await approvePayment(paymentRecord.id, actorUserId || null);
     return {
       payment: approved.payment,
@@ -319,7 +405,7 @@ export const submitPurchaseRequest = async (schoolId, data, actorUserId) => {
       status: paymentRecord.status,
       requestedAt: paymentRecord.requestedAt,
     },
-    message: 'Cash payment request submitted. It will be activated after Super Admin verification.',
+    message: 'Payment request submitted successfully. It will be activated after Super Admin verification.',
   };
 };
 

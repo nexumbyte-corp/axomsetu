@@ -13,13 +13,13 @@ export const DashboardSkeleton = () => {
         <Skeleton className="h-8 w-28 rounded-lg" />
       </div>
 
-      {/* Primary 5 Metric Cards Skeleton (2 cols mobile, 5 cols desktop) */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4">
+      {/* Primary 5 Metric Cards Skeleton (2 cols mobile, 3 cols tablet, 5 cols desktop) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
             className={`bg-white rounded-xl sm:rounded-2xl border border-slate-200/80 p-3.5 sm:p-4 space-y-3 shadow-2xs ${
-              i === 4 ? 'col-span-2 lg:col-span-1' : ''
+              i === 4 ? 'col-span-2 md:col-span-2 lg:col-span-1' : ''
             }`}
           >
             <div className="flex justify-between items-start">
@@ -41,9 +41,12 @@ export const DashboardSkeleton = () => {
           <Skeleton className="h-4 w-32 rounded" />
           <Skeleton className="h-3 w-24 rounded" />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-2.5">
           {Array.from({ length: 7 }).map((_, i) => (
-            <Skeleton key={i} className="h-11 sm:h-16 rounded-xl" />
+            <Skeleton
+              key={i}
+              className={`h-11 sm:h-16 rounded-xl ${i === 6 ? 'col-span-2 sm:col-span-1' : ''}`}
+            />
           ))}
         </div>
       </div>

@@ -1,13 +1,19 @@
 import { z } from 'zod';
 
-export const createRazorpayOrderSchema = z.object({
-  amount: z
-    .union([z.number(), z.string()])
-    .transform((val) => parseInt(val, 10))
-    .refine((val) => !isNaN(val) && val >= 100, 'Amount must be at least 100 paise'),
-  currency: z.string().trim().length(3, 'Currency must be 3 characters').optional().default('INR'),
-  receipt: z.string().trim().max(100, 'Receipt must not exceed 100 characters').optional().nullable(),
-});
+export const createRazorpayOrderSchema = z
+  .object({
+    planId: z.string().trim().optional(),
+    amount: z
+      .union([z.number(), z.string()])
+      .transform((val) => parseInt(val, 10))
+      .refine((val) => !isNaN(val) && val >= 100, 'Amount must be at least 100 paise')
+      .optional(),
+    currency: z.string().trim().length(3, 'Currency must be 3 characters').optional().default('INR'),
+    receipt: z.string().trim().max(100, 'Receipt must not exceed 100 characters').optional().nullable(),
+  })
+  .refine((data) => data.planId || data.amount, {
+    message: 'Either planId or amount is required to create a checkout order',
+  });
 
 export const verifyRazorpayPaymentSchema = z
   .object({

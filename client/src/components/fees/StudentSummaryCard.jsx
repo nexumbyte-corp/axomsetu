@@ -1,10 +1,18 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, ArrowLeft } from 'lucide-react';
+import { FileText, ArrowLeft, Printer, Download, Loader2 } from 'lucide-react';
 import { Badge } from '../ui/Badge.jsx';
 import { StudentAvatar } from '../students/StudentAvatar.jsx';
 
-export const StudentSummaryCard = ({ student, outstandingSummary, onClearStudent }) => {
+export const StudentSummaryCard = ({
+  student,
+  outstandingSummary,
+  onClearStudent,
+  onPrintStatement,
+  onDownloadStatement,
+  isPrintingStatement = false,
+  showLedgerButton = true,
+}) => {
   const navigate = useNavigate();
 
   if (!student) return null;
@@ -137,14 +145,45 @@ export const StudentSummaryCard = ({ student, outstandingSummary, onClearStudent
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate(`/app/students/${student.id}/ledger`)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 hover:text-indigo-600 transition-colors shadow-2xs cursor-pointer"
-          >
-            <FileText className="w-3.5 h-3.5 text-slate-500" />
-            <span>Ledger</span>
-          </button>
+          {onPrintStatement ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={onPrintStatement}
+                disabled={isPrintingStatement}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50/80 hover:bg-indigo-100 text-xs font-semibold text-indigo-700 hover:text-indigo-800 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+                title="Print payment receipt statement"
+              >
+                {isPrintingStatement ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                ) : (
+                  <Printer className="w-3.5 h-3.5 text-indigo-600" />
+                )}
+                <span>Print Statement</span>
+              </button>
+              {onDownloadStatement && (
+                <button
+                  type="button"
+                  onClick={onDownloadStatement}
+                  disabled={isPrintingStatement}
+                  className="flex items-center justify-center p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+                  title="Download Statement PDF"
+                  aria-label="Download Statement PDF"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ) : showLedgerButton ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/app/students/${student.id}/ledger`)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 hover:text-indigo-600 transition-colors shadow-2xs cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5 text-slate-500" />
+              <span>Ledger</span>
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

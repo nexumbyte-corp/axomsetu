@@ -1,9 +1,26 @@
 import { asyncHandler } from '../../utils/asyncHandler.js';
+import { prisma } from '../../config/prisma.js';
+import { ApiError } from '../../utils/ApiError.js';
 import razorpayService from './razorpay.service.js';
 import { createRazorpayOrderSchema, verifyRazorpayPaymentSchema } from './razorpay.validation.js';
 
 export const createOrder = asyncHandler(async (req, res) => {
   const validatedBody = createRazorpayOrderSchema.parse(req.body || {});
+
+  if (validatedBody.planId) {
+    const plan = await prisma.subscriptionPlan.findUnique({
+      where: { id: validatedBody.planId },
+    });
+    if (!plan || !plan.isActive) {
+      throw ApiError.badRequest('Invalid or inactive subscription plan');
+    }
+    validatedBody.amount = Math.round(Number(plan.finalPrice) * 100);
+    validatedBody.currency = plan.currency || 'INR';
+    if (!validatedBody.receipt) {
+      validatedBody.receipt = `sub_${Date.now()}`;
+    }
+  }
+
   const orderData = await razorpayService.createRazorpayOrder(validatedBody);
 
   res.status(200).json({

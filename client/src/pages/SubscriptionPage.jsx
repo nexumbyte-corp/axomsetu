@@ -933,14 +933,31 @@ export const SubscriptionPage = () => {
                 buttonText={`Pay ${formatCurrency(selectedPlan?.finalPrice ?? selectedPlan?.basePrice ?? selectedPlan?.price ?? 0)} & Activate`}
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-40 disabled:cursor-not-allowed shadow-xs transition-all cursor-pointer"
                 onSuccess={async (paymentRes) => {
-                  const refNo = paymentRes.payment_id || paymentRes.response?.razorpay_payment_id;
+                  const refNo =
+                    paymentRes.payment_id ||
+                    paymentRes.razorpay_payment_id ||
+                    paymentRes.response?.razorpay_payment_id;
+                  const orderId =
+                    paymentRes.order_id ||
+                    paymentRes.razorpay_order_id ||
+                    paymentRes.response?.razorpay_order_id;
+                  const signature =
+                    paymentRes.signature ||
+                    paymentRes.razorpay_signature ||
+                    paymentRes.response?.razorpay_signature;
                   try {
                     setSubmitting(true);
                     const res = await subscriptionService.submitPurchaseRequest({
                       planId: selectedPlan.id,
                       paymentMethod: 'RAZORPAY',
                       referenceNumber: refNo,
-                      remarks: `Razorpay Order: ${paymentRes.order_id}`,
+                      razorpayPaymentId: refNo,
+                      razorpayOrderId: orderId,
+                      razorpaySignature: signature,
+                      razorpay_payment_id: refNo,
+                      razorpay_order_id: orderId,
+                      razorpay_signature: signature,
+                      remarks: `Razorpay Order: ${orderId}`,
                       noRefundAccepted: true,
                     });
 

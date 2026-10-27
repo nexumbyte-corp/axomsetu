@@ -3,7 +3,7 @@ import { authenticate } from '../../middleware/auth.middleware.js';
 import { resolveSchool } from '../../middleware/school.middleware.js';
 import { requirePermission } from '../../middleware/permission.middleware.js';
 import { PERMISSIONS } from '../../config/permissions.js';
-import { uploadSingleImage } from '../../middleware/upload.middleware.js';
+import { uploadSingleImage, validateImageMagicBytes } from '../../middleware/upload.middleware.js';
 import * as studentController from './student.controller.js';
 import { getStudentLedger, getStudentPayments, getStudentOutstanding } from '../fees/payment.controller.js';
 
@@ -17,6 +17,7 @@ router.post(
   '/upload-photo',
   requirePermission([PERMISSIONS.STUDENTS_CREATE, PERMISSIONS.STUDENTS_EDIT]),
   uploadSingleImage,
+  validateImageMagicBytes,
   studentController.uploadStudentPhoto
 );
 

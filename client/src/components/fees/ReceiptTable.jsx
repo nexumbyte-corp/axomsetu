@@ -17,14 +17,88 @@ import { formatDate, formatCurrency } from '../../utils/formatters.js';
 import { paymentService } from '../../services/payment.service.js';
 import { printPdfDocument, downloadPdfDocument } from '../../core/documents/documentEngine.js';
 
-export const ReceiptTable = ({ payments = [], isLoading = false, onSelectReceipt: _onSelectReceipt }) => {
+export const ReceiptTable = ({
+  payments = [],
+  isLoading = false,
+  onSelectReceipt: _onSelectReceipt,
+  student = null,
+  summary = null,
+  schoolHeader = null,
+  academicYear = null,
+  title = null,
+  showToolbar = true,
+}) => {
   const navigate = useNavigate();
   const [rowAction, setRowAction] = useState({ id: null, type: null }); // type: 'print' | 'download'
   const [expandedRows, setExpandedRows] = useState({});
+  const [isPrintingStatement, setIsPrintingStatement] = useState(false);
+  const [isDownloadingStatement, setIsDownloadingStatement] = useState(false);
+
+  const totalPaidAmount = payments.reduce((sum, p) => {
+    if (p.status === 'VOID') return sum;
+    return sum + Number(p.receivedAmount !== undefined ? p.receivedAmount : p.amount || 0);
+  }, 0);
 
   const toggleRowExpanded = (id, e) => {
     if (e) e.stopPropagation();
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handlePrintAllStatement = async (e) => {
+    if (e) e.stopPropagation();
+    if (!payments || payments.length === 0) {
+      toast.error('No payment records to print.');
+      return;
+    }
+    setIsPrintingStatement(true);
+    try {
+      await printPdfDocument({
+        templateId: 'paymentStatement',
+        data: {
+          student,
+          payments,
+          summary,
+          schoolHeader,
+          academicYear,
+        },
+        options: { copyLabel: 'Official Statement' },
+      });
+    } catch (err) {
+      console.error('Failed to print payment statement:', err);
+      toast.error('Unable to print payment statement. Please try again.');
+    } finally {
+      setIsPrintingStatement(false);
+    }
+  };
+
+  const handleDownloadAllStatement = async (e) => {
+    if (e) e.stopPropagation();
+    if (!payments || payments.length === 0) {
+      toast.error('No payment records to download.');
+      return;
+    }
+    setIsDownloadingStatement(true);
+    try {
+      const filename = `Payment_Statement_${student?.admissionNo || student?.name || 'Student'}.pdf`;
+      await downloadPdfDocument({
+        templateId: 'paymentStatement',
+        data: {
+          student,
+          payments,
+          summary,
+          schoolHeader,
+          academicYear,
+        },
+        filename,
+        options: { copyLabel: 'Official Statement' },
+      });
+      toast.success(`Downloaded ${filename}`);
+    } catch (err) {
+      console.error('Failed to download payment statement:', err);
+      toast.error('Unable to download payment statement. Please try again.');
+    } finally {
+      setIsDownloadingStatement(false);
+    }
   };
 
   const handlePrintReceipt = async (p, e) => {
@@ -132,26 +206,74 @@ export const ReceiptTable = ({ payments = [], isLoading = false, onSelectReceipt
 
   return (
     <div className="w-full flex-1 flex flex-col min-h-0">
+      {/* Mobile Toolbar */}
+      {showToolbar && (student || title) && payments.length > 0 && (
+        <div className="md:hidden bg-white p-3 rounded-xl border border-slate-200 shadow-2xs space-y-2 mb-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-900">{title || 'Payment History'}</span>
+              <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                {payments.length}
+              </span>
+            </div>
+            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/70 font-mono">
+              ₹{totalPaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handlePrintAllStatement}
+              disabled={isPrintingStatement}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-bold text-slate-700 shadow-2xs transition-colors disabled:opacity-50"
+            >
+              {isPrintingStatement ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+              ) : (
+                <Printer className="w-3.5 h-3.5 text-slate-600" />
+              )}
+              <span>Print Statement</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadAllStatement}
+              disabled={isDownloadingStatement}
+              className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 shadow-2xs transition-colors disabled:opacity-50"
+              title="Download Statement PDF"
+            >
+              {isDownloadingStatement ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Cards View (< 768px) */}
       <div className="md:hidden space-y-2.5 pb-2">
         {payments.map((p) => {
           const isVoid = p.status === 'VOID';
           const isExpanded = Boolean(expandedRows[p.id]);
           const allocations = p.allocations || [];
-          const receiverName = p.receivedByName || p.receivedBy?.name || 'System';
-          const studentName = p.studentName || p.student?.name || 'Student';
+          const receiverName = p.receivedByName || p.receivedBy?.name || p.collectedBy || 'System';
+          const studentObj = p.student || student;
+          const studentName = p.studentName || p.student?.name || studentObj?.name || 'Student';
 
           const enr =
-            p.student?.enrollment ||
-            p.student?.enrollments?.find((e) => e.academicYearId === p.academicYear?.id && e.status === 'ACTIVE') ||
-            p.student?.enrollments?.find((e) => e.academicYearId === p.academicYear?.id) ||
-            p.student?.enrollments?.find((e) => e.status === 'ACTIVE') ||
-            p.student?.enrollments?.[0];
+            studentObj?.enrollment ||
+            studentObj?.enrollments?.find((e) => e.academicYearId === p.academicYear?.id && e.status === 'ACTIVE') ||
+            studentObj?.enrollments?.find((e) => e.academicYearId === p.academicYear?.id) ||
+            studentObj?.enrollments?.find((e) => e.status === 'ACTIVE') ||
+            studentObj?.enrollments?.[0];
 
-          const className = p.className || p.student?.className || enr?.class?.name;
-          const sectionName = p.sectionName || p.student?.sectionName || enr?.section?.name;
-          const mediumName = p.mediumName || p.student?.mediumName || enr?.medium?.name;
-          const streamName = p.streamName || p.student?.streamName || enr?.stream?.name;
+          const className = p.className || studentObj?.className || enr?.class?.name;
+          const sectionName = p.sectionName || studentObj?.sectionName || enr?.section?.name;
+          const mediumName = p.mediumName || studentObj?.mediumName || enr?.medium?.name;
+          const streamName = p.streamName || studentObj?.streamName || enr?.stream?.name;
 
           const isActionDisabled = rowAction.id === p.id;
 
@@ -338,6 +460,56 @@ export const ReceiptTable = ({ payments = [], isLoading = false, onSelectReceipt
 
       {/* Desktop Table View (>= 768px) */}
       <div className="hidden md:flex h-full flex-col min-h-0 overflow-hidden bg-white rounded-xl border border-slate-200 shadow-2xs">
+        {/* Table Sub-Header Toolbar with Print Statement Actions */}
+        {showToolbar && (student || title) && payments.length > 0 && (
+          <div className="shrink-0 px-3.5 py-2.5 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-xs font-bold text-slate-900 tracking-tight">
+                {title || 'Payment History & Receipts'}
+              </h3>
+              <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full">
+                {payments.length} {payments.length === 1 ? 'receipt' : 'receipts'}
+              </span>
+              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/70 font-mono">
+                Total Paid: {formatCurrency(totalPaidAmount)}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handlePrintAllStatement}
+                disabled={isPrintingStatement}
+                title="Print All Payments Statement"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:text-indigo-600 text-slate-700 text-xs font-bold shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isPrintingStatement ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                ) : (
+                  <Printer className="w-3.5 h-3.5 text-slate-600" />
+                )}
+                <span>Print Statement</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadAllStatement}
+                disabled={isDownloadingStatement}
+                title="Download Statement PDF"
+                aria-label="Download Statement PDF"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:text-indigo-600 text-slate-600 text-xs font-medium shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isDownloadingStatement ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                <span>PDF</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-auto min-h-0">
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-slate-100/90 backdrop-blur-xs text-slate-600 font-bold uppercase text-[9px] tracking-wider border-b border-slate-200 sticky top-0 z-10">
@@ -357,21 +529,22 @@ export const ReceiptTable = ({ payments = [], isLoading = false, onSelectReceipt
                 const isVoid = p.status === 'VOID';
                 const isExpanded = Boolean(expandedRows[p.id]);
                 const allocations = p.allocations || [];
-                const receiverName = p.receivedByName || p.receivedBy?.name || 'System';
-                const studentName = p.studentName || p.student?.name || 'Student';
+                const receiverName = p.receivedByName || p.receivedBy?.name || p.collectedBy || 'System';
+                const studentObj = p.student || student;
+                const studentName = p.studentName || p.student?.name || studentObj?.name || 'Student';
 
                 // Extract Class / Section / Medium / Stream info
                 const enr =
-                  p.student?.enrollment ||
-                  p.student?.enrollments?.find((e) => e.academicYearId === p.academicYear?.id && e.status === 'ACTIVE') ||
-                  p.student?.enrollments?.find((e) => e.academicYearId === p.academicYear?.id) ||
-                  p.student?.enrollments?.find((e) => e.status === 'ACTIVE') ||
-                  p.student?.enrollments?.[0];
+                  studentObj?.enrollment ||
+                  studentObj?.enrollments?.find((e) => e.academicYearId === p.academicYear?.id && e.status === 'ACTIVE') ||
+                  studentObj?.enrollments?.find((e) => e.academicYearId === p.academicYear?.id) ||
+                  studentObj?.enrollments?.find((e) => e.status === 'ACTIVE') ||
+                  studentObj?.enrollments?.[0];
 
-                const className = p.className || p.student?.className || enr?.class?.name;
-                const sectionName = p.sectionName || p.student?.sectionName || enr?.section?.name;
-                const mediumName = p.mediumName || p.student?.mediumName || enr?.medium?.name;
-                const streamName = p.streamName || p.student?.streamName || enr?.stream?.name;
+                const className = p.className || studentObj?.className || enr?.class?.name;
+                const sectionName = p.sectionName || studentObj?.sectionName || enr?.section?.name;
+                const mediumName = p.mediumName || studentObj?.mediumName || enr?.medium?.name;
+                const streamName = p.streamName || studentObj?.streamName || enr?.stream?.name;
 
                 const isActionDisabled = rowAction.id === p.id;
 
@@ -418,7 +591,7 @@ export const ReceiptTable = ({ payments = [], isLoading = false, onSelectReceipt
                           {studentName}
                         </div>
                         <div className="flex items-center gap-1.5 text-[9px] text-slate-500 font-mono">
-                          <span>Adm: {p.admissionNo || p.student?.admissionNo || '-'}</span>
+                          <span>Adm: {p.admissionNo || p.student?.admissionNo || studentObj?.admissionNo || '-'}</span>
                         </div>
                         {(className || sectionName || streamName || mediumName) && (
                           <div className="text-[9px] text-slate-600 font-medium truncate mt-0.5">

@@ -17,7 +17,40 @@ export const resolveSchool = asyncHandler(async (req, res, next) => {
     throw ApiError.unauthorized('User not authenticated');
   }
 
-  // For all school users, strictly lookup membership
+  // 1. Super Admin Priority Bypass: Super Admins can access any tenant without being trapped by rogue memberships
+  if (req.user.role === 'SUPER_ADMIN') {
+    const targetSchoolId = req.headers['x-school-id'] || req.query.schoolId;
+    let school = null;
+    if (targetSchoolId) {
+      school = await prisma.school.findUnique({ where: { id: targetSchoolId } });
+    }
+    if (!school) {
+      school = await prisma.school.findFirst({ where: { status: 'ACTIVE' } });
+    }
+    if (school) {
+      req.schoolId = school.id;
+      req.school = school;
+      setRequestContextSchool(school.id);
+      req.schoolMembership = {
+        id: 'super-admin-membership',
+        schoolRole: 'OWNER',
+        isOwner: true,
+        isActive: true,
+        permissions: [],
+      };
+      req.isOwner = true;
+      req.isSchoolAdmin = true;
+      req.schoolRole = 'OWNER';
+      return next();
+    }
+    // If no school exists yet on the platform, allow Super Admin to proceed
+    req.isOwner = true;
+    req.isSchoolAdmin = true;
+    req.schoolRole = 'OWNER';
+    return next();
+  }
+
+  // 2. For tenant school users, strictly lookup authoritative membership
   const membership = await prisma.schoolAdmin.findFirst({
     where: { userId: req.user.id },
     include: {
@@ -26,35 +59,10 @@ export const resolveSchool = asyncHandler(async (req, res, next) => {
         select: { permission: true },
       },
     },
+    orderBy: { createdAt: 'desc' },
   });
 
   if (!membership || !membership.school) {
-    if (req.user.role === 'SUPER_ADMIN') {
-      const targetSchoolId = req.headers['x-school-id'] || req.query.schoolId;
-      let school = null;
-      if (targetSchoolId) {
-        school = await prisma.school.findUnique({ where: { id: targetSchoolId } });
-      }
-      if (!school) {
-        school = await prisma.school.findFirst({ where: { status: 'ACTIVE' } });
-      }
-      if (school) {
-        req.schoolId = school.id;
-        req.school = school;
-        setRequestContextSchool(school.id);
-        req.schoolMembership = {
-          id: 'super-admin-membership',
-          schoolRole: 'OWNER',
-          isOwner: true,
-          isActive: true,
-          permissions: [],
-        };
-        req.isOwner = true;
-        req.isSchoolAdmin = true;
-        req.schoolRole = 'OWNER';
-        return next();
-      }
-    }
     throw ApiError.forbidden('No school membership associated with your user account');
   }
 

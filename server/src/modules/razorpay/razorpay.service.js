@@ -101,7 +101,32 @@ export const verifyRazorpayPayment = async (payload = {}) => {
   };
 };
 
+/**
+ * Fetches authoritative payment record from Razorpay API
+ * @param {string} paymentId
+ * @returns {Promise<Object>}
+ */
+export const fetchRazorpayPayment = async (paymentId) => {
+  if (!paymentId) {
+    throw ApiError.badRequest('Razorpay payment ID is required');
+  }
+
+  const instance = getRazorpayInstance();
+  try {
+    const payment = await instance.payments.fetch(paymentId);
+    return payment;
+  } catch (error) {
+    console.error('Razorpay Payment Fetch Error:', error);
+    const statusCode = error.statusCode || error.status || 500;
+    throw new ApiError(
+      statusCode,
+      error.error?.description || error.message || 'Failed to fetch payment details from Razorpay'
+    );
+  }
+};
+
 export default {
   createRazorpayOrder,
   verifyRazorpayPayment,
+  fetchRazorpayPayment,
 };

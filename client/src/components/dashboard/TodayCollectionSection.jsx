@@ -154,47 +154,56 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
       {/* Header with Title, Net Badge & Streamlined Date Navigator */}
       <div className="p-3.5 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
         {/* Left: Section Title & Live Context */}
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold shadow-2xs shrink-0">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-center font-bold shadow-xs shadow-indigo-950/30 shrink-0">
             <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
           </div>
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <h2 className="text-xs sm:text-base font-bold text-slate-900 tracking-tight">
                 {isToday
-                  ? "Today's Finances"
+                  ? "Today's Finances & Cashflow"
                   : isYesterday
-                    ? "Yesterday's Finances"
+                    ? "Yesterday's Finances & Cashflow"
                     : 'Daily Finance Summary'}
               </h2>
-              <Badge variant={isToday ? 'success' : isYesterday ? 'warning' : 'neutral'} size="sm" className="text-[10px]">
+              <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider ${
+                isToday ? 'bg-emerald-100 text-emerald-800' : isYesterday ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'
+              }`}>
                 {isToday ? 'TODAY' : isYesterday ? 'YESTERDAY' : formatDate(selectedDate)}
-              </Badge>
+              </span>
               {(totalCollection > 0 || totalExpenses > 0) && (
-                <Badge
-                  variant={netBalance >= 0 ? 'success' : 'danger'}
-                  size="sm"
-                  className="font-mono text-[10px]"
+                <span
+                  className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold font-mono border ${
+                    netBalance >= 0
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : 'bg-rose-50 text-rose-800 border-rose-200'
+                  }`}
                 >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      netBalance >= 0 ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+                    }`}
+                  />
                   Net: {netBalance >= 0 ? '+' : ''}
                   {formatCurrency(netBalance)}
-                </Badge>
+                </span>
               )}
             </div>
-            <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 font-medium truncate">
+            <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5 font-medium truncate">
               Transactions recorded on <span className="text-slate-600 font-semibold">{formatDate(selectedDate)}</span>
             </p>
           </div>
         </div>
 
         {/* Right: Compact Date Navigation Toolbar */}
-        <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 w-full md:w-auto justify-between md:justify-end flex-wrap sm:flex-nowrap">
           {/* Day Stepper Group */}
-          <div className="inline-flex items-center bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/60">
+          <div className="inline-flex items-center bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/60 shrink-0">
             <button
               type="button"
               onClick={handlePreviousDay}
-              className="p-1.5 sm:px-2.5 sm:py-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white text-xs font-semibold transition-all cursor-pointer flex items-center gap-1"
+              className="p-1 sm:px-2.5 sm:py-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white text-xs font-semibold transition-all cursor-pointer flex items-center gap-1"
               title="Previous Day"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
@@ -204,7 +213,7 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
             <button
               type="button"
               onClick={handleToday}
-              className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+              className={`px-2 sm:px-2.5 py-1 rounded-md text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
                 isToday
                   ? 'bg-emerald-600 text-white shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white'
@@ -218,7 +227,7 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
               type="button"
               disabled={!canGoNext}
               onClick={handleNextDay}
-              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
+              className={`p-1 sm:px-2.5 sm:py-1 rounded-md text-xs font-semibold transition-all flex items-center gap-1 ${
                 canGoNext
                   ? 'text-slate-600 hover:text-slate-900 hover:bg-white cursor-pointer'
                   : 'text-slate-300 cursor-not-allowed'
@@ -231,7 +240,7 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
           </div>
 
           {/* Date Picker Input */}
-          <div className="w-32 sm:w-36">
+          <div className="flex-1 md:w-36 min-w-[110px] max-w-[150px]">
             <DatePicker
               value={selectedDate}
               onChange={handleDateChange}
@@ -275,7 +284,7 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
             }`}
           >
             <span>Inflows</span>
-            <span className="font-mono text-[10px]">({formatCurrency(totalCollection)})</span>
+            <span className="font-mono text-[10px] hidden sm:inline">({formatCurrency(totalCollection)})</span>
           </button>
           <button
             type="button"
@@ -285,7 +294,7 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
             }`}
           >
             <span>Outflows</span>
-            <span className="font-mono text-[10px]">({formatCurrency(totalExpenses)})</span>
+            <span className="font-mono text-[10px] hidden sm:inline">({formatCurrency(totalExpenses)})</span>
           </button>
         </div>
       </div>
@@ -313,25 +322,25 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
             {/* 1. FEE COLLECTION (INFLOW)                               */}
             {/* ======================================================== */}
             {(activeTab === 'all' || activeTab === 'inflow') && (
-              <div className="rounded-xl sm:rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 flex flex-col justify-between shadow-2xs hover:border-emerald-300 transition-colors">
+              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-b from-emerald-50/25 via-white to-white p-4 sm:p-5 flex flex-col justify-between shadow-2xs hover:shadow-sm hover:border-emerald-300/90 transition-all duration-200">
                 <div className="space-y-4">
                   {/* Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4" />
+                      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-xs shadow-emerald-500/20">
+                        <TrendingUp className="w-4 h-4" strokeWidth={2.5} />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
                             Fee Collections
                           </h3>
-                          <Badge variant="success" size="sm" className="text-[9px] py-0 px-1.5">
+                          <span className="inline-block px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-emerald-100/80 text-emerald-800 tracking-wider">
                             INFLOW
-                          </Badge>
+                          </span>
                         </div>
-                        <p className="text-[11px] text-slate-400">
-                          Receipts on {formatDate(selectedDate)}
+                        <p className="text-[11px] text-slate-400 font-medium">
+                          Receipts recorded on {formatDate(selectedDate)}
                         </p>
                       </div>
                     </div>
@@ -339,15 +348,15 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
                       to="/app/fees"
                       className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5 group"
                     >
-                      <span>Fees</span>
+                      <span>Fees Module</span>
                       <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                     </Link>
                   </div>
 
                   {/* Main Metric */}
                   <div>
-                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                      Total Collected
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Total Inflow Collected
                     </span>
                     <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-emerald-800 mt-0.5">
                       {formatCurrency(totalCollection)}
@@ -355,27 +364,27 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
                   </div>
 
                   {/* Sub-Metrics Row */}
-                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
-                    <div className="p-2 sm:p-2.5 bg-slate-50/60 rounded-xl border border-slate-100 text-center sm:text-left">
-                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pt-2 border-t border-slate-100">
+                    <div className="p-1.5 sm:p-2.5 bg-emerald-50/40 rounded-xl border border-emerald-100/70 text-center sm:text-left">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-emerald-800 uppercase tracking-wider block truncate">
                         Receipts
                       </span>
-                      <span className="text-xs sm:text-sm font-bold text-slate-900 font-mono block mt-0.5">
+                      <span className="text-xs sm:text-sm font-extrabold text-slate-900 font-mono block mt-0.5 truncate">
                         {formatNumber(transactionCount)}
                       </span>
                     </div>
 
-                    <div className="p-2 sm:p-2.5 bg-slate-50/60 rounded-xl border border-slate-100 text-center sm:text-left">
-                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    <div className="p-1.5 sm:p-2.5 bg-emerald-50/40 rounded-xl border border-emerald-100/70 text-center sm:text-left">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-emerald-800 uppercase tracking-wider block truncate">
                         Students
                       </span>
-                      <span className="text-xs sm:text-sm font-bold text-slate-900 font-mono block mt-0.5">
+                      <span className="text-xs sm:text-sm font-bold text-slate-900 font-mono block mt-0.5 truncate">
                         {formatNumber(studentCount)}
                       </span>
                     </div>
 
-                    <div className="p-2 sm:p-2.5 bg-slate-50/60 rounded-xl border border-slate-100 text-center sm:text-left">
-                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    <div className="p-1.5 sm:p-2.5 bg-slate-50/60 rounded-xl border border-slate-100 text-center sm:text-left">
+                      <span className="text-[9px] sm:text-[10px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
                         Avg Receipt
                       </span>
                       <span className="text-xs sm:text-sm font-bold text-slate-900 font-mono block mt-0.5 truncate">
@@ -424,25 +433,25 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
             {/* 2. EXPENSES (OUTFLOW)                                    */}
             {/* ======================================================== */}
             {(activeTab === 'all' || activeTab === 'outflow') && (
-              <div className="rounded-xl sm:rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 flex flex-col justify-between shadow-2xs hover:border-rose-300 transition-colors">
+              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-b from-rose-50/25 via-white to-white p-4 sm:p-5 flex flex-col justify-between shadow-2xs hover:shadow-sm hover:border-rose-300/90 transition-all duration-200">
                 <div className="space-y-4">
                   {/* Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-                        <TrendingDown className="w-4 h-4" />
+                      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-rose-500 to-pink-600 text-white flex items-center justify-center shadow-xs shadow-rose-500/20">
+                        <TrendingDown className="w-4 h-4" strokeWidth={2.5} />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
-                            Expenses
+                            Expenses & Outflows
                           </h3>
-                          <Badge variant="danger" size="sm" className="text-[9px] py-0 px-1.5">
+                          <span className="inline-block px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-rose-100/80 text-rose-800 tracking-wider">
                             OUTFLOW
-                          </Badge>
+                          </span>
                         </div>
-                        <p className="text-[11px] text-slate-400">
-                          Vouchers on {formatDate(selectedDate)}
+                        <p className="text-[11px] text-slate-400 font-medium">
+                          Vouchers recorded on {formatDate(selectedDate)}
                         </p>
                       </div>
                     </div>
@@ -457,8 +466,8 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
 
                   {/* Main Metric */}
                   <div>
-                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                      Total Expenses
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Total Outflows Disbursed
                     </span>
                     <div className="text-2xl sm:text-3xl font-extrabold font-mono tracking-tight text-rose-700 mt-0.5">
                       {formatCurrency(totalExpenses)}
@@ -466,27 +475,27 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
                   </div>
 
                   {/* Sub-Metrics Row */}
-                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
-                    <div className="p-2 sm:p-2.5 bg-slate-50/60 rounded-xl border border-slate-100 text-center sm:text-left">
-                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2 pt-2 border-t border-slate-100">
+                    <div className="p-1.5 sm:p-2.5 bg-rose-50/40 rounded-xl border border-rose-100/70 text-center sm:text-left">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-rose-800 uppercase tracking-wider block truncate">
                         Vouchers
                       </span>
-                      <span className="text-xs sm:text-sm font-bold text-slate-900 font-mono block mt-0.5">
+                      <span className="text-xs sm:text-sm font-extrabold text-slate-900 font-mono block mt-0.5 truncate">
                         {formatNumber(expenseCount)}
                       </span>
                     </div>
 
-                    <div className="p-2 sm:p-2.5 bg-slate-50/60 rounded-xl border border-slate-100 text-center sm:text-left">
-                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    <div className="p-1.5 sm:p-2.5 bg-rose-50/40 rounded-xl border border-rose-100/70 text-center sm:text-left">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-rose-800 uppercase tracking-wider block truncate">
                         Categories
                       </span>
-                      <span className="text-xs sm:text-sm font-bold text-slate-900 font-mono block mt-0.5">
+                      <span className="text-xs sm:text-sm font-bold text-slate-900 font-mono block mt-0.5 truncate">
                         {formatNumber(categoryCount)}
                       </span>
                     </div>
 
-                    <div className="p-2 sm:p-2.5 bg-slate-50/60 rounded-xl border border-slate-100 text-center sm:text-left">
-                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                    <div className="p-1.5 sm:p-2.5 bg-slate-50/60 rounded-xl border border-slate-100 text-center sm:text-left">
+                      <span className="text-[9px] sm:text-[10px] font-semibold text-slate-400 uppercase tracking-wider block truncate">
                         Avg Voucher
                       </span>
                       <span className="text-xs sm:text-sm font-bold text-slate-900 font-mono block mt-0.5 truncate">
