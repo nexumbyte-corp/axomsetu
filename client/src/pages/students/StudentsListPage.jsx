@@ -566,29 +566,35 @@ export const StudentsListPage = () => {
                   const mediumName = e.medium?.name || '—';
                   const hostelInfo = item.hostel;
                   const isHighlighted = item.id === highlightedStudentId;
+                  const isLeft = item.status === 'LEFT' || e.status === 'LEFT';
 
                   return (
                     <TableRow
                       key={item.id}
-                      className={`group cursor-pointer transition-colors border-b border-slate-100 ${
+                      className={`group cursor-pointer transition-colors border-b ${
                         isHighlighted
-                          ? 'bg-emerald-50/80 hover:bg-emerald-100/70 ring-2 ring-emerald-500/50'
-                          : 'hover:bg-slate-50/70'
+                          ? 'bg-emerald-50/80 hover:bg-emerald-100/70 ring-2 ring-emerald-500/50 border-emerald-200'
+                          : isLeft
+                          ? 'bg-rose-50/40 hover:bg-rose-100/60 border-rose-100/80'
+                          : 'hover:bg-slate-50/70 border-slate-100'
                       }`}
                       onClick={() => navigate(`/app/students/${item.id}`)}
                     >
                       {/* STUDENT */}
-                      <TableCell className="py-2 px-3.5">
+                      <TableCell className={`py-2 px-3.5 ${isLeft ? 'border-l-4 border-l-rose-500 pl-2.5' : ''}`}>
                         <div className="flex items-center gap-2.5">
                           <StudentAvatar
                             name={item.name}
                             photoUrl={item.photoUrl}
                             size="sm"
+                            className={isLeft ? 'ring-1.5 ring-rose-300' : ''}
                             onClick={(ev) => handlePhotoPreview(ev, item)}
                           />
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-slate-900 text-xs sm:text-sm group-hover:text-indigo-600 transition-colors truncate">
+                              <span className={`font-bold text-xs sm:text-sm transition-colors truncate ${
+                                isLeft ? 'text-slate-900 group-hover:text-rose-700' : 'text-slate-900 group-hover:text-indigo-600'
+                              }`}>
                                 {item.name}
                               </span>
                               {isHighlighted && (
@@ -596,8 +602,16 @@ export const StudentsListPage = () => {
                                   New
                                 </span>
                               )}
+                              {isLeft && (
+                                <span
+                                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-rose-100 text-rose-700 border border-rose-200/80 uppercase tracking-wider shrink-0"
+                                  title="Student has left the school"
+                                >
+                                  Left
+                                </span>
+                              )}
                             </div>
-                            <div className="text-[10px] text-slate-400 font-mono tracking-tight">
+                            <div className={`text-[10px] font-mono tracking-tight ${isLeft ? 'text-rose-400 font-medium' : 'text-slate-400'}`}>
                               {item.admissionNo}
                             </div>
                           </div>
@@ -670,14 +684,17 @@ export const StudentsListPage = () => {
               const fatherName = item.fatherName || item.guardianName || '—';
               const hostelInfo = item.hostel;
               const isHighlighted = item.id === highlightedStudentId;
+              const isLeft = item.status === 'LEFT' || e.status === 'LEFT';
 
               return (
                 <div
                   key={item.id}
-                  className={`bg-white p-3.5 rounded-xl border shadow-2xs space-y-2.5 cursor-pointer transition-colors ${
+                  className={`p-3.5 rounded-xl border shadow-2xs space-y-2.5 cursor-pointer transition-colors ${
                     isHighlighted
                       ? 'border-emerald-400 bg-emerald-50/40 ring-2 ring-emerald-500/40'
-                      : 'border-slate-200 hover:border-indigo-200'
+                      : isLeft
+                      ? 'bg-rose-50/40 border-rose-200/80 hover:border-rose-300 border-l-4 border-l-rose-500'
+                      : 'bg-white border-slate-200 hover:border-indigo-200'
                   }`}
                   onClick={() => navigate(`/app/students/${item.id}`)}
                 >
@@ -687,6 +704,7 @@ export const StudentsListPage = () => {
                         name={item.name}
                         photoUrl={item.photoUrl}
                         size="sm"
+                        className={isLeft ? 'ring-1.5 ring-rose-300' : ''}
                         onClick={(ev) => handlePhotoPreview(ev, item)}
                       />
                       <div className="min-w-0">
@@ -699,8 +717,16 @@ export const StudentsListPage = () => {
                               New
                             </span>
                           )}
+                          {isLeft && (
+                            <span
+                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-rose-100 text-rose-700 border border-rose-200/80 uppercase tracking-wider shrink-0"
+                              title="Student has left the school"
+                            >
+                              Left
+                            </span>
+                          )}
                         </div>
-                        <p className="text-[11px] text-slate-500 font-mono">{item.admissionNo}</p>
+                        <p className={`text-[11px] font-mono ${isLeft ? 'text-rose-400 font-medium' : 'text-slate-500'}`}>{item.admissionNo}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0" onClick={(ev) => ev.stopPropagation()}>
@@ -709,7 +735,9 @@ export const StudentsListPage = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50/70 p-2 rounded-lg border border-slate-100">
+                  <div className={`grid grid-cols-2 gap-2 text-xs p-2 rounded-lg border ${
+                    isLeft ? 'bg-white/80 border-rose-100' : 'bg-slate-50/70 border-slate-100'
+                  }`}>
                     <div>
                       <span className="text-slate-400 block text-[10px] uppercase font-bold">Guardian</span>
                       <span className="font-medium text-slate-800 text-[11px] truncate block">{fatherName}</span>

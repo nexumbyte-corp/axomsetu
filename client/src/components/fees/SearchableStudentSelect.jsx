@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, UserCheck, ChevronDown, Check, X, Phone, User, BookOpen, Layers, Loader2, Calendar } from 'lucide-react';
 import { Badge } from '../ui/Badge.jsx';
+import { StudentStatusBadge } from '../students/StudentStatusBadge.jsx';
 import { studentService } from '../../services/student.service.js';
 import { formatDate } from '../../utils/formatters.js';
 
@@ -250,6 +251,7 @@ export const SearchableStudentSelect = ({
               ) : (
                 filteredStudents.map((student) => {
                   const isSelected = student.id === selectedStudentId;
+                  const isLeft = student.status === 'LEFT' || student.enrollment?.status === 'LEFT' || student.enrollments?.[0]?.status === 'LEFT';
                   const info = getEnrollmentInfo(student);
                   const fatherName = student.guardianName || student.fatherName || 'N/A';
 
@@ -260,13 +262,19 @@ export const SearchableStudentSelect = ({
                       className={`p-3 rounded-xl cursor-pointer transition-all flex items-start justify-between gap-3 ${
                         isSelected
                           ? 'bg-indigo-50/90 border border-indigo-200 shadow-2xs'
+                          : isLeft
+                          ? 'bg-rose-50/40 hover:bg-rose-100/60 border border-rose-200/80 border-l-4 border-l-rose-500'
                           : 'hover:bg-slate-50 border border-transparent'
                       }`}
                     >
                       <div className="flex items-start gap-3 min-w-0 flex-1">
                         <div
                           className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-xs shrink-0 mt-0.5 shadow-2xs ${
-                            isSelected ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-700'
+                            isSelected
+                              ? 'bg-indigo-600 text-white'
+                              : isLeft
+                              ? 'bg-rose-100 text-rose-700 ring-1 ring-rose-300'
+                              : 'bg-indigo-100 text-indigo-700'
                           }`}
                         >
                           {student.name ? student.name.charAt(0).toUpperCase() : 'S'}
@@ -278,9 +286,12 @@ export const SearchableStudentSelect = ({
                             <Badge variant="indigo" size="sm">
                               {student.admissionNo}
                             </Badge>
-                            <Badge variant={student.status === 'ACTIVE' ? 'success' : 'neutral'} size="sm">
-                              {student.status || 'ACTIVE'}
-                            </Badge>
+                            <StudentStatusBadge status={student.status} size="sm" />
+                            {isLeft && (
+                              <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-100 text-rose-700 border border-rose-200/80 uppercase tracking-wider">
+                                Left
+                              </span>
+                            )}
                             {student.admissionDate && (
                               <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/80">
                                 <Calendar className="w-2.5 h-2.5 text-indigo-600 shrink-0" />
@@ -384,9 +395,10 @@ export const SearchableStudentSelect = ({
                 <Calendar className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                 <span>{formatDate(selectedStudent.admissionDate) || 'Not recorded'}</span>
               </p>
-              <p className="text-[10px] text-emerald-700 font-medium mt-0.5">
-                Status: {selectedStudent.status || 'ACTIVE'}
-              </p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-[10px] text-slate-500 font-medium">Status:</span>
+                <StudentStatusBadge status={selectedStudent.status} size="sm" />
+              </div>
             </div>
           </div>
         </div>

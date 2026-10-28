@@ -44,6 +44,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
   const [selectedClassId, setSelectedClassId] = useState(() => savedFilters?.selectedClassId || '');
   const [selectedSectionId, setSelectedSectionId] = useState(() => savedFilters?.selectedSectionId || '');
   const [selectedMediumId, setSelectedMediumId] = useState(() => savedFilters?.selectedMediumId || '');
+  const [selectedStatus, setSelectedStatus] = useState(() => savedFilters?.selectedStatus || '');
   const [page, setPage] = useState(() => savedFilters?.page || 1);
   const [pagination, setPagination] = useState({ page: savedFilters?.page || 1, limit: 15, total: 0, totalPages: 1 });
 
@@ -57,13 +58,14 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
           selectedClassId,
           selectedSectionId,
           selectedMediumId,
+          selectedStatus,
           page,
         })
       );
     } catch (err) {
       console.error('Failed saving fee picker filters:', err);
     }
-  }, [searchTerm, selectedClassId, selectedSectionId, selectedMediumId, page]);
+  }, [searchTerm, selectedClassId, selectedSectionId, selectedMediumId, selectedStatus, page]);
 
   // 1. Fetch Setup Options (Classes, Sections & Mediums)
   useEffect(() => {
@@ -116,6 +118,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
           classId: debouncedSearch ? undefined : (selectedClassId || undefined),
           sectionId: debouncedSearch ? undefined : (selectedSectionId || undefined),
           mediumId: debouncedSearch ? undefined : (selectedMediumId || undefined),
+          status: debouncedSearch ? undefined : (selectedStatus || undefined),
         }, { signal: controller.signal });
 
         if (!controller.signal.aborted) {
@@ -148,7 +151,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
     return () => {
       controller.abort();
     };
-  }, [selectedYearId, page, debouncedSearch, selectedClassId, selectedSectionId, selectedMediumId]);
+  }, [selectedYearId, page, debouncedSearch, selectedClassId, selectedSectionId, selectedMediumId, selectedStatus]);
 
   const handleResetFilters = () => {
     setSearchTerm('');
@@ -156,6 +159,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
     setSelectedClassId('');
     setSelectedSectionId('');
     setSelectedMediumId('');
+    setSelectedStatus('');
     setPage(1);
     try {
       localStorage.removeItem(FEE_PICKER_FILTERS_STORAGE_KEY);
@@ -233,6 +237,20 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
             ))}
           </select>
 
+          {/* Status Select Filter */}
+          <select
+            value={selectedStatus}
+            onChange={(e) => {
+              setSelectedStatus(e.target.value);
+              setPage(1);
+            }}
+            className="py-1 px-2.5 text-xs bg-slate-50/80 hover:bg-slate-100/70 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium text-slate-700 min-w-[95px] transition-colors"
+          >
+            <option value="">All Status</option>
+            <option value="ACTIVE">Active</option>
+            <option value="LEFT">Left School</option>
+          </select>
+
           {/* Search Input */}
           <div className="relative flex-1 min-w-[170px] sm:w-56">
             <Input
@@ -244,7 +262,7 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
             />
           </div>
 
-          {(searchTerm || selectedClassId || selectedMediumId || selectedSectionId) && (
+          {(searchTerm || selectedClassId || selectedMediumId || selectedSectionId || selectedStatus) && (
             <button
               type="button"
               onClick={handleResetFilters}
@@ -306,26 +324,46 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
                   const mediumName = e.medium?.name || '—';
                   const hostelInfo = item.hostel;
                   const pendingFee = Number(item.pendingFee || 0);
+                  const isLeft = item.status === 'LEFT' || e.status === 'LEFT';
 
                   return (
                     <TableRow
                       key={item.id}
-                      className="group cursor-pointer hover:bg-slate-50/80 transition-colors border-b border-slate-100"
+                      className={`group cursor-pointer transition-colors border-b ${
+                        isLeft
+                          ? 'bg-rose-50/40 hover:bg-rose-100/60 border-rose-100/80'
+                          : 'hover:bg-slate-50/80 border-slate-100'
+                      }`}
                       onClick={() => onSelectStudent(item)}
                     >
                       {/* Identity Cell */}
-                      <TableCell className="py-1.5 px-3">
+                      <TableCell className={`py-1.5 px-3 ${isLeft ? 'border-l-4 border-l-rose-500 pl-2' : ''}`}>
                         <div className="flex items-center gap-2">
                           <StudentAvatar
                             name={item.name}
                             photoUrl={item.photoUrl}
                             size="sm"
+                            className={isLeft ? 'ring-1.5 ring-rose-300' : ''}
                           />
                           <div>
-                            <span className="font-bold text-slate-900 text-xs group-hover:text-indigo-600 transition-colors block leading-snug">
-                              {item.name}
+                            <div className="flex items-center gap-1.5">
+                              <span className={`font-bold text-xs transition-colors block leading-snug ${
+                                isLeft ? 'text-slate-900 group-hover:text-rose-700' : 'text-slate-900 group-hover:text-indigo-600'
+                              }`}>
+                                {item.name}
+                              </span>
+                              {isLeft && (
+                                <span
+                                  className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-100 text-rose-700 border border-rose-200/80 uppercase tracking-wider shrink-0"
+                                  title="Student has left the school"
+                                >
+                                  Left
+                                </span>
+                              )}
+                            </div>
+                            <span className={`text-[10px] font-mono ${isLeft ? 'text-rose-400 font-medium' : 'text-slate-400'}`}>
+                              Adm: {item.admissionNo}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">Adm: {item.admissionNo}</span>
                           </div>
                         </div>
                       </TableCell>
@@ -396,10 +434,14 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
                         <button
                           type="button"
                           onClick={() => onSelectStudent(item)}
-                          className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-slate-700 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/50 shadow-2xs transition-all cursor-pointer"
+                          className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border shadow-2xs transition-all cursor-pointer ${
+                            isLeft
+                              ? 'border-rose-200 bg-white text-rose-700 hover:text-white hover:bg-rose-600 hover:border-rose-600'
+                              : 'border-slate-200 bg-white text-slate-700 hover:text-indigo-600 hover:border-indigo-300 hover:bg-indigo-50/50'
+                          }`}
                         >
                           <span>Collect</span>
-                          <span className="text-slate-400 group-hover:text-indigo-600 transition-colors">→</span>
+                          <span className={isLeft ? 'text-rose-400 group-hover:text-white transition-colors' : 'text-slate-400 group-hover:text-indigo-600 transition-colors'}>→</span>
                         </button>
                       </TableCell>
                     </TableRow>
@@ -415,11 +457,16 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
               const e = item.enrollment || {};
               const fatherName = item.fatherName || item.guardianName || '—';
               const pendingFee = Number(item.pendingFee || 0);
+              const isLeft = item.status === 'LEFT' || e.status === 'LEFT';
 
               return (
                 <div
                   key={item.id}
-                  className="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs space-y-2 cursor-pointer hover:border-indigo-300 transition-colors"
+                  className={`p-3 rounded-xl border shadow-2xs space-y-2 cursor-pointer transition-colors ${
+                    isLeft
+                      ? 'bg-rose-50/40 border-rose-200/80 hover:border-rose-300 border-l-4 border-l-rose-500'
+                      : 'bg-white border-slate-200 hover:border-indigo-300'
+                  }`}
                   onClick={() => onSelectStudent(item)}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -428,18 +475,31 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
                         name={item.name}
                         photoUrl={item.photoUrl}
                         size="sm"
+                        className={isLeft ? 'ring-1.5 ring-rose-300' : ''}
                       />
                       <div>
-                        <span className="font-bold text-slate-900 text-xs block">
-                          {item.name}
-                        </span>
-                        <p className="text-[10px] text-slate-400 font-mono">Adm: {item.admissionNo}</p>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-slate-900 text-xs block">
+                            {item.name}
+                          </span>
+                          {isLeft && (
+                            <span
+                              className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-100 text-rose-700 border border-rose-200/80 uppercase tracking-wider shrink-0"
+                              title="Student has left the school"
+                            >
+                              Left
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-[10px] font-mono ${isLeft ? 'text-rose-400 font-medium' : 'text-slate-400'}`}>Adm: {item.admissionNo}</p>
                       </div>
                     </div>
                     <StudentStatusBadge status={item.status} />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-1.5 text-xs bg-slate-50/70 p-2 rounded-lg border border-slate-100">
+                  <div className={`grid grid-cols-2 gap-1.5 text-xs p-2 rounded-lg border ${
+                    isLeft ? 'bg-white/80 border-rose-100' : 'bg-slate-50/70 border-slate-100'
+                  }`}>
                     <div>
                       <span className="text-slate-400 block text-[9px] uppercase font-bold">Class</span>
                       <span className="font-semibold text-slate-800 text-[11px]">
@@ -474,7 +534,11 @@ export const StudentPickerTable = ({ onSelectStudent }) => {
                     <button
                       type="button"
                       onClick={() => onSelectStudent(item)}
-                      className="w-full py-1 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white transition-colors flex items-center justify-center gap-1"
+                      className={`w-full py-1 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 ${
+                        isLeft
+                          ? 'bg-rose-100 text-rose-700 hover:bg-rose-600 hover:text-white'
+                          : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white'
+                      }`}
                     >
                       <span>Collect Fee</span>
                       <span>→</span>

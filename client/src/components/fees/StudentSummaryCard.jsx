@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FileText, ArrowLeft, Printer, Download, Loader2 } from 'lucide-react';
 import { Badge } from '../ui/Badge.jsx';
 import { StudentAvatar } from '../students/StudentAvatar.jsx';
+import { StudentStatusBadge } from '../students/StudentStatusBadge.jsx';
 
 export const StudentSummaryCard = ({
   student,
@@ -21,6 +22,8 @@ export const StudentSummaryCard = ({
     student.enrollments?.find((e) => e.status === 'ACTIVE') ||
     student.enrollments?.[0] ||
     student.enrollment;
+
+  const isLeft = student.status === 'LEFT' || activeEnrollment?.status === 'LEFT';
 
   const rawClassName = (activeEnrollment?.class?.name || student.class?.name || '').trim();
   const cleanClassName = rawClassName
@@ -45,7 +48,16 @@ export const StudentSummaryCard = ({
   const totalOutstanding = Number(outstandingSummary?.totalOutstanding ?? outstandingSummary?.outstanding ?? 0);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-2.5 sm:p-3 shadow-2xs space-y-2">
+    <div className={`rounded-xl border p-2.5 sm:p-3 shadow-2xs space-y-2 transition-colors ${
+      isLeft ? 'bg-rose-50/30 border-rose-200/80 border-l-4 border-l-rose-500' : 'bg-white border-slate-200'
+    }`}>
+      {isLeft && (
+        <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-rose-50/80 border border-rose-200/80 text-rose-800 text-xs font-medium">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+          <span><strong>Student Left School:</strong> This student has left the school. Outstanding dues may be reviewed and collected here.</span>
+        </div>
+      )}
+
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         {/* Left: Student Identity & Details */}
         <div className="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
@@ -66,18 +78,16 @@ export const StudentSummaryCard = ({
             name={student.name}
             photoUrl={student.photoUrl}
             size="md"
-            className="shrink-0"
+            className={`shrink-0 ${isLeft ? 'ring-1.5 ring-rose-300' : ''}`}
           />
 
           <div className="min-w-0 flex-1">
             {/* Student Name & Badges */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate leading-tight">
+              <h2 className={`text-sm sm:text-base font-bold truncate leading-tight ${isLeft ? 'text-slate-900' : 'text-slate-900'}`}>
                 {student.name}
               </h2>
-              <Badge variant={student.status === 'ACTIVE' ? 'success' : 'neutral'} size="sm" className="text-[9px] py-0 px-1.5">
-                {student.status || 'ACTIVE'}
-              </Badge>
+              <StudentStatusBadge status={student.status} size="sm" />
               {isHostelEnrolled && (
                 <Badge variant="purple" size="sm" className="text-[9px] py-0 px-1.5">
                   Resident

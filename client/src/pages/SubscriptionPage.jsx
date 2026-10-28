@@ -962,7 +962,7 @@ export const SubscriptionPage = () => {
                     });
 
                     if (res && res.success) {
-                      toast.success('🎉 Payment verified! Your subscription has been activated immediately.');
+                      toast.success('Payment verified! Your subscription has been activated immediately.');
                       setSelectedPlan(null);
                       await Promise.all([fetchSubscriptionDetails(), refreshSubscription?.()]);
                     } else {
