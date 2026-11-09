@@ -246,6 +246,11 @@ export const AdmitCardGenerationPage = () => {
       return;
     }
 
+    if (!validUptoDate) {
+      toast.error('Please select the Valid Upto Date');
+      return;
+    }
+
     if (!classId) {
       toast.error('Please select a Class first');
       return;
@@ -270,6 +275,11 @@ export const AdmitCardGenerationPage = () => {
       return;
     }
 
+    if (!validUptoDate) {
+      toast.error('Please select the Valid Upto Date');
+      return;
+    }
+
     setIndividualPrintStudent(item);
     setTimeout(() => {
       window.print();
@@ -288,7 +298,7 @@ export const AdmitCardGenerationPage = () => {
             <Button
               size="sm"
               onClick={handleGenerateAndPrint}
-              disabled={loadingStudents || selectedStudents.length === 0 || !examName.trim()}
+              disabled={loadingStudents || selectedStudents.length === 0 || !examName.trim() || !validUptoDate}
               className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs flex items-center gap-1.5 font-semibold text-xs"
             >
               <Printer className="w-3.5 h-3.5" />
@@ -339,7 +349,7 @@ export const AdmitCardGenerationPage = () => {
             {/* Valid Upto Date (sm) */}
             <div>
               <label className="block text-[11px] font-bold text-slate-700 mb-0.5">
-                Valid Upto Date
+                Valid Upto Date <span className="text-rose-500">*</span>
               </label>
               <DatePicker
                 value={validUptoDate}
