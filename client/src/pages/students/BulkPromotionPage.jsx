@@ -63,23 +63,22 @@ export const BulkPromotionPage = () => {
 
   // 1. Fetch Setup Options Once
   useEffect(() => {
+    let cancelled = false;
     const fetchOptions = async () => {
       try {
-        const [clsRes, secRes, medRes, strRes] = await Promise.all([
+        const [clsRes, secRes] = await Promise.allSettled([
           academicService.getClasses(),
           academicService.getSections(),
-          academicService.getMediums(),
-          academicService.getStreams(),
         ]);
-        if (clsRes.success) setClasses(clsRes.data || []);
-        if (secRes.success) setSections(secRes.data || []);
-        if (medRes.success) setMediums(medRes.data || []);
-        if (strRes.success) setStreams(strRes.data || []);
+        if (cancelled) return;
+        if (clsRes.status === 'fulfilled' && clsRes.value?.success) setClasses(clsRes.value.data || []);
+        if (secRes.status === 'fulfilled' && secRes.value?.success) setSections(secRes.value.data || []);
       } catch {
-        toast.error('Failed loading academic configuration');
+        if (!cancelled) toast.error('Failed loading academic configuration');
       }
     };
     fetchOptions();
+    return () => { cancelled = true; };
   }, []);
 
   // Sorted classes by order ascending

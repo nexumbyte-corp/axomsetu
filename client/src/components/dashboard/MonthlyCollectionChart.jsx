@@ -71,7 +71,18 @@ export const MonthlyCollectionChart = ({ data = [] }) => {
     linePathD = `M ${paddingLeft} ${p.y} L ${width - paddingRight} ${p.y}`;
     areaPathD = `M ${paddingLeft} ${height - paddingBottom} L ${paddingLeft} ${p.y} L ${width - paddingRight} ${p.y} L ${width - paddingRight} ${height - paddingBottom} Z`;
   } else {
-    linePathD = points.reduce((acc, p, idx) => `${acc} ${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`, '');
+    const smoothLine = (pts) => {
+      if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`;
+      let d = `M ${pts[0].x} ${pts[0].y}`;
+      for (let i = 1; i < pts.length; i++) {
+        const prev = pts[i - 1];
+        const curr = pts[i];
+        const cpx = (prev.x + curr.x) / 2;
+        d += ` C ${cpx} ${prev.y}, ${cpx} ${curr.y}, ${curr.x} ${curr.y}`;
+      }
+      return d;
+    };
+    linePathD = smoothLine(points);
     const firstP = points[0];
     const lastP = points[points.length - 1];
     areaPathD = `${linePathD} L ${lastP.x} ${height - paddingBottom} L ${firstP.x} ${height - paddingBottom} Z`;
@@ -147,9 +158,9 @@ export const MonthlyCollectionChart = ({ data = [] }) => {
           <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible select-none">
             <defs>
               <linearGradient id="vibrantCollectionGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity="0.32" />
+                <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
                 <stop offset="60%" stopColor="#059669" stopOpacity="0.12" />
-                <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                <stop offset="100%" stopColor="#10b981" stopOpacity="0.02" />
               </linearGradient>
               <filter id="emeraldGlow" x="-20%" y="-20%" width="140%" height="140%">
                 <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#10b981" floodOpacity="0.35" />
@@ -181,6 +192,16 @@ export const MonthlyCollectionChart = ({ data = [] }) => {
 
             {/* Area Fill */}
             <path d={areaPathD} fill="url(#vibrantCollectionGradient)" />
+
+            {/* Baseline */}
+            <line
+              x1={paddingLeft}
+              y1={height - paddingBottom}
+              x2={width - paddingRight}
+              y2={height - paddingBottom}
+              stroke="#e2e8f0"
+              strokeWidth="1"
+            />
 
             {/* Line Path with Glow Filter */}
             <path

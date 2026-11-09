@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CreditCard, Wallet, Users, ChevronRight, ArrowUpRight } from 'lucide-react';
+import { CreditCard, Wallet, Users, ChevronRight, ArrowUpRight, Receipt } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card.jsx';
 import { Badge } from '../ui/Badge.jsx';
 import { formatCurrency, formatDate } from '../../utils/formatters.js';
@@ -34,14 +34,17 @@ export const RecentFeeCollections = ({ collections = [] }) => {
           className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5 group"
         >
           <span>View All</span>
-          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </CardHeader>
 
       <CardContent className="p-0">
         {collections.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-400">
-            No fee collections recorded yet.
+          <div className="p-10 text-center flex flex-col items-center gap-2 text-slate-400">
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mb-1">
+              <CreditCard className="w-5 h-5 text-slate-400" />
+            </div>
+            <span className="text-xs font-medium">No fee collections recorded yet</span>
           </div>
         ) : (
           <>
@@ -80,7 +83,7 @@ export const RecentFeeCollections = ({ collections = [] }) => {
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-slate-50/70 border-b border-slate-100 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                  <tr className="bg-slate-50/70 border-b border-slate-100 text-slate-500 font-bold text-[11px] uppercase tracking-wider sticky top-0 z-10 ring-1 ring-inset ring-slate-100">
                     <th className="py-2.5 px-4 font-mono">Date</th>
                     <th className="py-2.5 px-4 font-mono">Receipt</th>
                     <th className="py-2.5 px-4">Student</th>
@@ -145,14 +148,17 @@ export const RecentExpenses = ({ expenses = [] }) => {
           className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5 group"
         >
           <span>View All</span>
-          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </CardHeader>
 
       <CardContent className="p-0">
         {expenses.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-400">
-            No expenses recorded yet.
+          <div className="p-10 text-center flex flex-col items-center gap-2 text-slate-400">
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mb-1">
+              <Receipt className="w-5 h-5 text-slate-400" />
+            </div>
+            <span className="text-xs font-medium">No expenses recorded yet</span>
           </div>
         ) : (
           <>
@@ -182,7 +188,7 @@ export const RecentExpenses = ({ expenses = [] }) => {
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-slate-50/70 border-b border-slate-100 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                  <tr className="bg-slate-50/70 border-b border-slate-100 text-slate-500 font-bold text-[11px] uppercase tracking-wider sticky top-0 z-10 ring-1 ring-inset ring-slate-100">
                     <th className="py-2.5 px-4 font-mono">Date</th>
                     <th className="py-2.5 px-4">Category</th>
                     <th className="py-2.5 px-4">Description</th>
@@ -236,14 +242,17 @@ export const RecentSalaryPayments = ({ payments = [] }) => {
           className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5 group"
         >
           <span>View All</span>
-          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </CardHeader>
 
       <CardContent className="p-0">
         {payments.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-400">
-            No salary disbursements recorded yet.
+          <div className="p-10 text-center flex flex-col items-center gap-2 text-slate-400">
+            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mb-1">
+              <Users className="w-5 h-5 text-slate-400" />
+            </div>
+            <span className="text-xs font-medium">No salary disbursements recorded yet</span>
           </div>
         ) : (
           <>
@@ -282,7 +291,7 @@ export const RecentSalaryPayments = ({ payments = [] }) => {
             <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-slate-50/70 border-b border-slate-100 text-slate-500 font-bold text-[11px] uppercase tracking-wider">
+                  <tr className="bg-slate-50/70 border-b border-slate-100 text-slate-500 font-bold text-[11px] uppercase tracking-wider sticky top-0 z-10 ring-1 ring-inset ring-slate-100">
                     <th className="py-2.5 px-4 font-mono">Date</th>
                     <th className="py-2.5 px-4">Staff Member</th>
                     <th className="py-2.5 px-4">Payroll Month</th>

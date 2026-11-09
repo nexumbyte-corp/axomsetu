@@ -6,7 +6,7 @@ const THEME_CONFIG = {
   indigo: {
     ambientGlow: 'bg-indigo-500/10',
     topHighlight: 'from-indigo-500 to-violet-500',
-    iconGradient: 'bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/25 ring-4 ring-indigo-50',
+    iconGradient: 'bg-gradient-to-tr from-indigo-600 via-indigo-500 to-violet-500 text-white shadow-lg shadow-indigo-500/25 ring-[3px] ring-offset-1 ring-indigo-50',
     borderHover: 'hover:border-indigo-300',
     actionText: 'text-indigo-600 group-hover:text-indigo-700',
     valueText: 'text-slate-900',
@@ -16,7 +16,7 @@ const THEME_CONFIG = {
   sky: {
     ambientGlow: 'bg-sky-500/10',
     topHighlight: 'from-sky-400 to-blue-600',
-    iconGradient: 'bg-gradient-to-tr from-sky-500 via-blue-500 to-blue-600 text-white shadow-lg shadow-sky-500/25 ring-4 ring-sky-50',
+    iconGradient: 'bg-gradient-to-tr from-sky-500 via-blue-500 to-blue-600 text-white shadow-lg shadow-sky-500/25 ring-[3px] ring-offset-1 ring-sky-50',
     borderHover: 'hover:border-sky-300',
     actionText: 'text-sky-600 group-hover:text-sky-700',
     valueText: 'text-slate-900',
@@ -26,7 +26,7 @@ const THEME_CONFIG = {
   amber: {
     ambientGlow: 'bg-amber-500/10',
     topHighlight: 'from-amber-400 to-orange-500',
-    iconGradient: 'bg-gradient-to-tr from-amber-500 via-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/25 ring-4 ring-amber-50',
+    iconGradient: 'bg-gradient-to-tr from-amber-500 via-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/25 ring-[3px] ring-offset-1 ring-amber-50',
     borderHover: 'hover:border-amber-300',
     actionText: 'text-amber-700 group-hover:text-amber-800',
     valueText: 'text-amber-950',
@@ -36,7 +36,7 @@ const THEME_CONFIG = {
   rose: {
     ambientGlow: 'bg-rose-500/10',
     topHighlight: 'from-rose-400 to-pink-600',
-    iconGradient: 'bg-gradient-to-tr from-rose-500 via-pink-500 to-pink-600 text-white shadow-lg shadow-rose-500/25 ring-4 ring-rose-50',
+    iconGradient: 'bg-gradient-to-tr from-rose-500 via-pink-500 to-pink-600 text-white shadow-lg shadow-rose-500/25 ring-[3px] ring-offset-1 ring-rose-50',
     borderHover: 'hover:border-rose-300',
     actionText: 'text-rose-600 group-hover:text-rose-700',
     valueText: 'text-rose-950',
@@ -46,7 +46,7 @@ const THEME_CONFIG = {
   emerald: {
     ambientGlow: 'bg-emerald-500/10',
     topHighlight: 'from-emerald-400 to-teal-600',
-    iconGradient: 'bg-gradient-to-tr from-emerald-500 via-teal-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 ring-4 ring-emerald-50',
+    iconGradient: 'bg-gradient-to-tr from-emerald-500 via-teal-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 ring-[3px] ring-offset-1 ring-emerald-50',
     borderHover: 'hover:border-emerald-300',
     actionText: 'text-emerald-700 group-hover:text-emerald-800',
     valueText: 'text-slate-900',
@@ -70,48 +70,63 @@ export const DashboardMetricCard = ({
   const cfg = THEME_CONFIG[theme] || THEME_CONFIG.indigo;
   const resolvedValueClass = valueClass || cfg.valueText;
 
+  // Adaptive font sizing based on content length so amounts and currency values never get truncated
+  const valString = typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+  const fontSizeClass = (() => {
+    if (!valString) return 'text-xl sm:text-2xl xl:text-[28px]';
+    if (valString.length > 13) return 'text-base sm:text-lg xl:text-xl';
+    if (valString.length > 10) return 'text-lg sm:text-xl xl:text-2xl';
+    if (valString.length > 7) return 'text-xl sm:text-2xl xl:text-[26px]';
+    return 'text-2xl sm:text-3xl xl:text-[28px]';
+  })();
+
   const content = (
     <div
-      className={`group relative bg-gradient-to-b ${cfg.bgWash} rounded-2xl sm:rounded-3xl border border-slate-200/80 ${cfg.borderHover} p-3.5 sm:p-5 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between h-full overflow-hidden hover:-translate-y-1 ${
+      className={`group relative bg-gradient-to-b ${cfg.bgWash} rounded-2xl sm:rounded-3xl border border-slate-200/80 ${cfg.borderHover} p-3.5 sm:p-4.5 xl:p-5 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between h-full overflow-hidden hover:-translate-y-1 ${
         actionUrl ? 'cursor-pointer active:scale-[0.99]' : ''
       } ${className}`}
     >
       {/* Top Colorful Gradient Highlight Line */}
-      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${cfg.topHighlight} opacity-90`} />
+      <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${cfg.topHighlight} opacity-100`} />
 
       {/* Ambient Floating Soft Glow in the Corner */}
       <div
         className={`absolute -top-12 -right-12 w-32 h-32 rounded-full ${cfg.ambientGlow} blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500`}
       />
 
-      {/* Card Header & Number */}
+      {/* Card Header & Value */}
       <div className="relative z-10">
-        <div className="flex items-start justify-between gap-2 sm:gap-3">
-          <div className="space-y-1 min-w-0 flex-1">
-            <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-              <span className="text-[10px] sm:text-xs font-bold text-slate-400 tracking-wider uppercase font-sans">
-                {title}
-              </span>
-              {badge && <div className="shrink-0">{badge}</div>}
-            </div>
-
-            <p className={`text-xl sm:text-2xl md:text-3xl lg:text-[28px] font-black tracking-tight font-mono leading-tight pt-0.5 truncate ${resolvedValueClass}`}>
-              {value}
-            </p>
+        {/* Top Header Row: Title & Badge on left, Icon on right */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap min-w-0">
+            <span className="text-[10px] sm:text-xs font-bold text-slate-400 tracking-wider uppercase font-sans truncate">
+              {title}
+            </span>
+            {badge && <div className="shrink-0">{badge}</div>}
           </div>
 
           {Icon && (
             <div
-              className={`w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2 ${cfg.iconGradient}`}
+              className={`w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-2 ${cfg.iconGradient}`}
             >
-              <Icon className="w-4.5 h-4.5 sm:w-5 sm:h-5 md:w-5.5 md:h-5.5" strokeWidth={2.2} />
+              <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-4.5 md:h-4.5" strokeWidth={2.2} />
             </div>
           )}
+        </div>
+
+        {/* Full-width Metric Value: completely visible across full card width */}
+        <div className="mt-2 sm:mt-2.5 min-w-0">
+          <p
+            className={`font-black tracking-tight font-mono leading-tight tabular-nums select-all truncate ${fontSizeClass} ${resolvedValueClass}`}
+            title={valString || undefined}
+          >
+            {value}
+          </p>
         </div>
       </div>
 
       {/* Card Footer: Secondary Info & Action */}
-      <div className="relative z-10 flex items-center justify-between pt-2.5 sm:pt-3.5 mt-2.5 sm:mt-3.5 border-t border-slate-100/90 text-xs gap-1.5 sm:gap-2 min-w-0">
+      <div className="relative z-10 flex items-center justify-between pt-2.5 sm:pt-3 mt-2.5 sm:mt-3 border-t border-slate-100/90 text-xs gap-1.5 sm:gap-2 min-w-0 shadow-[inset_0_-1px_0_0_rgba(0,0,0,0.04)]">
         <div className="text-slate-600 font-medium truncate flex-1 min-w-0">
           {typeof secondary === 'string' ? (
             <span className="truncate block font-semibold text-[10px] sm:text-[11px] text-slate-500">{secondary}</span>

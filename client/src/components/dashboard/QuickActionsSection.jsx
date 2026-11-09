@@ -98,18 +98,18 @@ export const QuickActionsSection = () => {
             <CardTitle className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
               Operational Shortcuts
             </CardTitle>
-            <p className="text-[11px] text-slate-500 hidden sm:block">
+            <p className="text-[11px] text-slate-500">
               Frequently accessed day-to-day administrative actions
             </p>
           </div>
         </div>
         <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono">
-          7 Direct Actions
+          {actions.length} Quick Actions
         </span>
       </CardHeader>
 
       <CardContent className="p-3 sm:p-4.5">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-2.5 md:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-3">
           {actions.map((act, idx) => {
             const IconComp = act.icon;
             const isLastOnMobile = idx === actions.length - 1;
@@ -121,7 +121,7 @@ export const QuickActionsSection = () => {
                   isLastOnMobile
                     ? 'col-span-2 sm:col-span-1 flex-row sm:flex-col justify-start sm:justify-center gap-3 sm:gap-0'
                     : 'flex-col items-center justify-center text-center'
-                } p-2.5 sm:p-3.5 rounded-xl border border-slate-200/80 bg-white ${act.hoverBorder} shadow-2xs hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] min-h-[58px] sm:min-h-0`}
+                } p-2.5 sm:p-3.5 rounded-xl border border-slate-200/80 bg-white ${act.hoverBorder} shadow-2xs hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] min-h-[58px] sm:min-h-[80px]`}
               >
                 {/* Micro hover indicator */}
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">

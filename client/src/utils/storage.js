@@ -2,6 +2,8 @@ const TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 const ACADEMIC_YEAR_KEY = 'selected_academic_year';
 const ADMIT_CARD_EXAM_NAME_KEY = 'admit_card_exam_name';
+const ADMIT_CARD_VALID_UPTO_KEY = 'admit_card_valid_upto';
+const ADMIT_CARD_TEMPLATE_PRESET_KEY = 'admit_card_template_preset';
 const SCHOOL_CONTEXT_KEY = 'school_context';
 
 let inMemoryAccessToken = null;
@@ -66,6 +68,18 @@ export const storage = {
   setAdmitCardExamName: (name) => {
     if (name) localStorage.setItem(ADMIT_CARD_EXAM_NAME_KEY, name);
     else localStorage.removeItem(ADMIT_CARD_EXAM_NAME_KEY);
+  },
+
+  getAdmitCardValidUpto: () => localStorage.getItem(ADMIT_CARD_VALID_UPTO_KEY) || '',
+  setAdmitCardValidUpto: (date) => {
+    if (date) localStorage.setItem(ADMIT_CARD_VALID_UPTO_KEY, date);
+    else localStorage.removeItem(ADMIT_CARD_VALID_UPTO_KEY);
+  },
+
+  getAdmitCardTemplatePreset: () => localStorage.getItem(ADMIT_CARD_TEMPLATE_PRESET_KEY) || 'preset-1',
+  setAdmitCardTemplatePreset: (presetId) => {
+    if (presetId) localStorage.setItem(ADMIT_CARD_TEMPLATE_PRESET_KEY, presetId);
+    else localStorage.removeItem(ADMIT_CARD_TEMPLATE_PRESET_KEY);
   },
 
   getSchoolContext: () => {

@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ArrowUpRight,
   AlertCircle,
+  Inbox,
 } from 'lucide-react';
 import { dashboardService } from '../../services/dashboard.service.js';
 import { DatePicker } from '../ui/DatePicker.jsx';
@@ -174,7 +175,7 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
               </span>
               {(totalCollection > 0 || totalExpenses > 0) && (
                 <span
-                  className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold font-mono border ${
+                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-black font-mono border ${
                     netBalance >= 0
                       ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                       : 'bg-rose-50 text-rose-800 border-rose-200'
@@ -266,7 +267,7 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
 
       {/* Mobile Tab Switcher (<lg) */}
       <div className="lg:hidden px-3.5 pt-3 pb-0 flex border-b border-slate-100">
-        <div className="grid grid-cols-3 gap-1 bg-slate-100 p-0.5 rounded-lg w-full text-xs font-semibold text-slate-600">
+        <div className="grid grid-cols-3 gap-1 bg-slate-100 p-0.5 rounded-lg w-full text-xs font-bold text-slate-600">
           <button
             type="button"
             onClick={() => setActiveTab('all')}
@@ -322,7 +323,7 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
             {/* 1. FEE COLLECTION (INFLOW)                               */}
             {/* ======================================================== */}
             {(activeTab === 'all' || activeTab === 'inflow') && (
-              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-b from-emerald-50/25 via-white to-white p-4 sm:p-5 flex flex-col justify-between shadow-2xs hover:shadow-sm hover:border-emerald-300/90 transition-all duration-200">
+              <div className="rounded-2xl border border-l-4 border-l-emerald-500 border-slate-200/90 bg-gradient-to-b from-emerald-50/25 via-white to-white p-4 sm:p-5 flex flex-col justify-between shadow-2xs hover:shadow-sm hover:border-emerald-300/90 transition-all duration-200">
                 <div className="space-y-4">
                   {/* Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -421,7 +422,8 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400 italic py-1">
+                    <p className="text-xs text-slate-400 italic py-1 flex items-center gap-1.5">
+                      <Inbox className="w-3.5 h-3.5 shrink-0" />
                       No collections recorded on this date.
                     </p>
                   )}
@@ -433,7 +435,7 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
             {/* 2. EXPENSES (OUTFLOW)                                    */}
             {/* ======================================================== */}
             {(activeTab === 'all' || activeTab === 'outflow') && (
-              <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-b from-rose-50/25 via-white to-white p-4 sm:p-5 flex flex-col justify-between shadow-2xs hover:shadow-sm hover:border-rose-300/90 transition-all duration-200">
+              <div className="rounded-2xl border border-l-4 border-l-rose-500 border-slate-200/90 bg-gradient-to-b from-rose-50/25 via-white to-white p-4 sm:p-5 flex flex-col justify-between shadow-2xs hover:shadow-sm hover:border-rose-300/90 transition-all duration-200">
                 <div className="space-y-4">
                   {/* Header */}
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -532,7 +534,8 @@ export const TodayCollectionSection = ({ selectedYearId }) => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-400 italic py-1">
+                    <p className="text-xs text-slate-400 italic py-1 flex items-center gap-1.5">
+                      <Inbox className="w-3.5 h-3.5 shrink-0" />
                       No expense vouchers recorded on this date.
                     </p>
                   )}

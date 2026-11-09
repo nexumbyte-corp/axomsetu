@@ -24,7 +24,8 @@ import { StudentAvatar } from '../../components/students/StudentAvatar.jsx';
 import { toast } from '../../components/ui/Toast.jsx';
 import { ModulePageHeader } from '../../components/ui/ModulePageHeader.jsx';
 import { Table, TableHeader, TableHead, TableRow, TableBody, TableCell } from '../../components/ui/Table.jsx';
-import { AdmitCardTemplate } from '../../components/academics/AdmitCardTemplate.jsx';
+import { DatePicker } from '../../components/ui/DatePicker.jsx';
+import { AdmitCardTemplate, ADMIT_CARD_PRESETS, DEFAULT_PRESET_ID } from '../../components/academics/AdmitCardTemplate.jsx';
 
 export const AdmitCardGenerationPage = () => {
   const { academicYears, selectedYearId, selectedYear } = useAcademicYear();
@@ -36,8 +37,18 @@ export const AdmitCardGenerationPage = () => {
   const [mediums, setMediums] = useState([]);
   const [streams, setStreams] = useState([]);
 
-  // 2. Generation Inputs & Filters
-  const [academicYearId, setAcademicYearId] = useState(selectedYearId || '');
+  // 2. Active Academic Year (automatically resolved from tenant current session)
+  const activeAcademicYear = useMemo(() => {
+    return academicYears.find((y) => y.isCurrent) || selectedYear || null;
+  }, [academicYears, selectedYear]);
+
+  const academicYearId = activeAcademicYear?.id || selectedYearId || '';
+
+  // 3. Generation Inputs & Filters
+  const [templatePreset, setTemplatePreset] = useState(
+    () => storage.getAdmitCardTemplatePreset() || DEFAULT_PRESET_ID
+  );
+  const [validUptoDate, setValidUptoDate] = useState(() => storage.getAdmitCardValidUpto() || '');
   const [classId, setClassId] = useState('');
   const [sectionId, setSectionId] = useState('');
   const [mediumId, setMediumId] = useState('');
@@ -45,24 +56,35 @@ export const AdmitCardGenerationPage = () => {
   const [examName, setExamName] = useState(() => storage.getAdmitCardExamName() || 'Half Yearly Examination');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 3. Students & Selection State
+  // 4. Students & Selection State
   const [students, setStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [activePreviewStudentId, setActivePreviewStudentId] = useState(null);
   const [individualPrintStudent, setIndividualPrintStudent] = useState(null);
 
-  // Sync active academic year ID if context changes initially
-  useEffect(() => {
-    if (selectedYearId && !academicYearId) {
-      setAcademicYearId(selectedYearId);
-    }
-  }, [selectedYearId, academicYearId]);
+  // Handle Template Preset change with local storage persistence
+  const handleTemplatePresetChange = (val) => {
+    setTemplatePreset(val);
+    storage.setAdmitCardTemplatePreset(val);
+  };
+
+  // Active Preset Object for details display
+  const activePresetObj = useMemo(() => {
+    return ADMIT_CARD_PRESETS.find((p) => p.id === templatePreset) || ADMIT_CARD_PRESETS[0];
+  }, [templatePreset]);
 
   // Handle Exam Name change with local storage persistence
   const handleExamNameChange = (val) => {
     setExamName(val);
     storage.setAdmitCardExamName(val);
+  };
+
+  // Handle Valid Upto Date change with local storage persistence
+  const handleValidUptoDateChange = (val) => {
+    const stringVal = typeof val === 'object' && val?.target ? val.target.value : (val || '');
+    setValidUptoDate(stringVal);
+    storage.setAdmitCardValidUpto(stringVal);
   };
 
   // Reset individual print student state after printing completes
@@ -202,10 +224,10 @@ export const AdmitCardGenerationPage = () => {
     return selectedStudents[0] || filteredStudents[0] || null;
   }, [students, activePreviewStudentId, selectedStudents, filteredStudents]);
 
-  // Selected Academic Year Object Name
+  // Selected Academic Year Object
   const currentYearObj = useMemo(() => {
-    return academicYears.find((y) => y.id === academicYearId) || selectedYear || {};
-  }, [academicYears, academicYearId, selectedYear]);
+    return activeAcademicYear || {};
+  }, [activeAcademicYear]);
 
   // Group selected students into pairs (2 cards per A4 page)
   const pairedPages = useMemo(() => {
@@ -260,7 +282,7 @@ export const AdmitCardGenerationPage = () => {
       <div className="print:hidden">
         <ModulePageHeader
           title="Admit Card Generation"
-          description="Select class criteria, enter exam name, preview live, and generate printable admit cards."
+          description={`Select class criteria, enter exam name, preview live, and generate printable admit cards${activeAcademicYear?.name ? ` • Academic Session: ${activeAcademicYear.name}` : ''}.`}
           icon={IdCard}
           actions={
             <Button
@@ -279,9 +301,9 @@ export const AdmitCardGenerationPage = () => {
       {/* 2. Compact Generation Criteria Bar */}
       <Card className="border-slate-200 shadow-2xs print:hidden">
         <CardContent className="p-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2.5 items-end">
             {/* Exam Name Input (Required, sm) */}
-            <div className="lg:col-span-2">
+            <div className="sm:col-span-2 lg:col-span-2">
               <label className="block text-[11px] font-bold text-slate-700 mb-0.5">
                 Exam Name <span className="text-rose-500">*</span>
               </label>
@@ -294,21 +316,37 @@ export const AdmitCardGenerationPage = () => {
               />
             </div>
 
-            {/* Academic Year (sm) */}
+            {/* Template Preset Dropdown (Preset 1 to Preset 10) */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-0.5">Academic Year</label>
+              <label className="block text-[11px] font-bold text-slate-700 mb-0.5">
+                Template Preset
+              </label>
               <Select
-                value={academicYearId}
-                onChange={(e) => setAcademicYearId(e.target.value)}
+                value={templatePreset}
+                onChange={(e) => handleTemplatePresetChange(e.target.value)}
                 size="sm"
-                className="w-full text-xs"
+                className="w-full text-xs font-semibold"
+                aria-label="Select Admit Card Template Preset"
               >
-                {academicYears.map((yr) => (
-                  <option key={yr.id} value={yr.id}>
-                    {yr.name} {yr.isCurrent ? '(Active)' : ''}
+                {ADMIT_CARD_PRESETS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.name}
                   </option>
                 ))}
               </Select>
+            </div>
+
+            {/* Valid Upto Date (sm) */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-0.5">
+                Valid Upto Date
+              </label>
+              <DatePicker
+                value={validUptoDate}
+                onChange={handleValidUptoDateChange}
+                size="sm"
+                placeholder="DD-MM-YYYY"
+              />
             </div>
 
             {/* Class (Required, sm) */}
@@ -560,27 +598,59 @@ export const AdmitCardGenerationPage = () => {
         <div className="lg:col-span-5 space-y-3">
           <Card className="border-slate-200 shadow-2xs">
             <CardHeader className="border-b border-slate-100 bg-slate-50/80 py-2.5 px-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <Eye className="w-3.5 h-3.5 text-indigo-600" />
                   <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide">
                     Live Admit Card Preview
                   </h3>
                 </div>
-                {previewStudent?.name && (
-                  <span className="text-[10.5px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded">
-                    {previewStudent.name}
-                  </span>
-                )}
+
+                <div className="flex items-center gap-1.5">
+                  {/* Quick Preset Selector in Header */}
+                  <div className="w-28 sm:w-32">
+                    <Select
+                      value={templatePreset}
+                      onChange={(e) => handleTemplatePresetChange(e.target.value)}
+                      size="sm"
+                      className="text-xs py-1"
+                      aria-label="Switch Preset Template"
+                    >
+                      {ADMIT_CARD_PRESETS.map((preset) => (
+                        <option key={preset.id} value={preset.id}>
+                          {preset.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+
+                  {previewStudent?.name && (
+                    <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded truncate max-w-28">
+                      {previewStudent.name}
+                    </span>
+                  )}
+                </div>
               </div>
             </CardHeader>
 
             <CardContent className="p-3 bg-slate-100/70">
+              {/* Active Preset Tagline Information */}
+              <div className="mb-2 flex items-center justify-between text-[11px] text-slate-600 px-0.5">
+                <span className="font-semibold text-slate-800">
+                  {activePresetObj.label}
+                </span>
+                <span className="text-slate-500 text-[10px] hidden sm:inline truncate max-w-56">
+                  {activePresetObj.tagline}
+                </span>
+              </div>
+
               <div className="bg-white border border-slate-300 rounded-md p-2 shadow-xs max-w-md mx-auto">
                 <AdmitCardTemplate
+                  templateId={templatePreset}
                   school={school}
                   academicYearName={currentYearObj?.name}
                   examName={examName}
+                  validUpto={validUptoDate}
                   student={previewStudent}
                   enrollment={previewStudent?.enrollment}
                   isPreview={true}
@@ -606,9 +676,11 @@ export const AdmitCardGenerationPage = () => {
           >
             <div className="w-full shrink-0">
               <AdmitCardTemplate
+                templateId={templatePreset}
                 school={school}
                 academicYearName={currentYearObj?.name}
                 examName={examName}
+                validUpto={validUptoDate}
                 student={individualPrintStudent}
                 enrollment={individualPrintStudent?.enrollment}
                 isPreview={false}
@@ -647,9 +719,11 @@ export const AdmitCardGenerationPage = () => {
                     )}
                     <div className="w-full shrink-0">
                       <AdmitCardTemplate
+                        templateId={templatePreset}
                         school={school}
                         academicYearName={currentYearObj?.name}
                         examName={examName}
+                        validUpto={validUptoDate}
                         student={item}
                         enrollment={item?.enrollment}
                         isPreview={false}

@@ -25,14 +25,18 @@ export const NeedsAttentionSection = ({ items = [] }) => {
 
         <CardContent className="p-6 sm:p-8 text-center flex-1 flex flex-col items-center justify-center">
           <div className="relative mb-3">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500/10 to-teal-500/20 border border-emerald-200/70 flex items-center justify-center shadow-xs">
-              <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+            <div className="absolute inset-0 w-14 h-14 rounded-2xl bg-emerald-200/40 animate-pulse" />
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500/10 to-teal-500/20 border border-emerald-200/70 flex items-center justify-center shadow-xs relative">
+              <ShieldCheck className="w-7 h-7 text-emerald-600" />
             </div>
             <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white"></div>
           </div>
           <h4 className="text-sm font-bold text-slate-900">All Operations Running Smoothly</h4>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto leading-relaxed">
             No critical blockers, expired subscriptions, or overdue alerts require your immediate intervention today.
+          </p>
+          <p className="text-[11px] text-slate-400 mt-2 font-medium">
+            Everything is operating normally. Check back for alerts.
           </p>
         </CardContent>
       </Card>
@@ -102,7 +106,7 @@ export const NeedsAttentionSection = ({ items = [] }) => {
           return (
             <div
               key={item.id || idx}
-              className={`p-3 sm:p-3.5 rounded-xl border ${style.cardBg} flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 shadow-2xs transition-all duration-150 hover:shadow-xs`}
+              className={`p-3 sm:p-3.5 rounded-xl border ${style.cardBg} ${item.severity === 'danger' ? 'border-l-4 border-l-rose-400' : 'border-l-4 border-l-amber-400'} flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 shadow-2xs transition-all duration-150 hover:shadow-xs`}
             >
               <div className="flex items-start gap-2.5 sm:gap-3 min-w-0">
                 <div
@@ -121,7 +125,7 @@ export const NeedsAttentionSection = ({ items = [] }) => {
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] text-slate-600 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
                     {item.description}
                   </p>
                 </div>

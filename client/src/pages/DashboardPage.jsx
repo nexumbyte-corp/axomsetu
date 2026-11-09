@@ -10,14 +10,10 @@ import {
   AlertCircle,
   RefreshCw,
   Crown,
-  Sparkles,
   Calendar,
   ArrowRight,
-  TrendingUp,
   School as SchoolIcon,
-  CheckCircle2,
   Clock,
-  Layers,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { useAcademicYear } from '../hooks/useAcademicYear.js';
@@ -237,36 +233,47 @@ export const DashboardPage = () => {
           </div>
 
           {/* Bottom Highlights Mini Ribbon */}
-          <div className="pt-3 border-t border-indigo-100/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 text-xs">
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-4 text-slate-600 font-medium">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
+          <div className="pt-3 border-t border-indigo-100/70 border-b-2 border-b-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 text-xs pb-3">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 text-slate-600 font-medium">
+              <span className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-indigo-50/80 border border-indigo-100/80 shadow-2xs">
+                <Users className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                 <span className="truncate">
-                  <span className="font-bold text-slate-900">{formatNumber(metrics?.students?.total || 0)}</span> Total Students
+                  <span className="font-bold text-slate-900">{formatNumber(metrics?.students?.total || 0)}</span>
+                  <span className="text-slate-500 font-medium ml-1">Students</span>
                 </span>
               </span>
 
-              <span className="text-slate-300 hidden sm:inline">&bull;</span>
-
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-emerald-50/80 border border-emerald-100/80 shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                 <span className="truncate">
-                  <span className="font-bold text-emerald-800">{formatNumber(metrics?.students?.active || 0)}</span> Active ({metrics?.students?.total ? ((metrics.students.active / metrics.students.total) * 100).toFixed(1) : 100}%)
+                  <span className="font-bold text-emerald-800">{formatNumber(metrics?.students?.active || 0)}</span>
+                  <span className="text-slate-500 font-medium ml-1">Active ({metrics?.students?.total ? ((metrics.students.active / metrics.students.total) * 100).toFixed(1) : 100}%)</span>
                 </span>
               </span>
 
-              <span className="text-slate-300 hidden sm:inline">&bull;</span>
-
-              <span className="flex items-center gap-1.5 col-span-2 sm:col-span-1">
-                <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
+              <span className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-sky-50/80 border border-sky-100/80 shadow-2xs col-span-2 sm:col-span-1">
+                <Briefcase className="w-3.5 h-3.5 text-sky-500 shrink-0" />
                 <span className="truncate">
-                  <span className="font-bold text-slate-900">{formatNumber(metrics?.staff?.active || 0)}</span> Active Staff
+                  <span className="font-bold text-slate-900">{formatNumber(metrics?.staff?.active || 0)}</span>
+                  <span className="text-slate-500 font-medium ml-1">Active Staff</span>
                 </span>
               </span>
             </div>
 
-            <div className="w-full sm:w-auto text-center sm:text-left font-mono text-xs font-bold text-indigo-900 bg-white/80 px-2.5 py-1.5 sm:py-1 rounded-xl border border-indigo-100/80 shadow-2xs">
-              Treasury: <span className="text-emerald-700">{formatCurrency(metrics?.financialBalance?.currentBalance || 0)}</span>
+            <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-start sm:justify-end">
+              {(metrics?.pendingFees?.amount || 0) > 0 && (
+                <Link
+                  to="/app/fees"
+                  className="w-full sm:w-auto text-center sm:text-left font-mono text-xs font-bold text-amber-900 bg-amber-50 hover:bg-amber-100/90 px-2.5 py-1.5 sm:py-1 rounded-xl border border-amber-200/80 shadow-2xs transition-colors flex items-center justify-center sm:justify-start gap-1.5"
+                  title="View all fee dues"
+                >
+                  <span className="text-amber-700 font-sans font-medium">Pending Dues:</span>
+                  <span className="text-amber-900 font-black">{formatCurrency(metrics?.pendingFees?.amount || 0)}</span>
+                </Link>
+              )}
+              <div className="w-full sm:w-auto text-center sm:text-left font-mono text-xs font-bold text-indigo-900 bg-white/80 px-2.5 py-1.5 sm:py-1 rounded-xl border border-indigo-100/80 shadow-2xs">
+                Treasury: <span className="text-emerald-700">{formatCurrency(metrics?.financialBalance?.currentBalance || 0)}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -324,8 +331,8 @@ export const DashboardPage = () => {
         </div>
       )}
 
-      {/* Primary 5 Operational Metric Cards Grid (2-col mobile, 3-col tablet, 5-col desktop) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
+      {/* Primary 5 Operational Metric Cards Grid (2-col mobile, 3-col tablet/laptop, 5-col desktop) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-4">
         {/* 1. Total Students */}
         <DashboardMetricCard
           title="Total Students"
@@ -392,14 +399,14 @@ export const DashboardPage = () => {
           secondary={
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 rounded-full text-[10px] sm:text-xs font-bold truncate max-w-full ${
-                metrics?.pendingFees?.amount > 0
+                (metrics?.pendingFees?.amount || 0) > 0
                   ? 'bg-amber-50 text-amber-800 border border-amber-200/90 shadow-2xs'
                   : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
               }`}
             >
-              {metrics?.pendingFees?.amount > 0
-                ? `${formatNumber(metrics?.pendingFees?.studentsCount || 0)} due`
-                : '✓ Cleared'}
+              {(metrics?.pendingFees?.amount || 0) > 0
+                ? `${formatNumber(metrics?.pendingFees?.studentsCount || 0)} student${(metrics?.pendingFees?.studentsCount || 0) === 1 ? '' : 's'} due`
+                : '✓ All fees cleared'}
             </span>
           }
           icon={CreditCard}
@@ -420,12 +427,12 @@ export const DashboardPage = () => {
           secondary={
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 rounded-full text-[10px] sm:text-xs font-bold truncate max-w-full ${
-                metrics?.pendingSalary?.amount > 0
+                (metrics?.pendingSalary?.amount || 0) > 0
                   ? 'bg-rose-50 text-rose-700 border border-rose-200/90 shadow-2xs'
                   : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
               }`}
             >
-              {metrics?.pendingSalary?.amount > 0
+              {(metrics?.pendingSalary?.amount || 0) > 0
                 ? `${formatNumber(metrics?.pendingSalary?.staffCount || 0)} pending`
                 : '✓ Disbursed'}
             </span>
@@ -455,7 +462,7 @@ export const DashboardPage = () => {
           icon={Wallet}
           actionUrl="/app/finance"
           actionText="Treasury"
-          className="col-span-2 md:col-span-2 lg:col-span-1"
+          className="col-span-2 md:col-span-2 xl:col-span-1"
         />
       </div>
 
