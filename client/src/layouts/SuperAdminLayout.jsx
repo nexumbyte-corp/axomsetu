@@ -28,6 +28,7 @@ import { Dropdown, DropdownItem, DropdownDivider } from '../components/ui/Dropdo
 import { ConfirmDialog } from '../components/ui/ConfirmDialog.jsx';
 import { Modal } from '../components/ui/Modal.jsx';
 import { Toast } from '../components/ui/Toast.jsx';
+import { PageLoader } from '../components/ui/PageLoader.jsx';
 
 import { BRAND_CONFIG } from '../config/brandConfig.js';
 import { BrandLogo } from '../components/common/BrandLogo.jsx';
@@ -402,7 +403,9 @@ export const SuperAdminLayout = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 p-3 sm:p-5 lg:p-6 w-full max-w-full min-w-0 overflow-x-hidden">
-          <Outlet />
+          <React.Suspense fallback={<PageLoader />}>
+            <Outlet />
+          </React.Suspense>
         </main>
       </div>
 

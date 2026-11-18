@@ -6,10 +6,24 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
-    dedupe: ['react', 'react-dom', 'react-router-dom'],
+    dedupe: ['react', 'react-dom'],
   },
   optimizeDeps: {
-    include: ['@tanstack/react-query', 'axios', 'lucide-react', 'react-router-dom'],
+    include: [
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'react/jsx-runtime',
+      'react/jsx-dev-runtime',
+      'react-router-dom',
+      '@tanstack/react-query',
+      'axios',
+      'lucide-react',
+      'qrcode.react',
+      'pdfmake/build/pdfmake.js',
+      'pdfmake/build/vfs_fonts.js',
+      'xlsx',
+    ],
   },
   build: {
     chunkSizeWarningLimit: 2500,
@@ -23,7 +37,18 @@ export default defineConfig({
             if (id.includes('lucide-react')) {
               return 'vendor-lucide';
             }
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+            if (
+              id.includes('/react/') ||
+              id.includes('\\react\\') ||
+              id.includes('/react-dom/') ||
+              id.includes('\\react-dom\\') ||
+              id.includes('/scheduler/') ||
+              id.includes('\\scheduler\\') ||
+              id.includes('/react-router/') ||
+              id.includes('\\react-router\\') ||
+              id.includes('/react-router-dom/') ||
+              id.includes('\\react-router-dom\\')
+            ) {
               return 'vendor-react';
             }
             if (id.includes('@tanstack/react-query') || id.includes('axios')) {

@@ -19,6 +19,7 @@ import { BRAND_CONFIG } from '../config/brandConfig.js';
 import { getSidebarNavigation } from '../config/navigationConfig.js';
 import { SchoolHeaderLogo } from '../components/common/SchoolHeaderLogo.jsx';
 import { SubscriptionExpiryBanner } from '../components/subscription/SubscriptionExpiryBanner.jsx';
+import { PageLoader } from '../components/ui/PageLoader.jsx';
 
 export const SchoolAdminLayout = () => {
   const navigate = useNavigate();
@@ -517,7 +518,9 @@ const getPageTitle = (locationPath, headerTitle) => {
 
           {/* Page Content Outlet */}
           <main className="flex-1 p-3.5 sm:p-6 lg:p-8 w-full max-w-full overflow-x-hidden space-y-4">
-            <Outlet />
+            <React.Suspense fallback={<PageLoader />}>
+              <Outlet />
+            </React.Suspense>
           </main>
         </div>
       </div>

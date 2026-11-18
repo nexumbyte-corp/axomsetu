@@ -47,6 +47,17 @@ export const StudentSummaryCard = ({
   const totalPaid = Number(outstandingSummary?.totalPaid || 0);
   const totalOutstanding = Number(outstandingSummary?.totalOutstanding ?? outstandingSummary?.outstanding ?? 0);
 
+  const handleViewProfile = () => {
+    if (!student?.id) return;
+    navigate(`/app/students/${student.id}`, {
+      state: {
+        from: '/app/fees/collect',
+        fromLabel: 'Back to Fee Collect',
+        student,
+      },
+    });
+  };
+
   return (
     <div className={`rounded-xl border p-2.5 sm:p-3 shadow-2xs space-y-2 transition-colors ${
       isLeft ? 'bg-rose-50/30 border-rose-200/80 border-l-4 border-l-rose-500' : 'bg-white border-slate-200'
@@ -74,19 +85,33 @@ export const StudentSummaryCard = ({
             </button>
           )}
 
-          <StudentAvatar
-            name={student.name}
-            photoUrl={student.photoUrl}
-            size="md"
-            className={`shrink-0 ${isLeft ? 'ring-1.5 ring-rose-300' : ''}`}
-          />
+          <button
+            type="button"
+            onClick={handleViewProfile}
+            className="shrink-0 cursor-pointer hover:opacity-85 transition-opacity focus:outline-hidden"
+            title="View Student Profile"
+          >
+            <StudentAvatar
+              name={student.name}
+              photoUrl={student.photoUrl}
+              size="md"
+              className={isLeft ? 'ring-1.5 ring-rose-300' : ''}
+            />
+          </button>
 
           <div className="min-w-0 flex-1">
             {/* Student Name & Badges */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <h2 className={`text-sm sm:text-base font-bold truncate leading-tight ${isLeft ? 'text-slate-900' : 'text-slate-900'}`}>
+              <button
+                type="button"
+                onClick={handleViewProfile}
+                className={`text-sm sm:text-base font-bold truncate leading-tight text-left cursor-pointer hover:text-indigo-600 hover:underline transition-colors ${
+                  isLeft ? 'text-slate-900' : 'text-slate-900'
+                }`}
+                title="View Student Profile"
+              >
                 {student.name}
-              </h2>
+              </button>
               <StudentStatusBadge status={student.status} size="sm" />
               {isHostelEnrolled && (
                 <Badge variant="purple" size="sm" className="text-[9px] py-0 px-1.5">

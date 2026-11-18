@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   Sparkles,
@@ -61,6 +61,7 @@ import { PhotoPreviewModal } from '../../components/students/PhotoPreviewModal.j
 export const StudentDetailsPage = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { selectedYear, selectedYearId, academicYears = [] } = useAcademicYear();
   const { can } = usePermission();
   const { user } = useAuth();
@@ -69,6 +70,21 @@ export const StudentDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [notFound, setNotFound] = useState(false);
+
+  const backDestination = location.state?.from;
+  const backLabel = location.state?.fromLabel || 'Students';
+
+  const handleBack = () => {
+    if (backDestination) {
+      navigate(backDestination, {
+        state: {
+          student: student || location.state?.student,
+        },
+      });
+    } else {
+      navigate('/app/students');
+    }
+  };
 
   // Active Tab State: 'overview' | 'fees' | 'overrides' | 'history'
   const [activeTab, setActiveTab] = useState('overview');
@@ -252,8 +268,8 @@ export const StudentDetailsPage = () => {
           icon={User}
           title="Student Record Not Found"
           description="The requested student profile does not exist or has been removed from this school workspace."
-          actionText="Back to Students List"
-          onAction={() => navigate('/app/students')}
+          actionText={backLabel}
+          onAction={handleBack}
         />
       </div>
     );
@@ -342,10 +358,10 @@ export const StudentDetailsPage = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate('/app/students')}
+                onClick={handleBack}
                 icon={ArrowLeft}
               >
-                Students
+                {backLabel}
               </Button>
 
               <Button

@@ -28,10 +28,14 @@ export const CollectFeesPage = () => {
   const [schoolProfile, setSchoolProfile] = useState(null);
 
   useEffect(() => {
-    if (location.state?.student && (!selectedStudent || selectedStudent.id !== location.state.student.id)) {
-      setSelectedStudent(location.state.student);
-      setSelectedChargeIds([]);
-      setPaymentAmounts({});
+    if (location.state?.student) {
+      setSelectedStudent((prev) => {
+        if (!prev || prev.id !== location.state.student.id) {
+          setSelectedChargeIds([]);
+          setPaymentAmounts({});
+        }
+        return location.state.student;
+      });
     }
   }, [location.state?.student]);
 

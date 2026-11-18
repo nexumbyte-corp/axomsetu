@@ -201,21 +201,18 @@ export const OutstandingChargesTable = ({
             return (
               <div
                 key={charge.id}
-                onClick={() => {
-                  if (isPayable) onToggleCharge(charge.id, remainingBal);
-                }}
                 className={`p-3 transition-colors ${
                   isSelected
                     ? 'bg-indigo-50/50'
                     : !isPayable
                     ? 'bg-slate-50/60 opacity-60'
-                    : 'hover:bg-slate-50/80 cursor-pointer'
+                    : 'hover:bg-slate-50/80'
                 }`}
               >
                 {/* Top: Checkbox, Title, Month & Status */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                    <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="pt-0.5">
                       <Checkbox
                         checked={isSelected}
                         disabled={!isPayable}
@@ -371,13 +368,10 @@ export const OutstandingChargesTable = ({
                         ? 'bg-indigo-50/30 font-medium'
                         : !isPayable
                         ? 'bg-slate-50/50 opacity-60'
-                        : 'hover:bg-slate-50/80 cursor-pointer'
+                        : 'hover:bg-slate-50/80'
                     }`}
-                    onClick={() => {
-                      if (isPayable) onToggleCharge(charge.id, remainingBal);
-                    }}
                   >
-                    <td className="py-1.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                    <td className="py-1.5 px-2 text-center">
                       <Checkbox
                         checked={isSelected}
                         disabled={!isPayable}
@@ -404,7 +398,7 @@ export const OutstandingChargesTable = ({
                     <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900">
                       ₹{remainingBal.toFixed(2)}
                     </td>
-                    <td className="py-1 px-1.5 text-right" onClick={(e) => e.stopPropagation()}>
+                    <td className="py-1 px-1.5 text-right">
                       {isSelected ? (
                         <div className="relative">
                           <input
