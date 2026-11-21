@@ -264,6 +264,19 @@ export const feeReportsService = {
             orderBy: { createdAt: 'desc' },
             take: 1,
           },
+          activeHostelEnrollments: {
+            where: {
+              schoolId,
+              OR: [
+                { status: 'ACTIVE' },
+                ...(academicYearId ? [{ academicYearId }] : []),
+              ],
+            },
+            take: 1,
+            select: {
+              id: true,
+            },
+          },
         },
       });
 
@@ -273,6 +286,7 @@ export const feeReportsService = {
         const secName = enr?.section?.name;
         const medName = enr?.medium?.name;
         const strmName = enr?.stream?.name;
+        const isHosteler = Boolean(s.activeHostelEnrollments && s.activeHostelEnrollments.length > 0);
 
         let fullClass = clsName;
         if (secName && secName !== '-') fullClass += ` - ${secName}`;
@@ -286,6 +300,7 @@ export const feeReportsService = {
           phone: s.phone || '-',
           className: fullClass,
           sectionName: secName || '-',
+          isHosteler,
         });
       }
     }
@@ -300,6 +315,7 @@ export const feeReportsService = {
         phone: info.phone || '-',
         className: info.className || '-',
         sectionName: info.sectionName || '-',
+        isHosteler: Boolean(info.isHosteler),
         totalCharged: item.totalCharged,
         paidAmount: item.paidAmount,
         balance: item.balance,

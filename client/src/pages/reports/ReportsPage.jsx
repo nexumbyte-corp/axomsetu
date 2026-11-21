@@ -484,7 +484,11 @@ export const ReportsPage = () => {
         { key: 'studentName', label: 'Student Name' },
         { key: 'guardianName', label: 'Guardian Name' },
         { key: 'phone', label: 'Contact Phone' },
-        { key: 'className', label: 'Class & Sec' },
+        {
+          key: 'className',
+          label: 'Class & Sec',
+          format: (v, row) => `${v || '-'} (${row?.isHosteler ? 'Hosteler' : 'Day Scholar'})`,
+        },
         { key: 'mediumName', label: 'Medium' },
         { key: 'streamName', label: 'Stream' },
         { key: 'totalCharged', label: 'Total Charged (₹)' },
@@ -514,7 +518,7 @@ export const ReportsPage = () => {
       exportToCSV(exportDataset, columns, `${baseFilename}.csv`);
       toast.success(`Exported ${baseFilename}.csv`);
     } else if (format === 'json') {
-      exportToJSON(exportDataset, `${baseFilename}.json`);
+      exportToJSON(exportDataset, columns, `${baseFilename}.json`);
       toast.success(`Exported ${baseFilename}.json`);
     }
   };
@@ -1682,7 +1686,17 @@ export const ReportsPage = () => {
                             <div className="text-xs font-semibold text-slate-800">{row.guardianName || '—'}</div>
                             <div className="text-[10px] font-mono text-slate-500">{row.phone || '—'}</div>
                           </TableCell>
-                          <TableCell className="py-2.5 px-3 font-semibold text-slate-800 text-xs">{row.className}</TableCell>
+                          <TableCell className="py-2.5 px-3">
+                            <div className="font-semibold text-slate-800 text-xs">{row.className || '—'}</div>
+                            <div className="mt-0.5">
+                              <Badge
+                                variant={row.isHosteler ? 'indigo' : 'neutral'}
+                                className="text-[9px] font-bold uppercase px-1.5 py-0.2 print:border-slate-400 print:text-black"
+                              >
+                                {row.isHosteler ? 'Hosteler' : 'Day Scholar'}
+                              </Badge>
+                            </div>
+                          </TableCell>
                           <TableCell className="py-2.5 px-3 text-right font-mono text-slate-700 text-xs print:hidden">{formatCurrency(row.totalCharged)}</TableCell>
                           <TableCell className="py-2.5 px-3 text-right font-mono text-emerald-600 font-semibold text-xs print:hidden">{formatCurrency(row.paidAmount)}</TableCell>
                           <TableCell className="py-2.5 px-3 text-right font-mono font-bold text-rose-600 text-xs print:text-black">
